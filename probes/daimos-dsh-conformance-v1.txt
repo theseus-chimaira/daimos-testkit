@@ -138,6 +138,21 @@ command FALSE ! TRUE; ECHO STATUS:$?
 contains STATUS:0
 end
 
+probe dsh-pipeline-three-stage
+command ECHO THREE ! CAT ! CAT
+line ^THREE$
+end
+
+probe dsh-pipeline-eight-stage
+command ECHO P8 ! CAT ! CAT ! CAT ! CAT ! CAT ! CAT ! CAT
+line ^P8$
+end
+
+probe dsh-pipeline-partial-launch-failure
+command ECHO PARTIAL ! NOSUCHCOMMAND ! CAT; ECHO STATUS:$?
+contains STATUS:127
+end
+
 probe dsh-export-child
 command EXPORT DSHX=CHILD; DSH -C 'ECHO $DSHX'
 line ^CHILD$
@@ -177,6 +192,57 @@ probe dsh-source-positional-restore
 command DSH /CONFIG/M O
 contains SOURCE:I
 contains OUTER:O
+end
+
+probe dsh-profile-input-create
+command TOUCH /CONFIG/DSHEMPTY
+not_contains TOUCH:
+end
+
+probe dsh-system-profile-create
+command ECHO 'SET ORDER SYSTEM' > /CONFIG/DSH.PROFILE
+not_contains ECHO:
+end
+
+probe dsh-home-profile-create
+command ECHO 'ECHO ORDER:$ORDER' > /CONFIG/.DSH.PROFILE
+not_contains ECHO:
+end
+
+probe dsh-login-profile-order
+command EXPORT HOME=/CONFIG; DSH -L < /CONFIG/DSHEMPTY
+contains ORDER:SYSTEM
+end
+
+probe dsh-nonlogin-no-profile
+command EXPORT HOME=/CONFIG; DSH < /CONFIG/DSHEMPTY
+not_contains ORDER:SYSTEM
+end
+
+probe dsh-system-profile-bad-create
+command ECHO 'IF' > /CONFIG/DSH.PROFILE
+not_contains ECHO:
+end
+
+probe dsh-login-profile-error-status
+command EXPORT HOME=/CONFIG; DSH -L < /CONFIG/DSHEMPTY; ECHO STATUS:$?
+contains DSH: PROFILE: /CONFIG/DSH.PROFILE
+contains STATUS:2
+end
+
+probe dsh-system-profile-remove
+command RM /CONFIG/DSH.PROFILE
+not_contains RM:
+end
+
+probe dsh-home-profile-remove
+command RM /CONFIG/.DSH.PROFILE
+not_contains RM:
+end
+
+probe dsh-login-profile-missing-ok
+command EXPORT HOME=/CONFIG; DSH -L < /CONFIG/DSHEMPTY; ECHO STATUS:$?
+contains STATUS:0
 end
 
 probe dsh-function-argument-return
@@ -246,5 +312,11 @@ end
 
 probe dsh-source-main-cleanup
 command RM /CONFIG/M
+not_contains RM:
+end
+
+
+probe dsh-profile-input-cleanup
+command RM /CONFIG/DSHEMPTY
 not_contains RM:
 end
