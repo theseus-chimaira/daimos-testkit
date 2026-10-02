@@ -1,0 +1,102 @@
+probe devs-dtc
+command DEVS
+contains DTC0
+not_contains DTC                               NO DEV
+end
+
+probe format
+command MKFS.DTFS -O NATIVE /DEV/DTC0
+not_contains MKFS.DTFS:
+end
+
+probe mount-rw
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+
+probe cd-dt0
+command CD /MOUNT/DT0
+not_contains CD:
+end
+probe pwd-dt0
+command PWD
+line ^/MOUNT/DT0$
+end
+probe cd-root
+command CD /
+not_contains CD:
+end
+
+probe empty-ls
+command LS /MOUNT/DT0
+not_contains LS:
+end
+probe touch-a
+command TOUCH /MOUNT/DT0/A
+not_contains TOUCH:
+end
+probe stat-empty
+command STAT /MOUNT/DT0/A
+matches /MOUNT/DT0/A.*CHARS 0.*WORDS 0.*MODE 0666
+not_contains STAT:
+end
+probe write-a
+command ECHO FIRST > /MOUNT/DT0/A
+not_contains ECHO:
+end
+probe cat-a-first
+command CAT /MOUNT/DT0/A
+contains FIRST
+not_contains CAT:
+end
+probe append-a
+command ECHO SECOND >> /MOUNT/DT0/A
+not_contains ECHO:
+end
+probe cat-a-appended
+command CAT /MOUNT/DT0/A
+contains FIRST
+contains SECOND
+not_contains CAT:
+end
+probe truncate-a
+command ECHO REPLACED > /MOUNT/DT0/A
+not_contains ECHO:
+end
+probe cat-a-replaced
+command CAT /MOUNT/DT0/A
+contains REPLACED
+not_contains FIRST
+not_contains SECOND
+not_contains CAT:
+end
+
+probe make-small
+command ECHO SMALLDATA > /TEMP/SMALL
+not_contains ECHO:
+end
+probe cp-small-in
+command CP /TEMP/SMALL /MOUNT/DT0/SMALL
+not_contains CP:
+timeout 45
+end
+probe cp-small-out
+command CP /MOUNT/DT0/SMALL /TEMP/SMALLBACK
+not_contains CP:
+timeout 45
+end
+probe cat-small-back
+command CAT /TEMP/SMALLBACK
+contains SMALLDATA
+not_contains CAT:
+end
+
+probe unmount-a
+command UNMOUNT /MOUNT/DT0
+not_contains UNMOUNT:
+end
+probe halt-a
+command HALT
+terminal eof
+timeout 15
+end

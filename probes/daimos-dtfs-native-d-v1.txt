@@ -1,0 +1,106 @@
+probe mount-d
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+probe name-11
+command TOUCH /MOUNT/DT0/ABCDEFGHIJK
+not_contains TOUCH:
+end
+probe name-12-reject
+command TOUCH /MOUNT/DT0/ABCDEFGHIJKL
+contains TOUCH: /MOUNT/DT0/ABCDEFGHIJKL
+end
+probe slot-01
+command TOUCH /MOUNT/DT0/F01
+not_contains TOUCH:
+end
+probe slot-02
+command TOUCH /MOUNT/DT0/F02
+not_contains TOUCH:
+end
+probe slot-03
+command TOUCH /MOUNT/DT0/F03
+not_contains TOUCH:
+end
+probe slot-04
+command TOUCH /MOUNT/DT0/F04
+not_contains TOUCH:
+end
+probe slot-05
+command TOUCH /MOUNT/DT0/F05
+not_contains TOUCH:
+end
+probe slot-06
+command TOUCH /MOUNT/DT0/F06
+not_contains TOUCH:
+end
+probe slot-07
+command TOUCH /MOUNT/DT0/F07
+not_contains TOUCH:
+end
+probe slot-08
+command TOUCH /MOUNT/DT0/F08
+not_contains TOUCH:
+end
+probe slot-09
+command TOUCH /MOUNT/DT0/F09
+not_contains TOUCH:
+end
+probe slot-10
+command TOUCH /MOUNT/DT0/F10
+not_contains TOUCH:
+end
+probe slot-11
+command TOUCH /MOUNT/DT0/F11
+not_contains TOUCH:
+end
+probe slot-12
+command TOUCH /MOUNT/DT0/F12
+not_contains TOUCH:
+end
+probe slot-13
+command TOUCH /MOUNT/DT0/F13
+not_contains TOUCH:
+end
+probe slot-14
+command TOUCH /MOUNT/DT0/F14
+not_contains TOUCH:
+end
+probe slot-15
+command TOUCH /MOUNT/DT0/F15
+not_contains TOUCH:
+end
+probe slot-16
+command TOUCH /MOUNT/DT0/F16
+not_contains TOUCH:
+end
+probe slot-17
+command TOUCH /MOUNT/DT0/F17
+not_contains TOUCH:
+end
+probe slot-18
+command TOUCH /MOUNT/DT0/F18
+not_contains TOUCH:
+end
+probe slot-19
+command TOUCH /MOUNT/DT0/F19
+not_contains TOUCH:
+end
+probe directory-full-reject
+command TOUCH /MOUNT/DT0/FULL
+contains TOUCH: /MOUNT/DT0/FULL
+end
+probe name-11-visible
+command LS /MOUNT/DT0
+contains ABCDEFGHIJK
+not_contains LS:
+end
+probe unmount-d
+command UNMOUNT /MOUNT/DT0
+not_contains UNMOUNT:
+end
+probe halt-d
+command HALT
+terminal eof
+timeout 15
+end

@@ -1,0 +1,340 @@
+probe root-ls
+command LS /
+contains SYSTEM
+contains MOUNT
+contains DEV
+contains TEMP
+end
+
+probe root-ls-repeat
+command LS /
+contains SYSTEM
+contains MOUNT
+contains DEV
+contains TEMP
+end
+
+probe pwd-root
+command PWD
+line ^/$
+end
+
+probe mkdir-memfs
+command MKDIR /TEMP/TKDIR
+end
+
+probe mkdir-visible
+command LS /TEMP
+contains TKDIR
+end
+
+probe touch-memfs
+command TOUCH /TEMP/TKDIR/EMPTY
+end
+
+probe stat-empty
+command STAT /TEMP/TKDIR/EMPTY
+contains /TEMP/TKDIR/EMPTY
+contains TYPE
+contains CHARS
+contains WORDS
+contains MODE
+end
+
+probe echo-memfs
+command ECHO KERNELTEST > /TEMP/TKDIR/TEXT
+end
+
+probe cat-memfs
+command CAT /TEMP/TKDIR/TEXT
+contains KERNELTEST
+end
+
+probe cp-memfs
+command CP /TEMP/TKDIR/TEXT /TEMP/TKDIR/COPY
+end
+
+probe cp-visible
+command CAT /TEMP/TKDIR/COPY
+contains KERNELTEST
+end
+
+probe mv-memfs
+command MV /TEMP/TKDIR/COPY /TEMP/TKDIR/MOVED
+end
+
+probe mv-visible
+command CAT /TEMP/TKDIR/MOVED
+contains KERNELTEST
+end
+
+probe ls-regular-file
+command LS /TEMP/TKDIR/TEXT
+contains TEXT
+end
+
+probe cat-multiple-files
+command CAT /TEMP/TKDIR/TEXT /TEMP/TKDIR/MOVED
+matches KERNELTEST.*KERNELTEST
+end
+
+probe append-create
+command ECHO APPEND1 > /TEMP/TKDIR/APPEND
+end
+
+probe append-existing
+command ECHO APPEND2 >> /TEMP/TKDIR/APPEND
+end
+
+probe append-visible
+command CAT /TEMP/TKDIR/APPEND
+matches APPEND1.*APPEND2
+end
+
+probe truncate-existing
+command ECHO REPLACED > /TEMP/TKDIR/APPEND
+end
+
+probe truncate-visible
+command CAT /TEMP/TKDIR/APPEND
+contains REPLACED
+not_contains APPEND1
+not_contains APPEND2
+end
+
+probe mkdir-deep
+command MKDIR /TEMP/TKDIR/SUB
+end
+
+probe cwd-deep-enter
+setup CD /TEMP/TKDIR/SUB
+command PWD
+contains /TEMP/TKDIR/SUB
+end
+
+probe cwd-deep-parent
+setup CD /TEMP/TKDIR/SUB
+setup CD ..
+command PWD
+contains /TEMP/TKDIR
+end
+
+probe stat-proc-file
+command STAT /PROC/1/NAME
+contains /PROC/1/NAME
+contains TYPE
+contains CHARS
+contains WORDS
+contains MODE
+end
+
+probe stat-device-file
+command STAT /MONITOR/DEVICES/CTY0/STATS
+contains /MONITOR/DEVICES/CTY0/STATS
+contains TYPE
+contains CHARS
+contains WORDS
+contains MODE
+end
+
+probe missing-stat-error
+command STAT /TEMP/TKDIR/NOFILE
+contains STAT: /TEMP/TKDIR/NOFILE
+end
+
+probe missing-cat-error
+command CAT /TEMP/TKDIR/NOFILE
+contains CAT: /TEMP/TKDIR/NOFILE
+end
+
+probe duplicate-mkdir-error
+command MKDIR /TEMP/TKDIR
+contains MKDIR: /TEMP/TKDIR
+end
+
+probe missing-rm-error
+command RM /TEMP/TKDIR/NOFILE
+contains RM: /TEMP/TKDIR/NOFILE
+end
+
+probe hexdump-memfs
+command HEXDUMP /TEMP/TKDIR/TEXT
+line ^000000 [0-7]{12}$
+end
+
+probe ps-live
+command PS
+contains PID PPID S WORDS COMM
+contains INIT
+end
+
+probe devs-live
+command DEVS
+contains CTY0
+end
+
+probe free-live
+command FREE
+matches TOTAL [0-9]+
+matches RESIDENT [0-9]+
+matches PROCESS [0-9]+
+matches MEMFS [0-9]+
+end
+
+probe memstat-live
+command MEMSTAT
+matches MEMFS-CAPACITY [0-9]+
+contains PROC-SLOTS-MAX
+contains FILE-SLOTS-MAX
+end
+
+probe df-memfs
+command DF
+matches MEMFS USED [0-9]+ CAPACITY [0-9]+ FREE [0-9]+
+end
+
+probe ttyout-query
+command TTYOUT 0
+line ^[0-9]+$
+end
+
+probe proc-directory
+command LS /PROC/1
+contains PPID
+contains STATE
+contains WORDS
+contains NAME
+contains CMDLINE
+contains ENVIRONMENT
+not_line ^[FDC] PID$
+end
+
+probe proc-ppid
+command CAT /PROC/1/PPID
+line ^[0-9]+$
+end
+
+probe proc-state
+command CAT /PROC/1/STATE
+line ^(FREE|IDL|RUN|SLEEP|ZOMB)$
+end
+
+probe proc-words
+command CAT /PROC/1/WORDS
+line ^[0-9]+$
+end
+
+probe proc-name
+command CAT /PROC/1/NAME
+contains INIT
+end
+
+probe cty-directory
+command LS /MONITOR/DEVICES/CTY0
+contains IO
+contains STATS
+not_contains IN
+not_contains OUT
+end
+
+probe cty-stats-accounting
+command CAT /MONITOR/DEVICES/CTY0/STATS
+line ^[0-7]{12}$
+end
+
+probe system-d6fs-writable
+setup ECHO SYSTEMWRITE > /SYSTEM/TESTWRITE
+command CAT /SYSTEM/TESTWRITE
+contains SYSTEMWRITE
+end
+
+probe system-d6fs-cleanup
+command RM /SYSTEM/TESTWRITE
+not_contains RM:
+end
+
+probe cwd-temp-enter
+setup CD /TEMP
+command PWD
+contains /TEMP
+end
+
+probe cwd-temp-parent
+setup CD /TEMP
+setup CD ..
+command PWD
+line ^/$
+end
+
+probe rm-memfs
+command RM /TEMP/TKDIR/MOVED
+end
+
+probe rm-visible
+command LS /TEMP/TKDIR
+not_contains MOVED
+end
+
+probe chmod-memfs
+command CHMOD 0600 /TEMP/TKDIR/TEXT
+not_contains CHMOD:
+end
+
+probe chmod-memfs-visible
+command STAT /TEMP/TKDIR/TEXT
+matches /TEMP/TKDIR/TEXT.*MODE 0600
+not_contains STAT:
+end
+
+probe chown-d6fs-create
+command ECHO OWNERTEST > /SYSTEM/TESTOWN
+not_contains ECHO:
+end
+
+probe chown-d6fs
+command CHOWN 1 2 /SYSTEM/TESTOWN
+not_contains CHOWN:
+end
+
+probe chown-d6fs-visible
+command STAT /SYSTEM/TESTOWN
+matches /SYSTEM/TESTOWN.*UID 1 GID 2
+not_contains STAT:
+end
+
+probe chown-d6fs-cleanup
+command RM /SYSTEM/TESTOWN
+not_contains RM:
+end
+
+probe date-live
+command DATE
+matches [0-9]{4}-[0-9]{2}-[0-9]{2}.*UTC
+end
+
+probe unmount-nonmount-error
+command UNMOUNT /TEMP/TKDIR
+contains UNMOUNT: /TEMP/TKDIR
+end
+
+probe rmdir-create-empty
+command MKDIR /TEMP/TKRMDIR
+not_contains MKDIR:
+end
+
+probe rmdir-memfs
+command RMDIR /TEMP/TKRMDIR
+not_contains RMDIR:
+end
+
+probe rmdir-visible
+command LS /TEMP
+not_contains TKRMDIR
+end
+
+probe halt-kernel
+command HALT
+contains HALT instruction
+timeout 15
+terminal eof
+end

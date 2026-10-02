@@ -1,0 +1,83 @@
+probe d6fs-touch
+command TOUCH /D6EMPTY
+not_contains TOUCH:
+end
+
+probe d6fs-stat-empty
+command STAT /D6EMPTY
+contains /D6EMPTY
+contains WORDS 0
+end
+
+probe d6fs-write
+command ECHO D6FSWRITE > /D6TEXT
+not_contains ECHO:
+end
+
+probe d6fs-read
+command CAT /D6TEXT
+contains D6FSWRITE
+end
+
+probe d6fs-copy
+command CP /D6TEXT /D6COPY
+not_contains CP:
+end
+
+probe d6fs-copy-read
+command CAT /D6COPY
+contains D6FSWRITE
+end
+
+probe d6fs-rename
+command MV /D6COPY /D6MOVED
+not_contains MV:
+end
+
+probe d6fs-rename-read
+command CAT /D6MOVED
+contains D6FSWRITE
+end
+
+probe d6fs-mkdir
+command MKDIR /D6DIR
+not_contains MKDIR:
+end
+
+probe d6fs-write-subdir
+command ECHO SUBFILE > /D6DIR/FILE
+not_contains ECHO:
+end
+
+probe d6fs-read-subdir
+command CAT /D6DIR/FILE
+contains SUBFILE
+end
+
+probe d6fs-unlink
+command RM /D6MOVED /D6TEXT /D6EMPTY /D6DIR/FILE
+not_contains RM:
+end
+
+probe d6fs-unlink-visible
+command LS /
+not_contains D6MOVED
+not_contains D6TEXT
+not_contains D6EMPTY
+end
+
+probe d6fs-large-copy
+command CP /SYSTEM/INIT /D6BIG
+not_contains CP:
+end
+
+probe d6fs-large-stat
+command STAT /D6BIG
+contains /D6BIG
+not_contains WORDS 0
+end
+
+probe d6fs-large-unlink
+command RM /D6BIG
+not_contains RM:
+end

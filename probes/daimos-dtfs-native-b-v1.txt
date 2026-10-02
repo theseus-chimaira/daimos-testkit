@@ -1,0 +1,94 @@
+probe mount-b
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+probe persist-a
+command CAT /MOUNT/DT0/A
+contains REPLACED
+not_contains CAT:
+end
+probe persist-small
+command CAT /MOUNT/DT0/SMALL
+contains SMALLDATA
+not_contains CAT:
+end
+probe big-1
+command ECHO B01-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-2
+command ECHO B02-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-3
+command ECHO B03-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-4
+command ECHO B04-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-5
+command ECHO B05-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-6
+command ECHO B06-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-7
+command ECHO B07-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-8
+command ECHO B08-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-9
+command ECHO B09-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-10
+command ECHO B10-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-11
+command ECHO B11-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-12
+command ECHO B12-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-13
+command ECHO B13-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe big-14
+command ECHO B14-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 >> /TEMP/BIG
+not_contains ECHO:
+end
+probe stat-big-source
+command STAT /TEMP/BIG
+matches /TEMP/BIG.*WORDS 1[2-9][0-9]
+not_contains STAT:
+end
+probe cp-big-in
+command CP /TEMP/BIG /MOUNT/DT0/BIG
+not_contains CP:
+timeout 90
+end
+probe stat-big-dtfs
+command STAT /MOUNT/DT0/BIG
+matches /MOUNT/DT0/BIG.*WORDS 1[2-9][0-9]
+not_contains STAT:
+end
+probe unmount-b
+command UNMOUNT /MOUNT/DT0
+not_contains UNMOUNT:
+end
+probe halt-b
+command HALT
+terminal eof
+timeout 15
+end

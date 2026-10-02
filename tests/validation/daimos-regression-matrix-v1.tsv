@@ -1,0 +1,32 @@
+# id|subsystem|targets|description
+001|host|check|Host-side format, coverage, and source checks
+002|target|target|Direct PDP-6 target tests
+003|size|d6fs-mres dtfs-mres test-daimos-permanent-size test-daimos-p10fold-build test-daimos-stage1-size|Resident packages, permanent size, folding, and stage1 size
+004|boot|test-daimos-boot-source-matrix test-daimos-dsk-root-discovery test-daimos-stage1-kinit-entry test-daimos-kinit-sixbit-lifetime test-daimos-kcc-pdp6-codegen|Boot-source, root discovery, KINIT entry/lifetime, and PDP-6 codegen
+005|boot|test-daimos-root-class-matrix|Root-class matrix
+006|boot|test-daimos-auto-root-priority|Automatic root priority
+007|boot|test-daimos-boot-root-cross-matrix|Boot/root cross matrix
+008|login|test-daimos-root-login-lifecycle test-daimos-init-once test-daimos-login-password test-daimos-userspace-bootstrap test-daimos-d6lz-native-exec|INIT, login, compressed userspace, and native exec lifecycle
+009|monitorfs|test-daimos-monitorfs-live-state|MonitorFS live process state
+010|monitorfs|test-daimos-monitorfs-storage-accounting|MonitorFS storage accounting
+011|credentials|test-daimos-proc-uarea-layout test-daimos-credentials test-daimos-credentials-fs test-daimos-multiuser-kernel-auth test-daimos-multiuser-auth-runtime test-daimos-no-kernel-uuo|U-area, credentials, multi-user authorization, and kernel UUO isolation
+012|process|test-daimos-process-lifecycle test-daimos-process-id-lifetime|Process lifecycle and process-ID lifetime
+013|process|test-daimos-process-hierarchy test-daimos-domain|Process hierarchy and domains
+014|process|test-daimos-monitorfs-process-decimal test-daimos-process-events|MonitorFS process rendering and process events
+015|tty|test-daimos-process-tty test-daimos-tty-session-state test-daimos-tty-s6rec test-daimos-tty-s6rec-input test-daimos-tty-routing test-daimos-pt-wordio test-daimos-card-wordio test-daimos-lpt-s6rec|TTY/session, output routing, and word-I/O adapters
+016|job|test-daimos-session-teardown test-daimos-job-pipeline|Session teardown and job pipeline semantics
+017|scheduler|test-daimos-scheduler-multiproc test-daimos-scheduler-realtime test-daimos-scheduler-rt-revoke test-daimos-rt-required test-daimos-sleep test-daimos-low-memory-boot|Normal/RT scheduling, monotonic sleep, and low-memory boot
+018|stack|test-daimos-proc-stack-watermark test-daimos-idle-stack-watermark|Process and idle stack watermarks
+019|ipc|test-daimos-pipe-wordfifo test-daimos-pipe-fifo|Word pipes and filesystem FIFOs
+020|swap|test-daimos-swap-wait test-daimos-swap-stress|Swap wait and stress
+021|isolation|test-daimos-user-kuuo-isolation|User/kernel UUO isolation
+022|trap|test-daimos-trap-frequency|Trap frequency
+023|storage|test-daimos-monitorfs-devices-online test-daimos-d6fs-context-dispatch test-daimos-d6fs-multimount test-daimos-d6fs-direct-backing-drm test-daimos-bcache-multisource test-daimos-d6fs-remount test-daimos-d6fs-super-recovery test-daimos-vfs-storage-reservation test-daimos-badmap-map test-daimos-badmap-root|Device state, D6FS dispatch/mount/backing/cache/recovery, reservations, and bad maps
+024|logstore|test-daimos-logstore-v1 test-daimos-mtc516-online|LOGSTORE and MTC runtime
+025|disk|test-daimos-dsk270-online test-daimos-dsk270-elevator|DSK270 runtime and elevator
+026|drum|test-daimos-drm236-capacity test-daimos-drm236-online test-daimos-drm236-minit test-daimos-drm-stage1-boot|DRM236 capacity, runtime, MRES init, and stage1 boot
+027|dectape|test-daimos-dtc-online test-daimos-dtc-stream-online test-daimos-tsfs-image-online test-daimos-tsfs-scan test-daimos-tsfs-multiextent test-daimos-tsfs-d6lz test-daimos-tsfs-dir test-daimos-tsfs-mount test-daimos-dtc-reverse-online|DECtape, DTFS/TSFS, compressed extents, and reverse operation
+028|kernel|kernel-runtime stand-runtime|Kernel and standalone runtime suites
+029|d6fs|d6fs-hdd-runtime d6fs-hdd-multi d6fs-recovery|D6FS HDD runtime, multi-member, and recovery
+030|runtime|runtime-build dtfs-runtime test-daimos-exec-abi test-daimos-exec-replace test-daimos-exec-child-session test-daimos-userspace-multitty test-daimos-make-boot-multitty|Runtime build, DTFS, exec ABI/replacement/session, and multi-TTY userspace
+031|tools|test-pdp10-tools|PDP-10 tool integration tests

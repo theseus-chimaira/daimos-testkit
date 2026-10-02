@@ -1,0 +1,132 @@
+probe mount-c
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+probe persist-big
+command STAT /MOUNT/DT0/BIG
+matches /MOUNT/DT0/BIG.*WORDS 1[2-9][0-9]
+not_contains STAT:
+end
+probe cp-big-out
+command CP /MOUNT/DT0/BIG /TEMP/BIGBACK
+not_contains CP:
+timeout 90
+end
+probe stat-big-back
+command STAT /TEMP/BIGBACK
+matches /TEMP/BIGBACK.*WORDS 1[2-9][0-9]
+not_contains STAT:
+end
+probe cat-big-back
+command CAT /TEMP/BIGBACK
+contains B01-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+contains B14-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+not_contains CAT:
+end
+probe rename-big
+command MV /MOUNT/DT0/BIG /MOUNT/DT0/BIG2
+not_contains MV:
+timeout 45
+end
+probe renamed-big-stat
+command STAT /MOUNT/DT0/BIG2
+matches /MOUNT/DT0/BIG2.*WORDS 1[2-9][0-9]
+not_contains STAT:
+end
+probe old-big-missing
+command CAT /MOUNT/DT0/BIG
+contains CAT: /MOUNT/DT0/BIG
+end
+probe cp-renamed-out
+command CP /MOUNT/DT0/BIG2 /TEMP/BIGREN
+not_contains CP:
+timeout 90
+end
+probe renamed-content
+command CAT /TEMP/BIGREN
+contains B01-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+contains B14-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+not_contains CAT:
+end
+probe chmod-set
+command CHMOD 0111 /MOUNT/DT0/A
+not_contains CHMOD:
+end
+probe stat-exec
+command STAT /MOUNT/DT0/A
+matches /MOUNT/DT0/A.*MODE 0777
+not_contains STAT:
+end
+probe chmod-clear
+command CHMOD 0666 /MOUNT/DT0/A
+not_contains CHMOD:
+end
+probe stat-noexec
+command STAT /MOUNT/DT0/A
+matches /MOUNT/DT0/A.*MODE 0666
+not_contains STAT:
+end
+probe chmod-persist-set
+command CHMOD 0111 /MOUNT/DT0/A
+not_contains CHMOD:
+end
+probe rm-big2
+command RM /MOUNT/DT0/BIG2
+not_contains RM:
+timeout 45
+end
+probe removed-big2
+command CAT /MOUNT/DT0/BIG2
+contains CAT: /MOUNT/DT0/BIG2
+end
+probe unmount-c
+command UNMOUNT /MOUNT/DT0
+not_contains UNMOUNT:
+end
+probe remount-c
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+probe exec-persisted
+command STAT /MOUNT/DT0/A
+matches /MOUNT/DT0/A.*MODE 0777
+not_contains STAT:
+end
+probe big2-still-removed
+command CAT /MOUNT/DT0/BIG2
+contains CAT: /MOUNT/DT0/BIG2
+end
+probe unmount-rw
+command UNMOUNT /MOUNT/DT0
+not_contains UNMOUNT:
+end
+probe mount-ro
+command MOUNT.DTFS -O RO,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+probe ro-read
+command CAT /MOUNT/DT0/A
+contains REPLACED
+not_contains CAT:
+end
+probe ro-touch-reject
+command TOUCH /MOUNT/DT0/ROFAIL
+contains TOUCH: /MOUNT/DT0/ROFAIL
+end
+probe ro-chmod-reject
+command CHMOD 0666 /MOUNT/DT0/A
+contains CHMOD: /MOUNT/DT0/A
+end
+probe ro-rm-reject
+command RM /MOUNT/DT0/A
+contains RM: /MOUNT/DT0/A
+end
+probe unmount-ro
+command UNMOUNT /MOUNT/DT0
+not_contains UNMOUNT:
+end
+probe halt-c
+command HALT
+terminal eof
+timeout 15
+end

@@ -1,0 +1,15 @@
+TESTKIT_ROOT := $(abspath ../../..)
+DAIMOS_REPO ?= ../DAIMOS
+PROJECT_ROOT := $(abspath $(DAIMOS_REPO))
+BUILD_ROOT ?= $(TESTKIT_ROOT)/build
+TEST_REPORT ?= $(TESTKIT_ROOT)/stand-test-report.txt
+
+.DEFAULT_GOAL := test
+
+.PHONY: build test clean
+
+build test:
+	$(MAKE) -C pdp6 $@ BUILD_ROOT='$(BUILD_ROOT)' TEST_REPORT='$(TEST_REPORT)' DAIMOS_REPO='$(PROJECT_ROOT)' PDP10_PREFIX='$(PDP10_PREFIX)'
+
+clean:
+	$(MAKE) -C pdp6 clean BUILD_ROOT='$(BUILD_ROOT)' DAIMOS_REPO='$(PROJECT_ROOT)' PDP10_PREFIX='$(PDP10_PREFIX)'

@@ -1,0 +1,18 @@
+probe mount-full
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+probe full-write-reject
+command ECHO X > /MOUNT/DT0/FULL
+contains ECHO: /MOUNT/DT0/FULL
+end
+probe full-write-empty
+command STAT /MOUNT/DT0/FULL
+matches /MOUNT/DT0/FULL.*CHARS 0.*WORDS 0
+not_contains STAT:
+end
+probe halt-full
+command HALT
+terminal eof
+timeout 15
+end

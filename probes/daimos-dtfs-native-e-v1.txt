@@ -1,0 +1,168 @@
+probe format-e
+command MKFS.DTFS -O NATIVE /DEV/DTC0
+not_contains MKFS.DTFS:
+end
+probe mount-e
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC0 /MOUNT/DT0
+not_contains MOUNT.DTFS:
+end
+probe one-word-b1
+command ECHO AB > /MOUNT/DT0/B1
+not_contains ECHO:
+end
+probe stat-one-word-b1
+command STAT /MOUNT/DT0/B1
+matches /MOUNT/DT0/B1.*WORDS 1 MODE
+not_contains STAT:
+end
+probe one-word-frag-seed
+command ECHO CD > /MOUNT/DT0/FRAG
+not_contains ECHO:
+end
+probe one-word-b2
+command ECHO EF > /MOUNT/DT0/B2
+not_contains ECHO:
+end
+probe s128-01
+command ECHO X01-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 > /TEMP/S128
+not_contains ECHO:
+end
+probe s128-02
+command ECHO X02-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-03
+command ECHO X03-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-04
+command ECHO X04-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-05
+command ECHO X05-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-06
+command ECHO X06-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-07
+command ECHO X07-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-08
+command ECHO X08-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-09
+command ECHO X09-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-10
+command ECHO X10-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-11
+command ECHO X11-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-12
+command ECHO X12-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S128
+not_contains ECHO:
+end
+probe s128-final
+command ECHO ABCDEFGHIJKLMNOPQR >> /TEMP/S128
+not_contains ECHO:
+end
+probe stat-s128
+command STAT /TEMP/S128
+matches /TEMP/S128.*CHARS 512 WORDS 128
+not_contains STAT:
+end
+probe cp-fragmented-128
+command CP /TEMP/S128 /MOUNT/DT0/FRAG
+not_contains CP:
+timeout 90
+end
+probe stat-fragmented-128
+command STAT /MOUNT/DT0/FRAG
+matches /MOUNT/DT0/FRAG.*WORDS 128
+not_contains STAT:
+end
+probe s127-01
+command ECHO Y01-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 > /TEMP/S127
+not_contains ECHO:
+end
+probe s127-02
+command ECHO Y02-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-03
+command ECHO Y03-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-04
+command ECHO Y04-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-05
+command ECHO Y05-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-06
+command ECHO Y06-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-07
+command ECHO Y07-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-08
+command ECHO Y08-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-09
+command ECHO Y09-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-10
+command ECHO Y10-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-11
+command ECHO Y11-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-12
+command ECHO Y12-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345678 >> /TEMP/S127
+not_contains ECHO:
+end
+probe s127-final
+command ECHO ABCDEFGHIJKLMN >> /TEMP/S127
+not_contains ECHO:
+end
+probe stat-s127
+command STAT /TEMP/S127
+matches /TEMP/S127.*CHARS 508 WORDS 127
+not_contains STAT:
+end
+probe cp-127-boundary
+command CP /TEMP/S127 /MOUNT/DT0/W127
+not_contains CP:
+timeout 90
+end
+probe stat-127-boundary
+command STAT /MOUNT/DT0/W127
+matches /MOUNT/DT0/W127.*WORDS 127
+not_contains STAT:
+end
+probe unmount-e
+command UNMOUNT /MOUNT/DT0
+not_contains UNMOUNT:
+end
+probe halt-e
+command HALT
+terminal eof
+timeout 15
+end

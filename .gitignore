@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+build/
+reports/
+stand-test-report.txt
+runtime-work*/
+runtime-media*/
