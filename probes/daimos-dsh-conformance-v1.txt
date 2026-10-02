@@ -91,6 +91,53 @@ command TRUE; ECHO $?
 line ^0$
 end
 
+probe dsh-status-not-found-127
+command NOSUCHCOMMAND; ECHO STATUS:$?
+contains DSH: NOT FOUND: NOSUCHCOMMAND
+contains STATUS:127
+end
+
+probe dsh-status-pipeline-builtin-126
+command CD / ! CAT; ECHO STATUS:$?
+contains STATUS:126
+end
+
+probe dsh-redir-create
+command ECHO REDIR1 > /CONFIG/DSHREDIR
+not_contains ECHO:
+end
+
+probe dsh-redir-append
+command ECHO REDIR2 >> /CONFIG/DSHREDIR
+not_contains ECHO:
+end
+
+probe dsh-redir-input
+command CAT < /CONFIG/DSHREDIR
+contains REDIR1
+contains REDIR2
+end
+
+probe dsh-redir-failure-status
+command ECHO BAD > /NO/SUCH/PATH; ECHO STATUS:$?
+contains STATUS:1
+end
+
+probe dsh-pipeline-data
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
+
+probe dsh-pipeline-last-failure
+command TRUE ! FALSE; ECHO STATUS:$?
+contains STATUS:1
+end
+
+probe dsh-pipeline-last-success
+command FALSE ! TRUE; ECHO STATUS:$?
+contains STATUS:0
+end
+
 probe dsh-export-child
 command EXPORT DSHX=CHILD; DSH -C 'ECHO $DSHX'
 line ^CHILD$
@@ -184,6 +231,11 @@ end
 
 probe dsh-script-cleanup
 command RM /CONFIG/DSHTEST
+not_contains RM:
+end
+
+probe dsh-redir-cleanup
+command RM /CONFIG/DSHREDIR
 not_contains RM:
 end
 
