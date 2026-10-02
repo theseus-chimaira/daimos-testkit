@@ -70,3 +70,129 @@ probe dsh-glob-cleanup-two
 command RM /SYSTEM/DSHG2
 not_contains RM:
 end
+
+probe dsh-variable-basic
+command SET DSHV VALUE; ECHO $DSHV
+line ^VALUE$
+end
+
+probe dsh-variable-bracketed
+command SET DSHV VALUE; ECHO $[DSHV]X
+line ^VALUEX$
+end
+
+probe dsh-status-failure
+command FALSE; ECHO $?
+line ^1$
+end
+
+probe dsh-status-success
+command TRUE; ECHO $?
+line ^0$
+end
+
+probe dsh-export-child
+command EXPORT DSHX=CHILD; DSH -C 'ECHO $DSHX'
+line ^CHILD$
+end
+
+probe dsh-c-positional
+command DSH -C 'ECHO C:$0:$1:$2:$#' ONE TWO
+line ^C:DSH:ONE:TWO:2$
+end
+
+probe dsh-script-create
+command ECHO 'ECHO SCRIPT:$0:$1:$#' > /CONFIG/DSHTEST
+not_contains ECHO:
+end
+
+probe dsh-script-readable
+command CAT /CONFIG/DSHTEST
+contains ECHO SCRIPT:$0:$1:$#
+end
+
+probe dsh-script-positional
+command DSH /CONFIG/DSHTEST ARG
+line ^SCRIPT:/CONFIG/DSHTEST:ARG:1$
+end
+
+probe dsh-source-create
+command ECHO 'ECHO SOURCE:$1' > /CONFIG/S
+not_contains ECHO:
+end
+
+probe dsh-source-main-create
+command ECHO 'SOURCE /CONFIG/S I;ECHO OUTER:$1' > /CONFIG/M
+not_contains ECHO:
+end
+
+probe dsh-source-positional-restore
+command DSH /CONFIG/M O
+contains SOURCE:I
+contains OUTER:O
+end
+
+probe dsh-function-argument-return
+command DEF F DO ECHO FUNC:$1; RETURN 7 DONE; F ARG; ECHO STATUS:$?
+contains FUNC:ARG
+contains STATUS:7
+end
+
+probe dsh-if-then
+command IF TRUE THEN ECHO IFOK ELSE ECHO BAD FI
+line ^IFOK$
+not_contains BAD
+end
+
+probe dsh-if-else
+command IF FALSE THEN ECHO BAD ELSE ECHO ELSEOK FI
+line ^ELSEOK$
+not_contains BAD
+end
+
+probe dsh-for
+command FOR I IN A B C DO ECHO F:$I DONE
+contains F:A
+contains F:B
+contains F:C
+end
+
+probe dsh-while-return
+command DEF F DO WHILE TRUE DO ECHO WHILEOK; RETURN 0 DONE DONE; F
+line ^WHILEOK$
+end
+
+probe dsh-until-return
+command DEF F DO UNTIL FALSE DO ECHO UNTILOK; RETURN 0 DONE DONE; F
+line ^UNTILOK$
+end
+
+probe dsh-not
+command NOT FALSE; ECHO $?
+line ^0$
+end
+
+probe dsh-and
+command TRUE AND ECHO ANDOK
+line ^ANDOK$
+end
+
+probe dsh-or
+command FALSE OR ECHO OROK
+line ^OROK$
+end
+
+probe dsh-script-cleanup
+command RM /CONFIG/DSHTEST
+not_contains RM:
+end
+
+probe dsh-source-cleanup
+command RM /CONFIG/S
+not_contains RM:
+end
+
+probe dsh-source-main-cleanup
+command RM /CONFIG/M
+not_contains RM:
+end
