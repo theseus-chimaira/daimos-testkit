@@ -103,10 +103,10 @@ make_metadata(unsigned int unit)
         extent = media[unit][5];
         memset(extent, 0, sizeof(media[unit][5]));
         extent[0] = 0U;
-        extent[1] = 6U;
+        extent[1] = ((kword_t)7U << 18) | 6U;
         extent[2] = 2U;
         extent[4] = 0400U;
-        extent[5] = ((kword_t)1U << 18) | 6U;
+        extent[5] = ((kword_t)7U << 18) | 6U;
         extent[6] = 2U;
         extent_sum = checksum_table(extent);
 
@@ -117,12 +117,12 @@ make_metadata(unsigned int unit)
         td[3] = 2U;
         td[4] = 2U;
         td[TD_FIRST_ENTRY + 0U] = (kword_t)1U << 18;
-        td[TD_FIRST_ENTRY + 1U] = ((kword_t)2U << 18) | 4U;
+        td[TD_FIRST_ENTRY + 1U] = ((kword_t)7U << 18) | 4U;
         td[TD_FIRST_ENTRY + 2U] = ((kword_t)1U << 18) | FILE_WORDS;
         td[TD_FIRST_ENTRY + 3U] = 2U;
         td[TD_FIRST_ENTRY + 4U] = file_sum;
         td[TD_FIRST_ENTRY + 5U] = (kword_t)2U << 18;
-        td[TD_FIRST_ENTRY + 6U] = ((kword_t)2U << 18) | 5U;
+        td[TD_FIRST_ENTRY + 6U] = ((kword_t)7U << 18) | 5U;
         td[TD_FIRST_ENTRY + 7U] = ((kword_t)1U << 18) | EXTENT_WORDS;
         td[TD_FIRST_ENTRY + 8U] = 2U;
         td[TD_FIRST_ENTRY + 9U] = extent_sum;
@@ -146,30 +146,43 @@ main(void)
         kword_t handoff[SYS_TSFS_MOUNT_WORDS];
         kword_t tdir_sum;
         kword_t hi;
+        kword_t member_map;
+        unsigned int logical_to_unit[8] = { 4U, 1U, 6U, 2U, 5U, 3U, 0U, 7U };
+        unsigned int i;
 
         present[7] = 1U;
         tdir_sum = make_metadata(7U);
-        make_descriptor(4U, 3U, 0U, 2U, tdir_sum);
-        make_descriptor(1U, 3U, 1U, 2U, tdir_sum);
-        make_descriptor(7U, 3U, 2U, 2U, tdir_sum);
+        for (i = 0U; i < 8U; ++i)
+                make_descriptor(logical_to_unit[i], 8U, i, 7U, tdir_sum);
 
-        if (tsfs_scan(4U, &r) != 0 || r.members != 3U ||
-            r.unit[0] != 4U || r.unit[1] != 1U || r.unit[2] != 7U ||
-            r.tdir_member != 2U || r.tdir_block != 3U)
+        if (tsfs_scan(4U, &r) != 0 || r.members != 8U ||
+            r.tdir_member != 7U || r.tdir_block != 3U)
                 return 1;
+        member_map = 0;
+        for (i = 0U; i < 8U; ++i) {
+                if (r.unit[i] != logical_to_unit[i])
+                        return 1;
+                member_map |= (kword_t)logical_to_unit[i] << (3U * i);
+        }
         if (tsfs_build_mount_handoff(&r, handoff) != 0)
                 return 1;
         hi = (handoff[SYS_TSFS_FILE_LOC] >> 18) & HALF18;
         if ((unsigned int)(hi >> 15) != 7U ||
             (unsigned int)(hi & 077777U) != 2U ||
             (unsigned int)(handoff[SYS_TSFS_FILE_LOC] & HALF18) != 4U ||
-            handoff[SYS_TSFS_FILE_SHAPE] != 0714U)
+            handoff[SYS_TSFS_FILE_SHAPE] != member_map)
                 return 1;
         hi = (handoff[SYS_TSFS_EXTENT_LOC] >> 18) & HALF18;
         if ((unsigned int)(hi >> 15) != 7U ||
             (unsigned int)(hi & 077777U) != 2U ||
             (unsigned int)(handoff[SYS_TSFS_EXTENT_LOC] & HALF18) != 5U)
                 return 1;
-        puts("daimos-tsfs-scan-v2: PASS (multi-extent cross-member handoff)");
+
+        /* The new bound is exactly eight: a declared ninth member is invalid. */
+        make_descriptor(4U, 9U, 0U, 7U, tdir_sum);
+        if (tsfs_scan(4U, &r) == 0)
+                return 1;
+
+        puts("daimos-tsfs-scan-v2: PASS (eight members, member 7 extent, map, ninth rejected)");
         return 0;
 }

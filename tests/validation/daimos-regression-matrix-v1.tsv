@@ -25,7 +25,7 @@
 024|logstore|test-daimos-logstore-v1 test-daimos-mtc516-online|LOGSTORE and MTC runtime
 025|disk|test-daimos-dsk270-online test-daimos-dsk270-elevator|DSK270 runtime and elevator
 026|drum|test-daimos-drm236-capacity test-daimos-drm236-online test-daimos-drm236-minit test-daimos-drm-stage1-boot|DRM236 capacity, runtime, MRES init, and stage1 boot
-027|dectape|test-daimos-dtc-online test-daimos-dtc-stream-online test-daimos-tsfs-image-online test-daimos-tsfs-scan test-daimos-tsfs-multiextent test-daimos-tsfs-d6lz test-daimos-tsfs-dir test-daimos-tsfs-mount test-daimos-dtc-reverse-online|DECtape, DTFS/TSFS, compressed extents, and reverse operation
+027|dectape|test-daimos-dtc-online test-daimos-dtc-stream-online test-daimos-tsfs-image-online test-daimos-tsfs-scan test-daimos-tsfs-boot-eight test-daimos-tsfs-multiextent test-daimos-tsfs-d6lz test-daimos-tsfs-dir test-daimos-tsfs-mount test-daimos-dtc-reverse-online|DECtape, eight-member TSFS scan/boot, compressed extents, and reverse operation
 028|kernel|kernel-runtime stand-runtime|Kernel and standalone runtime suites
 029|d6fs|d6fs-hdd-runtime d6fs-hdd-multi d6fs-recovery|D6FS HDD runtime, multi-member, and recovery
 030|runtime|runtime-build dtfs-runtime test-daimos-exec-abi test-daimos-exec-replace test-daimos-exec-child-session test-daimos-userspace-multitty test-daimos-make-boot-multitty|Runtime build, DTFS, exec ABI/replacement/session, and multi-TTY userspace
