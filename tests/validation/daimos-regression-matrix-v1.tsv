@@ -29,4 +29,5 @@
 028|kernel|kernel-runtime stand-runtime|Kernel and standalone runtime suites
 029|d6fs|d6fs-hdd-runtime d6fs-hdd-multi d6fs-recovery|D6FS HDD runtime, multi-member, and recovery
 030|runtime|runtime-build dtfs-runtime test-daimos-exec-abi test-daimos-exec-replace test-daimos-exec-child-session test-daimos-userspace-multitty test-daimos-make-boot-multitty|Runtime build, DTFS, exec ABI/replacement/session, and multi-TTY userspace
-031|tools|test-pdp10-tools|PDP-10 tool integration tests
+031|dsh|test-daimos-dsh-conformance|DSH quoting, CASE, globbing, command-map, and CTY0 interactive semantics
+032|tools|test-pdp10-tools|PDP-10 tool integration tests

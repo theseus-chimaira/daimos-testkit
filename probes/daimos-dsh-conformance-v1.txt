@@ -1,0 +1,72 @@
+probe dsh-comment-in-word
+command ECHO A#B
+line ^A#B$
+end
+
+probe dsh-empty-argument
+command ECHO A "" B
+line ^A  B$
+end
+
+probe dsh-quoted-keyword
+command ECHO "IF"
+line ^IF$
+end
+
+probe dsh-single-quote-backslash
+command ECHO 'A\B'
+line ^A\\B$
+end
+
+probe dsh-case-wildcard
+command CASE FOO IN WHEN B* DO ECHO BAD WHEN F?O DO ECHO CASEOK ESAC
+line ^CASEOK$
+not_contains BAD
+end
+
+probe dsh-case-quoted-wildcard
+command CASE FOO IN WHEN "F?O" DO ECHO BAD WHEN F* DO ECHO CASEQUOTEOK ESAC
+line ^CASEQUOTEOK$
+not_contains BAD
+end
+
+probe dsh-glob-create
+setup ECHO ONE > /SYSTEM/DSHG1
+setup ECHO TWO > /SYSTEM/DSHG2
+command ECHO /SYSTEM/DSHG*
+contains /SYSTEM/DSHG1
+contains /SYSTEM/DSHG2
+end
+
+probe dsh-glob-quoted
+command ECHO "/SYSTEM/DSHG*"
+line ^/SYSTEM/DSHG\*$
+end
+
+probe dsh-glob-unmatched
+command ECHO /SYSTEM/NOMATCH*
+line ^/SYSTEM/NOMATCH\*$
+end
+
+probe dsh-glob-variable-unquoted
+setup SET P "/SYSTEM/DSHG*"
+command ECHO $P
+contains /SYSTEM/DSHG1
+contains /SYSTEM/DSHG2
+end
+
+probe dsh-glob-variable-quoted
+setup SET P "/SYSTEM/DSHG*"
+command ECHO "$P"
+line ^/SYSTEM/DSHG\*$
+end
+
+probe dsh-glob-cleanup-one
+command RM /SYSTEM/DSHG1
+not_contains RM:
+end
+
+probe dsh-glob-cleanup-two
+command RM /SYSTEM/DSHG2
+not_contains RM:
+end
