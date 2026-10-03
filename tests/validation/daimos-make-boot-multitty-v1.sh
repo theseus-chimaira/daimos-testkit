@@ -147,7 +147,7 @@ start=`log_size "$cty_out"`
 send_slow 3 ROOT
 wait_new "$cty_out" 'DSH V1' "$start" || fail_logs 'CTY LOGIN did not enter DSH'
 start=`log_size "$cty_out"`
-send_slow 3 'ECHO CTYOK'
+send_slow 3 'echo ctyok'
 wait_new "$cty_out" 'CTYOK' "$start" || fail_logs 'CTY DSH raw input/echo failed'
 
 if grep -F 'vid_thread(): Unexpected user event code:' "$cty_out" >/dev/null 2>&1; then
@@ -160,6 +160,10 @@ for spec in "4:$dcs_out" "5:$ge_out"; do
         start=`log_size "$file"`
         send_slow "$fd" ROOT
         wait_new "$file" 'DSH V1' "$start" || fail_logs 'LOGIN did not enter DSH'
+        start=`log_size "$file"`
+        send_slow "$fd" 'echo remotok'
+        wait_new "$file" 'REMOTOK' "$start" || \
+                fail_logs 'remote DSH lowercase raw input failed'
 done
 
-printf '%s\n' "$tag: PASS (CTY/DCS0/GE0 login plus CTY raw shell input)"
+printf '%s\n' "$tag: PASS (CTY/DCS0/GE0 login plus lowercase raw shell input)"
