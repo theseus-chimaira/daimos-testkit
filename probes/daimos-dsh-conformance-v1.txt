@@ -97,6 +97,22 @@ contains DSH: NOT FOUND: NOSUCHCOMMAND
 contains STATUS:127
 end
 
+probe dsh-status-not-executable-create
+command ECHO NOTEXEC > /CONFIG/DSHNOEXEC
+not_contains ECHO:
+end
+
+probe dsh-status-not-executable-126
+command /CONFIG/DSHNOEXEC; ECHO STATUS:$?
+contains STATUS:126
+not_contains DSH: NOT FOUND
+end
+
+probe dsh-status-not-executable-cleanup
+command RM /CONFIG/DSHNOEXEC
+not_contains RM:
+end
+
 probe dsh-status-pipeline-builtin-126
 command CD / ! CAT; ECHO STATUS:$?
 contains STATUS:126
@@ -375,4 +391,76 @@ end
 probe dsh-profile-input-cleanup
 command RM /CONFIG/DSHEMPTY
 not_contains RM:
+end
+
+probe dsh-job-done-background-number
+command FALSE &
+contains %1
+end
+
+probe dsh-job-done-listing
+command JOBS
+contains %1 DONE 1 FALSE
+end
+
+probe dsh-job-done-reclaimed
+command JOBS
+not_contains %1
+end
+
+probe dsh-job-background-number
+command CAT &
+contains %1
+end
+
+probe dsh-job-stopped-listing
+command JOBS
+contains %1 STOPPED CAT
+end
+
+probe dsh-job-wait-stopped
+command WAIT %1; ECHO WAITSTATUS:$?
+contains WAITSTATUS:1
+end
+
+probe dsh-job-stopped-survives-wait
+command JOBS
+contains %1 STOPPED CAT
+end
+
+probe dsh-job-default-bg
+command BG; ECHO BGSTATUS:$?
+contains BGSTATUS:0
+end
+
+probe dsh-job-bg-restops-on-tty-read
+command WAIT %1; ECHO WAITSTATUS:$?
+contains WAITSTATUS:1
+end
+
+probe dsh-job-restopped-listing
+command JOBS
+contains %1 STOPPED CAT
+end
+
+probe dsh-job-slot-two
+command CAT &
+contains %2
+end
+
+probe dsh-job-slot-three
+command CAT &
+contains %3
+end
+
+probe dsh-job-slot-four
+command CAT &
+contains %4
+end
+
+probe dsh-job-table-exhaustion
+command CAT &; ECHO STATUS:$?
+contains DSH: JOB TABLE FULL
+contains STATUS:2
+not_contains %5
 end
