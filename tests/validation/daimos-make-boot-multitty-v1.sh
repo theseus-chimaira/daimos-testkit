@@ -124,6 +124,8 @@ wait_new "$cty_out" "GE0   127.0.0.1:$ge_port" 0 100 || \
         fail_logs 'make boot did not announce GE0'
 
 wait_new "$cty_out" 'LOGIN: ' 0 || fail_logs 'CTY LOGIN missing'
+wait_new "$cty_out" 'DPY                                   OK' 0 || \
+        fail_logs 'Type 340 DPY did not probe successfully'
 wait_new "$dcs_out" 'Connected to the PDP6 simulator DCS device' 0 || \
         fail_logs 'DCS0 transport did not connect'
 wait_new "$ge_out" 'Connected to the PDP6 simulator GE device' 0 || \
@@ -138,6 +140,20 @@ for spec in "4:$dcs_out" "5:$ge_out"; do
         wait_new "$file" 'LOGIN: ' "$start" || fail_logs 'remote LOGIN missing'
 done
 
+# CTY must remain usable with the GUI display devices enabled.  This catches
+# simulator video-event regressions that can leave LOGIN usable but break the
+# shell's raw per-character editor path.
+start=`log_size "$cty_out"`
+send_slow 3 ROOT
+wait_new "$cty_out" 'DSH V1' "$start" || fail_logs 'CTY LOGIN did not enter DSH'
+start=`log_size "$cty_out"`
+send_slow 3 'ECHO CTYOK'
+wait_new "$cty_out" 'CTYOK' "$start" || fail_logs 'CTY DSH raw input/echo failed'
+
+if grep -F 'vid_thread(): Unexpected user event code:' "$cty_out" >/dev/null 2>&1; then
+        fail_logs 'SIMH video thread reported an unexpected redraw event'
+fi
+
 for spec in "4:$dcs_out" "5:$ge_out"; do
         fd=${spec%%:*}
         file=${spec#*:}
@@ -146,4 +162,4 @@ for spec in "4:$dcs_out" "5:$ge_out"; do
         wait_new "$file" 'DSH V1' "$start" || fail_logs 'LOGIN did not enter DSH'
 done
 
-printf '%s\n' "$tag: PASS (CTY prompt plus interactive DCS0/GE0 logins)"
+printf '%s\n' "$tag: PASS (CTY/DCS0/GE0 login plus CTY raw shell input)"
