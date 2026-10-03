@@ -150,6 +150,17 @@ start=`log_size "$cty_out"`
 send_slow 3 'echo ctyok'
 wait_new "$cty_out" 'CTYOK' "$start" || fail_logs 'CTY DSH raw input/echo failed'
 
+# Ambiguous path completion follows the conventional two-TAB interaction:
+# the first TAB preserves the unresolved prefix, the second prints all
+# candidates and redraws the current command line.  Use literal TAB bytes;
+# send_slow() would append ENTER and therefore cannot express this editor case.
+start=`log_size "$cty_out"`
+printf 'CD /\t\t\r' >&3
+wait_new "$cty_out" '/SYSTEM/' "$start" || \
+        fail_logs 'CTY DSH double-TAB did not list /SYSTEM/'
+wait_new "$cty_out" '/CONFIG/' "$start" || \
+        fail_logs 'CTY DSH double-TAB did not list /CONFIG/'
+
 if grep -F 'vid_thread(): Unexpected user event code:' "$cty_out" >/dev/null 2>&1; then
         fail_logs 'SIMH video thread reported an unexpected redraw event'
 fi
@@ -166,4 +177,4 @@ for spec in "4:$dcs_out" "5:$ge_out"; do
                 fail_logs 'remote DSH lowercase raw input failed'
 done
 
-printf '%s\n' "$tag: PASS (CTY/DCS0/GE0 login plus lowercase raw shell input)"
+printf '%s\n' "$tag: PASS (CTY/DCS0/GE0 lowercase raw input plus double-TAB completion)"

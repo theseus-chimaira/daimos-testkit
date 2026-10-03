@@ -13,12 +13,12 @@ mkdir -p "$work/out"
         echo 000000000000
 } > "$work/payload.words"
 
-./mkdsk -n 3 -m clean -p "$work/payload.words" -o "$work/out" \
+./mkdsk -n 4 -m clean -p "$work/payload.words" -o "$work/out" \
     --d6fs-layout --logstore-blocks 1 --swap-tail-blocks 1 \
-    --member-sectors 02000,01400,01000
+    --member-sectors 02000,01400,01000,0130000
 
-set -- 1048576 786432 524288
-for u in 0 1 2; do
+set -- 1048576 786432 524288 46137344
+for u in 0 1 2 3; do
         got=$(wc -c < "$work/out/dsk$u.dsk" | tr -d ' ')
         eval want=\${$((u + 1))}
         [ "$got" -eq "$want" ] || {
