@@ -382,22 +382,22 @@ run_probe()
                         [ -n "$kind" ] || continue
                         case "$kind" in
                         contains)
-                                grep -F "$pattern" "$norm" >/dev/null 2>&1 || { outcome=FAIL; error="missing expected text: $pattern"; break; }
+                                grep -F -- "$pattern" "$norm" >/dev/null 2>&1 || { outcome=FAIL; error="missing expected text: $pattern"; break; }
                                 ;;
                         not_contains)
-                                if grep -F "$pattern" "$norm" >/dev/null 2>&1; then outcome=FAIL; error="forbidden text present: $pattern"; break; fi
+                                if grep -F -- "$pattern" "$norm" >/dev/null 2>&1; then outcome=FAIL; error="forbidden text present: $pattern"; break; fi
                                 ;;
                         matches)
-                                grep -E "$pattern" "$flat" >/dev/null 2>&1 || { outcome=FAIL; error="missing expected match: $pattern"; break; }
+                                grep -E -- "$pattern" "$flat" >/dev/null 2>&1 || { outcome=FAIL; error="missing expected match: $pattern"; break; }
                                 ;;
                         not_matches)
-                                if grep -E "$pattern" "$flat" >/dev/null 2>&1; then outcome=FAIL; error="forbidden match present: $pattern"; break; fi
+                                if grep -E -- "$pattern" "$flat" >/dev/null 2>&1; then outcome=FAIL; error="forbidden match present: $pattern"; break; fi
                                 ;;
                         line)
-                                grep -E "$pattern" "$norm" >/dev/null 2>&1 || { outcome=FAIL; error="missing expected line match: $pattern"; break; }
+                                grep -E -- "$pattern" "$norm" >/dev/null 2>&1 || { outcome=FAIL; error="missing expected line match: $pattern"; break; }
                                 ;;
                         not_line)
-                                if grep -E "$pattern" "$norm" >/dev/null 2>&1; then outcome=FAIL; error="forbidden line match present: $pattern"; break; fi
+                                if grep -E -- "$pattern" "$norm" >/dev/null 2>&1; then outcome=FAIL; error="forbidden line match present: $pattern"; break; fi
                                 ;;
                         *) echo "unknown probe rule: $kind" >&2; exit 1 ;;
                         esac
