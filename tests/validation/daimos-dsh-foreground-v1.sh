@@ -135,6 +135,19 @@ send_line ROOT
 wait_new 'DSH V1' "$start" || fail 'ROOT login did not enter DSH'
 wait_new '# ' "$start" || fail 'initial DSH prompt missing'
 
+# DSH owns raw/no-echo input while editing.  Ctrl-C must cancel only the
+# partial shell input record and return a fresh prompt; it must not leak the
+# partial text into the next command.
+start=`log_size`
+printf 'ECHO MUSTNOTRUN' >&3
+sleep 0.2
+printf '\003' >&3
+wait_new '# ' "$start" 100 || fail 'Ctrl-C did not cancel the shell input line'
+start=`log_size`
+send_line 'ECHO CTRLCOK'
+wait_new 'CTRLCOK' "$start" || fail 'shell input remained contaminated after Ctrl-C'
+wait_new '# ' "$start" || fail 'prompt missing after Ctrl-C recovery'
+
 # The test-only helper changes the TTY to RAW and stops itself.  DSH must save
 # that mode, reclaim foreground ownership, and restore its own RAW editor mode.
 start=`log_size`
@@ -220,4 +233,4 @@ send_line JOBS
 wait_new '%1 STOPPED CAT' "$start" || fail 'older CAT was not preserved'
 wait_new '# ' "$start" || fail 'post-default-FG JOBS did not return to shell'
 
-printf '%s\n' "$tag: PASS (single/pipeline FG TTY restore, shell recovery, multi-job default FG recency)"
+printf '%s\n' "$tag: PASS (Ctrl-C edit cancel, single/pipeline FG TTY restore, shell recovery, multi-job default FG recency)"
