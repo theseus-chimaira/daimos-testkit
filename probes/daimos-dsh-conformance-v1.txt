@@ -234,6 +234,16 @@ command DSH /CONFIG/DSHTEST ARG
 line ^SCRIPT:/CONFIG/DSHTEST:ARG:1$
 end
 
+probe dsh-stdin-script-create
+command ECHO 'ECHO STDINOK' > /CONFIG/DSHSTDIN
+not_contains ECHO:
+end
+
+probe dsh-stdin-script-native-text
+command DSH < /CONFIG/DSHSTDIN
+line ^STDINOK$
+end
+
 probe dsh-source-create
 command ECHO 'ECHO SOURCE:$1' > /CONFIG/S
 not_contains ECHO:
@@ -372,6 +382,11 @@ command RM /CONFIG/DSHTEST
 not_contains RM:
 end
 
+probe dsh-stdin-script-cleanup
+command RM /CONFIG/DSHSTDIN
+not_contains RM:
+end
+
 probe dsh-redir-cleanup
 command RM /CONFIG/DSHREDIR
 not_contains RM:
@@ -391,6 +406,19 @@ end
 probe dsh-profile-input-cleanup
 command RM /CONFIG/DSHEMPTY
 not_contains RM:
+end
+
+probe dsh-background-group-state
+command SET BGVAR PARENT; BEGIN SET BGVAR CHILD; ECHO BG:$BGVAR END &; WAIT %1; ECHO PARENT:$BGVAR
+contains BG:CHILD
+contains PARENT:PARENT
+end
+
+probe dsh-background-group-andor-status
+command BEGIN FALSE OR ECHO BGOR; TRUE AND ECHO BGAND; FALSE END &; WAIT %1; ECHO STATUS:$?
+contains BGOR
+contains BGAND
+contains STATUS:1
 end
 
 probe dsh-job-done-background-number
