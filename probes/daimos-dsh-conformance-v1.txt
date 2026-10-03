@@ -91,6 +91,42 @@ command TRUE; ECHO $?
 line ^0$
 end
 
+probe help-compact-echo
+command HELP ECHO
+contains ECHO - PRINT ARGUMENTS
+contains [ARG ...]
+not_contains EXIT STATUS
+end
+
+probe help-compact-das
+command HELP DAS
+contains DAS - DAIMOS PDP-6 AND PDP-10 ASSEMBLER
+contains -O FILE
+contains SOURCE
+not_contains SOURCE FORM
+end
+
+probe man-long-das
+command MAN DAS
+contains SOURCE FORM
+contains CONDITIONAL ASSEMBLY
+end
+
+probe apropos-summary-das
+command APROPOS ASSEMBLER
+contains DAS - DAIMOS PDP-6 AND PDP-10 ASSEMBLER
+end
+
+probe help-not-available
+command HELP NOSUCHHELP
+contains HELP NOT AVAILABLE
+end
+
+probe manual-not-available
+command MAN NOSUCHHELP
+contains MANUAL NOT AVAILABLE
+end
+
 probe dsh-status-not-found-127
 command NOSUCHCOMMAND; ECHO STATUS:$?
 contains DSH: NOT FOUND: NOSUCHCOMMAND
@@ -177,6 +213,27 @@ end
 probe dsh-c-positional
 command DSH -C 'ECHO C:$0:$1:$2:$#' ONE TWO
 line ^C:DSH:ONE:TWO:2$
+end
+
+probe dsh-positional-three-eight
+setup ECHO 'ECHO P:$3:$4:$5:$6:$7:$8:$#' > /CONFIG/DSHP8
+command ECHO 'A B C D E F G H' ! XARGS -N 10 DSH /CONFIG/DSHP8
+line ^P:C:D:E:F:G:H:8$
+end
+
+probe dsh-positional-three-eight-cleanup
+command RM /CONFIG/DSHP8
+not_contains RM:
+end
+
+probe dsh-positional-at
+command DSH -C 'ECHO AT:$@' ONE TWO THREE
+line ^AT:ONE TWO THREE$
+end
+
+probe dsh-positional-at-quoted
+command DSH -C 'ECHO AT:"$@"' ONE TWO THREE
+line ^AT:ONE TWO THREE$
 end
 
 probe dsh-positional-missing-nine
