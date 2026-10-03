@@ -171,4 +171,53 @@ send_line 'ECHO DSHFGOK'
 wait_new 'DSHFGOK' "$start" || fail 'shell unusable after foreground termination'
 wait_new '# ' "$start" || fail 'final DSH prompt missing'
 
-printf '%s\n' "$tag: PASS (foreground stop, JOBS, RAW/COOKED FG mode restore, shell TTY recovery)"
+# Repeat the stop/FG cycle with a two-stage pipeline.  The passive HOLD stage
+# remains alive while the final helper sends TSTP to the whole pgrp and writes
+# its verification output directly to the terminal.
+start=`log_size`
+send_line '/SYSTEM/EXEC/DSHFGT HOLD ! /SYSTEM/EXEC/DSHFGT KILL'
+wait_new '# ' "$start" || fail 'shell did not recover after pipeline stop'
+start=`log_size`
+send_line JOBS
+wait_new '%1 STOPPED /SYSTEM/EXEC/DSHFGT ! /SYSTEM/EXEC/D' "$start" || \
+        fail 'stopped foreground pipeline missing from JOBS'
+wait_new '# ' "$start" || fail 'pipeline JOBS did not return to shell'
+start=`log_size`
+send_line FG
+wait_new 'FGRAWOK' "$start" || fail 'pipeline FG did not restore RAW mode'
+wait_new '# ' "$start" || fail 'shell did not recover after pipeline re-stop'
+start=`log_size`
+send_line FG
+wait_new 'FGCOOKEDOK' "$start" || fail 'pipeline FG did not restore COOKED mode'
+# The controller terminates its own pgrp after the final verification so the
+# passive HOLD member cannot leak beyond the pipeline test.
+wait_new '# ' "$start" || fail 'shell did not recover after pipeline pgrp termination'
+
+# Build two stopped background readers.  Default FG must select the most recent
+# job (%2 HEAD), not the older CAT.  HEAD exits after one input record; CAT
+# would remain foreground waiting for EOF, so the returned shell prompt proves
+# both recency selection and foreground handoff.
+start=`log_size`
+send_line 'CAT &'
+wait_new '%1' "$start" || fail 'first multi-job slot was not allocated'
+start=`log_size`
+send_line 'HEAD 1 &'
+wait_new '%2' "$start" || fail 'second multi-job slot was not allocated'
+sleep 0.4
+start=`log_size`
+send_line JOBS
+wait_new '%1 STOPPED CAT' "$start" || fail 'older stopped CAT missing'
+wait_new '%2 STOPPED HEAD' "$start" || fail 'newer stopped HEAD missing'
+wait_new '# ' "$start" || fail 'multi-job JOBS did not return to shell'
+start=`log_size`
+send_line FG
+sleep 0.4
+send_line LATESTFG
+wait_new 'LATESTFG' "$start" || fail 'default FG did not run recent reader'
+wait_new '# ' "$start" || fail 'default FG selected CAT instead of recent HEAD'
+start=`log_size`
+send_line JOBS
+wait_new '%1 STOPPED CAT' "$start" || fail 'older CAT was not preserved'
+wait_new '# ' "$start" || fail 'post-default-FG JOBS did not return to shell'
+
+printf '%s\n' "$tag: PASS (single/pipeline FG TTY restore, shell recovery, multi-job default FG recency)"

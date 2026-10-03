@@ -26,10 +26,46 @@ fail(unsigned int status)
         (void)dsys_exit((int)status);
 }
 
+static int
+arg_eq(const kword_t *arg, const char *text)
+{
+        unsigned int len;
+        unsigned int i;
+        unsigned int wi;
+        unsigned int sh;
+        int ch;
+
+        if (arg == 0 || text == 0)
+                return 0;
+        len = (unsigned int)arg[0];
+        for (i = 0U; text[i] != 0; ++i)
+                ;
+        if (i != len)
+                return 0;
+        for (i = 0U; i < len; ++i) {
+                wi = 1U + i / 6U;
+                sh = 30U - (i % 6U) * 6U;
+                ch = (int)(((arg[wi] >> sh) & 077UL) + 040UL);
+                if (ch != (unsigned char)text[i])
+                        return 0;
+        }
+        return 1;
+}
+
 int
-main(void)
+main(int argc, kword_t **argv)
 {
         int pgrp;
+        int terminate_group;
+
+        /* A passive first pipeline stage keeps a second process alive in the
+         * job while the final DSHFGT instance drives stop/continue checks. */
+        if (argc > 1 && arg_eq(argv[1], "HOLD")) {
+                for (;;)
+                        if (dsys_sleep(60U) != 0)
+                                fail(6U);
+        }
+        terminate_group = argc > 1 && arg_eq(argv[1], "KILL");
 
         pgrp = dsys_procctl(SYS_PROCCTL_GETPGRP, 0U);
         if (pgrp <= 0 ||
@@ -67,6 +103,9 @@ main(void)
             (int)SYS_TTY_MODE_COOKED)
                 fail(7U);
         put_text("FGCOOKEDOK");
+        if (terminate_group)
+                (void)dsys_procctl(SYS_PROCCTL_EVENT_PGRP,
+                    SYS_EVENT_ARG((unsigned int)pgrp, SYS_EVENT_TERM));
         (void)dsys_exit(0);
         return 0;
 }
