@@ -161,8 +161,13 @@ value=`tail -c "+$((start + 1))" "$cty_log" | \
 
 used=$((0$value))
 limit=$((00310))
+capacity=$((00316))
+[ "$used" -lt "$capacity" ] || {
+        echo "$tag: private kernel stack saturated capacity 0316 (highwater=0$value)" >&2
+        exit 1
+}
 [ "$used" -le "$limit" ] || {
         echo "$tag: private kernel stack highwater 0$value exceeds 0310" >&2
         exit 1
 }
-printf '%s\n' "$tag: PASS (highwater=0$value octal words, limit=0310)"
+printf '%s\n' "$tag: PASS (highwater=0$value octal words, limit=0310, capacity=0316)"

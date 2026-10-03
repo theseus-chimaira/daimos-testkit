@@ -32,7 +32,7 @@ atable=`a_equ PROC_FILE_TABLE_OFFSET`
 astack=`a_equ PROC_USTACK_BASE`
 kstack=`a_equ PROC_KSTACK_WORDS`
 
-[ "$uarea" = 0420 ] || { echo "$tag: unexpected PROC_UAREA_WORDS=$uarea" >&2; exit 1; }
+[ "$uarea" = 0430 ] || { echo "$tag: unexpected PROC_UAREA_WORDS=$uarea" >&2; exit 1; }
 [ "$fdctl" = 0045 ] || { echo "$tag: unexpected fdctl offset=$fdctl" >&2; exit 1; }
 [ "$cwd" = 0046 ] || { echo "$tag: unexpected cwd offset=$cwd" >&2; exit 1; }
 [ "$table" = 0047 ] || { echo "$tag: unexpected table offset=$table" >&2; exit 1; }
