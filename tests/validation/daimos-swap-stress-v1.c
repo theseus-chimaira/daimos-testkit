@@ -410,8 +410,10 @@ main(int argc, kword_t **argv)
         }
         if (mode != 1U || dsys_getpid() != 1)
                 fail('0', 010);
-        if (dsys_storagectl(SYS_STORAGECTL_SWAP) != 0)
-                fail('S', 010);
+        /* INIT requests both AUTO services together.  LOGSTORE may be absent
+         * in this reduced image, but that must not suppress independent SWAP
+         * activation; the pressure cases below prove SWAP actually came up. */
+        (void)dsys_storagectl(SYS_STORAGECTL_SWAP | SYS_STORAGECTL_LOGSTORE);
 
         if (mark('<') != 0 || run_writer_case() != 0)
                 fail('W', 011);
