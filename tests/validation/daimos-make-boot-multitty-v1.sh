@@ -150,6 +150,23 @@ start=`log_size "$cty_out"`
 send_slow 3 'echo ctyok'
 wait_new "$cty_out" 'CTYOK' "$start" || fail_logs 'CTY DSH raw input/echo failed'
 
+# Public command names must be real /SYSTEM/EXEC entries even when their code
+# is shared through private /SYSTEM/LIBEXEC multiplexers.  This keeps the
+# namespace inspectable and lets path-oriented tools agree with DSH lookup.
+start=`log_size "$cty_out"`
+send_slow 3 'ls /system/exec'
+wait_new "$cty_out" 'F LS' "$start" || \
+        fail_logs '/SYSTEM/EXEC does not expose mapped LS command'
+wait_new "$cty_out" 'F WHICH' "$start" || \
+        fail_logs '/SYSTEM/EXEC does not expose WHICH command'
+
+start=`log_size "$cty_out"`
+send_slow 3 'which ls sed'
+wait_new "$cty_out" '/SYSTEM/EXEC/LS' "$start" || \
+        fail_logs 'WHICH LS did not report public system path'
+wait_new "$cty_out" '/SYSTEM/EXEC/SED' "$start" || \
+        fail_logs 'WHICH SED did not report public system path'
+
 # Ambiguous path completion follows the conventional two-TAB interaction:
 # the first TAB preserves the unresolved prefix, the second prints all
 # candidates and redraws the current command line.  Use literal TAB bytes;
@@ -177,4 +194,4 @@ for spec in "4:$dcs_out" "5:$ge_out"; do
                 fail_logs 'remote DSH lowercase raw input failed'
 done
 
-printf '%s\n' "$tag: PASS (CTY/DCS0/GE0 lowercase raw input plus double-TAB completion)"
+printf '%s\n' "$tag: PASS (public EXEC/WHICH, CTY/DCS0/GE0 lowercase input, double-TAB completion)"
