@@ -135,6 +135,40 @@ send_line ROOT
 wait_new 'DSH V1' "$start" || fail 'ROOT login did not enter DSH'
 wait_new '# ' "$start" || fail 'initial DSH prompt missing'
 
+# Baseline line editing is deliberately terminal-database-free.  Verify
+# insertion before the cursor using Ctrl-B, bounded history recall with
+# Ctrl-P, and generic command/path TAB completion on the real raw DCS path.
+start=`log_size`
+printf 'ECHO EDITOK > /CONFIG/EDTX\002\002I\r' >&3
+wait_new '# ' "$start" || fail 'cursor insertion did not return to prompt'
+start=`log_size`
+send_line 'CAT /CONFIG/EDITX'
+wait_new 'EDITOK' "$start" || fail 'Ctrl-B cursor insertion produced wrong command'
+wait_new '# ' "$start" || fail 'prompt missing after cursor insertion check'
+
+start=`log_size`
+send_line 'ECHO ONE >> /CONFIG/HISTX'
+wait_new '# ' "$start" || fail 'history seed command did not finish'
+start=`log_size`
+printf '\020\r' >&3
+wait_new '# ' "$start" || fail 'Ctrl-P history recall did not execute'
+start=`log_size`
+send_line 'WC /CONFIG/HISTX'
+wait_new '2 2 8' "$start" || fail 'Ctrl-P did not recall the previous command'
+wait_new '# ' "$start" || fail 'prompt missing after history check'
+
+start=`log_size`
+printf 'EC\t COMPOK\r' >&3
+wait_new 'COMPOK' "$start" || fail 'command TAB completion failed'
+wait_new '# ' "$start" || fail 'prompt missing after command completion'
+start=`log_size`
+send_line 'ECHO PATHOK > /CONFIG/COMPLETIONFILE'
+wait_new '# ' "$start" || fail 'path completion seed did not finish'
+start=`log_size`
+printf 'CAT /CONFIG/COMPL\t\r' >&3
+wait_new 'PATHOK' "$start" || fail 'path TAB completion failed'
+wait_new '# ' "$start" || fail 'prompt missing after path completion'
+
 # DSH owns raw/no-echo input while editing.  Ctrl-C must cancel only the
 # partial shell input record and return a fresh prompt; it must not leak the
 # partial text into the next command.
