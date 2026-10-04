@@ -173,6 +173,21 @@ command DEVS
 contains CTY0
 end
 
+probe mods-live
+command MODS
+contains CTY0
+end
+
+probe mounts-live
+command MOUNTS
+contains D6FS /
+end
+
+probe sysctl-live
+command SYSCTL
+contains TOTAL
+end
+
 probe free-live
 command FREE
 matches TOTAL [0-9]+

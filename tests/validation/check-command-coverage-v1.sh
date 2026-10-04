@@ -3,7 +3,7 @@ set -eu
 
 fail()
 {
-    echo "check-init-multicall-coverage: $*" >&2
+    echo "check-command-coverage: $*" >&2
     exit 1
 }
 
@@ -32,11 +32,27 @@ while [ "$#" -gt 0 ]; do
 done
 [ -n "$DAIMOS_REPO" ] || fail "--daimos-repo is required"
 [ -n "$PROBES$SCRIPTS" ] || fail "at least one coverage source is required"
-source=$DAIMOS_REPO/userland/exec/commands.c
-[ -f "$source" ] || fail "missing current INIT multicall source: $source"
+makefile=$DAIMOS_REPO/userland/Makefile
+[ -f "$makefile" ] || fail "missing userland Makefile: $makefile"
 
-commands=$(sed -n 's/.*cmd_name_eq(argv\[0\], "\([A-Z0-9][A-Z0-9.]*\)").*/\1/p' "$source" | sort -u)
-[ -n "$commands" ] || fail "no INIT multicall commands found in $source"
+commands=$(awk '''
+BEGIN { take = 0 }
+/^COMMAND_PROGRAMS[[:space:]]*=/ {
+        take = 1
+        sub(/^[^=]*=[[:space:]]*/, "")
+}
+take {
+        line = $0
+        cont = sub(/[[:space:]]*\\[[:space:]]*$/, "", line)
+        n = split(line, a, /[[:space:]]+/)
+        for (i = 1; i <= n; ++i)
+                if (a[i] ~ /^[A-Z0-9][A-Z0-9.]*$/)
+                        print a[i]
+        take = cont
+}
+''' "$makefile" | sort -u)
+commands=$(printf '%s\n%s\n' "$commands" MOUNT.TSFS | sort -u)
+[ -n "$commands" ] || fail "no standalone command inventory found in $makefile"
 
 covered=
 for file in $PROBES; do
@@ -66,7 +82,7 @@ for file in $PROBES; do
 }${old}"
 done
 if [ -n "$missing" ]; then
-    echo "missing INIT multicall coverage: $missing" >&2
+    echo "missing standalone command coverage: $missing" >&2
 fi
 if [ -n "$obsolete" ]; then
     echo "obsolete standalone executable probes remain:" >&2
@@ -74,4 +90,4 @@ if [ -n "$obsolete" ]; then
 fi
 [ -z "$missing" ] && [ -z "$obsolete" ] || exit 1
 count=$(printf '%s\n' "$commands" | wc -l | tr -d ' ')
-echo "INIT multicall coverage PASS: $count commands"
+echo "standalone command coverage PASS: $count commands"

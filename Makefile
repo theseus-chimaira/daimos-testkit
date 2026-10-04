@@ -13,7 +13,7 @@ TCP_RUN = $(BUILD_ROOT)/tools/tcp-run-v1
 PROBES = probes/daimos-runtime-probes-v3.txt
 DSH_PROBES = probes/daimos-dsh-conformance-v1.txt
 PROBE_CHECK = tests/validation/check-probe-format-v1.sh
-COVERAGE = tests/validation/check-init-multicall-coverage-v1.sh
+COVERAGE = tests/validation/check-command-coverage-v1.sh
 REPORT_MD = reports/daimos-runtime-probes-v3.md
 KERNEL_BUILD = $(BUILD_ROOT)/tests/system/kernel
 KERNEL_SMOKE_BUILD = $(BUILD_ROOT)/tests/system/kernel-smoke
@@ -150,7 +150,7 @@ mm-core:
 	'$(BUILD_ROOT)/tests/system/mm-v1/test'
 
 
-target: mm-core target-backstore-pdp6 target-monitorfs-wordio-pdp6 target-memfs-pdp6 target-memfs-fifo-pdp6 target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-stage1-d6lz-pdp6 target-wordtoken-pdp6 test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-pi-restore
+target: mm-core target-backstore-pdp6 target-monitorfs-wordio-pdp6 target-memfs-pdp6 target-memfs-fifo-pdp6 target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-stage1-d6lz-pdp6 target-wordtoken-pdp6 target-kcc-indexed-byteptr-pdp6 test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-pi-restore
 
 target-backstore-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
@@ -187,6 +187,10 @@ target-d6lz-pdp6:
 target-wordtoken-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-wordtoken-pdp6-v1/run.sh
+
+target-kcc-indexed-byteptr-pdp6:
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		tests/target/daimos-kcc-sixarg-char-pdp6-v1/run.sh
 
 target-stage1-d6lz-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \

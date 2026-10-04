@@ -150,15 +150,31 @@ start=`log_size "$cty_out"`
 send_slow 3 'echo ctyok'
 wait_new "$cty_out" 'CTYOK' "$start" || fail_logs 'CTY DSH raw input/echo failed'
 
-# Public command names must be real /SYSTEM/EXEC entries even when their code
-# is shared through private /SYSTEM/LIBEXEC multiplexers.  This keeps the
-# namespace inspectable and lets path-oriented tools agree with DSH lookup.
+# Public commands are ordinary /SYSTEM/EXEC files.  /SYSTEM/LIBEXEC is for
+# genuinely private helpers only; no command map or multicall implementation
+# belongs there.
 start=`log_size "$cty_out"`
 send_slow 3 'ls /system/exec'
 wait_new "$cty_out" 'F LS' "$start" || \
-        fail_logs '/SYSTEM/EXEC does not expose mapped LS command'
+        fail_logs '/SYSTEM/EXEC does not contain LS executable'
 wait_new "$cty_out" 'F WHICH' "$start" || \
         fail_logs '/SYSTEM/EXEC does not expose WHICH command'
+wait_new "$cty_out" 'F MAKE' "$start" || \
+        fail_logs '/SYSTEM/EXEC does not contain native MAKE executable'
+wait_new "$cty_out" '# ' "$start" || \
+        fail_logs 'DSH prompt did not return after /SYSTEM/EXEC listing'
+
+start=`log_size "$cty_out"`
+send_slow 3 'ls /system/libexec'
+wait_new "$cty_out" 'F DSHCOMP' "$start" || \
+        fail_logs '/SYSTEM/LIBEXEC does not contain DSHCOMP helper'
+for stale in CMD UTIL.MISC UTIL.TEXT UTIL.DOC LOGCOMPAT MAP; do
+        if tail -c +$((start + 1)) "$cty_out" | grep -F "F $stale" >/dev/null 2>&1; then
+                fail_logs "/SYSTEM/LIBEXEC still exposes obsolete $stale multiplexer"
+        fi
+done
+wait_new "$cty_out" '# ' "$start" || \
+        fail_logs 'DSH prompt did not return after /SYSTEM/LIBEXEC listing'
 
 start=`log_size "$cty_out"`
 send_slow 3 'which ls sed'
@@ -166,6 +182,28 @@ wait_new "$cty_out" '/SYSTEM/EXEC/LS' "$start" || \
         fail_logs 'WHICH LS did not report public system path'
 wait_new "$cty_out" '/SYSTEM/EXEC/SED' "$start" || \
         fail_logs 'WHICH SED did not report public system path'
+
+# The optional assembler utilities ship as native-buildable source.  Their
+# MAKEFILE must be usable entirely inside DAIMOS with the installed MAKE/DAS
+# toolchain, and INSTALL must create ordinary /OPTION/BASE/EXEC programs.
+start=`log_size "$cty_out"`
+send_slow 3 'ls /option/base/source/asmutils'
+for source in MAKEFILE ARGS.S BASE.S S6REC.S; do
+        wait_new "$cty_out" "F $source" "$start" || \
+                fail_logs "ASMUTILS source tree is missing $source"
+done
+wait_new "$cty_out" '# ' "$start" || \
+        fail_logs 'DSH prompt did not return after ASMUTILS source listing'
+
+start=`log_size "$cty_out"`
+send_slow 3 'make -c /option/base/source/asmutils install'
+wait_new "$cty_out" '# ' "$start" 6000 || \
+        fail_logs 'native ASMUTILS MAKE INSTALL did not complete'
+
+start=`log_size "$cty_out"`
+send_slow 3 'which args'
+wait_new "$cty_out" '/OPTION/BASE/EXEC/ARGS' "$start" || \
+        fail_logs 'native ASMUTILS install did not create /OPTION/BASE/EXEC/ARGS'
 
 # Ambiguous path completion follows the conventional two-TAB interaction:
 # the first TAB preserves the unresolved prefix, the second prints all
