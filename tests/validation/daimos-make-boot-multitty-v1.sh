@@ -123,7 +123,6 @@ wait_new "$cty_out" "DCS0  127.0.0.1:$dcs_port" 0 100 || \
 wait_new "$cty_out" "GE0   127.0.0.1:$ge_port" 0 100 || \
         fail_logs 'make boot did not announce GE0'
 
-wait_new "$cty_out" 'LOGIN: ' 0 || fail_logs 'CTY LOGIN missing'
 wait_new "$cty_out" 'DPY                                   OK' 0 || \
         fail_logs 'Type 340 DPY did not probe successfully'
 wait_new "$dcs_out" 'Connected to the PDP6 simulator DCS device' 0 || \
@@ -140,87 +139,87 @@ for spec in "4:$dcs_out" "5:$ge_out"; do
         wait_new "$file" 'LOGIN: ' "$start" || fail_logs 'remote LOGIN missing'
 done
 
-# CTY must remain usable with the GUI display devices enabled.  This catches
-# simulator video-event regressions that can leave LOGIN usable but break the
-# shell's raw per-character editor path.
-start=`log_size "$cty_out"`
-send_slow 3 ROOT
-wait_new "$cty_out" 'DSH V1' "$start" || fail_logs 'CTY LOGIN did not enter DSH'
-start=`log_size "$cty_out"`
-send_slow 3 'echo ctyok'
-wait_new "$cty_out" 'CTYOK' "$start" || fail_logs 'CTY DSH raw input/echo failed'
+# Use DCS0 as the observable shell for command/runtime checks.
+start=`log_size "$dcs_out"`
+send_slow 4 ROOT
+wait_new "$dcs_out" 'DSH V1' "$start" || fail_logs 'DCS0 LOGIN did not enter DSH'
+
+# With DPY_LOGIN=1, TTY0 keyboard input remains CTY but terminal output is
+# intentionally routed to the Type-340.  Therefore CTY no longer prints the
+# LOGIN or DSH prompt.  Remote DCS/GE logins below prove userspace is alive;
+# the dedicated DPY tests cover the display-output path.
 
 # Public commands are ordinary /SYSTEM/EXEC files.  /SYSTEM/LIBEXEC is for
 # genuinely private helpers only; no command map or multicall implementation
 # belongs there.
-start=`log_size "$cty_out"`
-send_slow 3 'ls /system/exec'
-wait_new "$cty_out" 'F LS' "$start" || \
+start=`log_size "$dcs_out"`
+send_slow 4 'ls /system/exec'
+wait_new "$dcs_out" 'F LS' "$start" || \
         fail_logs '/SYSTEM/EXEC does not contain LS executable'
-wait_new "$cty_out" 'F WHICH' "$start" || \
+wait_new "$dcs_out" 'F WHICH' "$start" || \
         fail_logs '/SYSTEM/EXEC does not expose WHICH command'
-wait_new "$cty_out" 'F MAKE' "$start" || \
+wait_new "$dcs_out" 'F MAKE' "$start" || \
         fail_logs '/SYSTEM/EXEC does not contain native MAKE executable'
-wait_new "$cty_out" '# ' "$start" || \
+wait_new "$dcs_out" '# ' "$start" || \
         fail_logs 'DSH prompt did not return after /SYSTEM/EXEC listing'
 
-start=`log_size "$cty_out"`
-send_slow 3 'ls /system/libexec'
-wait_new "$cty_out" 'F DSHCOMP' "$start" || \
+start=`log_size "$dcs_out"`
+send_slow 4 'ls /system/libexec'
+wait_new "$dcs_out" 'F DSHCOMP' "$start" || \
         fail_logs '/SYSTEM/LIBEXEC does not contain DSHCOMP helper'
 for stale in CMD UTIL.MISC UTIL.TEXT UTIL.DOC LOGCOMPAT MAP; do
-        if tail -c +$((start + 1)) "$cty_out" | grep -F "F $stale" >/dev/null 2>&1; then
+        if tail -c +$((start + 1)) "$dcs_out" | grep -F "F $stale" >/dev/null 2>&1; then
                 fail_logs "/SYSTEM/LIBEXEC still exposes obsolete $stale multiplexer"
         fi
 done
-wait_new "$cty_out" '# ' "$start" || \
+wait_new "$dcs_out" '# ' "$start" || \
         fail_logs 'DSH prompt did not return after /SYSTEM/LIBEXEC listing'
 
-start=`log_size "$cty_out"`
-send_slow 3 'which ls sed'
-wait_new "$cty_out" '/SYSTEM/EXEC/LS' "$start" || \
+start=`log_size "$dcs_out"`
+send_slow 4 'which ls sed'
+wait_new "$dcs_out" '/SYSTEM/EXEC/LS' "$start" || \
         fail_logs 'WHICH LS did not report public system path'
-wait_new "$cty_out" '/SYSTEM/EXEC/SED' "$start" || \
+wait_new "$dcs_out" '/SYSTEM/EXEC/SED' "$start" || \
         fail_logs 'WHICH SED did not report public system path'
 
 # The optional assembler utilities ship as native-buildable source.  Their
 # MAKEFILE must be usable entirely inside DAIMOS with the installed MAKE/DAS
 # toolchain, and INSTALL must create ordinary /OPTION/BASE/EXEC programs.
-start=`log_size "$cty_out"`
-send_slow 3 'ls /option/base/source/asmutils'
+start=`log_size "$dcs_out"`
+send_slow 4 'ls /option/base/source/asmutils'
 for source in MAKEFILE ARGS.S BASE.S S6REC.S; do
-        wait_new "$cty_out" "F $source" "$start" || \
+        wait_new "$dcs_out" "F $source" "$start" || \
                 fail_logs "ASMUTILS source tree is missing $source"
 done
-wait_new "$cty_out" '# ' "$start" || \
+wait_new "$dcs_out" '# ' "$start" || \
         fail_logs 'DSH prompt did not return after ASMUTILS source listing'
 
-start=`log_size "$cty_out"`
-send_slow 3 'make -c /option/base/source/asmutils install'
-wait_new "$cty_out" '# ' "$start" 6000 || \
+start=`log_size "$dcs_out"`
+send_slow 4 'make -c /option/base/source/asmutils install'
+wait_new "$dcs_out" '# ' "$start" 6000 || \
         fail_logs 'native ASMUTILS MAKE INSTALL did not complete'
 
-start=`log_size "$cty_out"`
-send_slow 3 'which args'
-wait_new "$cty_out" '/OPTION/BASE/EXEC/ARGS' "$start" || \
+start=`log_size "$dcs_out"`
+send_slow 4 'which args'
+wait_new "$dcs_out" '/OPTION/BASE/EXEC/ARGS' "$start" || \
         fail_logs 'native ASMUTILS install did not create /OPTION/BASE/EXEC/ARGS'
 
 # Ambiguous path completion follows the conventional two-TAB interaction:
 # the first TAB preserves the unresolved prefix, the second prints all
 # candidates and redraws the current command line.  Use literal TAB bytes;
 # send_slow() would append ENTER and therefore cannot express this editor case.
-start=`log_size "$cty_out"`
-printf 'CD /\t\t\r' >&3
-wait_new "$cty_out" '/SYSTEM/' "$start" || \
-        fail_logs 'CTY DSH double-TAB did not list /SYSTEM/'
-wait_new "$cty_out" '/CONFIG/' "$start" || \
-        fail_logs 'CTY DSH double-TAB did not list /CONFIG/'
+start=`log_size "$dcs_out"`
+printf 'CD /\t\t\r' >&4
+wait_new "$dcs_out" '/SYSTEM/' "$start" || \
+        fail_logs 'DCS0 DSH double-TAB did not list /SYSTEM/'
+wait_new "$dcs_out" '/CONFIG/' "$start" || \
+        fail_logs 'DCS0 DSH double-TAB did not list /CONFIG/'
 
 if grep -F 'vid_thread(): Unexpected user event code:' "$cty_out" >/dev/null 2>&1; then
         fail_logs 'SIMH video thread reported an unexpected redraw event'
 fi
 
-for spec in "4:$dcs_out" "5:$ge_out"; do
+for spec in "5:$ge_out"; do
         fd=${spec%%:*}
         file=${spec#*:}
         start=`log_size "$file"`
@@ -232,4 +231,4 @@ for spec in "4:$dcs_out" "5:$ge_out"; do
                 fail_logs 'remote DSH lowercase raw input failed'
 done
 
-printf '%s\n' "$tag: PASS (public EXEC/WHICH, CTY/DCS0/GE0 lowercase input, double-TAB completion)"
+printf '%s\n' "$tag: PASS (public EXEC/WHICH, DPY-routed TTY0, DCS0/GE0 input, double-TAB completion)"

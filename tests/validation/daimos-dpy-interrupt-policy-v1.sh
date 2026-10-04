@@ -30,6 +30,15 @@ grep -q '^dpy_clock_handler:$' "$dpy_s" ||
 grep -q '^dpy_clk_pi_service_call:$' "$dpy_s" ||
         fail 'DPY clock wrapper no longer delegates to normal CLK service'
 
+# The Type-344 interface accepts display words through DATAO.  Do not feed
+# device 0130 with BLKO: the simulator (and documented interface behaviour)
+# does not support that transport for the Type-340 display path.
+if grep -Eq '^[[:space:]]*blko[[:space:]]+0130,' "$dpy_s"; then
+        fail 'DPY incorrectly uses BLKO instead of interrupt-driven DATAO'
+fi
+grep -Eq '^[[:space:]]*datao[[:space:]]+0130,' "$dpy_s" ||
+        fail 'DPY DATAO refresh feeder missing'
+
 dpy_minit=`awk '
         /^dpy_minit\(void\)/ { in_fn=1 }
         in_fn { print }
@@ -63,4 +72,4 @@ fi
 printf '%s\n' "$dpy_minit" | grep -q 'minit_pi_enable(DPY_NATIVE_PI_LEVEL);' ||
         fail 'DPY PI7 is not enabled after installing the pre-handler'
 
-printf '%s\n' "$tag: PASS (CLK PI6, DPY DONE PI7, zero no-DPY interrupt-path changes)"
+printf '%s\n' "$tag: PASS (CLK PI6, DPY DONE PI7, DATAO refresh, zero no-DPY interrupt-path changes)"
