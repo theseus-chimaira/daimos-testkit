@@ -529,6 +529,20 @@ test-daimos-dpy-interrupt-policy: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" tests/validation/daimos-dpy-interrupt-policy-v1.sh
 
+test-daimos-dpy-native-blocks: check-prefix
+	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
+	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		tests/validation/daimos-dpy-native-blocks-v1.sh
+
+test-daimos-dpy-native-refresh: check-prefix
+	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
+	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		tests/validation/daimos-dpy-native-refresh-smoke-v1.sh
+
 test-daimos-exec-abi: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" tests/validation/daimos-exec-abi-v1.sh

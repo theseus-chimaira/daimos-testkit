@@ -13,7 +13,7 @@
 012|process|test-daimos-process-lifecycle test-daimos-process-id-lifetime|Process lifecycle and process-ID lifetime
 013|process|test-daimos-process-hierarchy test-daimos-domain|Process hierarchy and domains
 014|process|test-daimos-monitorfs-process-decimal test-daimos-process-events|MonitorFS process rendering and process events
-015|tty|test-daimos-process-tty test-daimos-tty-session-state test-daimos-tty-s6rec test-daimos-tty-s6rec-input test-daimos-tty-routing test-daimos-pt-wordio test-daimos-card-wordio test-daimos-lpt-s6rec|TTY/session, output routing, and word-I/O adapters
+015|tty|test-daimos-process-tty test-daimos-tty-session-state test-daimos-tty-s6rec test-daimos-tty-s6rec-input test-daimos-tty-routing test-daimos-dpy-native-blocks test-daimos-pt-wordio test-daimos-card-wordio test-daimos-lpt-s6rec|TTY/session, output routing, and word-I/O adapters
 016|job|test-daimos-session-teardown test-daimos-job-pipeline|Session teardown and job pipeline semantics
 017|scheduler|test-daimos-scheduler-multiproc test-daimos-scheduler-realtime test-daimos-scheduler-rt-revoke test-daimos-rt-required test-daimos-sleep test-daimos-low-memory-boot|Normal/RT scheduling, monotonic sleep, and low-memory boot
 018|stack|test-daimos-proc-stack-watermark test-daimos-idle-stack-watermark|Process and idle stack watermarks
@@ -28,6 +28,6 @@
 027|dectape|test-daimos-dtc-online test-daimos-dtc-stream-online test-daimos-tsfs-image-online test-daimos-tsfs-scan test-daimos-tsfs-boot-eight test-daimos-tsfs-multiextent test-daimos-tsfs-d6lz test-daimos-tsfs-dir test-daimos-tsfs-mount test-daimos-dtc-reverse-online|DECtape, eight-member TSFS scan/boot, compressed extents, and reverse operation
 028|kernel|kernel-runtime stand-runtime|Kernel and standalone runtime suites
 029|d6fs|d6fs-hdd-runtime d6fs-hdd-multi d6fs-recovery|D6FS HDD runtime, multi-member, and recovery
-030|runtime|runtime-build dtfs-runtime test-daimos-exec-abi test-daimos-exec-replace test-daimos-exec-child-session test-daimos-dpy-interrupt-policy test-daimos-userspace-multitty test-daimos-make-boot-multitty|Runtime build, DTFS, exec ABI/replacement/session, DPY interrupt policy, and multi-TTY userspace
+030|runtime|runtime-build dtfs-runtime test-daimos-exec-abi test-daimos-exec-replace test-daimos-exec-child-session test-daimos-dpy-interrupt-policy test-daimos-dpy-native-refresh test-daimos-userspace-multitty test-daimos-make-boot-multitty|Runtime build, DTFS, exec ABI/replacement/session, DPY interrupt policy, and multi-TTY userspace
 031|dsh|test-daimos-dsh-conformance|DSH quoting, CASE, globbing, command-map, and CTY0 interactive semantics
 032|tools|test-pdp10-tools|PDP-10 tool integration tests
