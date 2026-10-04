@@ -362,6 +362,13 @@ test-daimos-permanent-size: check-prefix
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		tests/validation/daimos-permanent-size-v1.sh
 
+test-daimos-dtfs-dirfields: check-prefix
+	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
+	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		tests/validation/daimos-dtfs-dirfields-v1.sh
+
 test-daimos-dtfs-rename: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
