@@ -7,6 +7,9 @@
         .globl  fs_backing_direct_drm_read_jump
         .globl  fs_backing_direct_drm_write_jump
         .globl  __test_exit
+        .globl  mfsdev_d6set_reads
+        .globl  mfsdev_d6set_writes
+        .globl  mfsdev_storage_errors
 
 main:
         ; The production DRM slots default to failure before MINIT patches them.
@@ -173,4 +176,7 @@ seen_unit:      .block  1
 seen_block:     .block  1
 seen_buffer:    .block  1
 buffer:         .block  0200
+mfsdev_d6set_reads:   .block  1
+mfsdev_d6set_writes:  .block  1
+mfsdev_storage_errors:.block  1
 __test_exit:    .block  1
