@@ -11,6 +11,7 @@ work="$TMPDIR/$tag-$$"
 build="$work/build"
 user="$work/user"
 out="$work/simh.out"
+self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$user"
 
@@ -27,7 +28,7 @@ dlink="$PDP10_PREFIX/bin/dlink"
     -I"$DAIMOS_REPO/system/kernel/proc" \
     -I"$DAIMOS_REPO/system/kernel/storage" \
     -I"$DAIMOS_REPO/userland/libc" \
-    -S "$(dirname "$0")/daimos-scheduler-rt-revoke-v1.c" -o "$user/init.s"
+    -S "$self/daimos-scheduler-rt-revoke-v1.c" -o "$user/init.s"
 "$das" -C -F -O "$user/init.dobj" "$user/init.s"
 "$das" -C -F -O "$user/crt0.dobj" "$DAIMOS_REPO/userland/libc/crt0.s"
 "$das" -C -F -O "$user/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"
@@ -40,8 +41,12 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     BUILD="$build/system/boot/pdp6" PDP10_PREFIX="$PDP10_PREFIX" \
     PROC_BOOT_USERS=2 SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 boot="$build/system/boot/pdp6"
+dcs_port=$((30000 + ($$ % 10000)))
+ge_port=$((45000 + ($$ % 10000)))
+"$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
+    "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
 awk '{ if ($0 == "go 020") print "expect \"<\" send \"\\034\"; continue"; print }' \
-    "$boot/boot.ini" >"$boot/boot.rt.ini"
+    "$boot/boot.headless.ini" >"$boot/boot.rt.ini"
 
 set +e
 (
