@@ -16,5 +16,5 @@ PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
         --workdir "$work/run" --name daimos-dtfs-chain-walk-v1 \
         --expect __test_exit=0 \
         "$self/daimos-test-crt0-v1.s" "$work/oracle.s" \
-        "$kernel/fs/dtfs_chain_walk.s" >/dev/null
+        "$kernel/fs/dtfs_chain_walk.s" "$kernel/core/ret.s" >/dev/null
 printf '%s\n' 'dtfs-chain-walk: PASS (NATIVE/TENEX/ITS production PDP-10 chain/census paths)'

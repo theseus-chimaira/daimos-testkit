@@ -48,6 +48,8 @@ cp_write_words_jump: .block 1
 lpt_putchar_jump: .block 1
         .globl lpt_write_s6rec_jump
 lpt_write_s6rec_jump: .block 1
+        .globl dpy_write_words_jump
+dpy_write_words_jump: .block 1
         .globl sys_dtc_read_block_jump
 sys_dtc_read_block_jump: .block 1
         .globl sys_dtc_write_block_jump

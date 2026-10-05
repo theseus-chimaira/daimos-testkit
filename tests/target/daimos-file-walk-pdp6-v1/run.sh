@@ -17,7 +17,7 @@ storage="$kernel/storage"
 
 "$cc" -std=c99 -Os -I"$PDP10_PREFIX/include" -I"$inc" -I"$storage" -I"$kernel/core" -S \
     "$here/test.c" -o "$work/test.s"
-"$cc" -std=c99 -Os -I"$PDP10_PREFIX/include" -I"$inc" -I"$storage" -I"$kernel/core" -S \
+"$cc" -std=c99 -Os -DFILE_OPEN_PDP6_ASM=1 -I"$PDP10_PREFIX/include" -I"$inc" -I"$storage" -I"$kernel/core" -S \
     "$inc/file.c" -o "$work/file.s"
 PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
     --machine pdp6 --mode deposit --exec-mode go --timeout 10 \

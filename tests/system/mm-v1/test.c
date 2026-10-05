@@ -23,6 +23,7 @@ struct proc *proc_table = proc_table_store;
 unsigned int proc_slots = PROC_MIN_SLOTS;
 unsigned int proc_high_slot = 1U;
 kword_t proc_current_slot;
+struct proc *proc_current_ptr;
 kword_t proc_sched_cursor;
 kword_t proc_sched_deferred_ticks;
 kword_t proc_runq_head;
@@ -157,7 +158,6 @@ tty_putchar(kword_t tty_char)
         return 0;
 }
 
-kword_t pdp10_pi_handlers[PDP10_PI_HANDLER_CAPACITY];
 kword_t pdp10_pi_level1_dispatch_jump;
 kword_t pdp10_pi_level2_dispatch_jump;
 kword_t pdp10_pi_level3_dispatch_jump;
@@ -716,9 +716,16 @@ main(void)
             "high bootstrap arena changed");
         check(mm_extent_count == 0,
             "free arenas consumed allocation descriptors");
-        check(mm_total_free() == 040000UL &&
-            mm_largest_free() == 030000UL,
-            "implicit free-space totals incorrect");
+        check(mm_largest_free() == 030000UL,
+            "largest implicit free-space span incorrect");
+        check(mm_alloc_aligned_noreclaim(035000UL, 1UL,
+            MM_TYPE_KERNEL_DYNAMIC, 077U, MM_ALLOC_LOW, &base) ==
+            MM_ERR_FRAGMENTED,
+            "fused fit/free scan did not report fragmented affordable request");
+        check(mm_alloc_aligned_noreclaim(050000UL, 1UL,
+            MM_TYPE_KERNEL_DYNAMIC, 077U, MM_ALLOC_LOW, &base) ==
+            MM_ERR_NOMEM,
+            "fused fit/free scan did not report true no-memory request");
 
         /* Permanent packed MRES must leave allocator bookkeeping once
          * installed.  Removing the used descriptor must trim the managed

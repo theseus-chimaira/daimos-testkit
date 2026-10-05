@@ -13,6 +13,7 @@ proc_current_slot:       .word 0
         .text
         .globl  file_parent_path
         .globl  vfs_parent_name
+        .globl  vfs_create
         .globl  vfs_sync
         .globl  vfs_read_words
         .globl  vfs_readdir
@@ -31,6 +32,7 @@ proc_current_slot:       .word 0
         .globl  lpt_putchar
 file_parent_path:
 vfs_parent_name:
+vfs_create:
 vfs_readdir:
 vfs_readchar:
 vfs_writechar:
@@ -75,6 +77,7 @@ vfs_sync:
         .globl  pipe_writechar
         .globl  pipe_add_ref
         .globl  pipe_close_ref
+        .globl  pipe_fifo_open
         .globl  pipe_fifo_detach
 pipe_readchar:
 pipe_writechar:
@@ -83,6 +86,9 @@ pipe_writechar:
 pipe_add_ref:
         popj    17,
 pipe_close_ref:
+        setz    1,
+        popj    17,
+pipe_fifo_open:
         setz    1,
         popj    17,
 pipe_fifo_detach:

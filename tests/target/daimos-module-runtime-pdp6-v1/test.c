@@ -7,7 +7,6 @@ extern kword_t drm236_write_jump;
 extern void daimos_module_runtime_init_lh(kword_t *word, unsigned int address);
 
 kword_t daimos_module_runtime_pdp6_result;
-kword_t pdp10_pi_handlers[PDP10_PI_HANDLER_CAPACITY];
 static kword_t old_image[011];
 static kword_t new_image[011];
 
@@ -24,8 +23,6 @@ daimos_module_runtime_pdp6_test(void)
                 old_image[i] = 0UL;
                 new_image[i] = 0UL;
         }
-        for (i = 0U; i < PDP10_PI_HANDLER_CAPACITY; ++i)
-                pdp10_pi_handlers[i] = 0UL;
         for (i = 0U; i < MODULE_DYNAMIC_BIND_MAX; ++i)
                 module_dynamic_bindings[i] = 0UL;
 
@@ -40,7 +37,8 @@ daimos_module_runtime_pdp6_test(void)
         module_runtime_descs[1] = (03UL << 18U) | (kword_t)old_base;
         module_dynamic_bindings[0] = (1UL << 18U) | 2UL;
         native_sys_putchar_call = 0254000000000UL | (kword_t)(old_base + 4U);
-        pdp10_pi_handlers[0] = (kword_t)(old_base + 5U);
+        pdp10_pi_level1_dispatch_jump =
+            0254000000000UL | (kword_t)(old_base + 5U);
         drm236_read_jump = 0254000000000UL | (kword_t)(old_base + 6U);
         drm236_write_jump = 0254000000000UL | (kword_t)(old_base + 7U);
 
@@ -58,7 +56,7 @@ daimos_module_runtime_pdp6_test(void)
         if ((native_sys_putchar_call & MODULE_HALF_MASK) !=
             (kword_t)(new_base + 4U))
                 return 6;
-        if ((pdp10_pi_handlers[0] & MODULE_HALF_MASK) !=
+        if ((pdp10_pi_level1_dispatch_jump & MODULE_HALF_MASK) !=
             (kword_t)(new_base + 5U))
                 return 7;
         if ((drm236_read_jump & MODULE_HALF_MASK) !=

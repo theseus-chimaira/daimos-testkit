@@ -1,4 +1,6 @@
 #!/bin/sh
+# covers-command CLEAR
+# covers-command DPYVIEW
 set -eu
 
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"

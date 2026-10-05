@@ -26,7 +26,8 @@ kcc_sixarg_char_result: .block 1
 stack:  .block 0100
 EOF_ASM
 
-"$kcc" -Pgnu99 -O -x=pdp6 -m=gas -S "$here/test.c" -o "$work/test.s"
+cp "$here/test.c" "$work/test.c"
+(cd "$work" && "$kcc" -Pgnu99 -O -x=pdp6 -m=gas -S test.c -o test.s)
 "$das" -F -C -O "$work/test.dobj" "$work/test.s"
 
 PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \

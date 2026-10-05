@@ -29,4 +29,5 @@ PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
     --workdir "$work/run" --name daimos-monitorfs-wordio-pdp6-v1 \
     --expect daimos_monitorfs_wordio_result=0 --report "$work/report.txt" \
     "$work/start.s" "$work/test.s" "$here/stubs.s" \
-    "$kernel/core/kfmt_pdp6.s" "$kernel/fs/monitorfs_runtime.s"
+    "$kernel/core/kfmt_pdp6.s" "$kernel/fs/monitorfs_runtime.s" \
+    "$kernel/core/ret.s"

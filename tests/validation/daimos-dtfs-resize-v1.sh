@@ -19,5 +19,5 @@ PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
     --workdir "$work/run" --name daimos-dtfs-resize-v1 \
     --expect __test_exit=0 \
     "$self/daimos-test-crt0-v1.s" "$work/oracle.s" \
-    "$work/dtfs_resize.s" >/dev/null
+    "$work/dtfs_resize.s" "$DAIMOS_REPO/system/kernel/core/ret.s" >/dev/null
 printf '%s\n' 'dtfs-resize: PASS (NATIVE/TENEX grow/equal/shrink and ITS delegation)'

@@ -52,7 +52,8 @@ coverage:
 	$(COVERAGE) --daimos-repo '$(DAIMOS_REPO)' --probes '$(PROBES)' \
 		--script 'tests/validation/daimos-dtc-online-v1.sh' \
 		--script 'tests/validation/daimos-tsfs-mount-v1.sh' \
-		--script 'tests/validation/daimos-low-memory-boot-v2.sh'
+		--script 'tests/validation/daimos-low-memory-boot-v2.sh' \
+		--script 'tests/validation/daimos-dpy-native-refresh-smoke-v1.sh'
 
 image:
 	$(MAKE) -C '$(abspath $(DAIMOS_REPO))/system/boot/pdp6' image \
