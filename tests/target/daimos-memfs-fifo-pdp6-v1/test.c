@@ -76,7 +76,6 @@ daimos_memfs_fifo_pdp6_test(void)
         fs.pool = pool;
         fs.pool_words = 8U;
         fs.used_words = 0U;
-        fs.image_data = 0;
 
         node_store[1].meta = META_DIR_WRITABLE;
         root = VFS_NODE(MEMFS_PROVIDER, MEMFS_KIND_NODE, 1U);

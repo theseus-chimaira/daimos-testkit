@@ -130,7 +130,6 @@ daimos_memfs_pdp6_test(void)
         fs.pool = backing;
         fs.pool_words = 0200U;
         fs.used_words = 0U;
-        fs.image_data = 0;
         pool_live = 0;
         backstore_live = 0;
         backstore_blocks = 1UL;
