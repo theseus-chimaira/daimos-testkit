@@ -12,6 +12,7 @@
         .globl  d6fs_mres_vector
         .globl  d6fs_active_reader
         .globl  d6fs_reader_slots
+        .globl  d6fs_provider_space
         .globl  vfs_mount_ro
         .globl  fs_block_workspace
         .globl  __test_exit
@@ -26,9 +27,9 @@ main:
         movei   1,5
         movem   1,reader+2
         movei   1,020
-        movem   1,reader+014
+        movem   1,reader+011
         movei   1,021
-        movem   1,reader+015
+        movem   1,reader+012
         setzm   vfs_mount_ro
         setzm   write_fail
 
@@ -170,6 +171,8 @@ fs_mres_vector_dispatch:
         jrst    kret_neg1
 d6fs_mount_validated:
         jrst    kret_neg1
+d6fs_provider_space:
+        jrst    kret_neg1
 
 ; Production get_block must fetch the opposite A/B copy.  Seed the shared
 ; block with sentinel metadata that write_block checks remains intact.
@@ -293,7 +296,7 @@ vfs_mount_ro:
 fs_block_workspace:
         .block  0200
 reader:
-        .block  021
+        .block  016
 phase:
         .block  1
 write_fail:

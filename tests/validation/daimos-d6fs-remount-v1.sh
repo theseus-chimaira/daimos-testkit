@@ -18,7 +18,7 @@ mkdir -p "$work"
 {
         echo '.text'
         echo '.globl d6fs_mres_dispatch'
-        sed -n '/^d6fs_mres_dispatch:/,/^        \.globl  vfs_mount_prevalidated$/p' "$d6fs_source" |
+        sed -n '/^d6fs_mres_dispatch:/,/^d6fs_provider_space:/p' "$d6fs_source" |
                 sed '$d'
         sed -n '/^d6fs_provider_toggle_state:/,/^        \.globl  pclk_time36$/p' "$d6fs_source" |
                 sed '$d'

@@ -15,6 +15,9 @@
         .globl  d6fs_provider_toggle_state
         .globl  d6fs_provider_space
         .globl  __test_exit
+        .globl  kconst_1_1
+        .globl  kconst_2_2
+        .globl  kconst_3_3
 
 main:
         ; Existing boot root occupies public mount id 1 / slot 0.
@@ -24,9 +27,9 @@ main:
         movei   2,1
         movem   2,root_reader+1
         move    2,[1,,0100]
-        movem   2,root_reader+017       ; distinct root backing identity
+        movem   2,root_reader+014       ; distinct root backing identity
         movei   2,01000
-        movem   2,root_reader+020
+        movem   2,root_reader+015
 
         ; Mount a second independently backed D6FS through production
         ; FS_MRES_OP_MOUNT_UNIT.  AC4 is intentionally unused.
@@ -45,26 +48,23 @@ main:
         caie    1,secondary_reader
         jrst    multimount_fail
 
-        ; Filesystem identity and physical backing are independent.
-        move    1,secondary_reader+4    ; fs_uuid[0]
-        came    1,[012345670123]
-        jrst    multimount_fail
-        move    1,secondary_reader+5    ; fs_uuid[1]
-        came    1,[076543210765]
-        jrst    multimount_fail
-        move    1,secondary_reader+014  ; super A block
-        caie    1,020
-        jrst    multimount_fail
-        move    1,secondary_reader+015  ; super B block
-        caie    1,021
-        jrst    multimount_fail
-        move    1,secondary_reader+017  ; DRM set mask 0,2,3 + common base
-        came    1,[0600015,,0400]
-        jrst    multimount_fail
-        move    1,secondary_reader+020  ; backing capacity
+        ; Runtime geometry and physical backing are independent per mount.
+        move    1,secondary_reader+3    ; total blocks
         caie    1,02000
         jrst    multimount_fail
-        move    1,secondary_reader+016  ; trusted callbacks replaced marker
+        move    1,secondary_reader+011  ; super A block
+        caie    1,020
+        jrst    multimount_fail
+        move    1,secondary_reader+012  ; super B block
+        caie    1,021
+        jrst    multimount_fail
+        move    1,secondary_reader+014  ; DRM set mask 0,2,3 + common base
+        came    1,[0600015,,0400]
+        jrst    multimount_fail
+        move    1,secondary_reader+015  ; backing capacity
+        caie    1,02000
+        jrst    multimount_fail
+        move    1,secondary_reader+013  ; trusted callbacks replaced marker
         came    1,[fs_backing_direct_read,,fs_backing_direct_write]
         jrst    multimount_fail
 
@@ -77,7 +77,7 @@ main:
         andi    1,077
         caie    1,1
         jrst    multimount_fail
-        move    1,root_reader+017
+        move    1,root_reader+014
         came    1,[1,,0100]
         jrst    multimount_fail
 
@@ -154,9 +154,6 @@ secondary_handoff:
         .word   7                       ; alloc cursor
         .word   0330200                 ; packed summary start + copy B
         .word   012                     ; sequence
-        .word   0                       ; clean state / cache tag
-        .word   012345670123            ; UUID 0
-        .word   076543210765            ; UUID 1
         .word   02000                   ; total blocks
         .word   3                       ; root FCB
         .word   040                     ; FCB start
@@ -171,6 +168,12 @@ secondary_handoff:
 
 d6fs_mres_vector:
         .word   0
+kconst_1_1:
+        .word   1,,1
+kconst_2_2:
+        .word   2,,2
+kconst_3_3:
+        .word   3,,3
 
         .bss
 d6fs_active_reader:
@@ -178,8 +181,8 @@ d6fs_active_reader:
 d6fs_reader_slots:
         .block  4
 root_reader:
-        .block  021
+        .block  016
 secondary_reader:
-        .block  021
+        .block  016
 __test_exit:
         .block  1
