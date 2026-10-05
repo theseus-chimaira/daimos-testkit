@@ -59,11 +59,13 @@ main(void)
         dpy_cell_set(0U, 3U, 'D');
         dpy_cell_set(0U, 4U, 'E');
         dpy_cell_set(0U, 5U, 'F');
-        rc = check(p[0] == pack6(1U, 2U, 3U, 4U, 5U, 6U) &&
-            p[1] == 0UL, 2);
+        rc = check(p[0] == pack3(pair(T342_SI, 1U), pair(T342_SI, 2U),
+            pair(T342_SI, 3U)) &&
+            p[1] == pack3(pair(T342_SI, 4U), pair(T342_SI, 5U),
+            pair(T342_SI, 6U)), 2);
         if (rc != 0) return rc;
 
-        /* A shifted glyph expands only this six-cell block to two words. */
+        /* Shift state is explicit in the touched cell; no block expansion exists. */
         dpy_cell_set(0U, 2U, '[');
         rc = check(p[0] == pack3(pair(T342_SI, 1U), pair(T342_SI, 2U),
             pair(T342_SO, 053U)), 3);
@@ -72,27 +74,31 @@ main(void)
             pair(T342_SI, 6U)), 4);
         if (rc != 0) return rc;
 
-        /* A complex block stays complex after a primary-set overwrite. */
+        /* Primary overwrite changes only the selected fixed pair. */
         dpy_cell_set(0U, 2U, 'C');
         rc = check(p[0] == pack3(pair(T342_SI, 1U), pair(T342_SI, 2U),
             pair(T342_SI, 3U)), 5);
         if (rc != 0) return rc;
 
-        /* Row clear leaves word 1 stale; primary reuse must discard it. */
+        /* Row clear makes word 0 authoritative; first reuse initializes both words. */
         dpy_clear_row(0U);
         rc = check(p[0] == 0UL, 6);
         if (rc != 0) return rc;
         dpy_cell_set(0U, 0U, 'Z');
-        rc = check(p[0] == pack6(032U, T342_SPACE, T342_SPACE,
-            T342_SPACE, T342_SPACE, T342_SPACE) && p[1] == 0UL, 7);
+        rc = check(p[0] == pack3(pair(T342_SI, 032U),
+            pair(T342_SI, T342_SPACE), pair(T342_SI, T342_SPACE)) &&
+            p[1] == pack3(pair(T342_SI, T342_SPACE),
+            pair(T342_SI, T342_SPACE), pair(T342_SI, T342_SPACE)), 7);
         if (rc != 0) return rc;
 
         /* Lowercase keeps the historical uppercase terminal semantics. */
         dpy_clear_row(1U);
         dpy_cell_set(1U, 0U, 'a');
         p = screen + 28U;
-        rc = check(p[0] == pack6(1U, T342_SPACE, T342_SPACE,
-            T342_SPACE, T342_SPACE, T342_SPACE) && p[1] == 0UL, 8);
+        rc = check(p[0] == pack3(pair(T342_SI, 1U),
+            pair(T342_SI, T342_SPACE), pair(T342_SI, T342_SPACE)) &&
+            p[1] == pack3(pair(T342_SI, T342_SPACE),
+            pair(T342_SI, T342_SPACE), pair(T342_SI, T342_SPACE)), 8);
         if (rc != 0) return rc;
 
         /* A shifted final cell leaves SO as the block's observable end state. */

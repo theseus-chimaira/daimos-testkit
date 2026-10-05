@@ -28,4 +28,4 @@ PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
     "$work/dpy_text_blocks.s" >/dev/null
 
 printf '%s\n' \
-    'dpy-native-blocks: PASS (simple/complex edits, stale clear, uppercase, ring wrap)'
+    'dpy-native-blocks: PASS (fixed-pair edits, sparse fill, uppercase, ring wrap)'

@@ -47,11 +47,30 @@ mkfifo "$cty_in" "$dcs_in" "$ge_in"
 exec 3<>"$cty_in"
 exec 4<>"$dcs_in"
 exec 5<>"$ge_in"
+# Build a headless Type-340 image first.  The DPY protocol/state machine remains
+# fully active, but no host DPY window is opened.  WCNSLS/OCNSLS are unrelated
+# color-scope devices and are disabled in this test-only simulator config so a
+# DPY regression can never wedge on their host graphics backend.
+"$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
+        BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
+        SIMH_DPY_MODE=HEADLESS DPY_LOGIN=1 \
+        SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
+boot="$build/system/boot/pdp6"
+sed -i \
+        -e 's/^set wcnsls .*/set wcnsls disabled/' \
+        -e 's/^set ocnsls .*/set ocnsls disabled/' \
+        "$boot/boot.ini"
+
+# Preserve the public make-boot announcement contract used by the assertions
+# below while launching the simulator directly against the sanitized config.
+printf '%s\n' 'DAIMOS PDP-6 login terminals:' \
+        '  CTY   current terminal' \
+        "  DCS0  127.0.0.1:$dcs_port" \
+        "  GE0   127.0.0.1:$ge_port" >"$cty_out"
 (
-        TERM=dumb exec "$pty" -r "$make_cmd" -C "$DAIMOS_REPO" boot \
-                BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
-                SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" \
-                <"$cty_in" >"$cty_out" 2>&1
+        cd "$boot"
+        TERM=dumb exec "$pty" -r "$PDP10_PREFIX/bin/pdp6" boot.ini \
+                <"$cty_in" >>"$cty_out" 2>&1
 ) &
 boot_pid=$!
 "$tcp" 127.0.0.1 "$dcs_port" <"$dcs_in" >"$dcs_out" 2>&1 &
