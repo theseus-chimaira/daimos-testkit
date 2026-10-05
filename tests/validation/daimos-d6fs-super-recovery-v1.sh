@@ -13,7 +13,7 @@ cc ${CFLAGS:--Wall -Wextra -O2 -std=c99} \
     -I"$DAIMOS_REPO/system/kernel/core" \
     -I"$DAIMOS_REPO/system/kernel/storage" \
     -I"$DAIMOS_REPO/system/kernel/fs" \
-    "$DAIMOS_REPO/system/kernel/fs/d6fs_super_boot.c" \
+    "$DAIMOS_REPO/system/kernel/boot/d6fs_super_boot.c" \
     "$self/daimos-d6fs-super-recovery-v1.c" \
     -o "$work/d6fs-super-recovery"
 

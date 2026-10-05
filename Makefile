@@ -904,11 +904,13 @@ test-daimos-tsfs-dir: check-prefix
 
 test-daimos-tsfs-mount: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
-	@test -n "$(PDP10_TOOLS_REPO)" || { echo "PDP10_TOOLS_REPO must be set" >&2; exit 2; }
+	@test -n "$(DAIMOS_TOOLS_REPO)" || { echo "DAIMOS_TOOLS_REPO must be set" >&2; exit 2; }
+	@test -n "$(DAS_REPO)" || { echo "DAS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-		PDP10_TOOLS_REPO="$$(cd "$(PDP10_TOOLS_REPO)" && pwd -P)" \
+		DAIMOS_TOOLS_REPO="$$(cd "$(DAIMOS_TOOLS_REPO)" && pwd -P)" \
+		DAS_REPO="$$(cd "$(DAS_REPO)" && pwd -P)" \
 		tests/validation/daimos-tsfs-mount-v1.sh
 
 

@@ -11,7 +11,9 @@ mkdir -p "$work"
 {
         echo '.text'
         echo '.globl d6fs_mres_dispatch'
-        sed -n '/^d6fs_mres_dispatch:/,/^d6fs_mres_create:/p' "$source_file" |
+        sed -n '/^d6fs_mres_dispatch:/,/^d6fs_provider_space:/p' "$source_file" |
+                sed '$d'
+        sed -n '/^d6fs_mount_validated:/,/^d6fs_mres_create:/p' "$source_file" |
                 sed '$d'
 } > "$work/mount.s"
 PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \

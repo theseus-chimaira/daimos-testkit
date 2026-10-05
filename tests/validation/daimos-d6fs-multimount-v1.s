@@ -13,6 +13,7 @@
         .globl  d6fs_active_reader
         .globl  d6fs_reader_slots
         .globl  d6fs_provider_toggle_state
+        .globl  d6fs_provider_space
         .globl  __test_exit
 
 main:
@@ -133,6 +134,11 @@ kret_neg1:
 
 ; Remount opcode is not exercised by this oracle.
 d6fs_provider_toggle_state:
+        seto    1,
+        popj    17,
+
+; SPACE is outside this mount-isolation oracle.
+d6fs_provider_space:
         seto    1,
         popj    17,
 
