@@ -3,6 +3,8 @@ set -eu
 
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
 : "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
+: "${DAS_REPO:?DAS_REPO must be set}"
+: "${DAIMOS_TOOLS_REPO:?DAIMOS_TOOLS_REPO must be set}"
 : "${TMPDIR:?TMPDIR must be set}"
 
 tag=daimos-swap-wait-v1
@@ -46,14 +48,19 @@ PATH="$PDP10_PREFIX/bin:$PATH" make \
     -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$build/system/boot/pdp6" \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 BOOT_PROFILE=lowmem \
+    DAS_REPO="$DAS_REPO" DAIMOS_TOOLS_REPO="$DAIMOS_TOOLS_REPO" \
     SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 
 boot="$build/system/boot/pdp6"
+dcs_port=$((30000 + ($$ % 10000)))
+ge_port=$((45000 + ($$ % 10000)))
+"$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
+    "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
 set +e
 (
         cd "$boot"
         TERM=dumb timeout -k 2s 45s stdbuf -o0 -e0 \
-            "$PDP10_PREFIX/bin/pdp6" boot.ini
+            "$PDP10_PREFIX/bin/pdp6" boot.headless.ini
 ) >"$out" 2>&1
 rc=$?
 set -e

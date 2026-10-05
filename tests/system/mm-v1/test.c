@@ -174,6 +174,7 @@ kword_t cr_read_words_jump;
 kword_t cp_write_words_jump;
 kword_t lpt_putchar_jump;
 kword_t lpt_write_s6rec_jump;
+kword_t dpy_write_words_jump;
 kword_t storage_pi_dsk_jump;
 kword_t storage_dct_dsk_jump;
 kword_t storage_pi_tape_jump;
@@ -1482,6 +1483,8 @@ main(void)
                 proc_table[i].meta = (kword_t)i;
                 test_set_uarea(i);
                 VM_PDP6_SET_SPACE(&proc_table[i], 02000UL, base);
+                check(proc_swap_attach((int)i, TEST_EXEC_NODE, 0UL, 0U) == 0,
+                    "attach victim process");
                 proc_table[i].sched = PROC_SCHED_DEFAULT;
                 PROC_SET_STATE(&proc_table[i], PROC_SRUN);
         }
@@ -1513,8 +1516,8 @@ main(void)
         check(mm_unpin(VM_PDP6_BASE(&proc_table[2])) == MM_OK,
             "unpin victim candidate");
         for (i = 1U; i < 4U; ++i)
-                check(mm_free(VM_PDP6_BASE(&proc_table[i]),
-                    MM_TYPE_PROCESS, i) == MM_OK, "free victim process");
+                check(vm_space_destroy(&proc_table[i], i) == 0,
+                    "destroy victim process");
 
         check(munmap(map, 02000000UL) == 0, "unmap process-copy window");
 

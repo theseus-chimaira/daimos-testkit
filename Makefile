@@ -297,15 +297,23 @@ test-daimos-pipe-anon: test-daimos-pipe-wordfifo
 test-daimos-swap-wait: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
+	@test -n "$(DAS_REPO)" || { echo "DAS_REPO must be set" >&2; exit 2; }
+	@test -n "$(DAIMOS_TOOLS_REPO)" || { echo "DAIMOS_TOOLS_REPO must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		DAS_REPO="$$(cd "$(DAS_REPO)" && pwd -P)" \
+		DAIMOS_TOOLS_REPO="$$(cd "$(DAIMOS_TOOLS_REPO)" && pwd -P)" \
 		tests/validation/daimos-swap-wait-v1.sh
 
 test-daimos-swap-stress: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
+	@test -n "$(DAS_REPO)" || { echo "DAS_REPO must be set" >&2; exit 2; }
+	@test -n "$(DAIMOS_TOOLS_REPO)" || { echo "DAIMOS_TOOLS_REPO must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		DAS_REPO="$$(cd "$(DAS_REPO)" && pwd -P)" \
+		DAIMOS_TOOLS_REPO="$$(cd "$(DAIMOS_TOOLS_REPO)" && pwd -P)" \
 		tests/validation/daimos-swap-stress-v1.sh
 
 test-daimos-pipe-fifo: check-prefix
