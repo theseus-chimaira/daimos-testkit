@@ -41,21 +41,21 @@ kstack=`a_equ PROC_KSTACK_WORDS`
 [ "$stack" = 0111 ] || { echo "$tag: unexpected stack offset=$stack" >&2; exit 1; }
 [ "$atable" = 047 ] || { echo "$tag: assembly table offset=$atable" >&2; exit 1; }
 [ "$astack" = 0111 ] || { echo "$tag: assembly stack offset=$astack" >&2; exit 1; }
-[ "$kstack" = 0306 ] || { echo "$tag: assembly stack words=$kstack" >&2; exit 1; }
+[ "$kstack" = 0316 ] || { echo "$tag: assembly stack words=$kstack" >&2; exit 1; }
 [ "$file_nfile" = 16 ] || { echo "$tag: FILE_NFILE=$file_nfile" >&2; exit 1; }
 
 # 0000-0044 is exactly 0045 words of saved context.  FDCTL occupies 0045,
 # CWD occupies 0046, and sixteen two-word descriptors occupy 0047-0106.
 # Credentials occupy 0107 as one packed uid,,gid word and the process umask
-# occupies 0110.  The stack begins at 0111.  The final u-area word (0417)
+# occupies 0110.  The stack begins at 0111.  The final u-area word (0427)
 # retains executable-backing metadata while a process is swapped, so the
-# private kernel stack occupies 0111-0416: 0306 words.
+# private kernel stack occupies 0111-0426: 0316 words.
 [ $((0$cwd)) -eq $((0$fdctl + 1)) ] || exit 1
 [ $((0$table)) -eq $((0$cwd + 1)) ] || exit 1
 [ $((0$cred)) -eq $((0$table + file_nfile * 2)) ] || exit 1
 [ $((0$umask)) -eq $((0$cred + 1)) ] || exit 1
 [ $((0$stack)) -eq $((0$umask + 1)) ] || exit 1
-[ $((0$uarea - 0$stack - 1)) -eq $((00306)) ] || exit 1
+[ $((0$uarea - 0$stack - 1)) -eq $((00316)) ] || exit 1
 grep -A1 '^#define PROC_SWAP_BACKING_OFFSET' "$ph" | \
     grep -q 'PROC_UAREA_WORDS - 1UL' || {
         echo "$tag: swap backing is not the final u-area word" >&2
@@ -89,4 +89,4 @@ grep -q 'pid is the process-table slot' "$si" || {
         exit 1
 }
 
-printf '%s\n' "$tag: PASS (context=0045 fdctl=1 cwd=1 file=0040 cred=1 umask=1 stack=0306 swap=1 total=0420 octal words)"
+printf '%s\n' "$tag: PASS (context=0045 fdctl=1 cwd=1 file=0040 cred=1 umask=1 stack=0316 swap=1 total=0430 octal words)"
