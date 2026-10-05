@@ -16,6 +16,7 @@ tag=daimos-dtc-online-v1
 work="$TMPDIR/$tag-$$"
 build="$work/build"
 boot="$build/system/boot/pdp6"
+self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 media="$work/dtc0.tap"
 pristine="$work/disk-pristine"
 tcp="$work/tcp-run"
@@ -127,9 +128,11 @@ start_run()
         mkfifo "$dcs_in"
         exec 3<>"$dcs_in"
         dcs_fd_open=1
+        "$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
+            "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
         (
                 cd "$boot"
-                TERM=dumb exec "$PDP10_PREFIX/bin/pdp6" boot.ini
+                TERM=dumb exec "$PDP10_PREFIX/bin/pdp6" boot.headless.ini
         ) >"$simh_out" 2>&1 &
         sim_pid=$!
         "$tcp" 127.0.0.1 "$dcs_port" <"$dcs_in" >"$dcs_out" 2>&1 &

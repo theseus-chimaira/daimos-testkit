@@ -11,6 +11,7 @@ work="$TMPDIR/$tag-$$"
 build="$work/build"
 user="$work/user"
 out="$work/simh.out"
+self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$user"
 
@@ -28,8 +29,8 @@ inc="-I$DAIMOS_REPO/system/kernel/boot \
 -I$DAIMOS_REPO/userland/libc"
 
 for n in init child; do
-        src="$(dirname "$0")/daimos-rt-required-v1.c"
-        [ "$n" = child ] && src="$(dirname "$0")/daimos-rt-required-v1-child.c"
+        src="$self/daimos-rt-required-v1.c"
+        [ "$n" = child ] && src="$self/daimos-rt-required-v1-child.c"
         "$cc" -std=c99 -Os $inc -S "$src" -o "$user/$n.s"
         "$das" -C -F -O "$user/$n.dobj" "$user/$n.s"
 done
@@ -46,8 +47,12 @@ PATH="$PDP10_PREFIX/bin:$PATH" "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" im
     SYSTEM_TSFSPROBE_DXR="$user/child-compressed.dxr" >/dev/null
 
 boot="$build/system/boot/pdp6"
+dcs_port=$((30000 + ($$ % 10000)))
+ge_port=$((45000 + ($$ % 10000)))
+"$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
+    "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
 set +e
-(cd "$boot" && TERM=dumb timeout -k 2s 30s stdbuf -o0 -e0 "$PDP10_PREFIX/bin/pdp6" boot.ini) >"$out" 2>&1
+(cd "$boot" && TERM=dumb timeout -k 2s 30s stdbuf -o0 -e0 "$PDP10_PREFIX/bin/pdp6" boot.headless.ini) >"$out" 2>&1
 rc=$?
 set -e
 if [ "$rc" -ne 0 ]; then
