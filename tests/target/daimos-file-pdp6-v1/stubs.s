@@ -31,9 +31,7 @@ proc_current_slot:       .word 0
         .globl  lpt_putchar
 file_parent_path:
 vfs_parent_name:
-vfs_read_words:
 vfs_readdir:
-vfs_write_words:
 vfs_readchar:
 vfs_writechar:
 vfs_symlink:
@@ -47,6 +45,26 @@ vfs_stat:
 file_lookup_path:
 lpt_putchar:
         seto    1,
+        popj    17,
+
+
+; Deterministic bulk-I/O providers for the FILE word-I/O validation.
+; Record the production ABI and return short positive transfers so FILE must
+; advance its descriptor offset by the returned count rather than NWORDS.
+vfs_read_words:
+        movem   1,file_test_read_node
+        movem   2,file_test_read_off
+        movem   3,file_test_read_buf
+        movem   4,file_test_read_count
+        movei   1,2
+        popj    17,
+
+vfs_write_words:
+        movem   1,file_test_write_node
+        movem   2,file_test_write_off
+        movem   3,file_test_write_buf
+        movem   4,file_test_write_count
+        movei   1,3
         popj    17,
 
 vfs_sync:
@@ -69,3 +87,21 @@ pipe_close_ref:
         popj    17,
 pipe_fifo_detach:
         popj    17,
+
+        .bss
+        .globl file_test_read_node
+        .globl file_test_read_off
+        .globl file_test_read_buf
+        .globl file_test_read_count
+        .globl file_test_write_node
+        .globl file_test_write_off
+        .globl file_test_write_buf
+        .globl file_test_write_count
+file_test_read_node:    .block 1
+file_test_read_off:     .block 1
+file_test_read_buf:     .block 1
+file_test_read_count:   .block 1
+file_test_write_node:   .block 1
+file_test_write_off:    .block 1
+file_test_write_buf:    .block 1
+file_test_write_count:  .block 1

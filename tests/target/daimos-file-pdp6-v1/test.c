@@ -5,6 +5,14 @@ extern int file_component(const kword_t *, unsigned int *,
     struct vfs_name *);
 extern int file_new_fd(vnode_t, unsigned int, int);
 extern struct file *file_table;
+extern kword_t file_test_read_node;
+extern kword_t file_test_read_off;
+extern kword_t file_test_read_buf;
+extern kword_t file_test_read_count;
+extern kword_t file_test_write_node;
+extern kword_t file_test_write_off;
+extern kword_t file_test_write_buf;
+extern kword_t file_test_write_count;
 
 kword_t daimos_file_pdp6_result;
 
@@ -51,6 +59,7 @@ daimos_file_pdp6_test(void)
         unsigned int i;
         vnode_t vnode;
         kword_t fulloff;
+        kword_t wordbuf[4];
         int fd0;
         int fd1;
         int fd2;
@@ -152,5 +161,36 @@ daimos_file_pdp6_test(void)
                 return 18;
         if (file_close(fd2) != 0 || table[2].node_meta != 0UL)
                 return 19;
+
+        /* Bulk READ and WRITE share one production validation/result path.
+         * Verify permission separation, canonical VFS ABI, and short-transfer
+         * offset advancement without involving a full simulator boot. */
+        for (i = 0U; i != FILE_NFILE; ++i) {
+                table[i].node_meta = 0UL;
+                table[i].offset = 0UL;
+        }
+        table[0].node_meta = vnode | FILE_META_READ;
+        table[0].offset = 5UL;
+        rc = file_read_words(0, wordbuf, 4U);
+        if (rc != 2 || table[0].offset != 7UL ||
+            file_test_read_node != vnode || file_test_read_off != 5UL ||
+            file_test_read_buf != (kword_t)(unsigned long)wordbuf ||
+            file_test_read_count != 4UL)
+                return 22;
+        if (file_write_words(0, wordbuf, 4U) != -1 ||
+            table[0].offset != 7UL)
+                return 23;
+
+        table[1].node_meta = vnode | FILE_META_WRITE;
+        table[1].offset = 011UL;
+        rc = file_write_words(1, wordbuf, 4U);
+        if (rc != 3 || table[1].offset != 014UL ||
+            file_test_write_node != vnode || file_test_write_off != 011UL ||
+            file_test_write_buf != (kword_t)(unsigned long)wordbuf ||
+            file_test_write_count != 4UL)
+                return 24;
+        if (file_read_words(1, wordbuf, 4U) != -1 ||
+            table[1].offset != 014UL)
+                return 25;
         return 0;
 }
