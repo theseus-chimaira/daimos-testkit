@@ -345,6 +345,12 @@ test-daimos-sleep: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/validation/daimos-sleep-v1.sh
 
+test-daimos-proc-timer-frontier: check-prefix
+	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		tests/validation/daimos-proc-timer-frontier-v1.sh
+
 test-daimos-multiuser-kernel-auth:
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \

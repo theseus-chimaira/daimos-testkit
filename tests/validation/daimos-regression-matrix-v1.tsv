@@ -15,7 +15,7 @@
 014|process|test-daimos-monitorfs-process-decimal test-daimos-process-events|MonitorFS process rendering and process events
 015|tty|test-daimos-process-tty test-daimos-tty-session-state test-daimos-tty-s6rec test-daimos-tty-s6rec-input test-daimos-tty-routing test-daimos-dpy-native-blocks test-daimos-pt-wordio test-daimos-card-wordio test-daimos-lpt-s6rec|TTY/session, output routing, and word-I/O adapters
 016|job|test-daimos-session-teardown test-daimos-job-pipeline|Session teardown and job pipeline semantics
-017|scheduler|test-daimos-scheduler-multiproc test-daimos-scheduler-realtime test-daimos-scheduler-rt-revoke test-daimos-rt-required test-daimos-sleep test-daimos-low-memory-boot|Normal/RT scheduling, monotonic sleep, and low-memory boot
+017|scheduler|test-daimos-scheduler-multiproc test-daimos-scheduler-realtime test-daimos-scheduler-rt-revoke test-daimos-rt-required test-daimos-sleep test-daimos-proc-timer-frontier test-daimos-low-memory-boot|Normal/RT scheduling, monotonic sleep, and low-memory boot
 018|stack|test-daimos-proc-stack-watermark test-daimos-idle-stack-watermark|Process and idle stack watermarks
 019|ipc|test-daimos-pipe-wordfifo test-daimos-pipe-fifo|Word pipes and filesystem FIFOs
 020|swap|test-daimos-swap-wait test-daimos-swap-stress|Swap wait and stress
