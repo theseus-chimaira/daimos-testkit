@@ -57,11 +57,15 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     PROC_BOOT_USERS=1 SYSTEM_INIT_DXR="$user/init.dxr" \
     SYSTEM_DSH_DXR="$user/next.dxr" >/dev/null
 boot="$build/system/boot/pdp6"
+dcs_port=$((30000 + ($$ % 10000)))
+ge_port=$((45000 + ($$ % 10000)))
+"$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
+    "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
 set +e
 (
         cd "$boot"
         TERM=dumb timeout -k 2s 15s stdbuf -o0 -e0 \
-            "$PDP10_PREFIX/bin/pdp6" boot.ini
+            "$PDP10_PREFIX/bin/pdp6" boot.headless.ini
 ) >"$out" 2>&1
 rc=$?
 set -e
