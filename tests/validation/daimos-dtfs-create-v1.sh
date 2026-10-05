@@ -29,7 +29,7 @@ dtfs_restore1:
         popj 17,
 ASM
     printf '%s\n' '.globl dtfs_create'
-    awk '/^dtfs_create:$/ {copy=1} /^[[:space:]]*\.globl[[:space:]]+dtfs_rename$/ {copy=0} copy {print}' \
+    awk '/^dtfs_create:$/ {copy=1} /^[[:space:]]*\.globl[[:space:]]+dtfs_unlink$/ {copy=0} copy {print}' \
         "$DAIMOS_REPO/system/kernel/fs/dtfs_runtime.s"
 } > "$work/create.s"
 
@@ -38,5 +38,6 @@ PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
     --start 1000 --step-limit 2000000 --timeout 20 \
     --workdir "$work/run" --name daimos-dtfs-create-v1 \
     --expect __test_exit=0 \
-    "$self/daimos-test-crt0-v1.s" "$work/oracle.s" "$work/create.s" >/dev/null
+    "$self/daimos-test-crt0-v1.s" "$work/oracle.s" "$work/create.s" \
+    "$DAIMOS_REPO/system/kernel/core/ret.s" >/dev/null
 printf '%s\n' 'dtfs-create: PASS (native/TENEX/ITS success and rollback paths)'
