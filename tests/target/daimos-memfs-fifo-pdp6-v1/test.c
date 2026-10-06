@@ -5,7 +5,6 @@ static struct memfs fs;
 /* MEMFS owner and mtime tables live at fixed offsets after the node area. */
 static kword_t metadata[MEMFS_METADATA_WORDS];
 static struct memfs_node *node_store = (struct memfs_node *)metadata;
-static kword_t pool[8];
 static const kword_t data_word = 012345670123UL;
 kword_t daimos_memfs_fifo_pdp6_result;
 
@@ -72,7 +71,6 @@ daimos_memfs_fifo_pdp6_test(void)
         int r;
 
         fs.nodes = node_store;
-        fs.pool = pool;
         fs.pool_words = 8U;
         fs.used_words = 0U;
 

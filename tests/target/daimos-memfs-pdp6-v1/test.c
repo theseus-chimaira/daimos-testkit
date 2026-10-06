@@ -7,7 +7,7 @@ static struct memfs fs;
 static kword_t metadata[MEMFS_METADATA_WORDS];
 static struct memfs_node *node_store = (struct memfs_node *)metadata;
 static kword_t pool[02000];
-static kword_t backing[0100];
+#define backing (metadata + MEMFS_BACKING_OFFSET)
 static kword_t swap_image[0200];
 static int backstore_live;
 kword_t backstore_blocks;
@@ -127,7 +127,6 @@ daimos_memfs_pdp6_test(void)
         int r;
 
         fs.nodes = node_store;
-        fs.pool = backing;
         fs.pool_words = 0200U;
         fs.used_words = 0U;
         pool_live = 0;
