@@ -17,10 +17,9 @@ mm="$kernel/mm"
 storage="$kernel/storage"
 
 "$cc" -std=c99 -Os -I"$PDP10_PREFIX/include" -I"$inc" -I"$mm" -I"$storage" -I"$kernel/core" -S "$here/test.c" -o "$work/test.s"
-"$cc" -std=c99 -Os -I"$PDP10_PREFIX/include" -I"$inc" -I"$mm" -I"$storage" -I"$kernel/core" -S "$inc/memfs_data.c" -o "$work/memfs_data.s"
 PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
     --machine pdp6 --mode deposit --exec-mode go --timeout 10 \
     --workdir "$work/run" --name daimos-memfs-pdp6-v1 \
     --expect daimos_memfs_pdp6_result=0 --report "$work/report.txt" \
-    "$here/start.s" "$work/test.s" "$work/memfs_data.s" "$inc/memfs_runtime.s" \
+    "$here/start.s" "$work/test.s" "$inc/memfs_data_pdp6.s" "$inc/memfs_runtime.s" \
     "$here/fs-helpers.s" "$kernel/core/ret.s"

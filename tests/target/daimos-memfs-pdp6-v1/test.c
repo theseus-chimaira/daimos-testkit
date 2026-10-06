@@ -6,7 +6,7 @@ static struct memfs fs;
 /* MEMFS owner and mtime tables live at fixed offsets after the node area. */
 static kword_t metadata[MEMFS_METADATA_WORDS];
 static struct memfs_node *node_store = (struct memfs_node *)metadata;
-static kword_t pool[0200];
+static kword_t pool[02000];
 static kword_t backing[0100];
 static kword_t swap_image[0200];
 static int backstore_live;
@@ -38,7 +38,8 @@ mm_alloc(kword_t words, unsigned int type, unsigned int owner,
     unsigned int preference, kword_t *basep)
 {
         (void)preference;
-        if (pool_live || words > 0200U || type != MM_TYPE_KERNEL_DYNAMIC ||
+        if (pool_live || words < 0200U || words > 02000U ||
+            (words & 0177U) != 0U || type != MM_TYPE_KERNEL_DYNAMIC ||
             owner != 011U || basep == 0)
                 return MM_ERR_NOMEM;
         pool_live = 1;
