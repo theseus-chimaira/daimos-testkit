@@ -72,7 +72,6 @@ daimos_memfs_fifo_pdp6_test(void)
         int r;
 
         fs.nodes = node_store;
-        fs.node_count = 4U;
         fs.pool = pool;
         fs.pool_words = 8U;
         fs.used_words = 0U;

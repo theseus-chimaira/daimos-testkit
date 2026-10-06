@@ -127,7 +127,6 @@ daimos_memfs_pdp6_test(void)
         int r;
 
         fs.nodes = node_store;
-        fs.node_count = 4U;
         fs.pool = backing;
         fs.pool_words = 0200U;
         fs.used_words = 0U;
