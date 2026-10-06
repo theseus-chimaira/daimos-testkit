@@ -31,6 +31,8 @@ vfs_stat_frame_provider_fail:
         .globl mfsproc_stat
         .globl mfsproc_format_slot
         .globl pipe_fifo_mount_busy
+        .globl proc_swap_backing_busy
+        .globl proc_swap_mount_busy
         .globl pipe_read_words
         .globl pipe_write_words
 mfsdev_lookup:
@@ -41,6 +43,10 @@ mfsdev_stat:
 mfsproc_stat:
 mfsproc_format_slot:
 pipe_fifo_mount_busy:
+proc_swap_backing_busy:
+proc_swap_mount_busy:
+        setz    1,
+        popj    17,
 pipe_read_words:
 pipe_write_words:
         seto    1,

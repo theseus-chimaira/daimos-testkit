@@ -4,6 +4,8 @@
         .globl  kret_zero
         .globl  vfs_stat
         .globl  pipe_fifo_mount_busy
+        .globl  proc_swap_mount_busy
+        .globl  proc_swap_backing_busy
         .globl  vfs_sync
         .globl  fs_provider_reg_call
         .globl  file_unlock_mount
@@ -12,6 +14,9 @@
         .globl  vfs_mount_root
         .globl  vfs_mount_ro
         .globl  __test_exit
+        .globl  kconst_2_2
+        .globl  kconst_7_7
+        .globl  kconst_13_13
 
 ; Exercise production vfs_mount(), vfs_storage_release(), and vfs_unmount().
 ; Flags: RDONLY=1, SWAP=020, LOGSTORE=0400.
@@ -127,6 +132,8 @@ vfs_stat:
         popj    17,
 
 pipe_fifo_mount_busy:
+proc_swap_mount_busy:
+proc_swap_backing_busy:
         setz    1,
         popj    17,
 vfs_sync:
@@ -154,3 +161,11 @@ root2:
         .block  1
 __test_exit:
         .block  1
+
+        .data
+kconst_7_7:
+        .word   7,,7
+kconst_2_2:
+        .word   2,,2
+kconst_13_13:
+        .word   013,,013

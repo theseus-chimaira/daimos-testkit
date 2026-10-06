@@ -6,6 +6,7 @@ proc_current_slot:       .word 0
 
         .text
         .globl  vfs_mkfifo
+        .globl  proc_swap_backing_busy
         .globl  pipe_fifo_open
         .globl  pipe_readchar
         .globl  pipe_writechar
@@ -22,6 +23,10 @@ pipe_writechar:
 pipe_close_ref:
 lpt_putchar:
         seto    1,
+        popj    17,
+
+proc_swap_backing_busy:
+        setz    1,
         popj    17,
 
 pipe_fifo_open:

@@ -24,6 +24,7 @@ proc_current_slot:       .word 0
         .globl  vfs_rename
         .globl  vfs_mkdir
         .globl  vfs_mkfifo
+        .globl  vfs_create
         .globl  vfs_lookup
         .globl  vfs_unlink
         .globl  vfs_truncate
@@ -40,6 +41,7 @@ vfs_symlink:
 vfs_rename:
 vfs_mkdir:
 vfs_mkfifo:
+vfs_create:
 vfs_lookup:
 vfs_unlink:
 vfs_truncate:
@@ -47,6 +49,11 @@ vfs_stat:
 file_lookup_path:
 lpt_putchar:
         seto    1,
+        popj    17,
+
+        .globl  proc_swap_backing_busy
+proc_swap_backing_busy:
+        setz    1,
         popj    17,
 
 
@@ -75,6 +82,7 @@ vfs_sync:
 
         .globl  pipe_readchar
         .globl  pipe_writechar
+        .globl  pipe_fifo_open
         .globl  pipe_add_ref
         .globl  pipe_close_ref
         .globl  pipe_fifo_open
@@ -82,6 +90,9 @@ vfs_sync:
 pipe_readchar:
 pipe_writechar:
         seto    1,
+        popj    17,
+pipe_fifo_open:
+        setz    1,
         popj    17,
 pipe_add_ref:
         popj    17,
