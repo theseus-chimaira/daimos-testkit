@@ -15,7 +15,14 @@ probes="$work/probes.txt"
 dcs_port=$((23000 + ($$ % 7000)))
 ge_port=$((43000 + ($$ % 7000)))
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+cleanup() {
+        if [ "${KEEP_WORK:-0}" = 1 ]; then
+                printf '%s\n' "$tag: preserved work directory: $work" >&2
+        else
+                rm -rf "$work"
+        fi
+}
+trap cleanup EXIT HUP INT TERM
 mkdir -p "$obj"
 
 export PATH="$PDP10_PREFIX/bin:$PATH"
