@@ -60,6 +60,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" make -C "$DAIMOS_REPO/system/boot/pdp6" image \
         DAS_REPO="${DAS_REPO:-$DAIMOS_REPO/../das}" \
         DAIMOS_TOOLS_REPO="${DAIMOS_TOOLS_REPO:-$DAIMOS_REPO/../daimos-tools}" \
         KCC_REPO="${KCC_REPO:-$DAIMOS_REPO/../kcc}" \
+        SIMH_CPU_KWORDS="${SIMH_CPU_KWORDS:-256}" \
         SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" \
         D6FS_EXTRA_ARGS="-f /CONFIG/BRKTEST:$obj/test.dxr:555:dxr" >/dev/null
 
