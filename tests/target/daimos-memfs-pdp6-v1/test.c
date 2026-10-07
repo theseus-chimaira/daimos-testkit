@@ -134,6 +134,32 @@ daimos_memfs_pdp6_test(void)
         backstore_blocks = 1UL;
         memfs_data_init(&fs, fs.pool_words);
 
+        /* Verify that freeing one sector does not release a chunk which still
+         * contains another live allocation.  AC0 is not an index register on
+         * PDP-6/PDP-10, so the release-mask shift must use a nonzero AC. */
+        fs.pool_words = 02000U;
+        memfs_mres_fs = fs;
+        node_store[1].meta = META_REG_WRITABLE;
+        node_store[1].data = DATA(0U, 0U);
+        node_store[2].meta = META_REG_WRITABLE;
+        node_store[2].data = DATA(0U, 0U);
+        node = VFS_NODE(MEMFS_PROVIDER, MEMFS_KIND_NODE, 1U);
+        child = VFS_NODE(MEMFS_PROVIDER, MEMFS_KIND_NODE, 2U);
+        r = memfs_truncate_words(&fs, node, 1U);
+        if (r != 0) return 0140;
+        r = memfs_truncate_words(&fs, child, 1U);
+        if (r != 0) return 0141;
+        if (!pool_live || fs.used_words != 2U) return 0142;
+        r = memfs_truncate_words(&fs, node, 0U);
+        if (r != 0 || !pool_live || fs.used_words != 1U) return 0143;
+        r = memfs_truncate_words(&fs, child, 0U);
+        if (r != 0 || pool_live || fs.used_words != 0U) return 0144;
+        node_store[1].meta = 0UL;
+        node_store[1].data = 0UL;
+        node_store[2].meta = 0UL;
+        node_store[2].data = 0UL;
+        fs.pool_words = 0200U;
+
         node_store[0].meta = ((kword_t)VFS_TYPE_DIR << 15U) |
             ((kword_t)0777U << 3U) | MEMFS_F_USED | MEMFS_F_WRITABLE;
         root = VFS_NODE(MEMFS_PROVIDER,
