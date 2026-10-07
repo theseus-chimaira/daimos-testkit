@@ -27,12 +27,16 @@ magick -size 2048x2048 xc:black -fill white \
 magick -size 2048x2048 xc:black -fill white \
         -draw 'rectangle 200,100 260,1900 rectangle 500,300 560,1700 rectangle 900,50 980,1950 rectangle 1300,400 1360,1800 rectangle 1700,150 1780,1850' \
         "$work/vertical.png"
+magick -size 2048x2048 xc:black -fill none -stroke white -strokewidth 2 \
+        -draw 'circle 1024,1024 1024,250 line 200,300 1800,1700 line 1800,250 300,1800' \
+        "$work/curve.png"
 magick -size 2048x2048 xc:none "$work/alpha.png"
 
 "$tool" "$work/black.png" "$work/black.dpic" 2>"$work/black.log"
 "$tool" "$work/white.png" "$work/white.dpic" 2>"$work/white.log"
 "$tool" "$work/top.png" "$work/top.dpic" 2>"$work/top.log"
 "$tool" "$work/vertical.png" "$work/vertical.dpic" 2>"$work/vertical.log"
+"$tool" "$work/curve.png" "$work/curve.dpic" 2>"$work/curve.log"
 
 grep -q 'lit pixels=0, runs=0' "$work/black.log" ||
         fail 'black input unexpectedly emits lit vectors'
@@ -58,6 +62,14 @@ grep -q 'scan=vertical' "$work/vertical.log" ||
 test "`wc -c < "$work/vertical.dpic"`" -lt 8000 ||
         fail 'vertical-run scan optimization did not compact the display list'
 
+# Thin curves and diagonals are cheaper as Type-340 incremental paths.  The
+# source geometry is unchanged: each step advances to one already-lit
+# neighboring pixel, with four one-pixel steps packed into one halfword.
+grep -q 'encoding=incremental' "$work/curve.log" ||
+        fail 'curve/diagonal image did not select incremental encoding'
+test "`wc -c < "$work/curve.dpic"`" -lt 6000 ||
+        fail 'incremental curve encoding did not compact the display list'
+
 if "$tool" "$work/alpha.png" "$work/alpha.dpic" >"$work/alpha.out" \
         2>"$work/alpha.log"; then
         fail 'transparent input was accepted'
@@ -65,4 +77,4 @@ fi
 grep -q 'transparency is not allowed' "$work/alpha.log" ||
         fail 'transparent-input rejection diagnostic missing'
 
-echo "$tag: PASS (polarity, Y reflection, lossless scan optimization, transparency)"
+echo "$tag: PASS (polarity, Y reflection, lossless scan/incremental optimization, transparency)"
