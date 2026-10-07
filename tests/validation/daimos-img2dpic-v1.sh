@@ -30,6 +30,9 @@ magick -size 2048x2048 xc:black -fill white \
 magick -size 2048x2048 xc:black -fill none -stroke white -strokewidth 2 \
         -draw 'circle 1024,1024 1024,250 line 200,300 1800,1700 line 1800,250 300,1800' \
         "$work/curve.png"
+magick -size 2048x2048 xc:black -fill none -stroke white -strokewidth 6 \
+        -draw 'circle 1024,1024 1024,250 line 180,300 1850,1700 line 1800,220 250,1850' \
+        "$work/strokes.png"
 magick -size 2048x2048 xc:none "$work/alpha.png"
 
 "$tool" "$work/black.png" "$work/black.dpic" 2>"$work/black.log"
@@ -37,6 +40,7 @@ magick -size 2048x2048 xc:none "$work/alpha.png"
 "$tool" "$work/top.png" "$work/top.dpic" 2>"$work/top.log"
 "$tool" "$work/vertical.png" "$work/vertical.dpic" 2>"$work/vertical.log"
 "$tool" "$work/curve.png" "$work/curve.dpic" 2>"$work/curve.log"
+"$tool" "$work/strokes.png" "$work/strokes.dpic" 2>"$work/strokes.log"
 
 grep -q 'lit pixels=0, runs=0' "$work/black.log" ||
         fail 'black input unexpectedly emits lit vectors'
@@ -70,6 +74,20 @@ grep -q 'encoding=incremental' "$work/curve.log" ||
 test "`wc -c < "$work/curve.dpic"`" -lt 6000 ||
         fail 'incremental curve encoding did not compact the display list'
 
+# Thin line art may use the approximate stroke encoder.  It is accepted only
+# after the converter's bounded-error coverage checks and must meet the
+# 100-ms Type-340 execution target on this representative fixture.
+grep -q 'encoding=strokes' "$work/strokes.log" ||
+        fail 'line-art image did not select stroke encoding'
+stroke_ms=`sed -n 's/.*estimated type340=\([0-9.]*\) ms.*/\1/p' "$work/strokes.log"`
+test -n "$stroke_ms" || fail 'stroke timing estimate missing'
+awk -v ms="$stroke_ms" 'BEGIN { exit !(ms < 100.0) }' ||
+        fail 'stroke encoding exceeds the 100-ms Type-340 target'
+
+# A filled image must never be thinned into stroke form.
+grep -q 'encoding=vector-runs' "$work/white.log" ||
+        fail 'filled image incorrectly selected approximate stroke encoding'
+
 if "$tool" "$work/alpha.png" "$work/alpha.dpic" >"$work/alpha.out" \
         2>"$work/alpha.log"; then
         fail 'transparent input was accepted'
@@ -77,4 +95,4 @@ fi
 grep -q 'transparency is not allowed' "$work/alpha.log" ||
         fail 'transparent-input rejection diagnostic missing'
 
-echo "$tag: PASS (polarity, Y reflection, lossless scan/incremental optimization, transparency)"
+echo "$tag: PASS (exact fallback, bounded stroke optimization, 100-ms target, transparency)"
