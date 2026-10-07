@@ -158,6 +158,36 @@ daimos_memfs_pdp6_test(void)
         node_store[1].data = 0UL;
         node_store[2].meta = 0UL;
         node_store[2].data = 0UL;
+
+        /* KPARSE writes KIR one word at a time.  Grow through several sector
+         * boundaries and prove old contents survive each physical resize. */
+        fs.pool_words = 02000U;
+        memfs_mres_fs = fs;
+        node_store[1].meta = META_REG_WRITABLE;
+        node_store[1].data = DATA(0U, 0U);
+        node = VFS_NODE(MEMFS_PROVIDER, MEMFS_KIND_NODE, 1U);
+        for (r = 0; r < 0600; ++r) {
+                put[0] = 012340000000UL | (kword_t)(unsigned int)r;
+                if (memfs_write_words(&fs, node, (unsigned int)r, put, 1U) != 1)
+                        return 0150;
+        }
+        if (fs.used_words != 0600U) return 0151;
+        got[0] = 0UL;
+        if (memfs_read_words(&fs, node, 0U, got, 1U) != 1 ||
+            got[0] != 012340000000UL) return 0152;
+        got[0] = 0UL;
+        if (memfs_read_words(&fs, node, 0177U, got, 1U) != 1 ||
+            got[0] != (012340000000UL | 0177UL)) return 0153;
+        got[0] = 0UL;
+        if (memfs_read_words(&fs, node, 0200U, got, 1U) != 1 ||
+            got[0] != (012340000000UL | 0200UL)) return 0154;
+        got[0] = 0UL;
+        if (memfs_read_words(&fs, node, 0577U, got, 1U) != 1 ||
+            got[0] != (012340000000UL | 0577UL)) return 0155;
+        if (memfs_truncate_words(&fs, node, 0U) != 0 ||
+            fs.used_words != 0U || pool_live) return 0156;
+        node_store[1].meta = 0UL;
+        node_store[1].data = 0UL;
         fs.pool_words = 0200U;
 
         node_store[0].meta = ((kword_t)VFS_TYPE_DIR << 15U) |
