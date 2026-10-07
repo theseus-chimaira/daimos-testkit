@@ -41,7 +41,7 @@ mkdir -p "$work/media"
 "$host_cc" -std=c99 -O2 -Wall -Wextra -o "$tcp" \
         "$(dirname "$0")/../../tools/tcp-run-v1.c"
 
-"$make_cmd" -C "$PDP10_TOOLS_REPO" mktsfs >/dev/null
+"$make_cmd" -C "$PDP10_TOOLS_REPO" build BUILD_ROOT="$build" >/dev/null
 : >"$work/empty"
 cat > "$work/manifest" <<EOF
 D /SYSTEM
@@ -51,7 +51,7 @@ F /README $work/empty
 D /DOC
 F /DOC/INDEX $work/empty
 EOF
-"$PDP10_TOOLS_REPO/mktsfs" -n 3 -i 1:2345 -g 7 \
+"$build/tools/host/mktsfs" -n 3 -i 1:2345 -g 7 \
         -m "$work/manifest" -o "$work/media/member" >/dev/null
 
 # Build a fresh D6FS image for this single boot.  D6FS marks a mounted root
@@ -61,6 +61,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
         "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
         BUILD="$build" USERLAND_BUILD_ROOT="$build" \
         PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
+        HOST_TOOLS="$build/tools/host" \
         SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
 cp "$work/media/member0.dta" "$build/media/dtc0.tap"
 cp "$work/media/member1.dta" "$build/media/dtc1.tap"

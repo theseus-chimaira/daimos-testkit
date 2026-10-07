@@ -4,7 +4,6 @@ set -eu
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
 : "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
 : "${DAS_REPO:?DAS_REPO must be set}"
-: "${DAIMOS_TOOLS_REPO:?DAIMOS_TOOLS_REPO must be set}"
 : "${TMPDIR:?TMPDIR must be set}"
 
 tag=daimos-swap-wait-v1
@@ -48,7 +47,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" make \
     -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$build/system/boot/pdp6" \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 BOOT_PROFILE=lowmem \
-    DAS_REPO="$DAS_REPO" DAIMOS_TOOLS_REPO="$DAIMOS_TOOLS_REPO" \
+    DAS_REPO="$DAS_REPO" \
     SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 
 boot="$build/system/boot/pdp6"

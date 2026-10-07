@@ -8,9 +8,11 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 work="$TMPDIR/daimos-tsfs-image-online-v1-$$"
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$work"
+build="$work/build"
+bin="$build/tools/host"
 
-make -C "$PDP10_TOOLS_REPO" mktsfs >/dev/null
-"$PDP10_TOOLS_REPO/mktsfs" -n 1 -i 1:2 -g 1 -o "$work/member"
+make -C "$PDP10_TOOLS_REPO" build BUILD_ROOT="$build" >/dev/null
+"$bin/mktsfs" -n 1 -i 1:2 -g 1 -o "$work/member"
 
 cat > "$work/dtc.ini" <<EOF2
 set DCT enabled

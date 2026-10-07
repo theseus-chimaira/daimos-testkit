@@ -8,14 +8,16 @@ tag=mkd6fs-encoding-v1
 work="$TMPDIR/$tag-$$"
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$work/disk"
+build="$work/build"
+bin="$build/tools/host"
 
-make -C "$PDP10_TOOLS_REPO" mkdsk mkd6fs d6fsck >/dev/null
+make -C "$PDP10_TOOLS_REPO" build BUILD_ROOT="$build" >/dev/null
 printf '0:RESPAWN:/SYSTEM/EXEC/LOGIN\n' > "$work/inittab"
 printf '0\n' > "$work/boot.words"
 
-"$PDP10_TOOLS_REPO/mkdsk" -n 1 -m clean -p "$work/boot.words" -o "$work/disk" \
+"$bin/mkdsk" -n 1 -m clean -p "$work/boot.words" -o "$work/disk" \
     --d6fs-layout --logstore-blocks 010 --swap-tail-blocks 010 >/dev/null
-if "$PDP10_TOOLS_REPO/mkd6fs" -n 1 -d "$work/disk" \
+if "$bin/mkd6fs" -n 1 -d "$work/disk" \
     -D /CONFIG:0755 \
     -f "/CONFIG/INITTAB:$work/inittab:644:text" \
     >"$work/out" 2>"$work/err"; then

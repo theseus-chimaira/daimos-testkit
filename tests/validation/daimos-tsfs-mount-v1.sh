@@ -5,7 +5,7 @@ set -eu
 
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
 : "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
-: "${DAIMOS_TOOLS_REPO:?DAIMOS_TOOLS_REPO must be set}"
+: "${PDP10_TOOLS_REPO:?PDP10_TOOLS_REPO must be set}"
 : "${DAS_REPO:?DAS_REPO must be set}"
 : "${TMPDIR:?TMPDIR must be set}"
 
@@ -45,8 +45,8 @@ mkdir -p "$work/media"
 "$host_cc" -std=c99 -O2 -Wall -Wextra -o "$tcp" \
         "$self/../../tools/tcp-run-v1.c"
 
-"$make_cmd" -C "$DAIMOS_TOOLS_REPO" mktsfs >/dev/null
-"$DAIMOS_TOOLS_REPO/mktsfs" -n 3 -i 1:2345 -g 7 -o "$work/media/member" >/dev/null
+"$make_cmd" -C "$PDP10_TOOLS_REPO" build BUILD_ROOT="$build" >/dev/null
+"$build/tools/host/mktsfs" -n 3 -i 1:2345 -g 7 -o "$work/media/member" >/dev/null
 
 # Build a fresh D6FS image for this single boot.  D6FS marks a mounted root
 # DIRTY, so reusing a previous test image would turn a later boot failure into
@@ -55,7 +55,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
         "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
         BUILD="$build" USERLAND_BUILD_ROOT="$build" \
         PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
-        DAS_REPO="$DAS_REPO" DAIMOS_TOOLS_REPO="$DAIMOS_TOOLS_REPO" \
+        DAS_REPO="$DAS_REPO" HOST_TOOLS="$build/tools/host" \
         SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
 cp "$work/media/member0.dta" "$build/media/dtc0.tap"
 cp "$work/media/member1.dta" "$build/media/dtc1.tap"
