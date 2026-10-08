@@ -10,6 +10,7 @@ static unsigned count;
 static unsigned failures;
 static uint64_t reference_spans[CAP];
 static unsigned reference_meta[CAP];
+static unsigned get(unsigned i);
 static void verify(void) {
     unsigned i;
     for (i=0;i<count;++i)
