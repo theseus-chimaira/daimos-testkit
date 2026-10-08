@@ -1016,3 +1016,12 @@ test-daimos-kcc-make-all-fresh-20261008-v1:
 	 DAS_REPO="$${DAS_REPO:-$$HOME/git/das}" \
 	 DAIMOS_TOOLS_REPO="$${DAIMOS_TOOLS_REPO:-$$HOME/git/daimos-tools}" \
 	 sh tests/validation/daimos-kcc-make-all-fresh-20261008-v1.sh
+
+.PHONY: test-daimos-libc-memcpy-20261008-v1
+test-daimos-libc-memcpy-20261008-v1:
+	@mkdir -p "$${TMPDIR:-$$HOME/tmp}"
+	$(HOST_CC) -std=c99 -O2 -fno-builtin -Wall -Wextra -Werror \
+	 -o "$${TMPDIR:-$$HOME/tmp}/daimos-libc-memcpy-20261008-v1" \
+	 tests/host/daimos-libc-memcpy-20261008-v1.c \
+	 "$(abspath $(DAIMOS_REPO))/userland/libc/string.c"
+	"$${TMPDIR:-$$HOME/tmp}/daimos-libc-memcpy-20261008-v1"
