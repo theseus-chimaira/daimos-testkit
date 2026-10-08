@@ -996,3 +996,14 @@ clean:
 .PHONY: test-daimos-kcc-foldtrna-conditional-20261008-v1
 test-daimos-kcc-foldtrna-conditional-20261008-v1: check-prefix
 	DAIMOS_REPO='${DAIMOS_REPO}' PDP10_PREFIX='${PDP10_PREFIX}' TMPDIR='${TMPDIR}' sh tests/validation/daimos-kcc-foldtrna-conditional-20261008-v1.sh
+
+# Deliberately opt-in: full PDP-6 KCC source compilation can take many minutes.
+# Preserve all build artifacts, simulator output and the harness report.
+.PHONY: test-daimos-kcc-manual-rebuild-20261008-v1
+test-daimos-kcc-manual-rebuild-20261008-v1:
+	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" KCC_REPO="$${KCC_REPO:-$$HOME/git/kcc}" \
+	 DAS_REPO="$${DAS_REPO:-$$HOME/git/das}" \
+	 DAIMOS_TOOLS_REPO="$${DAIMOS_TOOLS_REPO:-$$HOME/git/daimos-tools}" \
+	 KCC_TIMEOUT="$${KCC_TIMEOUT:-900}" \
+	 sh tests/validation/daimos-kcc-manual-rebuild-20261008-v1.sh
