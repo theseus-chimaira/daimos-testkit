@@ -5,6 +5,9 @@
         .globl  kret_neg1
         .globl  vfs_mount
         .globl  vfs_mount_prevalidated
+        .globl  vfs_mount_target
+        .globl  vfs_mount_root
+        .globl  vfs_mount_ro
         .globl  mm_alloc
         .globl  mm_free
         .globl  fs_backing_direct_read
@@ -13,11 +16,13 @@
         .globl  d6fs_active_reader
         .globl  d6fs_reader_slots
         .globl  d6fs_provider_toggle_state
+        .globl  d6fs_provider_prepare_unmount
         .globl  d6fs_provider_space
         .globl  __test_exit
         .globl  kconst_1_1
         .globl  kconst_2_2
         .globl  kconst_3_3
+        .globl  kconst_4_4
 
 main:
         ; Existing boot root occupies public mount id 1 / slot 0.
@@ -137,6 +142,11 @@ d6fs_provider_toggle_state:
         seto    1,
         popj    17,
 
+; Mount failure cleanup is outside this successful mount-isolation oracle.
+d6fs_provider_prepare_unmount:
+        setz    1,
+        popj    17,
+
 ; SPACE is outside this mount-isolation oracle.
 d6fs_provider_space:
         seto    1,
@@ -174,12 +184,20 @@ kconst_2_2:
         .word   2,,2
 kconst_3_3:
         .word   3,,3
+kconst_4_4:
+        .word   4,,4
 
         .bss
 d6fs_active_reader:
         .block  1
 d6fs_reader_slots:
         .block  4
+vfs_mount_target:
+        .block  4
+vfs_mount_root:
+        .block  4
+vfs_mount_ro:
+        .block  1
 root_reader:
         .block  016
 secondary_reader:
