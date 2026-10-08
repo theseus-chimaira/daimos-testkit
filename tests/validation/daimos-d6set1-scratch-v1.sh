@@ -54,9 +54,9 @@ PATH="$PDP10_PREFIX/bin:$PATH" make -C "$DAIMOS_REPO/system/boot/pdp6" image \
         SIMH_CPU_KWORDS=96 DAS_REPO="$DAS_REPO" \
         DAIMOS_TOOLS_REPO="$DAIMOS_TOOLS_REPO" KCC_REPO="$KCC_REPO" \
         D6FS_EXTRA_ARGS="-f /CONFIG/D6SET1.TEST:$obj/test.dxr:555:dxr" >/dev/null
-# The AUXSTORE V1 header must coexist with the D6FS blockset layout in
-# DRM0 block zero.  The 0100 LOGSTORE and 0300 BACKSTORE blocks occupy only
-# the tail (physical 01400..01777), leaving all four D6FS members intact.
+# Every drum carries the same logical AUXSTORE V2 reservation table;
+# LOGSTORE = 0100 blocks, BACKSTORE = 0600 blocks, mapped round-robin
+# over all four physical tails.  No drum member may alias D6FS blocks.
 python3 - "$build/system/boot/pdp6" <<'PYDESC'
 import struct
 import sys
@@ -68,11 +68,13 @@ for kind in ('disk', 'drum'):
         with (boot / kind / ('dsk%d.dsk' % unit)).open('rb') as image:
             words = struct.unpack('<128Q', image.read(1024))
         assert words[6] == 0o442654636222, (kind, unit, 'D6FS layout')
-        if kind == 'drum' and unit == 0:
+        if kind == 'drum':
             assert words[0] == 0o416570636421, 'AUXSTORE marker'
-            assert words[3] == ((0o1400 << 18) | 0o100), 'LOGSTORE tail'
-            assert words[2] == ((0o1500 << 18) | 0o300), 'BACKSTORE tail'
-        elif kind == 'disk':
+            assert words[1] == 2, 'D6SET AUXSTORE version'
+            assert words[3] == ((0o6000 << 18) | 0o100), 'LOGSTORE set range'
+            assert words[2] == ((0o6100 << 18) | 0o600), 'BACKSTORE set range'
+            assert words[4] == ((0o6700 << 18) | 0), 'CACHESTORE set range'
+        else:
             assert words[0] != 0o416570636421, 'boot disk AUXSTORE conflict'
             assert words[0o12] == 0, 'unexpected root swap reservation'
             assert words[0o15] == 0, 'unexpected root LOGSTORE reservation'

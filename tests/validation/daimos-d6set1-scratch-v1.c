@@ -65,7 +65,6 @@ main(void)
         }
         if (dsys_close(fd) != 0 || dsys_unlink(path) != 0)
                 return fail("CLEANUP", -1);
-        free(block);
         rc = dsys_logctl(SYS_LOGCTL_STATUS, 0UL, status);
         if (rc != 0)
                 return fail("LOGCTL-STATUS", rc);
@@ -77,6 +76,33 @@ main(void)
                 (void)u_crlf(2);
                 return fail("LOGCTL-PLACEMENT", 0);
         }
+        /* Verify the raw LOGSTORE path crosses each of the four drum
+         * members.  Use slots beyond the A/B control blocks and restore
+         * the original data afterwards, leaving the ring unmodified. */
+        for (pass = 2U; pass < 6U; ++pass) {
+                kword_t original[BLOCK_WORDS];
+                if (dsys_logctl(SYS_LOGCTL_READ_BLOCK, (kword_t)pass,
+                    original) != 0)
+                        return fail("LOGREAD", (int)pass);
+                for (i = 0U; i < BLOCK_WORDS; ++i)
+                        block[i] = ((kword_t)(pass + 3U) << 25U) | (kword_t)i;
+                if (dsys_logctl(SYS_LOGCTL_WRITE_BLOCK, (kword_t)pass,
+                    block) != 0)
+                        return fail("LOGWRITE", (int)pass);
+                for (i = 0U; i < BLOCK_WORDS; ++i)
+                        block[i] = 0UL;
+                if (dsys_logctl(SYS_LOGCTL_READ_BLOCK, (kword_t)pass,
+                    block) != 0)
+                        return fail("LOGREREAD", (int)pass);
+                for (i = 0U; i < BLOCK_WORDS; ++i)
+                        if (block[i] != (((kword_t)(pass + 3U) << 25U) |
+                            (kword_t)i))
+                                return fail("LOGVERIFY", (int)pass);
+                if (dsys_logctl(SYS_LOGCTL_WRITE_BLOCK, (kword_t)pass,
+                    original) != 0)
+                        return fail("LOGRESTORE", (int)pass);
+        }
+        free(block);
         (void)u_puts(1, "D6SET1-SCRATCH-PASS");
         (void)u_crlf(1);
         return 0;
