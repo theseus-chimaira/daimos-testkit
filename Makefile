@@ -1007,3 +1007,12 @@ test-daimos-kcc-manual-rebuild-20261008-v1:
 	 DAIMOS_TOOLS_REPO="$${DAIMOS_TOOLS_REPO:-$$HOME/git/daimos-tools}" \
 	 KCC_TIMEOUT="$${KCC_TIMEOUT:-900}" \
 	 sh tests/validation/daimos-kcc-manual-rebuild-20261008-v1.sh
+
+# Opt-in fresh-image KCC source-build regression. Never reuse test disk images.
+.PHONY: test-daimos-kcc-make-all-fresh-20261008-v1
+test-daimos-kcc-make-all-fresh-20261008-v1:
+	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" KCC_REPO="$${KCC_REPO:-$$HOME/git/kcc}" \
+	 DAS_REPO="$${DAS_REPO:-$$HOME/git/das}" \
+	 DAIMOS_TOOLS_REPO="$${DAIMOS_TOOLS_REPO:-$$HOME/git/daimos-tools}" \
+	 sh tests/validation/daimos-kcc-make-all-fresh-20261008-v1.sh
