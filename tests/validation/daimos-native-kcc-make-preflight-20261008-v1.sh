@@ -13,26 +13,14 @@ cat > "$work/probes" <<'EOF_PROBES'
 probe kcc-native-default-target
 command MAKE -Q -C /OPTION/SOURCE/KCC; ECHO STATUS:$?
 contains STATUS:1
+not_contains CANNOT PARSE
+timeout 240
 end
-probe kcc-native-cpp-rules
-command MAKE -Q -C /OPTION/SOURCE/KCC -F MCPP1 ALL; ECHO STATUS:$?
+probe kcc-native-all-single-graph
+command MAKE -Q -C /OPTION/SOURCE/KCC ALL; ECHO STATUS:$?
 contains STATUS:1
-end
-probe kcc-native-parse-rules
-command MAKE -Q -C /OPTION/SOURCE/KCC -F MPARSE1 ALL; ECHO STATUS:$?
-contains STATUS:1
-end
-probe kcc-native-gen-rules
-command MAKE -Q -C /OPTION/SOURCE/KCC -F MGEN1 ALL; ECHO STATUS:$?
-contains STATUS:1
-end
-probe kcc-native-link-rules
-command MAKE -Q -C /OPTION/SOURCE/KCC -F LGEN ALL; ECHO STATUS:$?
-contains STATUS:1
-end
-probe kcc-native-driver-rules
-command MAKE -Q -C /OPTION/SOURCE/KCC -F MKDRV ALL; ECHO STATUS:$?
-contains STATUS:1
+not_contains CANNOT PARSE
+timeout 240
 end
 probe kcc-native-clean
 command MAKE -C /OPTION/SOURCE/KCC CLEAN; ECHO STATUS:$?
