@@ -10,6 +10,12 @@ work=$(mktemp -d "$TMPDIR/daimos-native-make-install-20261008-v1.XXXXXX")
 trap 'if [ "${KEEP_WORK:-0}" = 1 ]; then echo "retained: $work"; else rm -rf "$work"; fi' EXIT HUP INT TERM
 
 printf '000000000001\n' > "$work/data.words"
+cat > "$work/direct.txt" <<'EOF_DIRECT'
+.PHONY: ALL
+ALL:
+> !/SYSTEM/EXEC/ECHO DIRECT_RUN_OK AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+EOF_DIRECT
+"$PDP10_PREFIX/bin/s6text" --encode "$work/direct.txt" "$work/direct.s6"
 "${HOST_CC:-cc}" -std=c99 -O2 -Wall -Wextra -o "$work/pty" \
         "$(dirname "$0")/../../tools/pty-run-v1.c"
 
@@ -34,6 +40,11 @@ probe make-query-unbuilt
 command MAKE -Q -C /OPTION/SOURCE/KCC CCVLA.S; ECHO STATUS:$?
 contains STATUS:1
 end
+probe make-direct-long-command
+command MAKE -F /CONFIG/MAKEDIRECT ALL; ECHO STATUS:$?
+contains DIRECT_RUN_OK
+contains STATUS:0
+end
 EOF
 
 make -C "$DAIMOS_REPO/system/boot/pdp6" image \
@@ -41,7 +52,7 @@ make -C "$DAIMOS_REPO/system/boot/pdp6" image \
         KCC_REPO="${KCC_REPO:-$HOME/git/kcc}" \
         DAS_REPO="${DAS_REPO:-$HOME/git/das}" \
         DAIMOS_TOOLS_REPO="${DAIMOS_TOOLS_REPO:-$HOME/git/daimos-tools}" \
-        D6FS_EXTRA_ARGS="-f /CONFIG/INSTALLTEST:$work/data.words:644:words" \
+        D6FS_EXTRA_ARGS="-f /CONFIG/INSTALLTEST:$work/data.words:644:words -f /CONFIG/MAKEDIRECT:$work/direct.s6:644:binwords" \
         > "$work/build.log" 2>&1 || {
         tail -60 "$work/build.log" >&2
         exit 1
