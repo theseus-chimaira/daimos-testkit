@@ -992,3 +992,7 @@ clean:
 	$(MAKE) -C tests/system/kernel clean DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD='$(abspath $(KERNEL_BUILD))'
 	$(MAKE) -C tests/system/stand clean DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD_ROOT='$(abspath $(BUILD_ROOT))'
 	rm -rf build reports/*.md stand-test-report.txt
+
+.PHONY: test-daimos-kcc-foldtrna-conditional-20261008-v1
+test-daimos-kcc-foldtrna-conditional-20261008-v1: check-prefix
+	DAIMOS_REPO='${DAIMOS_REPO}' PDP10_PREFIX='${PDP10_PREFIX}' TMPDIR='${TMPDIR}' sh tests/validation/daimos-kcc-foldtrna-conditional-20261008-v1.sh

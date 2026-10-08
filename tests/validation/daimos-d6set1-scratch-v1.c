@@ -21,6 +21,7 @@ int
 main(void)
 {
         struct vfs_stat st;
+        kword_t status[3];
         kword_t *block;
         unsigned int pass;
         unsigned int i;
@@ -65,6 +66,17 @@ main(void)
         if (dsys_close(fd) != 0 || dsys_unlink(path) != 0)
                 return fail("CLEANUP", -1);
         free(block);
+        rc = dsys_logctl(SYS_LOGCTL_STATUS, 0UL, status);
+        if (rc != 0)
+                return fail("LOGCTL-STATUS", rc);
+        if ((status[1] >> 18U) != 076UL || status[2] != 0100UL) {
+                (void)u_puts(2, "LOGCTL CAPACITY=");
+                (void)u_put_octal(2, status[1] >> 18U, 6U);
+                (void)u_puts(2, " BLOCKS=");
+                (void)u_put_octal(2, status[2], 6U);
+                (void)u_crlf(2);
+                return fail("LOGCTL-PLACEMENT", 0);
+        }
         (void)u_puts(1, "D6SET1-SCRATCH-PASS");
         (void)u_crlf(1);
         return 0;
