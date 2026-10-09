@@ -10,7 +10,8 @@ work=$(mktemp -d "$TMPDIR/$tag.XXXXXX")
 trap 'if [ "${KEEP_WORK:-0}" = 1 ]; then echo "retained: $work"; else rm -rf "$work"; fi' EXIT HUP INT TERM
 
 cat > "$work/top.txt" <<'EOF'
-INCLUDE /CONFIG/MAKEINC
+FRAGMENT = /CONFIG/MAKEINC
+INCLUDE $(FRAGMENT)
 ALL: INCLUDED
 > !/SYSTEM/EXEC/ECHO MAKE_INCLUDE_TOP_OK
 EOF
@@ -45,6 +46,8 @@ end
 EOF
 make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     PDP10_PREFIX="$PDP10_PREFIX" BUILD="$work/boot" \
+    PDP10_KCC="${PDP10_KCC:-$HOME/git/kcc/build/kcc}" \
+    KCC="${PDP10_KCC:-$HOME/git/kcc/build/kcc}" \
     HOST_TOOLS="${HOST_TOOLS:-$DAIMOS_REPO/build/tools/host}" \
     KCC_BOOT_BUILD="${KCC_BOOT_BUILD:-$HOME/git/kcc/build-native}" \
     SIMH_DPY_MODE=HEADLESS \
