@@ -65,6 +65,23 @@ EOF
     done
 } > "$work/large.txt"
 "$PDP10_PREFIX/bin/s6text" --encode "$work/large.txt" "$work/large.s6"
+# Insert rules in reverse lexical order, then resolve dependencies in forward
+# order. This catches sorted-index insertion errors without compiling KCC.
+{
+    echo '.PHONY: ALL'
+    i=96
+    while [ "$i" -ge 1 ]; do
+        printf '.PHONY: ITEM%03d\nITEM%03d:\n' "$i" "$i"
+        i=$((i - 1))
+    done
+    i=1
+    while [ "$i" -le 96 ]; do
+        printf 'ALL: ITEM%03d\n' "$i"
+        i=$((i + 1))
+    done
+    printf 'ALL:\n> !/SYSTEM/EXEC/ECHO MAKE_SORTED_INDEX_OK\n'
+} > "$work/index.txt"
+"$PDP10_PREFIX/bin/s6text" --encode "$work/index.txt" "$work/index.s6"
 "${HOST_CC:-cc}" -std=c99 -O2 -Wall -Wextra -o "$work/pty" \
     "$(dirname "$0")/../../tools/pty-run-v1.c"
 make -C "$DAIMOS_REPO/tools/host" build \
@@ -98,6 +115,12 @@ contains MAKE_BIG_GRAPH_OK
 contains STATUS:0
 timeout 300
 end
+probe native-make-index-order
+command MAKE -F /CONFIG/MAKEINDEX ALL; ECHO STATUS:$?
+contains MAKE_SORTED_INDEX_OK
+contains STATUS:0
+timeout 120
+end
 EOF
 make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     PDP10_PREFIX="$PDP10_PREFIX" BUILD="$work/boot" \
@@ -106,7 +129,7 @@ make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     HOST_TOOLS="${HOST_TOOLS:-$DAIMOS_REPO/build/tools/host}" \
     KCC_BOOT_BUILD="${KCC_BOOT_BUILD:-$HOME/git/kcc/build-native}" \
     SIMH_DPY_MODE=HEADLESS \
-    D6FS_EXTRA_ARGS="-f /CONFIG/MAKETOP:$work/top.s6:644:binwords -f /CONFIG/MAKEINC:$work/fragment.s6:644:binwords -f /CONFIG/MAKEBIG:$work/large.s6:644:binwords" \
+    D6FS_EXTRA_ARGS="-f /CONFIG/MAKETOP:$work/top.s6:644:binwords -f /CONFIG/MAKEINC:$work/fragment.s6:644:binwords -f /CONFIG/MAKEBIG:$work/large.s6:644:binwords -f /CONFIG/MAKEINDEX:$work/index.s6:644:binwords" \
     > "$work/build.log" 2>&1 || { tail -40 "$work/build.log" >&2; exit 1; }
 "$(dirname "$0")/../../tools/daimos-simh-harness-v4.sh" \
     --daimos-repo "$DAIMOS_REPO" --dofile "$work/boot/boot.ini" \
