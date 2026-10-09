@@ -42,6 +42,20 @@ EOF
         printf 'ALL: R%03d\n' "$i"
         i=$((i + 1))
     done
+    # Distinct dependencies exceed the former 768-link cap; repeated
+    # prerequisites also test that growth does not invalidate link chains.
+    i=1
+    while [ "$i" -le 800 ]; do
+        printf 'ALL: R%03d\n' "$(((i - 1) % 280 + 1))"
+        i=$((i + 1))
+    done
+    # More than 384 recipes, but no more than one is executed: the extra
+    # recipes belong to unreachable targets and remain in the MAKE graph.
+    i=1
+    while [ "$i" -le 400 ]; do
+        printf 'UNUSED%03d:\n> !/SYSTEM/EXEC/ECHO UNUSED%03d\n' "$i" "$i"
+        i=$((i + 1))
+    done
     printf 'ALL:\n> !/SYSTEM/EXEC/ECHO MAKE_BIG_GRAPH_OK\n'
     i=1
     while [ "$i" -le 280 ]; do
