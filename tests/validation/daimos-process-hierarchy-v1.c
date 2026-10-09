@@ -4,9 +4,13 @@
 #define LEADER_MODE          0201U
 #define JOIN_MODE            0202U
 #define SESSION_MODE         0203U
+#define SESSION_LEADER_MODE  0204U
+#define SESSION_JOIN_MODE    0205U
 #define LEADER_STATUS        041U
 #define JOIN_STATUS          042U
 #define SESSION_STATUS       043U
+#define SESSION_LEADER_STATUS 044U
+#define SESSION_JOIN_STATUS  045U
 #define PROC_STATE_ZOMB      4U
 
 #define RUN_PATH_WORDS       3U
@@ -59,11 +63,46 @@ spawn(unsigned int mode, unsigned int pgrp_mode, unsigned int pgrp)
                 block[RUN_ARG0_OFF + i] = init_path[i];
         }
         mode_ch = mode == LEADER_MODE ? 'L' :
-            (mode == JOIN_MODE ? 'J' : 'S');
+            (mode == JOIN_MODE ? 'J' :
+            (mode == SESSION_LEADER_MODE ? 'A' :
+            (mode == SESSION_JOIN_MODE ? 'B' : 'S')));
         block[RUN_ARG1_OFF] = 1UL;
         block[RUN_ARG1_OFF + 1U] =
             TEST_SIX6(mode_ch, ' ', ' ', ' ', ' ', ' ');
         block[RUN_MAP_OFF] = SYS_RUN_FD_MAP(0U, 0U);
+        block[RUN_MAP_OFF + 1U] = SYS_RUN_FD_MAP(1U, 1U);
+        block[RUN_MAP_OFF + 2U] = SYS_RUN_FD_MAP(2U, 2U);
+        run->version_words = SYS_RUN_HEADER(SYS_RUN_VERSION_2,
+            RUN_BLOCK_WORDS);
+        return dsys_run(run);
+}
+
+static int
+spawn_input(unsigned int mode, unsigned int pgrp_mode, unsigned int pgrp,
+    int input_fd)
+{
+        kword_t block[RUN_BLOCK_WORDS];
+        struct sys_run_v2 *run;
+        unsigned int i;
+        int mode_ch;
+
+        for (i = 0U; i < RUN_BLOCK_WORDS; ++i)
+                block[i] = 0UL;
+        run = (struct sys_run_v2 *)block;
+        run->flags = (kword_t)pgrp_mode;
+        run->pgrp = (kword_t)pgrp;
+        run->fdmap_count = 3UL;
+        run->argc = 2UL;
+        run->envc = 0UL;
+        for (i = 0U; i < RUN_PATH_WORDS; ++i) {
+                block[RUN_PATH_OFF + i] = init_path[i];
+                block[RUN_ARG0_OFF + i] = init_path[i];
+        }
+        mode_ch = mode == SESSION_JOIN_MODE ? 'B' : 'J';
+        block[RUN_ARG1_OFF] = 1UL;
+        block[RUN_ARG1_OFF + 1U] =
+            TEST_SIX6(mode_ch, ' ', ' ', ' ', ' ', ' ');
+        block[RUN_MAP_OFF] = SYS_RUN_FD_MAP(0U, (unsigned int)input_fd);
         block[RUN_MAP_OFF + 1U] = SYS_RUN_FD_MAP(1U, 1U);
         block[RUN_MAP_OFF + 2U] = SYS_RUN_FD_MAP(2U, 2U);
         run->version_words = SYS_RUN_HEADER(SYS_RUN_VERSION_2,
@@ -93,7 +132,8 @@ spawn_held(unsigned int mode, unsigned int pgrp_mode, unsigned int pgrp,
         }
         block[RUN_ARG1_OFF] = 1UL;
         block[RUN_ARG1_OFF + 1U] =
-            TEST_SIX6(mode == LEADER_MODE ? 'L' : 'J',
+            TEST_SIX6(mode == LEADER_MODE ? 'L' :
+            (mode == SESSION_LEADER_MODE ? 'A' : 'J'),
             ' ', ' ', ' ', ' ', ' ');
         block[RUN_MAP_OFF] = SYS_RUN_FD_MAP(0U, 0U);
         block[RUN_MAP_OFF + 1U] = SYS_RUN_FD_MAP(1U, 1U);
@@ -117,6 +157,10 @@ startup_mode(int argc, kword_t **argv)
                 return JOIN_MODE;
         if (argv[1][1] == TEST_SIX6('S', ' ', ' ', ' ', ' ', ' '))
                 return SESSION_MODE;
+        if (argv[1][1] == TEST_SIX6('A', ' ', ' ', ' ', ' ', ' '))
+                return SESSION_LEADER_MODE;
+        if (argv[1][1] == TEST_SIX6('B', ' ', ' ', ' ', ' ', ' '))
+                return SESSION_JOIN_MODE;
         return 0U;
 }
 
@@ -149,6 +193,25 @@ wait_zombie_by_eof(unsigned int pid, int read_fd, int write_fd)
         if (dsys_procinfo(pid, &info) != 0 || info.state != PROC_STATE_ZOMB)
                 return -1;
         return 0;
+}
+
+static int
+wait_zombie_by_eof_keep_read(unsigned int pid, int read_fd, int write_fd)
+{
+        struct sys_procinfo info;
+        unsigned int tries;
+
+        (void)read_fd;
+        if (dsys_close(write_fd) != 0)
+                return -1;
+        for (tries = 0U; tries < 16U; ++tries) {
+                if (dsys_procinfo(pid, &info) == 0 &&
+                    info.state == PROC_STATE_ZOMB)
+                        return 0;
+                if (dsys_sleep(1U) != 0)
+                        return -1;
+        }
+        return -1;
 }
 
 static int
@@ -223,7 +286,27 @@ main(int argc, kword_t **argv)
                 (void)dsys_exit(JOIN_STATUS);
                 return JOIN_STATUS;
         }
+        if (mode == SESSION_LEADER_MODE) {
+                pid = dsys_getpid();
+                if (pid <= 1 ||
+                    dsys_procctl(SYS_PROCCTL_GETPGRP, 0U) != pid ||
+                    dsys_procctl(SYS_PROCCTL_GETSESSION, 0U) <= 1)
+                        (void)dsys_exit(056);
+                (void)dsys_exit(SESSION_LEADER_STATUS);
+                return SESSION_LEADER_STATUS;
+        }
+        if (mode == SESSION_JOIN_MODE) {
+                pid = dsys_getpid();
+                if (pid <= 1 ||
+                    dsys_procctl(SYS_PROCCTL_GETPGRP, 0U) == pid ||
+                    dsys_procctl(SYS_PROCCTL_GETSESSION, 0U) <= 1)
+                        (void)dsys_exit(057);
+                (void)dsys_exit(SESSION_JOIN_STATUS);
+                return SESSION_JOIN_STATUS;
+        }
         if (mode == SESSION_MODE) {
+                unsigned int session_seen;
+
                 pid = dsys_getpid();
                 if (pid <= 1 ||
                     dsys_procctl(SYS_PROCCTL_NEWSESSION, 0U) != pid ||
@@ -233,6 +316,31 @@ main(int argc, kword_t **argv)
                         (void)dsys_exit(053);
                 if (spawn(JOIN_MODE, SYS_RUN_PGRP_JOIN, 1U) != -1)
                         (void)dsys_exit(054);
+                session_seen = (unsigned int)pid;
+                if (new_pipe(&read_fd, &write_fd) != 0)
+                        (void)dsys_exit(060);
+                leader = spawn_held(SESSION_LEADER_MODE,
+                    SYS_RUN_PGRP_NEW, 0U, write_fd);
+                if (leader <= pid || wait_zombie_by_eof_keep_read(
+                    (unsigned int)leader,
+                    read_fd, write_fd) != 0)
+                        (void)dsys_exit(061);
+                joined = spawn_input(SESSION_JOIN_MODE, SYS_RUN_PGRP_JOIN,
+                    (unsigned int)leader, read_fd);
+                (void)dsys_close(read_fd);
+                if (joined <= leader)
+                        (void)dsys_exit(062);
+                got = dsys_wait(SYS_WAIT_PGRP_FLAG | (unsigned int)leader,
+                    &status, 0U);
+                if (got != leader && got != joined)
+                        (void)dsys_exit(063);
+                got = dsys_wait(SYS_WAIT_PGRP_FLAG | (unsigned int)leader,
+                    &status, 0U);
+                if (got != leader && got != joined)
+                        (void)dsys_exit(064);
+                if ((unsigned int)dsys_procctl(SYS_PROCCTL_GETSESSION, 0U) !=
+                    session_seen)
+                        (void)dsys_exit(065);
                 if (dsys_procctl(SYS_PROCCTL_NEWDOMAIN, 0U) != pid ||
                     dsys_procctl(SYS_PROCCTL_GETDOMAIN, 0U) != pid)
                         (void)dsys_exit(055);

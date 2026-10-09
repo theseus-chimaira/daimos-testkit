@@ -81,6 +81,44 @@ command SET DSHV VALUE; ECHO $[DSHV]X
 line ^VALUEX$
 end
 
+probe dsh-variable-over-sixteen
+setup SET V01 01
+setup SET V02 02
+setup SET V03 03
+setup SET V04 04
+setup SET V05 05
+setup SET V06 06
+setup SET V07 07
+setup SET V08 08
+setup SET V09 09
+setup SET V10 10
+setup SET V11 11
+setup SET V12 12
+setup SET V13 13
+setup SET V14 14
+setup SET V15 15
+setup SET V16 16
+setup SET V17 17
+setup SET V18 18
+setup SET V19 19
+setup SET V20 20
+command ECHO $V01:$V16:$V20
+line ^01:16:20$
+end
+
+probe dsh-variable-resize-unset
+setup SET KEEP STABLE
+setup SET GROW A
+setup SET GROW ABCDEFGHIJKLMNOPQRSTUVWXYZ
+setup UNSET V10
+setup SET AFTER REUSED
+command ECHO $KEEP; ECHO $GROW; ECHO $AFTER; ECHO X$V10
+contains STABLE
+contains ABCDEFGHIJKLMNOPQRSTUVWXYZ
+contains REUSED
+line ^X$
+end
+
 probe dsh-status-failure
 command FALSE; ECHO $?
 line ^1$

@@ -27,6 +27,12 @@ command MAKE -C /OPTION/SOURCE/KCC CLEAN; ECHO STATUS:$?
 contains STATUS:0
 timeout 120
 end
+probe kcc-native-first-object
+command MAKE -C /OPTION/SOURCE/KCC B/CC-CPP-V1.S; ECHO STATUS:$?
+contains MAKE: BUILD
+contains STATUS:0
+timeout 120
+end
 EOF_PROBES
 
 make -C "$DAIMOS_REPO/system/boot/pdp6" image \
