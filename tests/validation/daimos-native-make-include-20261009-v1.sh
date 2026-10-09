@@ -11,9 +11,13 @@ trap 'if [ "${KEEP_WORK:-0}" = 1 ]; then echo "retained: $work"; else rm -rf "$w
 
 cat > "$work/top.txt" <<'EOF'
 FRAGMENT = /CONFIG/MAKEINC
+SOURCES = FIRST.C SECOND.C OTHER.H
+OBJECTS = $(SOURCES:.C=.DOBJ)
 INCLUDE $(FRAGMENT)
 ALL: INCLUDED
 > !/SYSTEM/EXEC/ECHO MAKE_INCLUDE_TOP_OK
+SUBST:
+> !/SYSTEM/EXEC/ECHO $(OBJECTS)
 EOF
 cat > "$work/fragment.txt" <<'EOF'
 .PHONY: INCLUDED
@@ -40,6 +44,12 @@ probe native-make-include
 command MAKE -F /CONFIG/MAKETOP ALL; ECHO STATUS:$?
 contains MAKE_INCLUDE_FRAGMENT_OK
 contains MAKE_INCLUDE_TOP_OK
+contains STATUS:0
+timeout 120
+end
+probe native-make-suffix-substitution
+command MAKE -F /CONFIG/MAKETOP SUBST; ECHO STATUS:$?
+contains FIRST.DOBJ SECOND.DOBJ OTHER.H
 contains STATUS:0
 timeout 120
 end
