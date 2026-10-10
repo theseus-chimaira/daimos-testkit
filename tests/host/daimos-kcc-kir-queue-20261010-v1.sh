@@ -42,6 +42,11 @@ int main(void)
     if (g.failed || g.nn!=NN || g.ns!=NS || g.nt!=NT) return 2;
     if (nodeid(&g,&n[NN-1])!=NN || typeid(&g,&t[NT-1])!=NT ||
         symid(&g,&s[NS-1])==0) return 3;
+    /* Identity must stay stable after reallocating a typed pointer vector.
+     * Duplicate registrations must not change its size or discovery IDs. */
+    if (addnode(&g,&n[NN-1])!=NN || addtype(&g,&t[NT-1])!=NT ||
+        addnode(&g,n)!=1 || addtype(&g,t)!=1 ||
+        g.nn!=NN || g.nt!=NT) return 4;
     printf("PASS: %u nodes %u symbols %u types\n",g.nn,g.ns,g.nt);
     return 0;
 }
