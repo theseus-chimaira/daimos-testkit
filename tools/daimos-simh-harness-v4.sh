@@ -158,8 +158,19 @@ wait_marker()
         ticks=$((seconds * 10))
         i=0
         while [ "$i" -le "$ticks" ]; do
-                if [ -f "$io_log" ] && tail -c "+$((start + 1))" "$io_log" 2>/dev/null | grep -F "$marker" >/dev/null 2>&1; then
-                        return 0
+                if [ -f "$io_log" ]; then
+                        if [ "$marker" = '# ' ]; then
+                                # The command itself may echo a literal '# '
+                                # (e.g. ECHO X # COMMENT). A DSH prompt is
+                                # anchored at the start of a terminal line;
+                                # matching any substring desynchronizes all
+                                # subsequent probes.
+                                if tail -c "+$((start + 1))" "$io_log" 2>/dev/null | grep -E '^# ' >/dev/null 2>&1; then
+                                        return 0
+                                fi
+                        elif tail -c "+$((start + 1))" "$io_log" 2>/dev/null | grep -F "$marker" >/dev/null 2>&1; then
+                                return 0
+                        fi
                 fi
                 alive || return 2
                 i=$((i + 1))

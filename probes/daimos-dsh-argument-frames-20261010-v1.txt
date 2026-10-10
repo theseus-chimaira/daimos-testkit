@@ -1,0 +1,45 @@
+# Small-frame executor and full-width scratch-allocation contract.
+# SYS_RUN permits sixteen arguments, independently of DSH's twenty-word
+# parser/expansion arena. Keep both limits explicit.
+probe dsh-args-sixteen-valid
+command ECHO A B C D E F G H I J K L M N O; ECHO STATUS:$?
+contains A B C D E F G H I J K L M N O
+contains STATUS:0
+end
+
+probe dsh-args-run-limit
+command ECHO A B C D E F G H I J K L M N O P Q R S; ECHO STATUS:$?
+contains STATUS:126
+end
+
+probe dsh-frame-recursion
+command DEF F DO F DONE; F; ECHO STATUS:$?
+contains STATUS:2
+end
+
+probe dsh-frame-file-create
+command ECHO ONE > /CONFIG/FRAME1
+end
+
+probe dsh-frame-file-read
+command CAT /CONFIG/FRAME1
+line ^ONE$
+end
+
+probe dsh-frame-file-second
+command ECHO TWO > /CONFIG/FRAME2
+end
+
+probe dsh-frame-glob
+command ECHO /CONFIG/FRAME*
+contains /CONFIG/FRAME1
+contains /CONFIG/FRAME2
+end
+
+probe dsh-frame-cleanup-one
+command RM /CONFIG/FRAME1
+end
+
+probe dsh-frame-cleanup-two
+command RM /CONFIG/FRAME2
+end

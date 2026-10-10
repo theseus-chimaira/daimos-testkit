@@ -25,7 +25,7 @@ DTFS_RUN = tests/system/dtfs-native-v1/run.sh
 .PHONY: check-prefix check coverage image inventory runtime runtime-build regression dtfs-runtime d6fs-mres dtfs-mres mm-core target target-memfs-pdp6 target-memfs-fifo-pdp6 target-swap-pure-text-pdp6 \
 	target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-d6lz-pdp6 target-wordtoken-pdp6 kernel-runtime stand-runtime d6fs-hdd-runtime d6fs-hdd-multi d6fs-recovery simulator-test test-daimos-stage1-kinit-entry test-daimos-kinit-sixbit-lifetime test-daimos-kcc-pdp6-codegen test-daimos-monitorfs-devices-online test-daimos-wcnsls-raw test-daimos-apr-user-protection test-daimos-apr-injected-fault test-daimos-apr-aap test-daimos-badmap-map test-daimos-badmap-root test-daimos-d6fs-context-dispatch test-daimos-d6fs-multimount test-daimos-d6set1-scratch test-daimos-d6fs-direct-backing-drm test-daimos-bcache-multisource test-daimos-bcache-allocation test-daimos-d6fs-remount test-daimos-d6fs-super-recovery test-daimos-vfs-storage-reservation test-daimos-logstore-v1 test-daimos-mtc516-online test-daimos-dsk270-online test-daimos-dsk270-elevator test-daimos-drm236-online test-daimos-drm236-minit test-daimos-drm236-capacity test-daimos-drm-stage1-boot test-daimos-dsk-root-discovery test-daimos-dtc-online test-daimos-dtc-stream-online test-daimos-tsfs-image-online test-daimos-tsfs-scan test-daimos-tsfs-multiextent test-daimos-tsfs-d6lz test-daimos-tsfs-dir test-daimos-tsfs-mount test-daimos-dtc-reverse-online test-daimos-low-memory-boot test-daimos-scheduler-multiproc test-daimos-scheduler-realtime test-daimos-scheduler-rt-revoke test-daimos-rt-required test-daimos-process-lifecycle test-daimos-process-id-lifetime test-daimos-process-hierarchy test-daimos-domain test-daimos-monitorfs-process-decimal test-daimos-process-events test-daimos-process-tty test-daimos-tty-session-state test-daimos-tty-routing test-daimos-dpy-interrupt-policy test-daimos-tty-s6rec test-daimos-tty-s6rec-input test-daimos-pt-wordio test-daimos-card-wordio test-daimos-lpt-s6rec test-daimos-exec-abi test-daimos-exec-replace test-daimos-exec-child-session test-daimos-userspace-bootstrap test-daimos-userspace-multitty test-daimos-make-boot-multitty test-daimos-login-password test-daimos-init-once test-daimos-session-teardown test-daimos-job-pipeline test-daimos-user-kuuo-isolation test-daimos-no-kernel-uuo test-daimos-trap-frequency test-daimos-proc-uarea-layout test-daimos-credentials test-daimos-credentials-fs test-daimos-proc-stack-watermark test-daimos-idle-stack-watermark test-daimos-pipe-wordfifo test-daimos-pipe-anon test-daimos-pipe-fifo test-daimos-swap-wait test-daimos-swap-stress test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-permanent-size test-daimos-p10fold-build test-host-d6lz-exec test-daimos-d6lz-native-exec test-pdp10-tools test-pdp10-tools-mkd6fs-encoding clean
 	test-daimos-pi-restore test-daimos-tsfs-boot-eight
-.PHONY: test-daimos-boot-source-matrix test-daimos-root-class-matrix test-daimos-auto-root-priority test-daimos-boot-root-cross-matrix test-daimos-root-login-lifecycle test-daimos-monitorfs-live-state test-daimos-monitorfs-storage-accounting test-daimos-dsh-conformance test-daimos-dsh-pipeline test-daimos-dsh-foreground test-daimos-native-tools test-daimos-img2dpic test-type340-timing regression regression-status regression-restart test-daimos-sleep test-daimos-multiuser-kernel-auth test-daimos-multiuser-auth-runtime
+.PHONY: test-daimos-boot-source-matrix test-daimos-root-class-matrix test-daimos-auto-root-priority test-daimos-boot-root-cross-matrix test-daimos-root-login-lifecycle test-daimos-monitorfs-live-state test-daimos-monitorfs-storage-accounting test-daimos-dsh-conformance test-daimos-dsh-pipeline test-daimos-dsh-source test-daimos-dsh-argument-frames test-daimos-dsh-foreground test-daimos-native-tools test-daimos-img2dpic test-type340-timing regression regression-status regression-restart test-daimos-sleep test-daimos-multiuser-kernel-auth test-daimos-multiuser-auth-runtime
 
 
 test-pdp10-tools-mkd6fs-encoding:
@@ -86,6 +86,20 @@ test-daimos-dsh-pipeline: check-prefix $(PTY_RUN) image
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
 		--probes probes/daimos-dsh-pipeline-regression-20261010-v1.txt
+
+test-daimos-dsh-source: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-source-nested-regression-20261010-v1.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--probes probes/daimos-dsh-source-nested-regression-20261010-v1.txt
+
+test-daimos-dsh-argument-frames: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-argument-frames-20261010-v1.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--probes probes/daimos-dsh-argument-frames-20261010-v1.txt
 
 test-daimos-dsh-resource-contract:
 	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" tests/validation/daimos-dsh-resource-contract-20261010-v1.sh
