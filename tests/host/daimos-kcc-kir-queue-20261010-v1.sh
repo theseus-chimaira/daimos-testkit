@@ -26,6 +26,7 @@ int main(void)
     }
     for (i=0; i<NS; ++i) {
         s[i].Sflags=SF_LOCAL;
+        s[i].Sclass=SC_MEMBER;
         s[i].Ssmnext=&s[(i+1)%NS];
     }
     for (i=0; i<NT; ++i) {
@@ -36,7 +37,7 @@ int main(void)
     while (!g.failed && (in<g.nn || is<g.ns || it<g.nt)) {
         if (in<g.nn) visit_node(&g,g.nodes[in++]);
         else if (it<g.nt) visit_type(&g,g.types[it++]);
-        else visit_symbol(&g,g.syms[is++]);
+        else visit_symbol(&g,g.syms[is++].symbol);
     }
     if (g.failed || g.nn!=NN || g.ns!=NS || g.nt!=NT) return 2;
     if (nodeid(&g,&n[NN-1])!=NN || typeid(&g,&t[NT-1])!=NT ||
