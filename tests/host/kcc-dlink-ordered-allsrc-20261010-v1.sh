@@ -10,7 +10,8 @@ for filename in ('daimos.mk','native.mk'):
     old=subprocess.check_output(['git','-C',str(root),'show','2118967:'+filename],text=True)
     new=(root/filename).read_text()
     if filename=='daimos.mk':
-        pattern=r'^B/[^\s:]+\.DXR:'
+        old=re.sub(r'(?<![A-Za-z0-9_])B/', 'BUILD/', old)
+        pattern=r'^BUILD/[^\s:]+\.DXR:'
         starts=[m.start() for m in re.finditer(pattern,new,re.M)]
         for start in starts:
             name=new[start:].split(':',1)[0]

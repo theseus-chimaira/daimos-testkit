@@ -12,12 +12,13 @@ old = subprocess.check_output(
     ["git", "-C", str(root), "show", "5a1fe6f:daimos.mk"], text=True
 )
 new = (root / "daimos.mk").read_text()
+old = old.replace("B/", "BUILD/")
 
 def archives(text):
     rules = {}
     current = None
     for line in text.splitlines():
-        if line.startswith("B/") and ":" in line:
+        if line.startswith("BUILD/") and ":" in line:
             name, rest = line.split(":", 1)
             current = name if name.endswith(".DARC") else None
             if current:

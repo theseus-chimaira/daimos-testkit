@@ -22,7 +22,7 @@ python3 - <<'PY'
 from pathlib import Path
 p=Path('daimos.mk').read_text()
 assert '.PHONY: NATIVE INSTALL CLEAN' in p
-assert 'NATIVE: B B/KCPP.DXR B/KPARSE.DXR B/KGEN.DXR B/KOPT.DXR B/KCC.DXR' in p
+assert 'NATIVE: BUILD BUILD/KCPP.DXR BUILD/KPARSE.DXR BUILD/KGEN.DXR BUILD/KOPT.DXR BUILD/KCC.DXR' in p
 assert not any(line.startswith('ALL:') for line in p.splitlines())
 for alias in ('KCPP:', 'KPARSE:', 'KGEN:', 'KOPT:', 'DRIVER:'):
     assert not any(line.startswith(alias) for line in p.splitlines())
