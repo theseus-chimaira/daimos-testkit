@@ -1,5 +1,5 @@
 #!/bin/sh
-# Verify portable native MAKE path variables preserve complete command text.
+# Verify PATH-based command names preserve all recipe arguments and destinations.
 set -eu
 kcc=${KCC_REPO:-"$HOME/git/kcc"}
 python3 - "$kcc" <<'PY'
@@ -38,9 +38,19 @@ def commands(source):
 
 before, after = commands(old), commands(new)
 assert len(after) == len(before) == 86
+for oldpath, name in (
+    ("/OPTION/BASE/EXEC/KCC", "KCC"),
+    ("/OPTION/BASE/EXEC/DAS", "DAS"),
+    ("/OPTION/BASE/EXEC/DARC", "DARC"),
+    ("/OPTION/BASE/EXEC/DLINK", "DLINK"),
+    ("/SYSTEM/EXEC/INSTALL", "INSTALL"),
+    ("/SYSTEM/EXEC/RM", "RM"),
+):
+    before = [line.replace("\t@" + oldpath + " ", "\t@" + name + " ")
+              for line in before]
 assert after == before
 assert max(map(len, after)) < 256
-for name in ("NATIVE_EXEC", "NATIVE_KCC", "NATIVE_DAS", "NATIVE_INSTALL", "NATIVE_KCC_LIBEXEC"):
+for name in ("NATIVE_KCC", "NATIVE_DAS", "NATIVE_INSTALL", "NATIVE_KCC_DEST", "NATIVE_KCC_LIBEXEC"):
     assert name + " = " in new
-print("PASS: 86 commands identical; short native path variables within limits")
+print("PASS: 86 commands retain arguments and destinations after PATH conversion")
 PY
