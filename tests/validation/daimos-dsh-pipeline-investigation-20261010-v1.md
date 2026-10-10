@@ -121,3 +121,33 @@ simulated instruction/time axis, using an isolated simulator build. Do not
 alter DSK/DCT service delays as a production correction; a changed interval
 would be an experiment only. Re-run the five isolated target cases with a
 fresh disk image after each tested hypothesis.
+
+## Root cause and correction verified (fourth pass, 2026-10-10)
+
+An isolated PDP-6 simulator build printed the Type 270 DRL condition with
+DCT state and the CPU PI gate. Every failing pipeline generated DRL during
+one disk read of sector 0600232, at variable word positions. The DCT had a
+pending PI3 request (`IOBPI=020`), PI levels remained enabled (`PIE=077`),
+but global PI was disabled (`PIEN=0`). The DRL followed the PI disable by
+roughly 200–260 simulated time units while it stayed disabled for more than
+2,000 units. The saved return address identified `proc_exit_current` as the
+caller of `mach_pi_disable`. A preceding pipeline child exited while the next
+stage attempted to load an executable from disk.
+
+DAIMOS commit `75b5c41` narrows process-exit PI exclusion to the permanent
+stack handoff, masks PI6 (scheduler clock) during cleanup, allows PI3/PI5
+storage interrupts, and restores the previous clock mask afterward. This
+removed the DRL and restored two-/three-stage pipelines. Longer pipelines
+then exposed another PI bug: `proc_wakeup_event`, entered through disk
+completion, saved AC0 and AC2..AC6 but failed to preserve AC7, which its
+nested `proc_runq_add` changes. That register-corruption bug could halt SIMH
+at PC 000001. The same commit saves/restores AC7.
+
+With both corrections on fresh PDP-6 images, all five isolated baseline
+RUN/pipe tests and independent five-, six-, and eight-stage pipeline cases
+passed. The dedicated real-DCS foreground acceptance also passed with the
+narrowed PI critical section. The expanded conformance run passed 73 cases;
+the remaining two failures at that point were `dsh-source-positional-restore`
+and `dsh-function-recursion-limit`, outside this kernel fix. Do not claim
+115/115 DSH conformance yet. Preserve the expanded pipeline probes here in
+the testkit for future builds.

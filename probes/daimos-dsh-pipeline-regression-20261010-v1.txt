@@ -27,3 +27,21 @@ probe dsh-sequential-run-control
 command TRUE; TRUE; ECHO STATUS:$?
 contains STATUS:0
 end
+
+# Exercise repeated child EXIT while new pipeline stages are being launched.
+# This catches disk PI starvation during teardown and AC7 corruption in the
+# PI-safe process wakeup/run-queue path.
+probe dsh-pipeline-five-stage
+command ECHO FIVE ! CAT ! CAT ! CAT ! CAT
+line ^FIVE$
+end
+
+probe dsh-pipeline-six-stage
+command ECHO SIX ! CAT ! CAT ! CAT ! CAT ! CAT
+line ^SIX$
+end
+
+probe dsh-pipeline-eight-stage-isolated
+command ECHO EIGHT ! CAT ! CAT ! CAT ! CAT ! CAT ! CAT ! CAT
+line ^EIGHT$
+end
