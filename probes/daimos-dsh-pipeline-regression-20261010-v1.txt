@@ -1,0 +1,17 @@
+# Small independent RUN/pipe/lookup regression suite.
+# Keep these cases separate from the long DSH conformance sequence so that
+# failure or a stuck job cannot obscure the first pipeline regression.
+probe dsh-pipeline-data-isolated
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
+
+probe dsh-pipeline-final-status-isolated
+command FALSE ! TRUE; ECHO STATUS:$?
+contains STATUS:0
+end
+
+probe dsh-pipeline-multistage-isolated
+command ECHO THREE ! CAT ! CAT
+line ^THREE$
+end
