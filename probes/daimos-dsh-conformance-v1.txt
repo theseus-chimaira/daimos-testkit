@@ -587,3 +587,53 @@ contains DSH: JOB TABLE FULL
 contains STATUS:2
 not_contains %5
 end
+
+# Additional bounded-language regression cases (2026-10-10).
+# Format validated; target execution blocked by missing installed compiler header.
+probe dsh-comment-boundary
+command ECHO COMMENTOK # IGNORED
+line ^COMMENTOK$
+not_contains IGNORED
+end
+
+probe dsh-quoted-operator-literal
+command ECHO "AND" "!" "&"
+line ^AND ! &$
+end
+
+probe dsh-adjacent-quoted-fragments
+command ECHO AB"CD"'EF'
+line ^ABCDEF$
+end
+
+probe dsh-escaped-hash-literal
+command ECHO A\#B
+line ^A#B$
+end
+
+probe dsh-glob-relative-no-match
+command ECHO DSH-NONEXISTENT-*
+line ^DSH-NONEXISTENT-\*$
+end
+
+probe dsh-glob-quoted-question
+command ECHO "/SYSTEM/DSHG?"
+line ^/SYSTEM/DSHG\?$
+end
+
+probe dsh-control-if-failure-branch
+command IF FALSE THEN ECHO WRONG ELSE ECHO RIGHT FI
+line ^RIGHT$
+not_contains WRONG
+end
+
+probe dsh-status-or-fallback
+command FALSE OR ECHO FALLBACK
+line ^FALLBACK$
+end
+
+probe dsh-status-and-skip
+command FALSE AND ECHO WRONG; ECHO RIGHT
+line ^RIGHT$
+not_contains WRONG
+end

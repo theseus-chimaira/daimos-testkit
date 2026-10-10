@@ -80,6 +80,9 @@ test-daimos-dsh-conformance: check-prefix $(PTY_RUN) image
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --probes '$(DSH_PROBES)'
 
+test-daimos-dsh-resource-contract:
+	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" tests/validation/daimos-dsh-resource-contract-20261010-v1.sh
+
 test-daimos-dsh-foreground: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
