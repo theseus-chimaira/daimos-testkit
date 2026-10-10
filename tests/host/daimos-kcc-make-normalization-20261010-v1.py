@@ -6,7 +6,16 @@ from collections import defaultdict
 if len(sys.argv) != 3:raise SystemExit('usage: checker OLD_DAIMOS_MK NEW_DAIMOS_MK')
 def parse(path):
     deps=defaultdict(list); recipes=[]; special=[]
-    for line in Path(path).read_text().splitlines():
+    physical = Path(path).read_text().splitlines()
+    logical=[];pending=''
+    for line in physical:
+        if line.endswith('\\'):
+            pending += line[:-1] + ' '
+            continue
+        logical.append(pending + line)
+        pending=''
+    assert not pending, 'unterminated line continuation'
+    for line in logical:
         if line.startswith('\t'):recipes.append(line);continue
         if not line or line.startswith('#'):continue
         if ':' in line and '=' not in line.split(':',1)[0]:
