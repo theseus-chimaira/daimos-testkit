@@ -43,6 +43,27 @@ After the correction, run the isolated pipeline probes, the full 115-case DSH
 conformance suite, and the real-DCS foreground/TTY restoration acceptance.
 The earlier SOURCE and function-recursion failures also remain open.
 
+## Follow-up isolation (2026-10-10)
+
+A fresh-image instrumented run confirmed that the second RUN reaches
+`exec_load_process()` but that `file_lookup_path()` returns an error from
+`file_check_access()`: the underlying `vfs_stat()` call fails while checking
+directory traversal. This is before DXR header validation. The instrumented
+RUN failure classified the path as a filesystem-stat failure, not a failed
+process-group join. These diagnostics are experimental, not public ABI changes.
+
+The additional `TRUE ! TRUE` probe fails with the same second-RUN lookup
+failure even without pipe payload output. The sequential control
+`TRUE; TRUE` passes on the same clean image. This distinguishes concurrent
+pipeline setup and inherited descriptors from actual data transfer.
+
+Reusing a previously exercised SIMH disk for another test occasionally led to
+the boot-time `?RT` HALT; results from those reboots are excluded. Each valid
+comparison above used a freshly constructed image. The next investigation
+should differentiate provider `vfs_stat` errors (invalid vnode, locked/busy
+provider, corrupted request state) and explicitly test the pipe reader/writer
+refcounts across first-child exit and parent descriptor closure.
+
 All diagnostic source changes were discarded from the isolated DAIMOS
 worktree. This report and the new probes belong to daimos-testkit; there is
 no corresponding production DAIMOS code change in this investigation.

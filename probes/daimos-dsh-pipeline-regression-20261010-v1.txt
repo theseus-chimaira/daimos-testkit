@@ -15,3 +15,15 @@ probe dsh-pipeline-multistage-isolated
 command ECHO THREE ! CAT ! CAT
 line ^THREE$
 end
+
+# Distinguish pipe setup/child inheritance from payload transfer.
+probe dsh-pipeline-without-payload
+command TRUE ! TRUE; ECHO STATUS:$?
+contains STATUS:0
+end
+
+# Control: two independent RUN calls without pipe descriptors.
+probe dsh-sequential-run-control
+command TRUE; TRUE; ECHO STATUS:$?
+contains STATUS:0
+end
