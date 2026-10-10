@@ -67,3 +67,22 @@ refcounts across first-child exit and parent descriptor closure.
 All diagnostic source changes were discarded from the isolated DAIMOS
 worktree. This report and the new probes belong to daimos-testkit; there is
 no corresponding production DAIMOS code change in this investigation.
+
+## Type 270 failure isolation (second pass, 2026-10-10)
+
+Five target probes were run on fresh images: all four pipeline cases failed,
+while the sequential two-RUN control passed. Temporary instrumented return
+codes traced the second RUN through executable lookup, directory VFS STAT,
+D6FS FCB retrieval, D6FS cache block fetch, and the filesystem backing read.
+The backing read returned storage error 5. Type 270 driver instrumentation
+identified a failed controller completion rather than a full pending queue.
+The Type 270 CONI status on that error had low bits 020 (octal): DRL, data
+request late. That pinpoints disk/DCT transfer timing but does not yet prove
+whether the kernel driver's interrupt/completion ordering, PI masking, or
+the simulator is responsible.
+
+A tested queue-space wait/wakeup experiment did not fix any of the pipeline
+failures and was discarded. Investigate the Type 136 DCT handoff and PI
+servicing during live Type 270 transfers; verify timing before making a
+production change. Do not add unconditional I/O retries or relax the
+controller's error handling merely to pass these tests.
