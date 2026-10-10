@@ -86,3 +86,38 @@ failures and was discarded. Investigate the Type 136 DCT handoff and PI
 servicing during live Type 270 transfers; verify timing before making a
 production change. Do not add unconditional I/O retries or relax the
 controller's error handling merely to pass these tests.
+
+## DCT/PI timing review (third pass, 2026-10-10)
+
+Inspected `DAIMOS/system/kernel/drivers/dsk_io.s`,
+`DAIMOS/system/kernel/storage/storage_router.s`,
+`DAIMOS/system/kernel/core/kcore_pi_pdp6.s`, and SIMH's
+`PDP10/pdp6_dsk.c` and `PDP10/pdp6_dct.c`.
+
+SIMH's disk transfer service sets DRL when `dct_write()` (disk read) or
+`dct_read()` (disk write) reports its buffer unavailable. Its per-word disk
+service reschedules at 100 simulated time units; DCT buffer handoffs use
+service delays of 10 or 20 units. The Type 270 PI5 path starts the DCT via
+CONO 0200 and the disk via CONO 0270. The Type 136 PI3 path uses the patched
+BLKI/BLKO at location 000046, and handles sector-end/drain separately.
+
+DAIMOS's `mach_pi_disable` globally gates PI and is called during some memory
+movement/compaction and process teardown. An extended critical section while
+a disk transfer is active could starve a DCT request, but no trace has yet
+established that this occurs in the failing pipeline case. A concurrent RUN
+may also expose a DCT handshake or simulator scheduling defect. Neither
+explanation is proven merely by the DRL bit.
+
+The DSK queue has a `dsk_enqueue_ok: JRST kret_zero` success return in the
+current source. A clean target run with the current diagnostic variant still
+failed four pipeline cases and passed sequential RUN. Queue return alone does
+not resolve the DRL condition.
+
+Next diagnostic should record, for the *first* DRL: DSK unit/sector, DCT
+buffer status, current PI request/hold/enable bits, controller/DCT command
+and status, current process/slot, and whether a PI-disabled critical section
+spanned the requested word transfer. Correlate these events on the same
+simulated instruction/time axis, using an isolated simulator build. Do not
+alter DSK/DCT service delays as a production correction; a changed interval
+would be an experiment only. Re-run the five isolated target cases with a
+fresh disk image after each tested hypothesis.
