@@ -1,0 +1,22 @@
+# Keep SOURCE faults independent from the full conformance run.
+# Current baseline: direct SOURCE terminates DSH during nested evaluation.
+probe dsh-source-file-create
+command ECHO 'ECHO SOURCE:$1' > /CONFIG/S
+end
+
+probe dsh-source-direct-positional
+command SOURCE /CONFIG/S I; ECHO DIRECT:$?
+contains SOURCE:I
+contains DIRECT:0
+end
+
+probe dsh-source-main-create
+command ECHO 'SOURCE /CONFIG/S I;ECHO OUTER:$1' > /CONFIG/M
+end
+
+probe dsh-source-nested-positional
+command DSH /CONFIG/M O; ECHO NESTSTATUS:$?
+contains SOURCE:I
+contains OUTER:O
+contains NESTSTATUS:0
+end
