@@ -49,6 +49,7 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" make -C "$DAIMOS_REPO/system/boot/pdp
     MKBOOTBANNER="$host_tools/mkbootbanner" \
     P10FOLD="$host_tools/p10fold" MKDSK="$host_tools/mkdsk" \
     MKD6FS="$host_tools/mkd6fs" \
+    DSH_IMAGE_LIMIT="${DSH_IMAGE_LIMIT:-036000}" \
     BOOT=dsk ROOT=disk ROOTSET=1 \
     D6FS_EXTRA_ARGS="-f /CONFIG/APP2.TEST:$obj/test.dxr:555:dxr" \
     > "$work/image-build.log" 2>&1 || {

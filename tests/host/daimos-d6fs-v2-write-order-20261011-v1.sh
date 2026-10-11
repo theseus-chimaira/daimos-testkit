@@ -1,5 +1,5 @@
 #!/bin/sh
-# V2 source/format contradiction detector; does not assert power-loss safety.
+# V2 staged-growth source contract; does not assert power-loss atomicity.
 set -eu
 : "${DAIMOS_REPO:?DAIMOS_REPO is required}"
 python3 - "$DAIMOS_REPO" <<'PY'
@@ -11,6 +11,9 @@ resize=mutation.split('d6fs_resize_publish:',1)[1].split('d6fs_resize_published:
 assert 'pushj   17,d6fs_provider_resize_fcb' in write
 assert 'pushj   17,d6fs_reader_write_words' in write
 assert write.index('pushj   17,d6fs_provider_resize_fcb') < write.index('pushj   17,d6fs_reader_write_words')
-assert 'pushj   17,d6fs_reader_put_fcb' in resize
-print('KNOWN V2 ORDERING DEFECT: resize publishes FCB before payload; do not claim crash-atomicity')
+assert 'skipge  -4(17)' in resize and 'jrst    d6fs_resize_update_info' in resize
+assert 'tlo     4,400000' in write and 'tlo     5,400000' in write
+assert 'd6fs_provider_abort_staged_growth' in write
+assert write.index('d6fs_reader_write_words') < write.index('d6fs_reader_put_fcb')
+print('V2 STAGED GROWTH SOURCE CONTRACT PASS; crash-atomicity remains unproven')
 PY
