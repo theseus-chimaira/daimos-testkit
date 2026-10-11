@@ -87,6 +87,8 @@ int main(void)
     parse_case("missing fi", "IF TRUE THEN ECHO A", 0);
     parse_case("missing done", "WHILE TRUE DO ECHO A", 0);
     parse_case("stray paren", "ECHO A )", 0);
+    parse_case("unsupported substitution", "ECHO $(ECHO A)", 0);
+    parse_case("bare substitution", "$(ECHO A)", 0);
     limit_cases();
     if (failures) return 1;
     puts("DSH direct lexer/parser PASS");
