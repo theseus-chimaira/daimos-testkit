@@ -161,8 +161,19 @@ wait_marker()
         ticks=$((seconds * 10))
         i=0
         while [ "$i" -le "$ticks" ]; do
-                if [ -f "$io_log" ] && tail -c "+$((start + 1))" "$io_log" 2>/dev/null | grep -F "$marker" >/dev/null 2>&1; then
-                        return 0
+                if [ -f "$io_log" ]; then
+                        if [ "$marker" = '# ' ]; then
+                                # A shell prompt begins a logical terminal
+                                # line.  The input echo may itself contain
+                                # "# ", which must not complete a probe.
+                                if tail -c "+$((start + 1))" "$io_log" 2>/dev/null |
+                                    tr -d '\r' | grep '^# ' >/dev/null 2>&1; then
+                                        return 0
+                                fi
+                        elif tail -c "+$((start + 1))" "$io_log" 2>/dev/null |
+                            grep -F "$marker" >/dev/null 2>&1; then
+                                return 0
+                        fi
                 fi
                 alive || return 2
                 i=$((i + 1))
