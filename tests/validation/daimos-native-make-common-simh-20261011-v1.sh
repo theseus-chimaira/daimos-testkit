@@ -6,6 +6,9 @@ set -eu
 export TMPDIR="${TMPDIR:-$HOME/tmp}"
 export MKBOOTBANNER="${MKBOOTBANNER:-$PDP10_PREFIX/bin/mkbootbanner}"
 export P10FOLD="${P10FOLD:-$PDP10_PREFIX/bin/p10fold}"
+make -C "$DAIMOS_REPO/tools/host" build \
+    BUILD_ROOT="$DAIMOS_REPO/build" >/dev/null
+export PATH="$DAIMOS_REPO/build/tools/host:$PATH"
 mkdir -p "$TMPDIR"
 work=$(mktemp -d "$TMPDIR/daimos-native-make-common-simh-20261011-v1.XXXXXX")
 trap 'if [ "${KEEP_WORK:-0}" = 1 ]; then echo "retained: $work"; else rm -rf "$work"; fi' EXIT HUP INT TERM
@@ -76,6 +79,7 @@ end
 EOF
 make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     PDP10_PREFIX="$PDP10_PREFIX" BUILD="$work/boot" \
+    MKD6FS="$DAIMOS_REPO/build/tools/host/mkd6fs" \
     PDP10_KCC="${PDP10_KCC:-$HOME/git/kcc/build/kcc}" \
     KCC="${PDP10_KCC:-$HOME/git/kcc/build/kcc}" \
     HOST_TOOLS="${HOST_TOOLS:-$DAIMOS_REPO/build/tools/host}" \
