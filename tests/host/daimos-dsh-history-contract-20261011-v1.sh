@@ -14,7 +14,9 @@ awk '
  /write_rc = u_write_words_all\(fd, rec, count\)/ { full=1 }
  /close_rc = dsys_close\(fd\)/ { closed=1 }
  /write_rc != 0 \|\| close_rc != 0/ { warn=1 }
- END { if (slots && words && load && add && append && native && full && closed && warn)
+ /n != U_TEXT_EOF/ { tail=1 }
+ /HISTFILE DAMAGED; VALID PREFIX LOADED/ { notice=1 }
+ END { if (slots && words && load && add && append && native && full && closed && warn && tail && notice)
      print "DSH 512-word history contract PASS";
    else exit 1 }
 ' "$src"

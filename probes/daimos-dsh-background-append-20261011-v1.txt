@@ -1,0 +1,27 @@
+# Two independently scheduled DSH background groups append to one D6FS file.
+# This checks record preservation, not a deterministic simultaneous-write race.
+probe background-append-initialize
+command ECHO HEADER > /CONFIG/BGAPP
+end
+probe background-append-first
+command BEGIN ECHO ALPHA >> /CONFIG/BGAPP END &
+contains %1
+end
+probe background-append-second
+command BEGIN ECHO BETA >> /CONFIG/BGAPP END &
+contains %2
+end
+probe background-append-join
+command WAIT %1; WAIT %2; CAT /CONFIG/BGAPP
+contains HEADER
+contains ALPHA
+contains BETA
+end
+probe background-append-shell-alive
+command ECHO DSHALIVE
+line ^DSHALIVE$
+end
+probe background-append-halt
+command HALT
+terminal eof
+end
