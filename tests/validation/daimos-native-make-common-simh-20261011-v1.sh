@@ -35,8 +35,22 @@ cat > "$work/touch.txt" <<'EOF'
 /TEMP/MAKETOUCH:
 > !/SYSTEM/EXEC/ECHO TOUCH_RECIPE_MUST_NOT_RUN
 EOF
+cat > "$work/special.txt" <<'EOF'
+.PHONY: QUIET IGNORED GLOBAL
+.SILENT: QUIET
+.IGNORE: IGNORED
+.PRECIOUS: /TEMP/PRECIOUS
+QUIET:
+> !/SYSTEM/EXEC/ECHO QUIET_RECIPE_OK
+IGNORED:
+> !/SYSTEM/EXEC/NO_SUCH_PROGRAM
+> !/SYSTEM/EXEC/ECHO IGNORE_RECIPE_OK
+GLOBAL:
+> !/SYSTEM/EXEC/NO_SUCH_PROGRAM
+> !/SYSTEM/EXEC/ECHO GLOBAL_IGNORE_OK
+EOF
 printf '000000000001\n' > "$work/data.words"
-for x in yes no options touch; do
+for x in yes no options touch special; do
     "$PDP10_PREFIX/bin/s6text" --encode "$work/$x.txt" "$work/$x.s6"
 done
 "${HOST_CC:-cc}" -std=c99 -O2 -Wall -Wextra -o "$work/pty" \
@@ -76,6 +90,22 @@ probe make-touch-stat
 command STAT /TEMP/MAKETOUCH; ECHO STATUS:$?
 contains STATUS:0
 end
+probe make-target-silent
+command MAKE -F /CONFIG/MKSPECIAL QUIET; ECHO STATUS:$?
+contains QUIET_RECIPE_OK
+contains STATUS:0
+not_contains MAKE: BUILD QUIET
+end
+probe make-target-ignore
+command MAKE -F /CONFIG/MKSPECIAL IGNORED; ECHO STATUS:$?
+contains IGNORE_RECIPE_OK
+contains STATUS:0
+end
+probe make-global-ignore
+command MAKE -I -F /CONFIG/MKSPECIAL GLOBAL; ECHO STATUS:$?
+contains GLOBAL_IGNORE_OK
+contains STATUS:0
+end
 EOF
 make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     PDP10_PREFIX="$PDP10_PREFIX" BUILD="$work/boot" \
@@ -85,7 +115,7 @@ make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     HOST_TOOLS="${HOST_TOOLS:-$DAIMOS_REPO/build/tools/host}" \
     KCC_BOOT_BUILD="${KCC_BOOT_BUILD:-$PDP10_PREFIX/lib/kcc/bootstrap}" \
     SIMH_DPY_MODE=HEADLESS \
-    D6FS_EXTRA_ARGS="-f /CONFIG/MKYES:$work/yes.s6:644:binwords -f /CONFIG/MKNO:$work/no.s6:644:binwords -f /CONFIG/MKOPTS:$work/options.s6:644:binwords -f /CONFIG/MKTOUCH:$work/touch.s6:644:binwords -f /CONFIG/MKSRC.C:$work/data.words:644:words" \
+    D6FS_EXTRA_ARGS="-f /CONFIG/MKYES:$work/yes.s6:644:binwords -f /CONFIG/MKNO:$work/no.s6:644:binwords -f /CONFIG/MKOPTS:$work/options.s6:644:binwords -f /CONFIG/MKTOUCH:$work/touch.s6:644:binwords -f /CONFIG/MKSPECIAL:$work/special.s6:644:binwords -f /CONFIG/MKSRC.C:$work/data.words:644:words" \
     > "$work/build.log" 2>&1 || { tail -60 "$work/build.log" >&2; exit 1; }
 "$(dirname "$0")/../../tools/daimos-simh-harness-v4.sh" \
     --daimos-repo "$DAIMOS_REPO" --dofile "$work/boot/boot.ini" \
