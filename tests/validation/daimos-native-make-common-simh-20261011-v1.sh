@@ -43,7 +43,7 @@ done
     "$(dirname "$0")/../../tools/pty-run-v1.c"
 cat > "$work/probes" <<'EOF'
 probe make-j-dummy
-command MAKE -F /CONFIG/MKOPTS -j 4 ALL; ECHO STATUS:$?
+command MAKE -F /CONFIG/MKOPTS -J 4 ALL; ECHO STATUS:$?
 contains SERIAL_RECIPE_OK
 contains STATUS:0
 end
@@ -63,12 +63,12 @@ contains STATUS:1
 not_contains SUFFIX_MUST_NOT_RUN
 end
 probe make-no-implicit
-command MAKE -F /CONFIG/MKYES -r -N /CONFIG/MKSRC.O; ECHO STATUS:$?
+command MAKE -F /CONFIG/MKYES -R -N /CONFIG/MKSRC.O; ECHO STATUS:$?
 contains STATUS:1
 not_contains SUFFIX_RECIPE_OK
 end
 probe make-touch
-command MAKE -F /CONFIG/MKTOUCH -t /TEMP/MAKETOUCH; ECHO STATUS:$?
+command MAKE -F /CONFIG/MKTOUCH -T /TEMP/MAKETOUCH; ECHO STATUS:$?
 contains STATUS:0
 not_contains TOUCH_RECIPE_MUST_NOT_RUN
 end

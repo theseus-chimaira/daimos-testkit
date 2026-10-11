@@ -17,7 +17,9 @@ assert 'MAKE_RULE_IGNORE' in s
 assert 'make_ignore = 1;' in s
 assert 'make_touch = 1;' in s
 assert 'dsys_utime(path, now)' in s
-assert "arg[j] == 'j' || arg[j] == 'J'" in s
+assert "arg[j] == 'J'" in s
+assert "arg[j] == 'j'" not in s
+assert 'make_streq(keyword, "include")' not in s
 assert 'make_run_commands(recipe, &automatic,' in s
 print('Native MAKE shared-option source invariants: OK')
 PY
