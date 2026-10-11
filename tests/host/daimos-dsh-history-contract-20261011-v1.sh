@@ -15,3 +15,4 @@ awk '
      print "DSH 512-word history contract PASS";
    else exit 1 }
 ' "$src"
+grep -F 'dsh_history_path.len - 1U' "$src" >/dev/null
