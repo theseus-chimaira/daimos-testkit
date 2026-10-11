@@ -1,0 +1,17 @@
+# Run on a fresh writable D6FS image, with --login ROOT.
+# An ordinary harness exit does not shut down D6FS cleanly.
+probe histfile-append
+command ECHO HISTORYPERSIST42
+line ^HISTORYPERSIST42$
+end
+
+probe histfile-readable
+command CAT /.DSH_HISTORY
+contains ECHO HISTORYPERSIST42
+end
+
+# Raw Ctrl-P recalls CAT /.DSH_HISTORY. The literal byte is intentional.
+probe histfile-ctrl-p
+command 
+contains CAT /.DSH_HISTORY
+end
