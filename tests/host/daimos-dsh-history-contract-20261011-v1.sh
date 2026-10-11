@@ -11,7 +11,10 @@ awk '
  /dsh_history_add\(\);/ { add=1 }
  /SYS_O_WRONLY \| SYS_O_CREAT \| SYS_O_APPEND/ { append=1 }
  /u_text_gets6\(&reader, rec,/ { native=1 }
- END { if (slots && words && load && add && append && native)
+ /write_rc = u_write_words_all\(fd, rec, count\)/ { full=1 }
+ /close_rc = dsys_close\(fd\)/ { closed=1 }
+ /write_rc != 0 \|\| close_rc != 0/ { warn=1 }
+ END { if (slots && words && load && add && append && native && full && closed && warn)
      print "DSH 512-word history contract PASS";
    else exit 1 }
 ' "$src"
