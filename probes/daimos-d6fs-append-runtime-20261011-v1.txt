@@ -1,15 +1,15 @@
 # Use an isolated writable D6FS root image and --login ROOT.
 probe append-initial
-command ECHO FIRST > /TEMP/APPENDTEST
+command ECHO FIRST > /CONFIG/APPENDTEST
 end
 probe append-second
-command ECHO SECOND >> /TEMP/APPENDTEST
+command ECHO SECOND >> /CONFIG/APPENDTEST
 end
 probe append-third
-command ECHO THIRD >> /TEMP/APPENDTEST
+command ECHO THIRD >> /CONFIG/APPENDTEST
 end
 probe append-readback
-command CAT /TEMP/APPENDTEST
+command CAT /CONFIG/APPENDTEST
 contains FIRST
 contains SECOND
 contains THIRD

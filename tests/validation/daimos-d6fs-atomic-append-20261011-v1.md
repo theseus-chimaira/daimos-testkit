@@ -38,3 +38,28 @@ clean HALT). The current-source D6FS checker then reported superblock 705,
 sequence 3 CLEAN. The same-disk second boot using
 `probes/daimos-d6fs-append-reboot-20261011-v1.txt` passed 2/2 and recovered
 the historical command.
+
+
+**D6FS target correction (2026-10-11):** The original serial ECHO probe
+used `/TEMP`, which is mounted MEMFS. It was valid as a regression for
+regular shell output, but could not establish D6FS O_APPEND semantics.
+The serial probe now targets `/CONFIG/APPENDTEST`, on the D6FS root.
+
+A stronger native C99 regression is now provided as
+`tests/validation/daimos-d6fs-open-before-append-20261011-v1.c` with its
+versioned runner. It opens **both** descriptors before either write, seeks
+the second descriptor to zero, then writes through both and a duplicate.
+The corrected D6FS implementation passed file content and all cursor checks,
+plus clean HALT; the original kernel failed at the second cursor (1 instead
+of 3). An intermediate version returned the right file content but an
+incorrect cursor because its post-write provider decoding used packed
+metadata; that path now masks metadata before extraction.
+
+The deterministic two-preopened-descriptor test proves the stale-open-offset
+bug is fixed for D6FS without requiring simultaneous process scheduling.
+It does not establish separate MEMFS O_APPEND behavior, nor prove full
+power-loss atomicity or concurrent writes across different processes.
+
+The corrected `/CONFIG/APPENDTEST` serial S6REC probe was rerun under SIMH
+and passed **5/5**: initial write, two appends, readback of all three lines,
+and orderly HALT on writable D6FS.
