@@ -1,0 +1,13 @@
+# First boot: use --login ROOT, clean writable D6FS image.
+probe write-history-before-halt
+command ECHO SHUTDOWNOK42
+line ^SHUTDOWNOK42$
+end
+probe verify-history-before-halt
+command CAT /.DSH_HISTORY
+contains ECHO SHUTDOWNOK42
+end
+probe orderly-halt
+command HALT
+terminal eof
+end

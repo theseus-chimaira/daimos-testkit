@@ -1,0 +1,5 @@
+# Second boot: same D6FS disk image after orderly HALT; use --login ROOT.
+probe verify-history-after-reboot
+command CAT /.DSH_HISTORY
+contains ECHO SHUTDOWNOK42
+end
