@@ -87,8 +87,12 @@ int main(void)
     parse_case("missing fi", "IF TRUE THEN ECHO A", 0);
     parse_case("missing done", "WHILE TRUE DO ECHO A", 0);
     parse_case("stray paren", "ECHO A )", 0);
-    parse_case("unsupported substitution", "ECHO $(ECHO A)", 0);
-    parse_case("bare substitution", "$(ECHO A)", 0);
+    parse_case("simple substitution", "ECHO $(ECHO A)", 1);
+    parse_case("bare substitution", "$(ECHO A)", 1);
+    parse_case("empty substitution", "ECHO $()", 0);
+    parse_case("unclosed substitution", "ECHO $(ECHO A", 0);
+    parse_case("nested substitution", "ECHO $(ECHO $(ECHO A))", 0);
+    parse_case("multiple substitutions", "ECHO $(ECHO A) $(ECHO B)", 0);
     limit_cases();
     if (failures) return 1;
     puts("DSH direct lexer/parser PASS");

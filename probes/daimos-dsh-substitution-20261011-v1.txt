@@ -1,0 +1,24 @@
+probe substitution-one
+command ECHO $(ECHO A)
+line ^A$
+end
+probe substitution-failure
+command ECHO $(FALSE); ECHO STATUS:$?
+line ^STATUS:2$
+end
+probe substitution-missing
+command ECHO $(NOSUCH); ECHO STATUS:$?
+line ^STATUS:2$
+end
+probe substitution-overflow
+command ECHO $(LS /); ECHO STATUS:$?
+line ^STATUS:2$
+end
+probe substitution-unclosed
+command ECHO $(ECHO A
+contains DSH: SYNTAX
+end
+probe substitution-halt
+command HALT
+terminal eof
+end
