@@ -1,0 +1,9 @@
+# Reboot same disk after prior orderly HALT; use ROOT login.
+probe recovered-history
+command CAT /.DSH_HISTORY
+contains ECHO APPENDHISTORYSAFE
+end
+probe orderly-halt
+command HALT
+terminal eof
+end

@@ -1,0 +1,21 @@
+# Fresh D6FS disk, ROOT interactive DSH. Exercises packed DIR/APPEND state.
+probe list-directory
+command LS /TEMP
+not_contains LS:
+end
+probe history-existing
+command CAT /.DSH_HISTORY
+contains LS /TEMP
+end
+probe echo-marker
+command ECHO APPENDHISTORYSAFE
+contains APPENDHISTORYSAFE
+end
+probe history-after
+command CAT /.DSH_HISTORY
+contains ECHO APPENDHISTORYSAFE
+end
+probe clean-halt
+command HALT
+terminal eof
+end

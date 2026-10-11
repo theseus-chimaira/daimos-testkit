@@ -1,0 +1,20 @@
+# Use an isolated writable D6FS root image and --login ROOT.
+probe append-initial
+command ECHO FIRST > /TEMP/APPENDTEST
+end
+probe append-second
+command ECHO SECOND >> /TEMP/APPENDTEST
+end
+probe append-third
+command ECHO THIRD >> /TEMP/APPENDTEST
+end
+probe append-readback
+command CAT /TEMP/APPENDTEST
+contains FIRST
+contains SECOND
+contains THIRD
+end
+probe orderly-halt
+command HALT
+terminal eof
+end
