@@ -1,0 +1,36 @@
+probe group-launch
+command BEGIN ECHO WORKER END &
+contains %1
+end
+probe parent-survives
+command ECHO PARENTALIVE
+line ^PARENTALIVE$
+end
+probe group-wait
+command WAIT %1; ECHO WAITED
+line ^WAITED$
+end
+probe pipeline-group-launch
+command BEGIN ECHO PIPE ! CAT END &
+contains %1
+end
+probe pipeline-parent-survives
+command ECHO PIPEPARENTALIVE
+line ^PIPEPARENTALIVE$
+end
+probe pipeline-group-wait
+command WAIT %1; ECHO PIPEWAITED
+line ^PIPEWAITED$
+end
+probe foreground-pipeline
+command ECHO FOREGROUND ! CAT
+line ^FOREGROUND$
+end
+probe substitution-after-background
+command ECHO $(ECHO SAFE)
+line ^SAFE$
+end
+probe orderly-halt
+command HALT
+terminal eof
+end
