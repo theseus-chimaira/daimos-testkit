@@ -35,6 +35,17 @@ cat > "$work/touch.txt" <<'EOF'
 /TEMP/MAKETOUCH:
 > !/SYSTEM/EXEC/ECHO TOUCH_RECIPE_MUST_NOT_RUN
 EOF
+cat > "$work/parent.txt" <<'EOF'
+.PHONY: ALL
+ALL:
+> MAKE -F /CONFIG/MKCHILD CHILD
+EOF
+cat > "$work/child.txt" <<'EOF'
+.PHONY: CHILD
+CHILD:
+> !/SYSTEM/EXEC/NO_SUCH_PROGRAM
+> !/SYSTEM/EXEC/ECHO INHERITED_MAKEFLAGS_OK
+EOF
 cat > "$work/special.txt" <<'EOF'
 .PHONY: QUIET IGNORED GLOBAL
 .SILENT: QUIET
@@ -52,7 +63,7 @@ GLOBAL:
 > !/SYSTEM/EXEC/NO_SUCH_PROGRAM
 EOF
 printf '000000000001\n' > "$work/data.words"
-for x in yes no options touch special; do
+for x in yes no options touch special parent child; do
     "$PDP10_PREFIX/bin/s6text" --encode "$work/$x.txt" "$work/$x.s6"
 done
 "${HOST_CC:-cc}" -std=c99 -O2 -Wall -Wextra -o "$work/pty" \
@@ -120,6 +131,16 @@ probe make-precious-preserved
 command STAT /TEMP/PRECIOUS; ECHO STATUS:$?
 contains STATUS:0
 end
+probe makeflags-recursive-ignore
+command MAKE -I -F /CONFIG/MKPARENT ALL; ECHO STATUS:$?
+contains INHERITED_MAKEFLAGS_OK
+contains STATUS:0
+end
+probe makeflags-recursive-dry-run
+command MAKE -N -F /CONFIG/MKPARENT ALL; ECHO STATUS:$?
+contains INHERITED_MAKEFLAGS_OK
+contains STATUS:0
+end
 EOF
 make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     PDP10_PREFIX="$PDP10_PREFIX" BUILD="$work/boot" \
@@ -129,7 +150,7 @@ make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     HOST_TOOLS="${HOST_TOOLS:-$DAIMOS_REPO/build/tools/host}" \
     KCC_BOOT_BUILD="${KCC_BOOT_BUILD:-$PDP10_PREFIX/lib/kcc/bootstrap}" \
     SIMH_DPY_MODE=HEADLESS \
-    D6FS_EXTRA_ARGS="-f /CONFIG/MKYES:$work/yes.s6:644:binwords -f /CONFIG/MKNO:$work/no.s6:644:binwords -f /CONFIG/MKOPTS:$work/options.s6:644:binwords -f /CONFIG/MKTOUCH:$work/touch.s6:644:binwords -f /CONFIG/MKSPECIAL:$work/special.s6:644:binwords -f /CONFIG/MKSRC.C:$work/data.words:644:words" \
+    D6FS_EXTRA_ARGS="-f /CONFIG/MKYES:$work/yes.s6:644:binwords -f /CONFIG/MKNO:$work/no.s6:644:binwords -f /CONFIG/MKOPTS:$work/options.s6:644:binwords -f /CONFIG/MKTOUCH:$work/touch.s6:644:binwords -f /CONFIG/MKSPECIAL:$work/special.s6:644:binwords -f /CONFIG/MKPARENT:$work/parent.s6:644:binwords -f /CONFIG/MKCHILD:$work/child.s6:644:binwords -f /CONFIG/MKSRC.C:$work/data.words:644:words" \
     > "$work/build.log" 2>&1 || { tail -60 "$work/build.log" >&2; exit 1; }
 "$(dirname "$0")/../../tools/daimos-simh-harness-v4.sh" \
     --daimos-repo "$DAIMOS_REPO" --dofile "$work/boot/boot.ini" \
