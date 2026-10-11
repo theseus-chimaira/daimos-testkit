@@ -48,6 +48,8 @@ IGNORED:
 GLOBAL:
 > !/SYSTEM/EXEC/NO_SUCH_PROGRAM
 > !/SYSTEM/EXEC/ECHO GLOBAL_IGNORE_OK
+/TEMP/PRECIOUS:
+> !/SYSTEM/EXEC/NO_SUCH_PROGRAM
 EOF
 printf '000000000001\n' > "$work/data.words"
 for x in yes no options touch special; do
@@ -104,6 +106,18 @@ end
 probe make-global-ignore
 command MAKE -I -F /CONFIG/MKSPECIAL GLOBAL; ECHO STATUS:$?
 contains GLOBAL_IGNORE_OK
+contains STATUS:0
+end
+probe make-precious-create
+command TOUCH /TEMP/PRECIOUS; ECHO STATUS:$?
+contains STATUS:0
+end
+probe make-precious-failure
+command MAKE -B -F /CONFIG/MKSPECIAL /TEMP/PRECIOUS; ECHO STATUS:$?
+contains STATUS:1
+end
+probe make-precious-preserved
+command STAT /TEMP/PRECIOUS; ECHO STATUS:$?
 contains STATUS:0
 end
 EOF
