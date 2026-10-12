@@ -1,0 +1,5 @@
+probe logstore-general-append-persistence
+command LOGD; LOGDUMP
+contains LOGSTORE READY
+contains LOG SEQ
+end
