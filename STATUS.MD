@@ -1,3 +1,16 @@
+# DSH source shrink v2 and 32K boot constraint (2026-10-12)
+
+Source cleanup and shared SIXBIT classifiers reduce DSH image 036054 ->
+035545 octal words (0307 saved), with BSS unchanged at 015241.
+Normal 036000 image limit passes; full PDP-6 image build and 115/115
+DSH SIMH conformance pass. The versioned v2 image/VM size guard passes.
+
+However, `daimos-low-memory-boot-v2.sh` still fails after ROOT login
+with `LOGIN: EXEC FAILED`. DSH needs 055026 words before 02000-word
+VM alignment and therefore 056000 allocated words. KCORE ends at 023610;
+their sum already exceeds 32K. The fix is a future compact AST storage
+refactor, not removal of command-language features.
+
 # DSH measured first shrink stage (2026-10-12)
 
 Fresh DAIMOS PDP-6 KCC/DAS source/object refactors reduce DSH from 036722
