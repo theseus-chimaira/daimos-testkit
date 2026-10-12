@@ -1,3 +1,12 @@
+probe install-invalid-usage
+command INSTALL
+contains INSTALL USAGE
+end
+
+probe kill-invalid-pid
+command KILL 0
+contains KILL
+end
 probe root-ls
 command LS /
 contains SYSTEM

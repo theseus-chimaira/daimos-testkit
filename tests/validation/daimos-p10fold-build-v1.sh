@@ -78,10 +78,12 @@ if [ "$folds" -eq 0 ] || [ "$plan_words" -lt 5 ]; then
         echo "p10fold-build: expected at least 5 safe planned words, got $plan_words" >&2
         exit 1
 fi
-if [ "$saved_kcore" -ne "$plan_words" ] || [ "$saved_total" -ne "$plan_words" ]; then
+ # MRES packages have independent fold plans.  The KCORE plan must account
+ # exactly for KCORE savings, while total residency may save additional words.
+if [ "$saved_kcore" -ne "$plan_words" ] || [ "$saved_total" -lt "$plan_words" ]; then
         cat "$fold_out" "$base_out" "$plan" >&2
         echo "p10fold-build: plan=$plan_words kcore=$saved_kcore total=$saved_total" >&2
         exit 1
 fi
-printf 'p10fold-build: %d folds save %d KCORE/permanent words: PASS\n' \
-        "$folds" "$plan_words"
+printf 'p10fold-build: %d folds save %d KCORE words and %d permanent words: PASS\n' \
+        "$folds" "$plan_words" "$saved_total"

@@ -10,7 +10,7 @@ out="$work/permanent-size.out"
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$work"
 make -C "$DAIMOS_REPO/system/boot/pdp6" permanent-size \
-    BUILD_ROOT="$work/build" PDP10_PREFIX="$PDP10_PREFIX" >"$out" 2>&1
+    ROOT=disk BUILD_ROOT="$work/build" PDP10_PREFIX="$PDP10_PREFIX" >"$out" 2>&1
 resident=$(awk '$1 == "KCORE+MRES" { print $3; exit }' "$out")
 last=$(awk '$1 == "PERMANENT_LAST" { print $3; exit }' "$out")
 case "$resident" in
