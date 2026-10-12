@@ -211,14 +211,22 @@ cty_start=`log_size "$cty_out"`; send_slow 3 'ECHO CTY2'; wait_new "$cty_out" CT
 dcs_start=`log_size "$dcs_out"`; send_slow 4 'ECHO DCS2'; wait_new "$dcs_out" DCS2 "$dcs_start" || fail_logs 'DCS0 stopped responding'
 ge_start=`log_size "$ge_out"`; send_slow 5 'ECHO GE2'; wait_new "$ge_out" GE2 "$ge_start" || fail_logs 'GE0 stopped responding'
 
-# The process table must contain only swapper, INIT, and the three live login
-# sessions after the repeated logout/login cycles.
+# The persistent process table must contain only swapper, INIT, and the three
+# terminal sessions after repeated logout/login cycles.  PS itself briefly
+# occupies one extra process slot while generating this snapshot.
 cty_start=`log_size "$cty_out"`
 send_slow 3 PS
 wait_new "$cty_out" 'PID PPID S WORDS COMM' "$cty_start" || fail_logs 'PS failed'
 wait_new "$cty_out" '# ' "$cty_start" || fail_logs 'PS prompt did not return'
 proc_lines=`tail -c "+$((cty_start + 1))" "$cty_out" | tr -d '\r' | \
-        awk '/^[0-9][0-9]* [0-9][0-9]* [0-9][0-9]* [0-9][0-9]* / { n++ } END { print n+0 }'`
+        awk '/^[0-9][0-9]* [0-9][0-9]* [0-9][0-9]* [0-9][0-9]* / {
+                 if ($5 == "PS") ps++;
+                 else n++;
+             }
+             END {
+                 if (ps != 1) exit 1;
+                 print n+0;
+             }'`
 [ "$proc_lines" -eq 5 ] || fail_logs "process-slot leak after relogin cycles ($proc_lines entries)"
 
 cty_start=`log_size "$cty_out"`

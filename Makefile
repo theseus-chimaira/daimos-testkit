@@ -35,6 +35,11 @@ DTFS_RUN = tests/system/dtfs-native-v1/run.sh
 	test-daimos-pi-restore test-daimos-tsfs-boot-eight
 .PHONY: test-daimos-boot-source-matrix test-daimos-root-class-matrix test-daimos-auto-root-priority test-daimos-boot-root-cross-matrix test-daimos-root-login-lifecycle test-daimos-monitorfs-live-state test-daimos-monitorfs-storage-accounting test-daimos-dsh-conformance test-daimos-dsh-pipeline test-daimos-dsh-source test-daimos-dsh-argument-frames test-daimos-dsh-foreground test-daimos-native-tools test-daimos-img2dpic test-type340-timing regression regression-status regression-restart test-daimos-sleep test-daimos-multiuser-kernel-auth test-daimos-multiuser-auth-runtime
 .PHONY: test-daimos-compiler-selection-20261012-v1
+.PHONY: test-daimos-p10fold-io-skip-20261012-v1
+test-daimos-p10fold-io-skip-20261012-v1: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-p10fold-io-skip-20261012-v1.sh
+
 test-daimos-compiler-selection-20261012-v1: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	    TMPDIR='$(TMPDIR)' COMPILER='$(COMPILER)' \
@@ -199,7 +204,7 @@ mm-core:
 	'$(BUILD_ROOT)/tests/system/mm-v1/test'
 
 
-target: mm-core target-backstore-pdp6 target-monitorfs-wordio-pdp6 target-memfs-pdp6 target-memfs-fifo-pdp6 target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-swap-pure-text-pdp6 target-stage1-d6lz-pdp6 target-wordtoken-pdp6 target-kcc-indexed-byteptr-pdp6 test-daimos-compiler-selection-20261012-v1 test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-pi-restore
+target: mm-core target-backstore-pdp6 target-monitorfs-wordio-pdp6 target-memfs-pdp6 target-memfs-fifo-pdp6 target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-swap-pure-text-pdp6 target-stage1-d6lz-pdp6 target-wordtoken-pdp6 target-kcc-indexed-byteptr-pdp6 test-daimos-compiler-selection-20261012-v1 test-daimos-p10fold-io-skip-20261012-v1 test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-pi-restore
 
 target-swap-pure-text-pdp6: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \

@@ -1,3 +1,15 @@
+## 2026-10-12 P10FOLD I/O SKIP AND MULTI-TTY REGRESSION
+
+- `test-daimos-p10fold-io-skip-20261012-v1` protects the PDP-6 BLKI,
+  BLKO, CONSZ, CONSO and XCT skip/fall-through boundaries, with a genuine
+  non-skipping fold as a positive control. Included in the `target` matrix.
+- `test-daimos-userspace-multitty` passes under GCC and KCC after fixing
+  P10FOLD's unsafe GE polling-loop fold. Its process census now excludes
+  the one transient PS process, but still checks persistent process slots,
+  words and file counts after repeated login cycles.
+- The GCC/KCC compiler selection test passes under both compiler choices.
+  DSH size acceptance remains unchanged and deferred.
+
 # 2026-10-12 GCC/KCC COMPILER SELECTION
 
 THE TESTKIT ACCEPTS `COMPILER=gcc` OR `COMPILER=kcc` (DEFAULT). THE
