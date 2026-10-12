@@ -15,8 +15,11 @@ awk '
  /close_rc = dsys_close\(fd\)/ { closed=1 }
  /write_rc != 0 \|\| close_rc != 0/ { warn=1 }
  /n != U_TEXT_EOF/ { tail=1 }
- /HISTFILE DAMAGED; VALID PREFIX LOADED/ { notice=1 }
- END { if (slots && words && load && add && append && native && full && closed && warn && tail && notice)
+ /HISTFILE TAIL REPAIRED/ { notice=1 }
+ /dsys_flock\(fd, SYS_LOCK_EXCLUSIVE\)/ { locks++ }
+ /dsys_truncate\(path, valid_words\)/ { truncate=1 }
+ /dsh_history_persistent = 0U/ { disable=1 }
+ END { if (slots && words && load && add && append && native && full && closed && warn && tail && notice && locks >= 2 && truncate && disable)
      print "DSH 512-word history contract PASS";
    else exit 1 }
 ' "$src"

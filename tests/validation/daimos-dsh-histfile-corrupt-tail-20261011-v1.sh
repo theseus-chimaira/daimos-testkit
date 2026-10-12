@@ -41,6 +41,9 @@ end
 PROBES
 # The next ROOT login is interactive, so DSH loads HISTFILE at startup.
 printf 'probe recall-valid-prefix\ncommand \020\ncontains ECHO SAFE\nend\nprobe orderly-halt-reboot\ncommand HALT\nterminal eof\nend\n' > "$work/reboot-probes.txt"
+# The second boot appends HALT after recalling ECHO SAFE; on the third boot
+# the newest entry is HALT, so two UP/CTRL-P presses reach ECHO SAFE.
+printf 'probe recall-valid-prefix-again\ncommand \020\020\ncontains ECHO SAFE\nend\nprobe orderly-halt-final\ncommand HALT\nterminal eof\nend\n' > "$work/repaired-probes.txt"
 host_tools="${DAIMOS_HOST_TOOLS:-$PDP10_PREFIX/bin}"
 PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
@@ -66,8 +69,17 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" make -C "$DAIMOS_REPO/system/boot/pdp
     --dofile "$build/system/boot/pdp6/boot.ini" \
     --pty-run "$work/pty-run" --login ROOT --probes "$work/reboot-probes.txt" \
     --work-dir "$work/reboot" --boot-timeout 45 --timeout 20
-if ! grep -F 'HISTFILE DAMAGED; VALID PREFIX LOADED' "$work/reboot/simh.log" >/dev/null; then
-    echo 'HISTFILE corruption warning missing from interactive login' >&2
+if ! grep -F 'HISTFILE TAIL REPAIRED' "$work/reboot/simh.log" >/dev/null; then
+    echo 'HISTFILE repair notice missing from interactive login' >&2
+    exit 1
+fi
+"$self/../../tools/daimos-simh-harness-v6.sh" \
+    --daimos-repo "$DAIMOS_REPO" \
+    --dofile "$build/system/boot/pdp6/boot.ini" \
+    --pty-run "$work/pty-run" --login ROOT --probes "$work/repaired-probes.txt" \
+    --work-dir "$work/repaired-reboot" --boot-timeout 45 --timeout 20
+if grep -F 'HISTFILE TAIL REPAIRED' "$work/repaired-reboot/simh.log" >/dev/null; then
+    echo 'HISTFILE repair repeated after successful truncation' >&2
     exit 1
 fi
 "$host_tools/d6fsck" -n 4 -d "$build/system/boot/pdp6/disk"
