@@ -12,15 +12,19 @@ from pathlib import Path
 
 def inject(source: str, logical: int | None, first_word: int | None = None,
            logical_range: tuple[int, int] | None = None,
-           after_write_range: tuple[int, int] | None = None) -> str:
+           after_write_range: tuple[int, int] | None = None,
+           halt_after_first_word: int | None = None) -> str:
     if logical is not None and not 0 <= logical < 1 << 24:
         raise ValueError('logical block outside supported range')
-    if sum(x is not None for x in (logical, first_word, logical_range, after_write_range)) != 1:
+    if sum(x is not None for x in (logical, first_word, logical_range, after_write_range,
+                                  halt_after_first_word)) != 1:
         raise ValueError('specify exactly one selector')
     if logical_range is not None and not (0 <= logical_range[0] <= logical_range[1] < 1 << 24):
         raise ValueError('invalid logical block range')
     if after_write_range is not None and not (0 <= after_write_range[0] <= after_write_range[1] < 1 << 24):
         raise ValueError("invalid after-write range")
+    if halt_after_first_word is not None and not 0 <= halt_after_first_word < 1 << 36:
+        raise ValueError("post-write HALT marker outside 36-bit range")
     if first_word is not None and not 0 <= first_word < 1 << 36:
         raise ValueError('first word outside 36-bit range')
     anchor = '; int fs_backing_write(backing, logical, block)\n'
@@ -32,6 +36,24 @@ def inject(source: str, logical: int | None, first_word: int | None = None,
     target = '        move    4,(1)\n        hrrz    4,4\n'
     if after.count(target) != 1:
         raise ValueError('unexpected backing dispatch layout')
+    if halt_after_first_word is not None:
+        ending = '        move    1,1(1)\n        jrst    (4)\n'
+        if after.count(ending) != 1:
+            raise ValueError('unexpected backing callback tail dispatch')
+        # Preserve the transfer-buffer pointer across the real callback.
+        # HALT is reached only after a successful completed data write.
+        replacement = (f'        ; TEST ONLY: halt after successful marker write {halt_after_first_word:o}.\n'
+                       '        push    17,3\n'
+                       '        move    1,1(1)\n'
+                       '        pushj   17,(4)\n'
+                       '        pop     17,3\n'
+                       '        jumpn   1,fs_backing_write_halt_done\n'
+                       '        move    4,(3)\n'
+                       f'        camn    4,[{halt_after_first_word:o}]\n'
+                       '        halt    .\n'
+                       'fs_backing_write_halt_done:\n'
+                       '        popj    17,\n')
+        return before + anchor + after.replace(ending, replacement, 1)
     if after_write_range is not None:
         low, high = after_write_range
         ending = '        move    1,1(1)\n        jrst    (4)\n'
@@ -81,10 +103,12 @@ def main() -> None:
     selector.add_argument('--first-word', type=lambda x: int(x, 0))
     selector.add_argument('--logical-range', nargs=2, type=lambda x: int(x, 0), metavar=('START','END'))
     selector.add_argument('--after-write-range', nargs=2, type=lambda x: int(x, 0))
+    selector.add_argument('--halt-after-first-word', type=lambda x: int(x, 0))
     args = parser.parse_args()
     data = inject(args.source.read_text(), args.logical, args.first_word,
                   tuple(args.logical_range) if args.logical_range else None,
-                  tuple(args.after_write_range) if args.after_write_range else None)
+                  tuple(args.after_write_range) if args.after_write_range else None,
+                  args.halt_after_first_word)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(data)
 

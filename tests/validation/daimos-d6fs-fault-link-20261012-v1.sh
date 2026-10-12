@@ -3,7 +3,7 @@
 set -eu
 : "${DAIMOS_REPO:?set DAIMOS_REPO}"
 : "${PDP10_PREFIX:?set PDP10_PREFIX}"
-: "${FAULT_LOGICAL:=${FAULT_FIRST_WORD:-${FAULT_RANGE_START:-${FAULT_AFTER_WRITE_START:-}}}}"
+: "${FAULT_LOGICAL:=${FAULT_FIRST_WORD:-${FAULT_RANGE_START:-${FAULT_AFTER_WRITE_START:-${FAULT_HALT_AFTER_FIRST_WORD:-}}}}}"
 : "${FAULT_LOGICAL:?set FAULT_LOGICAL, FAULT_FIRST_WORD or FAULT_RANGE_START}"
 : "${TMPDIR:=$HOME/tmp}"
 case "$FAULT_LOGICAL" in ''|*[!0-9xXoOa-fA-F]*) echo 'invalid fault value' >&2; exit 2;; esac
@@ -18,7 +18,9 @@ common="BUILD_ROOT=$build PDP10_PREFIX=$PDP10_PREFIX HOST_TOOLS=${DAIMOS_HOST_TO
 # Explicit prebuild creates generated KCORE assembler; never modify tree source.
 # The normal image build then assembles the test-only replacement.
 make -C "$DAIMOS_REPO/system/boot/pdp6" "$out/.kcore-built" $common > "$work/prebuild.log" 2>&1 || { tail -35 "$work/prebuild.log" >&2; exit 1; }
-if test -n "${FAULT_AFTER_WRITE_START:-}"; then
+if test -n "${FAULT_HALT_AFTER_FIRST_WORD:-}"; then
+    python3 "$tool" "$source" "$work/fs_backing.fault.s" --halt-after-first-word "$FAULT_HALT_AFTER_FIRST_WORD"
+elif test -n "${FAULT_AFTER_WRITE_START:-}"; then
     : "${FAULT_AFTER_WRITE_END:?set FAULT_AFTER_WRITE_END}"
     python3 "$tool" "$source" "$work/fs_backing.fault.s" --after-write-range "$FAULT_AFTER_WRITE_START" "$FAULT_AFTER_WRITE_END"
 elif test -n "${FAULT_RANGE_START:-}"; then
@@ -36,7 +38,9 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" make -C "$DAIMOS_REPO/system/boot/pdp
  MKBOOTBANNER="$host_tools/mkbootbanner" MKDSK="$host_tools/mkdsk" \
  MKD6FS="$host_tools/mkd6fs" P10FOLD="$host_tools/p10fold" \
  BOOT=dsk ROOT=disk ROOTSET=1 D6FS_EXTRA_ARGS="${D6FS_EXTRA_ARGS:-}" > "$work/image.log" 2>&1 || { tail -35 "$work/image.log" >&2; exit 1; }
-if test -n "${FAULT_AFTER_WRITE_START:-}"; then
+if test -n "${FAULT_HALT_AFTER_FIRST_WORD:-}"; then
+    grep -F "fs_backing_write_halt_done:" "$source" >/dev/null
+elif test -n "${FAULT_AFTER_WRITE_START:-}"; then
     grep -F "fs_backing_after_done:" "$source" >/dev/null
 elif test -n "${FAULT_RANGE_START:-}"; then
     grep -F 'TEST ONLY: reject logical range' "$source" >/dev/null
