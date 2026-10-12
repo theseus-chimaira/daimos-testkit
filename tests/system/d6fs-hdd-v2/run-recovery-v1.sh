@@ -55,6 +55,7 @@ make -C "$TESTKIT_ROOT/tests/system/kernel" image \
     -D /TEMP:0777 \
     -D /SYSTEM:0555 -D /SYSTEM/EXEC:0555 -D /CONFIG:0755 \
     -f "/SYSTEM/INIT:$KERNEL_BUILD/userland-build/userland/init.dxr:555:dxr" \
+    -f "/SYSTEM/EXEC/MOUNTALL:$KERNEL_BUILD/userland-build/userland/mountall.dxr:555:dxr" \
     -f "/SYSTEM/EXEC/LOGIN:$KERNEL_BUILD/userland-build/userland/login.d6lz.dxr:555:dxr" \
     -f "/SYSTEM/EXEC/DSH:$KERNEL_BUILD/userland-build/userland/dsh.d6lz.dxr:555:dxr" \
     -f "/CONFIG/INITTAB:$INITTAB_S6REC:644:binwords" \
