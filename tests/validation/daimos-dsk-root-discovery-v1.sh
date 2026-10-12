@@ -29,17 +29,15 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
     ROOT=auto BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" >/dev/null
 
-# The default image intentionally has only DSK0 attached.  This catches the
-# regression where KINIT kept probing absent DSK1..3 after root 0 was complete
-# and left the Type-270 path unusable before D6FS mounted it.
-grep -F "attach -q dsk0 $boot/disk/dsk0.dsk" "$boot/boot.ini" >/dev/null || {
-        echo "$tag: DSK0 root media is not attached" >&2
-        exit 1
-}
-if grep -Eq '^attach .*dsk[1-3] ' "$boot/boot.ini"; then
-        echo "$tag: acceptance requires DSK1..3 to remain unattached" >&2
-        exit 1
-fi
+# The default root now spans four attached DSK members.  Verify that every
+# member of the root set is present; the runtime check below still proves
+# that root discovery and mounting complete without probing stray units.
+for unit in 0 1 2 3; do
+        grep -Fx "attach -q dsk$unit $boot/disk/dsk$unit.dsk" "$boot/boot.ini" >/dev/null || {
+                echo "$tag: DSK$unit root media is not attached" >&2
+                exit 1
+        }
+done
 
 (
         cd "$boot"
@@ -80,4 +78,4 @@ if grep -F '?RT' "$clean" >/dev/null 2>&1; then
         exit 1
 fi
 
-printf '%s\n' "$tag: PASS (DSK0 discovered without probing absent trailing units)"
+printf '%s\n' "$tag: PASS (four-member DSK root discovered and mounted)"
