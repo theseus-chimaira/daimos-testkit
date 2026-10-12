@@ -1,0 +1,56 @@
+# Target-specific AST payload lifetime regression on a fresh DSH session.
+# Every probe must preserve the frozen command grammar and all table limits.
+probe ast-simple
+command ECHO ASTSINGLE
+line ^ASTSINGLE$
+end
+
+probe ast-list
+command ECHO ASTONE; ECHO ASTTWO; ECHO ASTTHREE
+contains ASTONE
+contains ASTTWO
+contains ASTTHREE
+end
+
+probe ast-function-copy
+command DEF F DO ECHO ASTFUNC:$1 DONE; F VALUE
+contains ASTFUNC:VALUE
+end
+
+probe ast-function-redefine
+command DEF F DO ECHO ASTOLD DONE; DEF F DO ECHO ASTNEW DONE; F
+line ^ASTNEW$
+not_contains ASTOLD
+end
+
+probe ast-function-compaction
+command DEF A DO ECHO ASTA DONE; DEF B DO ECHO ASTB DONE; DEF A DO ECHO ASTA2 DONE; A; B
+contains ASTA2
+contains ASTB
+end
+
+probe ast-case-arms
+command CASE FOO IN WHEN BAR DO ECHO ASTBAD WHEN F?O DO ECHO ASTCASE ESAC
+line ^ASTCASE$
+not_contains ASTBAD
+end
+
+probe ast-source-function-file
+command ECHO 'DEF G DO ECHO ASTSOURCE DONE' > /CONFIG/ASTFUNC
+not_contains NOTFOUND
+end
+
+probe ast-source-function-define
+command SOURCE /CONFIG/ASTFUNC; G
+line ^ASTSOURCE$
+end
+
+probe ast-source-function-after-return
+command G
+line ^ASTSOURCE$
+end
+
+probe ast-source-cleanup
+command RM /CONFIG/ASTFUNC
+not_contains NOTFOUND
+end

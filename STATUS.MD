@@ -1,3 +1,15 @@
+# DSH compact AST RAM reduction (2026-10-12)
+
+DAIMOS DSH prototype v7 changes the AST payload representation without
+reducing shell language/capacity limits. The source now measures 035603
+image words and 010136 BSS words (octal); the initial user VM extent
+drops from 056000 to 050000. The complete ordinary PDP-6 DSH
+conformance run passed 115/115; the compact-AST focused suite passes
+10/10; and
+`tests/validation/daimos-dsh-size-guard-20261012-v3.sh` passes.
+The final 32K lowmem boot still reaches LOGIN but fails the ROOT DSH
+EXEC transition. Successful INIT -> LOGIN -> DSH acceptance is open.
+
 # DSH source shrink v2 and 32K boot constraint (2026-10-12)
 
 Source cleanup and shared SIXBIT classifiers reduce DSH image 036054 ->
