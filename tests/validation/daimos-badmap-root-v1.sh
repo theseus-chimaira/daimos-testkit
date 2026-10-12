@@ -32,7 +32,10 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
         exit 1
     }
 
-layout=`grep 'mkd6fs:' "$build_out" | tail -1`
+# Disk media are formatted before the auxiliary drum.  Do not take the last
+# formatter message: its 0/1 superblocks belong to the *drum*, and zeroing
+# those offsets on DSK media destroys the Stage-1 boot stream instead.
+layout=`grep '^mkd6fs:' "$build_out" | head -1`
 set -- `printf '%s\n' "$layout" | \
     sed -n 's/.* super=\([0-7][0-7]*\)\/\([0-7][0-7]*\).*/\1 \2/p'`
 if [ "$#" -ne 2 ]; then
@@ -42,28 +45,39 @@ if [ "$#" -ne 2 ]; then
 fi
 super_a=$1
 super_b=$2
-base=`"$PDP10_PREFIX/bin/d6swap" -n 1 -d "$build/disk" --show | \
-    sed -n 's/.*d6fs-base=\([0-7][0-7]*\).*/\1/p' | head -1`
-if [ -z "$base" ]; then
-        echo "$tag: cannot derive physical D6FS base" >&2
-        exit 1
-fi
-phys_a=$((0$base + 0$super_a))
-phys_b=$((0$base + 0$super_b))
+layout_out=`"$PDP10_PREFIX/bin/d6swap" -n 4 -d "$build/disk" --show`
+# The current disk root has four equally sized, word-interleaved members.
+# Map each logical superblock to its own member and physical sector.
+map_super()
+{
+        logical=$1
+        member=$((0$logical % 4))
+        local_block=$((0$logical / 4))
+        base=`printf '%s\n' "$layout_out" | sed -n \
+            "s/^member=$member .*d6fs-base=\([0-7][0-7]*\).*/\1/p"`
+        [ -n "$base" ] || { echo "$tag: missing member $member base" >&2; exit 1; }
+        printf '%d %d\n' "$member" "$((0$base + local_block))"
+}
+set -- `map_super "$super_a"`
+member_a=$1 phys_a=$2
+set -- `map_super "$super_b"`
+member_b=$1 phys_b=$2
 phys_a_o=`printf '%o' "$phys_a"`
 phys_b_o=`printf '%o' "$phys_b"`
 
 # d6bad accepts physical member sectors.  Copy both current superblock copies
 # to spare sectors and publish the exception map before damaging originals.
-"$PDP10_PREFIX/bin/d6bad" -n 1 -d "$build/disk" \
-    --add "0:0$phys_a_o:2" >/dev/null
-map_out=`"$PDP10_PREFIX/bin/d6bad" -n 1 -d "$build/disk" --list`
-printf '%s\n' "$map_out" | grep -q "source=0:$phys_a_o spare=" || {
+"$PDP10_PREFIX/bin/d6bad" -n 4 -d "$build/disk" \
+    --add "$member_a:0$phys_a_o:1" >/dev/null
+"$PDP10_PREFIX/bin/d6bad" -n 4 -d "$build/disk" \
+    --add "$member_b:0$phys_b_o:1" >/dev/null
+map_out=`"$PDP10_PREFIX/bin/d6bad" -n 4 -d "$build/disk" --list`
+printf '%s\n' "$map_out" | grep -q "source=$member_a:$phys_a_o spare=" || {
         printf '%s\n' "$map_out" >&2
         echo "$tag: first superblock remap missing" >&2
         exit 1
 }
-printf '%s\n' "$map_out" | grep -q "source=0:$phys_b_o spare=" || {
+printf '%s\n' "$map_out" | grep -q "source=$member_b:$phys_b_o spare=" || {
         printf '%s\n' "$map_out" >&2
         echo "$tag: second superblock remap missing" >&2
         exit 1
@@ -71,17 +85,19 @@ printf '%s\n' "$map_out" | grep -q "source=0:$phys_b_o spare=" || {
 
 # The simulator DSK image stores one 128-word PDP-10 sector in 1024 bytes.
 dd if=/dev/zero of="$zero" bs=1024 count=1 2>/dev/null
-for sec in "$phys_a" "$phys_b"; do
-        dd if=/dev/zero of="$build/disk/dsk0.dsk" bs=1024 seek="$sec" \
+for assignment in "$member_a:$phys_a" "$member_b:$phys_b"; do
+        member=${assignment%%:*}
+        sec=${assignment#*:}
+        dd if=/dev/zero of="$build/disk/dsk$member.dsk" bs=1024 seek="$sec" \
             count=1 conv=notrunc 2>/dev/null
-        dd if="$build/disk/dsk0.dsk" bs=1024 skip="$sec" count=1 \
+        dd if="$build/disk/dsk$member.dsk" bs=1024 skip="$sec" count=1 \
             2>/dev/null | cmp - "$zero" >/dev/null || {
                 echo "$tag: failed to destroy original physical sector $sec" >&2
                 exit 1
             }
 done
 
-"$PDP10_PREFIX/bin/d6fsck" -n 1 -d "$build/disk" >"$fsck_out" 2>&1 || {
+"$PDP10_PREFIX/bin/d6fsck" -n 4 -d "$build/disk" >"$fsck_out" 2>&1 || {
         cat "$fsck_out" >&2
         echo "$tag: host D6FS read did not survive remapped superblocks" >&2
         exit 1

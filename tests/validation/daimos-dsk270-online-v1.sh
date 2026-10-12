@@ -122,9 +122,9 @@ wait_for "$dcs_out" '/COPY TYPE 2 WORDS ' 300 || {
         exit 1
 }
 
-# HALT stops the running validation system after all target-side I/O checks.
-# The mounted writable root is expected to remain DIRTY; host-side d6fsck
-# below must recognize that state and complete a full recovery scan.
+# HALT synchronizes and remounts the writable D6FS namespace root read-only.
+# The host must see a CLEAN generation after orderly shutdown; unclean
+# recovery is verified separately by the D6FS recovery suite.
 send_slow HALT
 i=0
 while kill -0 "$sim_pid" 2>/dev/null && [ "$i" -lt 200 ]; do
@@ -167,33 +167,18 @@ if grep -q '^CP:' "$work/dcs.clean"; then
         exit 1
 fi
 
-if "$PDP10_PREFIX/bin/d6fsck" -n 1 -d "$boot/disk" >"$fsck_out" 2>&1; then
+"$PDP10_PREFIX/bin/d6fsck" -n 4 -d "$boot/disk" >"$fsck_out" 2>&1 || {
         cat "$fsck_out" >&2
-        echo "dsk270-online: live writable root unexpectedly reported CLEAN" >&2
+        echo "dsk270-online: orderly HALT did not publish valid CLEAN root" >&2
         exit 1
-fi
-grep -q 'selected superblock DIRTY' "$fsck_out" || {
+}
+grep -q ': clean$' "$fsck_out" || {
         cat "$fsck_out" >&2
-        echo "dsk270-online: expected recoverable DIRTY root not reported" >&2
-        exit 1
-}
-"$PDP10_PREFIX/bin/d6fsck" -r -n 1 -d "$boot/disk" >"$work/d6fsck.repair" 2>&1 || {
-        cat "$work/d6fsck.repair" >&2
-        echo "dsk270-online: full recovery scan failed after runtime I/O" >&2
-        exit 1
-}
-"$PDP10_PREFIX/bin/d6fsck" -n 1 -d "$boot/disk" >"$work/d6fsck.final" 2>&1 || {
-        cat "$work/d6fsck.final" >&2
-        echo "dsk270-online: repaired filesystem did not validate" >&2
-        exit 1
-}
-grep -q ': clean$' "$work/d6fsck.final" || {
-        cat "$work/d6fsck.final" >&2
-        echo "dsk270-online: repair did not publish CLEAN generation" >&2
+        echo "dsk270-online: filesystem inconsistent after HALT" >&2
         exit 1
 }
 
-"$PDP10_PREFIX/bin/logstore" -n 1 -d "$boot/disk" --dump >"$log_out"
+"$PDP10_PREFIX/bin/logstore" -n 4 -d "$boot/disk" --dump >"$log_out"
 if grep -Eq 'valid=1([^0-9]|$)' "$log_out"; then
         cat "$log_out" >&2
         echo "dsk270-online: clean boot created a LOGSTORE record" >&2
