@@ -1078,3 +1078,10 @@ test-daimos-libc-memcpy-20261008-v1:
 .PHONY: test-daimos-d6fs-undo-cuts
 test-daimos-d6fs-undo-cuts:
 	@sh tests/host/daimos-d6fs-undo-cuts-20261012-v1.sh
+
+.PHONY: test-daimos-dsh-histfile-repair-20261012-v2
+test-daimos-dsh-histfile-repair-20261012-v2:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	    DAS_REPO='$(abspath $(DAS_REPO))' \
+	    KCC_REPO='$(abspath $(dir $(DAS_REPO))/kcc)' \
+	    sh tests/validation/daimos-dsh-histfile-repair-20261012-v2.sh

@@ -1,3 +1,16 @@
+# DSH bounded HISTFILE repair on PDP-6 (2026-10-12)
+
+Live two-boot DSH HISTFILE repair passes 5/5 target probes via
+`tests/validation/daimos-dsh-histfile-repair-20261012-v2.sh`.
+A truncated S6REC is repaired under the existing file lock; the
+preceding valid record is recalled, subsequent history is verified
+to the exact 11-word EOF, and D6FSCK reports clean media. No new
+kernel transaction or journal is required. Writer conflict and
+failure injection remain separate acceptance work.
+The same updated DSH image also passed all 115/115 existing SIMH conformance
+probes. Fresh image 036722 octal words exceeds the standard 036000 gate;
+shrinking DSH remains open.
+
 # D6FS bounded record undo experiment (2026-10-12)
 
 `make test-daimos-d6fs-undo-cuts` passes 5,805 host-only simulated
