@@ -1,3 +1,15 @@
+# D6FS bounded record undo experiment (2026-10-12)
+
+`make test-daimos-d6fs-undo-cuts` passes 5,805 host-only simulated
+interruption/recovery cases and three explicit corruption/conflict checks.
+The model covers full-block undo snapshots for data tail, allocation map,
+summary and FCB, with alternating PREPARE/COMMIT markers and repeatable
+interrupted recovery. **No D6FS kernel or disk format was changed, and no
+real power-cut or durability-barrier guarantee has been established.**
+An explicit COMMIT-before-FCB counterexample fails the journal invariant
+if persistence ordering cannot be enforced.
+See `tests/host/daimos-d6fs-undo-cuts-20261012-v1.md`.
+
 # 2026-10-12 GCC/KCC COMPILER SELECTION
 
 THE TESTKIT ACCEPTS `COMPILER=gcc` OR `COMPILER=kcc` (DEFAULT). THE

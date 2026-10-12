@@ -1074,3 +1074,7 @@ test-daimos-libc-memcpy-20261008-v1:
 	 tests/host/daimos-libc-memcpy-20261008-v1.c \
 	 "$(abspath $(DAIMOS_REPO))/userland/libc/string.c"
 	"$${TMPDIR:-$$HOME/tmp}/daimos-libc-memcpy-20261008-v1"
+
+.PHONY: test-daimos-d6fs-undo-cuts
+test-daimos-d6fs-undo-cuts:
+	@sh tests/host/daimos-d6fs-undo-cuts-20261012-v1.sh
