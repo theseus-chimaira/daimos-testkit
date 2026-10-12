@@ -1,0 +1,5 @@
+probe supervisor-max-path-failure-events
+command LOGDUMP
+contains SEV 1 SRC 1 000000000001 000000000010
+contains SEV 4 SRC 1
+end

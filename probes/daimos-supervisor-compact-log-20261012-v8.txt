@@ -1,0 +1,4 @@
+probe supervisor-logstore-init-ready
+command LOGDUMP
+contains SEV 1 SRC 1
+end

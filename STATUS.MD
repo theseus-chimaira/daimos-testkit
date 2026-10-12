@@ -1,3 +1,27 @@
+# SUPERVISOR one-block PID 1 optimization (2026-10-12 v11)
+
+The resident SUPERVISOR is **001177 text, 000051 BSS**, with **0400
+stack words** declared by DXR2 `ST2`, giving **002000 octal words**
+after PDP-6 APR rounding. The ordinary 02000 stack default survives
+for all other executables. Four-word compact LOGSTORE events eliminate
+the supervisor's former 0200-word logging stack frame; LOGSTORE uses
+transient MM scratch with the unchanged general APPEND and disk format.
+
+The AUXSTORE LOGSTORE regression is fixed: `logstore_minit` now patches
+the KCORE unit/block/buffer bridge instead of the incompatible relocated
+raw hardware-address/buffer MRES service. Before this repair, successful
+APPEND/EVENT calls silently overwrote physical drum block 0 rather than
+the LOGSTORE records. The disk descriptor and physical on-disk records
+are now independently verified by the new v11 forensic test.
+
+Full image and **115/115** DSH conformance PASS; two independent fresh
+LOGD/LOGDUMP direct persistence runs PASS; the strict eight-entry
+INITTAB/102-character-path startup logs all seven distinct RUN_FAILED
+records and a LOGIN record, verified on raw drum media. DXR ST2
+limits/flag rejection (6/6) and one-block size tests PASS. Remaining
+separate acceptance: user-stack high-water instrumentation, repeated
+LOGIN respawn exhaustion, and the full 32K shell boot.
+
 # Two-stage PID 1 startup and resident SUPERVISOR (2026-10-12 v2)
 
 Production PDP-6 boot now launches startup INIT, which EXEC-replaces
