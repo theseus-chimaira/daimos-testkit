@@ -11,25 +11,21 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$work"
 src="$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s"
 
-cat > "$work/timer.s" <<'ASM'
-        .equ PROC_WORDS,3
-        .equ PROC_STATE_LH_MASK,0700000
-        .equ PROC_STATE_RUN,0200000
-        .equ PROC_WAIT_LH_MASK,060000
-        .equ PROC_CPU_SLEEP_LH_MASK,017700
-        .equ PROC_TIMER_ACTIVE_LH,0400000
-        .equ PROC_TIMER_DUE_LH,0200000
-        .equ PROC_TIMER_TAG_RH,0400000
-        .equ PROC_TIMER_CLOCK_MASK,0377777
-
-        .text
-ASM
+# Use the production assembler ABI definitions instead of maintaining a
+# diverging subset in the fixture.
+awk '/^[[:space:]]*\.equ[[:space:]]/ {print}' "$src" > "$work/timer.s"
+printf '\n        .text\n' >> "$work/timer.s"
 
 # Exercise the production bodies themselves, not a reimplementation.
 awk '/^proc_runq_add:$/ {copy=1} /^proc_runq_remove:$/ {copy=0} copy {print}' \
     "$src" >> "$work/timer.s"
-awk '/^proc_timer_service:$/ {copy=1} /^proc_idle_loop:$/ {copy=0} copy {print}' \
+awk '/^proc_timer_service:$/ {copy=1} /^proc_swap_victim:$/ {copy=0} copy {print}' \
     "$src" >> "$work/timer.s"
+
+# The production scheduler shares this stack-adjustment constant with KCORE.
+# Extract its actual definition so the fixture follows future assembler changes.
+sed -n '/^kconst_7_7:/p' "$DAIMOS_REPO/system/kernel/core/ret.s" \
+    >> "$work/timer.s"
 
 cat >> "$work/timer.s" <<'ASM'
         .text
@@ -153,6 +149,8 @@ __test_exit:
 proc_table:
         .block 1
 proc_high_slot:
+        .block 1
+proc_current_slot:
         .block 1
 proc_runq_head:
         .block 1
