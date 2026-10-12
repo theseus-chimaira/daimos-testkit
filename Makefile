@@ -119,6 +119,13 @@ test-daimos-dsh-argument-frames: check-prefix $(PTY_RUN) image
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
 		--probes probes/daimos-dsh-argument-frames-20261010-v1.txt
 
+test-daimos-dsh-variable-heap-20261012-v1: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-variable-heap-20261012-v1.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--probes probes/daimos-dsh-variable-heap-20261012-v1.txt
+
 test-daimos-dsh-resource-contract:
 	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" tests/validation/daimos-dsh-resource-contract-20261010-v1.sh
 

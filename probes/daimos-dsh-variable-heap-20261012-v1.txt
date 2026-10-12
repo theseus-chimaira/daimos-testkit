@@ -1,0 +1,35 @@
+# Shared heap: variable payloads survive temporary large argv allocations.
+# Keep these separate from baseline conformance until the candidate is accepted.
+probe dsh-heap-setup
+command SET KEEP ORIGINAL; SET RESIZE A; SET DROP TEMP
+end
+
+probe dsh-heap-wide-argv-survival
+command ECHO A B C D E F G H I J; ECHO $KEEP
+contains ORIGINAL
+end
+
+probe dsh-heap-grow-value
+command SET RESIZE ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890; ECHO $RESIZE
+contains ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890
+end
+
+probe dsh-heap-wide-after-grow
+command ECHO A B C D E F G H I J; ECHO $RESIZE
+contains ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890
+end
+
+probe dsh-heap-unset-reuse
+command UNSET DROP; SET DROP REUSED; ECHO $DROP:$KEEP
+contains REUSED:ORIGINAL
+end
+
+probe dsh-heap-repeat-update
+command SET KEEP A; SET KEEP BB; SET KEEP CCC; SET KEEP DDDD; ECHO $KEEP
+contains DDDD
+end
+
+probe dsh-heap-wide-after-update
+command ECHO A B C D E F G H I J; ECHO $KEEP:$DROP
+contains DDDD:REUSED
+end
