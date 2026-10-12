@@ -51,7 +51,10 @@ make -C "$TESTKIT_ROOT/tests/system/kernel" image \
 "$MKDSK" -n 1 -m clean -p "$KERNEL_BUILD/kinit.d6lz.words" \
     -o "$WORK/disk" --d6fs-layout --logstore-blocks 0400 \
     --swap-tail-blocks 0200
-"$MKD6FS" -n 1 -d "$WORK/disk" \
+# DSH dispatches these commands as external executables.  Supply every
+# program exercised by probes-v1.txt, rather than treating "NOT FOUND" as a
+# successful file operation on an otherwise empty bootstrap image.
+set -- -n 1 -d "$WORK/disk" \
     -D /TEMP:0777 \
     -D /SYSTEM:0555 -D /SYSTEM/EXEC:0555 -D /CONFIG:0755 \
     -f "/SYSTEM/INIT:$KERNEL_BUILD/userland-build/userland/init.dxr:555:dxr" \
@@ -60,6 +63,15 @@ make -C "$TESTKIT_ROOT/tests/system/kernel" image \
     -f "/SYSTEM/EXEC/DSH:$KERNEL_BUILD/userland-build/userland/dsh.d6lz.dxr:555:dxr" \
     -f "/CONFIG/INITTAB:$INITTAB_S6REC:644:binwords" \
     -f "/CONFIG/PASSWD:$PASSWD_S6REC:600:binwords"
+for command in TOUCH STAT ECHO CAT CP MV MKDIR RM LS; do
+        program=$KERNEL_BUILD/userland-build/userland/program/$command.d6lz.dxr
+        if [ ! -s "$program" ]; then
+                echo "d6fs-recovery-v1: missing userland command $program" >&2
+                exit 1
+        fi
+        set -- "$@" -f "/SYSTEM/EXEC/$command:$program:555:dxr"
+done
+"$MKD6FS" "$@"
 "$LOGSTORE" -n 1 -d "$WORK/disk" --init >/dev/null
 
 # For a clean one-member DBC image the D6FS physical base is sector 1.
