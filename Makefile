@@ -1,4 +1,9 @@
 PDP10_PREFIX ?= /usr/local/cross
+COMPILER ?= kcc
+ifeq ($(filter $(COMPILER),gcc kcc),)
+$(error COMPILER must be gcc or kcc (got '$(COMPILER)'))
+endif
+export COMPILER
 PDP10_TOOLS_BIN = $(PDP10_PREFIX)/bin
 DAIMOS_REPO ?= ../DAIMOS
 DAS_REPO ?= ../das
@@ -6,7 +11,7 @@ AAP_PDP6_REPO ?= ../pdp6
 SIMH_PDP6 ?= $(PDP10_PREFIX)/bin/pdp6
 SIMS_REPO ?= ../sims
 PDP10_TOOLS_REPO = $(DAIMOS_REPO)/tools/host
-BUILD_ROOT ?= $(CURDIR)/build
+BUILD_ROOT ?= $(CURDIR)/build/$(COMPILER)
 HOST_CC ?= cc
 HOST_CFLAGS ?= -std=c99 -O2 -Wall -Wextra
 HARNESS = tools/daimos-simh-harness-v4.sh
@@ -310,15 +315,15 @@ simulator-test: check target d6fs-mres dtfs-mres test-daimos-permanent-size test
 # they actually tested, so a fix can resume at the failed row without hiding
 # that earlier PASS rows came from an older revision.
 regression: check-prefix
-	@MAKE='$(MAKE)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
+	@MAKE='$(MAKE)' COMPILER='$(COMPILER)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
 		tests/validation/daimos-regression-resume-v1.sh
 
 regression-status: check-prefix
-	@MAKE='$(MAKE)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
+	@MAKE='$(MAKE)' COMPILER='$(COMPILER)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
 		tests/validation/daimos-regression-resume-v1.sh --status
 
 regression-restart: check-prefix
-	@MAKE='$(MAKE)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
+	@MAKE='$(MAKE)' COMPILER='$(COMPILER)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
 		tests/validation/daimos-regression-resume-v1.sh --restart
 
 

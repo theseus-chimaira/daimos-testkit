@@ -4,13 +4,16 @@ set -eu
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
 : "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
 : "${TMPDIR:?TMPDIR must be set}"
+: "${COMPILER:=kcc}"
+case "$COMPILER" in gcc|kcc) ;; *) echo "invalid COMPILER: $COMPILER" >&2; exit 2 ;; esac
+export COMPILER
 
 MAKE_CMD=${MAKE:-make}
 script_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 testkit_repo=$(CDPATH= cd -- "$script_dir/../.." && pwd -P)
 matrix=${DAIMOS_REGRESSION_MATRIX:-$script_dir/daimos-regression-matrix-v1.tsv}
-state=${DAIMOS_REGRESSION_STATE:-$TMPDIR/daimos-regression-sweep-v1.state}
-log_dir=${DAIMOS_REGRESSION_LOG_DIR:-$TMPDIR/daimos-regression-sweep-v1.logs}
+state=${DAIMOS_REGRESSION_STATE:-$TMPDIR/daimos-regression-sweep-v1-$COMPILER.state}
+log_dir=${DAIMOS_REGRESSION_LOG_DIR:-$TMPDIR/daimos-regression-sweep-v1-$COMPILER.logs}
 restart=0
 status_only=0
 
@@ -107,6 +110,7 @@ print_row()
 }
 
 printf '%s\n' 'DAIMOS regression sweep v1'
+printf 'compiler: %s\n' "$COMPILER"
 printf '%s\n' "matrix: $matrix"
 printf '%s\n' "state:  $state"
 
@@ -151,6 +155,7 @@ while IFS='|' read -r id subsystem targets description; do
         printf '     targets: %s\n' "$targets"
         set +e
         "$MAKE_CMD" -k -C "$testkit_repo" $targets \
+            COMPILER="$COMPILER" \
             PDP10_PREFIX="$PDP10_PREFIX" DAIMOS_REPO="$DAIMOS_REPO" \
             TMPDIR="$TMPDIR" >"$log" 2>&1
         rc=$?
