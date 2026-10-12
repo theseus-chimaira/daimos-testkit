@@ -1,7 +1,7 @@
 # id|subsystem|targets|description
 001|host|check|Host-side format, coverage, and source checks
 002|target|target|Direct PDP-6 target tests
-003|size|d6fs-mres dtfs-mres test-daimos-permanent-size test-daimos-p10fold-build test-daimos-stage1-size|Resident packages, permanent size, folding, and stage1 size
+003|size|d6fs-mres dtfs-mres test-daimos-permanent-size test-daimos-root-tapefs-selection test-daimos-p10fold-build test-daimos-stage1-size|Resident packages, root-selected tape filesystem, permanent size, folding, and stage1 size
 004|boot|test-daimos-boot-source-matrix test-daimos-dsk-root-discovery test-daimos-stage1-kinit-entry test-daimos-kinit-sixbit-lifetime test-daimos-kcc-pdp6-codegen|Boot-source, root discovery, KINIT entry/lifetime, and PDP-6 codegen
 005|boot|test-daimos-root-class-matrix|Root-class matrix
 006|boot|test-daimos-auto-root-priority|Automatic root priority

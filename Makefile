@@ -413,6 +413,11 @@ test-daimos-permanent-size: check-prefix
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		tests/validation/daimos-permanent-size-v1.sh
 
+.PHONY: test-daimos-root-tapefs-selection
+test-daimos-root-tapefs-selection: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
+	    tests/validation/daimos-root-tapefs-selection-20261012-v1.sh
+
 test-daimos-dtfs-unlink: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
