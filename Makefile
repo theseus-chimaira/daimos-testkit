@@ -3,6 +3,7 @@ PDP10_TOOLS_BIN = $(PDP10_PREFIX)/bin
 DAIMOS_REPO ?= ../DAIMOS
 DAS_REPO ?= ../das
 AAP_PDP6_REPO ?= ../pdp6
+SIMH_PDP6 ?= $(PDP10_PREFIX)/bin/pdp6
 SIMS_REPO ?= ../sims
 PDP10_TOOLS_REPO = $(DAIMOS_REPO)/tools/host
 BUILD_ROOT ?= $(CURDIR)/build
@@ -917,7 +918,7 @@ test-daimos-dsk270-elevator: check-prefix
 test-daimos-drm236-online: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
-	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" SIMH_PDP6="$(SIMH_PDP6)" \
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		tests/validation/daimos-drm236-online-v1.sh
 
