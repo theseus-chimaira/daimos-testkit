@@ -10,11 +10,14 @@ import argparse
 from pathlib import Path
 
 
-def inject(source: str, logical: int | None, first_word: int | None = None) -> str:
+def inject(source: str, logical: int | None, first_word: int | None = None,
+           logical_range: tuple[int, int] | None = None) -> str:
     if logical is not None and not 0 <= logical < 1 << 24:
         raise ValueError('logical block outside supported range')
-    if (logical is None) == (first_word is None):
-        raise ValueError('specify exactly one of logical and first_word')
+    if sum(x is not None for x in (logical, first_word, logical_range)) != 1:
+        raise ValueError('specify exactly one selector')
+    if logical_range is not None and not (0 <= logical_range[0] <= logical_range[1] < 1 << 24):
+        raise ValueError('invalid logical block range')
     if first_word is not None and not 0 <= first_word < 1 << 36:
         raise ValueError('first word outside 36-bit range')
     anchor = '; int fs_backing_write(backing, logical, block)\n'
@@ -32,6 +35,14 @@ def inject(source: str, logical: int | None, first_word: int | None = None) -> s
                  '        jrst    fs_backing_write_fault_pass\n'
                  '        jrst    kret_neg1\n'
                  'fs_backing_write_fault_pass:\n')
+    elif logical_range is not None:
+        low, high = logical_range
+        fault = (f'        ; TEST ONLY: reject logical range {low:o}..{high:o}.\n'
+                 f'        caige   2,{low:o}\n'
+                 '        jrst    fs_backing_write_fault_pass\n'
+                 f'        caig    2,{high:o}\n'
+                 '        jrst    kret_neg1\n'
+                 'fs_backing_write_fault_pass:\n')
     else:
         fault = (f'        ; TEST ONLY: reject payload marker {first_word:o}.\n'
                  '        move    4,(3)\n'
@@ -47,8 +58,10 @@ def main() -> None:
     selector = parser.add_mutually_exclusive_group(required=True)
     selector.add_argument('--logical', type=lambda x: int(x, 0))
     selector.add_argument('--first-word', type=lambda x: int(x, 0))
+    selector.add_argument('--logical-range', nargs=2, type=lambda x: int(x, 0), metavar=('START','END'))
     args = parser.parse_args()
-    data = inject(args.source.read_text(), args.logical, args.first_word)
+    data = inject(args.source.read_text(), args.logical, args.first_word,
+                  tuple(args.logical_range) if args.logical_range else None)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(data)
 
