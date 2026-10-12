@@ -1,3 +1,13 @@
+# DSH measured first shrink stage (2026-10-12)
+
+Fresh DAIMOS PDP-6 KCC/DAS source/object refactors reduce DSH from 036722
+to **036054 octal image words**, saving 0646 octal with BSS unchanged at
+015241. Complete boot-image build and **115/115 DSH conformance probes**
+passed. `tests/validation/daimos-dsh-size-guard-20261012-v1.sh` verifies
+the intermediate cap and absence of three unused libc symbols in the DSH
+link map. This is not yet the final 036000 image acceptance: 0054 octal
+words remain to remove.
+
 # DSH bounded HISTFILE repair on PDP-6 (2026-10-12)
 
 Live two-boot DSH HISTFILE repair passes 5/5 target probes via
