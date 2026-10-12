@@ -1,0 +1,87 @@
+# Target-specific AST payload lifetime regression on a fresh DSH session.
+# Every probe must preserve the frozen command grammar and all table limits.
+probe ast-simple
+command ECHO ASTSINGLE
+line ^ASTSINGLE$
+end
+
+probe ast-list
+command ECHO ASTONE; ECHO ASTTWO; ECHO ASTTHREE
+contains ASTONE
+contains ASTTWO
+contains ASTTHREE
+end
+
+probe ast-function-copy
+command DEF F DO ECHO ASTFUNC:$1 DONE; F VALUE
+contains ASTFUNC:VALUE
+end
+
+probe ast-function-redefine
+command DEF F DO ECHO ASTOLD DONE; DEF F DO ECHO ASTNEW DONE; F
+line ^ASTNEW$
+not_contains ASTOLD
+end
+
+probe ast-function-compaction
+command DEF A DO ECHO ASTA DONE; DEF B DO ECHO ASTB DONE; DEF A DO ECHO ASTA2 DONE; A; B
+contains ASTA2
+contains ASTB
+end
+
+probe ast-case-arms
+command CASE FOO IN WHEN BAR DO ECHO ASTBAD WHEN F?O DO ECHO ASTCASE ESAC
+line ^ASTCASE$
+not_contains ASTBAD
+end
+
+probe ast-source-function-file
+command ECHO 'DEF G DO ECHO ASTSOURCE DONE' > /CONFIG/ASTFUNC
+not_contains NOTFOUND
+end
+
+probe ast-source-function-define
+command SOURCE /CONFIG/ASTFUNC; G
+line ^ASTSOURCE$
+end
+
+probe ast-source-function-after-return
+command G
+line ^ASTSOURCE$
+end
+
+probe ast-source-cleanup
+command RM /CONFIG/ASTFUNC
+not_contains NOTFOUND
+end
+
+# Exercise twenty AST word slots without exceeding the smaller kernel
+# RUN argument limit for external commands. FOR stores the variable name
+# and nineteen values, then invokes ECHO with just one argument each time.
+probe ast-full-word-slots
+command FOR I IN A B C D E F G H I J K L M N O P Q R S DO ECHO $I DONE
+line ^S$
+end
+
+# Defining a function inside a second-level SOURCE must not free its payload
+# when either parse/evaluation frame restores its prior program break.
+probe ast-nested-source-seed
+command ECHO 'DEF G DO ECHO ASTNESTED DONE' > /CONFIG/ASTNEST
+not_contains NOTFOUND
+end
+probe ast-nested-source-load
+command ECHO 'SOURCE /CONFIG/ASTNEST' > /CONFIG/ASTOUTER
+not_contains NOTFOUND
+end
+probe ast-nested-source-define
+command SOURCE /CONFIG/ASTOUTER; G
+line ^ASTNESTED$
+end
+probe ast-nested-source-still-alive
+command G
+line ^ASTNESTED$
+end
+probe ast-nested-source-clean
+command RM /CONFIG/ASTOUTER; RM /CONFIG/ASTNEST
+not_contains NOTFOUND
+end

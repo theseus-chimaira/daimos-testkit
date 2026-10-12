@@ -1,3 +1,19 @@
+# DSH variable-width AST and lazy-function payload v9 (2026-10-12)
+
+Complete PDP-6 KCC/DAS DXR image **035671 octal**, BSS **005013
+octal**, image+BSS+startup **044724**, rounded VM **046000**.
+The existing fixed eight-slot (1,440-word) function payload pool is
+allocated once on first DEF instead of occupying permanent BSS.
+Temporary AST argument storage uses nine words per possible token
+slot rather than reserving 180 words for every argument-bearing node.
+All existing DSH limits and language features are preserved.
+
+Fresh full-image build and standard 036000 image gate PASS.
+**115/115** ordinary DSH CTY conformance probes PASS.
+**16/16** focused AST/function/SOURCE and full-word-slot probes PASS.
+The versioned v9 size guard passes. The 32K LOWMEM INIT -> DSH
+acceptance is still OPEN; smaller initial VM is not a boot proof.
+
 # DSH compact AST payload storage (2026-10-12, v3)
 
 The verified DSH image is 035552 octal words and BSS 007651 octal
