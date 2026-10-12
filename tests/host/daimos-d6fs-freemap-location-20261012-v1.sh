@@ -12,7 +12,8 @@ import sys
 source=Path(sys.argv[1]).read_text()
 needle='        fprintf(stderr, "d6fsck: selected superblock %o seq=%llo state=%s\\n",'
 assert source.count(needle)==1, 'd6fsck superblock reporting changed'
-source=source.replace(needle, '        fprintf(stdout, "D6FS_FREEMAP_START=%u\\n", s->freemap_start);\n'+needle,1)
+source=source.replace(needle, '        fprintf(stdout, "D6FS_FREEMAP_START=%u\\n", s->freemap_start);\n' +
+    '        fprintf(stdout, "D6FS_FCB_START=%u\\nD6FS_FCB_BLOCKS=%u\\n", s->fcb_start, (s->fcb_count * FCB_WORDS + BLOCK_WORDS - 1U) / BLOCK_WORDS);\n' + needle, 1)
 Path(sys.argv[2]).write_text(source)
 PY
 ${HOST_CC:-cc} -std=c99 -O2 -Wall -Wextra -o "$work/d6fsck" "$work/d6fsck.c"
