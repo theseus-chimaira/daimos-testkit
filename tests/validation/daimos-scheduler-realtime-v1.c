@@ -3,6 +3,7 @@
 #define WORD_MASK 0777777777777UL
 #define RT_BURN    01000000U
 #define PEER_BURN  04000000U
+#define PEER_PROGRESS_STEP 040000U
 #define TEST_SIXCHAR(ch) \
         ((unsigned long)(((unsigned int)(ch) - 040U) & 077U))
 #define TEST_SIX6(a,b,c,d,e,f) \
@@ -94,7 +95,8 @@ main(void)
                 return 0;
         }
 
-        if (slot == 2U || slot == 3U) {
+    if (slot == 2U || slot == 3U) {
+                unsigned int i;
                 (void)mark(slot == 2U ? 'b' : 'c');
                 if (slot == 2U) {
                         if (dsys_rtctl(SYS_RTCTL_ENABLE) == 0) {
@@ -104,7 +106,14 @@ main(void)
                         }
                         (void)mark('q');
                 }
-                burn(slot, PEER_BURN);
+                /* A voluntary RT yield promises CPU to normal peers, not
+                 * completion of their entire CPU-bound workload.  Emit a
+                 * bounded progress marker after each work chunk so the
+                 * parent can distinguish actual execution from startup. */
+                for (i = 0U; i < PEER_BURN; i += PEER_PROGRESS_STEP) {
+                        burn(slot, PEER_PROGRESS_STEP);
+                        (void)mark('p');
+                }
                 (void)mark(slot == 2U ? '2' : '3');
                 (void)dsys_exit(0);
                 return 0;

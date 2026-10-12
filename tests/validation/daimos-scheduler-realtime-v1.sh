@@ -101,10 +101,10 @@ case "$text" in
 esac
 
 case "$text" in
-*W*b*y*|*W*c*y*) ;;
+*W*p*y*) ;;
 *)
         cat "$out" >&2
-        echo "$tag: RT yield did not let a normal process execute before return" >&2
+        echo "$tag: RT yield did not let a normal peer make progress before return" >&2
         exit 1
         ;;
 esac
