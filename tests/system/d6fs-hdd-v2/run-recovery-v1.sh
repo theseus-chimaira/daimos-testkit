@@ -77,6 +77,7 @@ dd if="$WORK/disk/dsk0.dsk" of="$WORK/boot-before.bin" bs=1024 \
 
 sed -e "s|set -q -n log .*|set -q -n log $WORK/simh.log|" \
     -e "s|attach -q dsk0 .*|attach -q dsk0 $WORK/disk/dsk0.dsk|" \
+    -e '/^attach -q dsk[123] /d' \
     -e "s|attach -q dcs0 .*|attach -q dcs0 $dcs_port|" \
     -e '/^attach -q ge0 /d' \
     "$KERNEL_BUILD/boot.ini" > "$WORK/kinit.ini"
