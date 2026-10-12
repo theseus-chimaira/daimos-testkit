@@ -23,5 +23,5 @@ check_limit DSH_MAX_FUNCS 4U
 check_limit DSH_FUNC_MAX_NODES 8U
 check_limit DSH_FUNC_MAX_CALLS 3U
 check_limit DSH_SCRIPT_MAX_TOKENS 32U
-awk '$1 == "#define" && $2 == "DSH_HISTORY_MAX" && $3 == "4U" { ok=1 } END { exit !ok }' "$editor"
+awk '$1 == "#define" && $2 == "DSH_HISTORY_MAX" && $3 == "16U" { ok=1 } END { exit !ok }' "$editor"
 echo 'DSH resource contract PASS: 11 fixed limits'
