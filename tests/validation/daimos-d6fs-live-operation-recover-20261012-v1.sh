@@ -21,7 +21,7 @@ command /CONFIG/FAULT.TEST
 terminal eof
 contains OPERATION-CUT-START
 contains HALT instruction
-contains (HALT 
+contains (HALT
 not_contains OPERATION-CUT-NOT-TRIGGERED
 end
 PROBES
