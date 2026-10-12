@@ -32,7 +32,7 @@ atable=`a_equ PROC_FILE_TABLE_OFFSET`
 astack=`a_equ PROC_USTACK_BASE`
 kstack=`a_equ PROC_KSTACK_WORDS`
 
-[ "$uarea" = 0407 ] || { echo "$tag: unexpected PROC_UAREA_WORDS=$uarea" >&2; exit 1; }
+[ "$uarea" = 0410 ] || { echo "$tag: unexpected PROC_UAREA_WORDS=$uarea" >&2; exit 1; }
 [ "$fdctl" = 0024 ] || { echo "$tag: unexpected fdctl offset=$fdctl" >&2; exit 1; }
 [ "$cwd" = 0025 ] || { echo "$tag: unexpected cwd offset=$cwd" >&2; exit 1; }
 [ "$table" = 0026 ] || { echo "$tag: unexpected table offset=$table" >&2; exit 1; }
@@ -48,17 +48,21 @@ kstack=`a_equ PROC_KSTACK_WORDS`
 # AC0..AC17, one shared user/kernel PI return word, KSP, saved user SP, and
 # the sleeping syscall's JSR word.  FDCTL occupies 0024, CWD 0025, sixteen
 # two-word descriptors 0026-0065, credentials 0066, and umask 0067.  The
-# stack begins at 0070.  The final u-area word (0406) retains executable
-# backing metadata while swapped, so the private stack remains 0316 words.
+# stack begins at 0070.  Word 0406 retains executable backing metadata while
+# swapped, and word 0407 holds the process break; the stack remains 0316 words.
 [ $((0$cwd)) -eq $((0$fdctl + 1)) ] || exit 1
 [ $((0$table)) -eq $((0$cwd + 1)) ] || exit 1
 [ $((0$cred)) -eq $((0$table + file_nfile * 2)) ] || exit 1
 [ $((0$umask)) -eq $((0$cred + 1)) ] || exit 1
 [ $((0$stack)) -eq $((0$umask + 1)) ] || exit 1
-[ $((0$uarea - 0$stack - 1)) -eq $((00316)) ] || exit 1
+[ $((0$uarea - 0$stack - 2)) -eq $((00316)) ] || exit 1
 grep -A1 '^#define PROC_SWAP_BACKING_OFFSET' "$ph" | \
-    grep -q 'PROC_UAREA_WORDS - 1UL' || {
-        echo "$tag: swap backing is not the final u-area word" >&2
+    grep -q '0406UL' || {
+        echo "$tag: swap backing is not at 0406" >&2
+        exit 1
+}
+grep -q '^#define PROC_BRK_OFFSET[[:space:]]*0407UL' "$ph" || {
+        echo "$tag: process break is not at 0407" >&2
         exit 1
 }
 grep -A1 '^#define PROC_KSTACK_WORDS' "$ph" | \
@@ -98,4 +102,4 @@ grep -q 'pid is the process-table slot' "$si" || {
         exit 1
 }
 
-printf '%s\n' "$tag: PASS (context=0024 fdctl=1 cwd=1 file=0040 cred=1 umask=1 stack=0316 swap=1 total=0407 octal words)"
+printf '%s\n' "$tag: PASS (context=0024 fdctl=1 cwd=1 file=0040 cred=1 umask=1 stack=0316 swap=1 break=1 total=0410 octal words)"
