@@ -28,7 +28,7 @@ mkdir -p "$work"
 {
         echo '.text'
         echo '.globl vfs_remount'
-        sed -n '/^vfs_remount:/,/^; int vfs_unmount(root)$/p' "$vfs_source" |
+        sed -n '/^vfs_remount:/,/^; Publish CLEAN/p' "$vfs_source" |
                 sed '$d'
 } > "$work/vfs-remount.s"
 

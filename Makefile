@@ -1,6 +1,7 @@
 PDP10_PREFIX ?= /usr/local/cross
 PDP10_TOOLS_BIN = $(PDP10_PREFIX)/bin
 DAIMOS_REPO ?= ../DAIMOS
+DAS_REPO ?= ../das
 SIMS_REPO ?= ../sims
 PDP10_TOOLS_REPO = $(DAIMOS_REPO)/tools/host
 BUILD_ROOT ?= $(CURDIR)/build
