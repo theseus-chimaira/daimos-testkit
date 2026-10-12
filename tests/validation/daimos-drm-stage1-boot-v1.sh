@@ -38,8 +38,11 @@ grep -Eq '^deposit SW 3$' "$boot/boot.ini" || {
         echo "$tag: drum root switch is not 3" >&2
         exit 1
 }
-cmp "$boot/disk/dsk0.dsk" "$boot/media/dr0.drm" >/dev/null || {
-        echo "$tag: DR0 does not contain the generated D6FS bootset" >&2
+# Disk and drum roots have different capacities; their complete images must
+# not be byte-compared. Verify the actual four-member drum D6FS set instead.
+test -s "$boot/drum/dsk0.dsk" && \
+    "$PDP10_PREFIX/bin/d6fsck" -n 4 -d "$boot/drum" >/dev/null 2>&1 || {
+        echo "$tag: DR0 does not contain a valid D6FS root" >&2
         exit 1
 }
 

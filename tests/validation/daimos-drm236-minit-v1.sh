@@ -10,7 +10,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$work"
 
 make -C "$DAIMOS_REPO/system/boot/pdp6" permanent-size \
-        BUILD="$work/boot" PDP10_PREFIX="$PDP10_PREFIX" \
+        ROOT=drum BUILD="$work/boot" PDP10_PREFIX="$PDP10_PREFIX" \
         TMPDIR="$TMPDIR" >/dev/null
 
 test -f "$work/boot/drm-mres.dobj" || {
