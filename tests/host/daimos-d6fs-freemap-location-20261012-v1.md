@@ -16,3 +16,20 @@ would change this bitmap, and verify syscall error/old EOF, boot behavior,
 and `d6fsck`. This locator alone does not demonstrate allocation-map error
 handling or rollback. Because the block filter is persistent, distinguish
 failed cleanup writes from the original allocation failure in the test.
+
+## Initial targeted live experiment (2026-10-12)
+
+A fresh cloned SIMH D6FS disk again reported free-map start logical 487.
+The isolated backing-dispatch image rejected writes to this block, but a
+one-word write to `/CONFIG/MAPFAULT` **succeeded unexpectedly**. The test
+probe failed before orderly HALT; the subsequent check-only fsck reported
+DIRTY sequence 2, which is expected for an uncleanly stopped mounted disk
+and is not evidence that the bitmap rejection corrupted the filesystem.
+
+**Do not mark allocation-map failure handling tested.** The likely reason is
+that this write did not update the first bitmap block (or the relevant
+allocation lives in a different map block). Next instrument the actual
+backing-write block index/allocator cursor or force a known new extent
+allocation, and ensure the harness always issues HALT even when a negative
+assertion fails. A test should require an actual injected failure signal,
+not merely a syscall returning an error for unrelated reasons.
