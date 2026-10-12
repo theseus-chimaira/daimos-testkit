@@ -1,0 +1,40 @@
+# PDP-6 tests for redirection records moved out of every AST descriptor.
+# Standalone redirection, append, function persistence, and SOURCE lifetime.
+probe redir-output
+command ECHO SIDEONE > /CONFIG/REDIRV13
+not_contains NOTFOUND
+end
+
+probe redir-append
+command ECHO SIDETWO >> /CONFIG/REDIRV13
+not_contains NOTFOUND
+end
+
+probe redir-readback
+command CAT /CONFIG/REDIRV13
+contains SIDEONE
+contains SIDETWO
+end
+
+probe redir-function-define
+command DEF RF DO CAT < /CONFIG/REDIRV13 DONE; RF
+contains SIDEONE
+contains SIDETWO
+end
+
+probe redir-function-repeat
+command RF
+contains SIDEONE
+contains SIDETWO
+end
+
+probe redir-function-overwrite
+command DEF RF DO ECHO SIDENEW > /CONFIG/REDIRV13 DONE; RF; CAT /CONFIG/REDIRV13
+contains SIDENEW
+not_contains SIDEONE
+end
+
+probe redir-file-cleanup
+command RM /CONFIG/REDIRV13
+not_contains NOTFOUND
+end
