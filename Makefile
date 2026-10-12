@@ -959,6 +959,12 @@ test-daimos-tsfs-root-no-d6fs: check-prefix
 		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		sh tests/validation/daimos-tsfs-root-no-d6fs-v1.sh
 
+.PHONY: test-daimos-tsfs-root-no-pictures
+test-daimos-tsfs-root-no-pictures: check-prefix
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		sh tests/validation/daimos-tsfs-root-no-pictures-v1.sh
+
 test-daimos-tsfs-scan:
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }

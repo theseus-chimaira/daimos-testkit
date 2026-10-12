@@ -31,16 +31,20 @@ test -s "$boot/kinit.dxr" && test -s "$boot/kinit.map" || {
 grep -qx '\.set D6FS_FS_ENABLED,0' "$boot/module-table-runtime.s" || {
         echo "$tag: TSFS root did not disable D6FS" >&2; exit 1;
     }
-if test -e "$boot/d6fs-mres.dobj" || \
-    grep -Eq '(^|[[:space:]])(d6fs_minit|d6fs_mres_package)([[:space:]]|$)' \
+if test -e "$boot/d6fs-mres.dobj" || test -e "$boot/blockset-mres.dobj" || \
+    test -e "$boot/badmap-mres.dobj" || \
+    grep -Eq '(^|[[:space:]])(d6fs_minit|d6fs_mres_package|blockset_minit|blockset_mres_package|badmap_minit|badmap_mres_package)([[:space:]]|$)' \
     "$boot/kinit.map"; then
-    echo "$tag: D6FS remains in the TSFS MINIT/MRES image" >&2
+    echo "$tag: D6FS/BLOCKSET/BADMAP remains in the TSFS MINIT/MRES image" >&2
     exit 1
 fi
+grep -qx '\.set BLOCKSET_FS_ENABLED,0' "$boot/module-table-runtime.s" || {
+    echo "$tag: TSFS root did not disable BLOCKSET" >&2; exit 1;
+}
 
 # Presence of the raw auxiliary drivers and services is mandatory.  Absence
 # of D6FS must never suppress swap, LOGSTORE, or MEMFS backing.
-for name in dsk drm blockset badmap logstore memfs tape dtfs; do
+for name in dsk drm logstore memfs tape dtfs; do
     test -s "$boot/$name-mres.dobj" || {
         echo "$tag: missing auxiliary MRES package $name" >&2
         exit 1
@@ -57,11 +61,11 @@ grep -q '^SINGLE_ROOT[[:space:]]*limit=040000' "$work/build.log" || {
     echo "$tag: permanent-size acceptance was not checked" >&2
     exit 1
 }
-grep -q '^MULTI_ROOT[[:space:]]*limit=040000' "$work/build.log" || {
-    echo "$tag: multi-member permanent-size acceptance was not checked" >&2
+if grep -q '^MULTI_ROOT' "$work/build.log"; then
+    echo "$tag: TSFS-only image still accounts for unused multi-member BLOCKSET" >&2
     exit 1
-}
+fi
 
-grep -E '^KCORE\+MRES|^MULTI_ROOT[[:space:]]|^MULTI_LAST[[:space:]]|^PERMANENT_LAST' \
+grep -E '^KCORE\+MRES|^SINGLE_ROOT[[:space:]]|^PERMANENT_LAST' \
     "$work/build.log"
-echo "$tag: PASS (TSFS root without D6FS; DSK/DRM, swap, LOGSTORE and MEMFS available)"
+echo "$tag: PASS (TSFS root without D6FS/BLOCKSET/BADMAP; raw swap, LOGSTORE and MEMFS available)"
