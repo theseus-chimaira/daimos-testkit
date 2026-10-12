@@ -1,8 +1,24 @@
+# DSH compact AST payload storage (2026-10-12, v3)
+
+The verified DSH image is 035552 octal words and BSS 007651 octal
+words. The rounded initial user-VM extent is 050000 octal (previously
+056000), with the normal 036000 image gate satisfied. The exact DXR
+passed all 115 existing PDP-6 DSH conformance probes; the versioned
+AST-focused probes pass 10/10, including stored function copying,
+replacement, compaction and SOURCE lifetime checks. A new v3 guard
+rejects image/BSS/VM regressions and unwanted libc linkage.
+
+The dedicated 32K low-memory boot still reaches LOGIN but returns
+`LOGIN: EXEC FAILED`. The BSS reduction is verified, but **32K
+boot acceptance remains open**. A cached additional primary payload
+was investigated and rejected because it enlarged permanent BSS
+without reducing the rounded initial VM extent.
+
 # DSH compact AST RAM reduction (2026-10-12)
 
 DAIMOS DSH prototype v7 changes the AST payload representation without
-reducing shell language/capacity limits. The source now measures 035603
-image words and 010136 BSS words (octal); the initial user VM extent
+reducing shell language/capacity limits. The final source measures 035552
+image words and 007651 BSS words (octal); the initial user VM extent
 drops from 056000 to 050000. The complete ordinary PDP-6 DSH
 conformance run passed 115/115; the compact-AST focused suite passes
 10/10; and
