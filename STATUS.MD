@@ -1,3 +1,17 @@
+# Two-stage PID 1 startup and resident SUPERVISOR (2026-10-12 v2)
+
+Production PDP-6 boot now launches startup INIT, which EXEC-replaces
+itself with resident SUPERVISOR while retaining PID 1. The latter is
+001530 octal image words / 000461 BSS, and consumes only a 006000-word
+rounded user VM extent. The full PDP-6 boot and DSH 115/115 conformance
+suite pass. `tests/validation/daimos-init-supervisor-size-20261012-v2.sh`
+guards INIT/SUPERVISOR/DSH image and the resident VM size.
+
+The dedicated 32K boot remains open: INIT and LOGIN start, but ROOT
+cannot EXEC DSH. The PID 1 reduction alone does not provide sufficient
+physical core for the shell. See the versioned INIT/SUPERVISOR validation
+note; overlay support was investigated but not implemented.
+
 # DSH variable-width AST and lazy-function payload v9 (2026-10-12)
 
 Complete PDP-6 KCC/DAS DXR image **035671 octal**, BSS **005013
