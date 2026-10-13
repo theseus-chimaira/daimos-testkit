@@ -1,0 +1,9 @@
+words	rewrites
+93	finish-shared
+93	zero-branch,finish-shared
+94	baseline
+94	finish-shared,count-validation
+94	zero-branch
+94	zero-branch,finish-shared,count-validation
+95	count-validation
+95	zero-branch,count-validation
