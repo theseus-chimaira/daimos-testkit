@@ -1,0 +1,1 @@
+TOTAL files=81 rejected=0 words=159973 reference=131548 window=131556 delta=8
