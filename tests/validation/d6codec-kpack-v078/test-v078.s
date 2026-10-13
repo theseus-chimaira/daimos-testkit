@@ -96,7 +96,7 @@ fail_size:
         addi 1,0100
         popj 17,
 fail_decode:
-        move 1,encoded
+        movei 1,5
         popj 17,
 fail:
         movei 1,1
