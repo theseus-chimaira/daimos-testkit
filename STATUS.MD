@@ -1,3 +1,16 @@
+# LOGIN account reader separation (2026-10-13 v3)
+
+The PASSWD reader and account-file parser now form a separate statically
+linked module, `userland/login/passwd_reader.c`. LOGIN retains supplied
+password verification, compact LOGSTORE events, TTY setup, privilege
+transition and destructive DSH EXEC. No extra AUTH process is created.
+Fresh-build image 004630, BSS 000000, stack 001000, origin 000020,
+required 005650, APR-rounded 006000 octal words. The reader split
+costs 0233 image words versus v2 but no further APR block. The future
+password hash verifier belongs inside LOGIN, after account retrieval.
+Fresh-image ROOT LOGIN-to-DSH and 115/115 shell conformance probes PASS;
+v3 ST2/three-APR size guard PASS.
+
 # LOGIN shrink v2 (2026-10-13)
 
 Separate from the v1 stack-metadata step, LOGIN now links minimal
