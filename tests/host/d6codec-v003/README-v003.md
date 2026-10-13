@@ -25,3 +25,20 @@ This fixture suite is synthetic. Benchmark against production D6LZ36 on real
 36-bit process images before choosing a format. Its codec is NOT backward
 compatible with production D6LZ36 and has no on-disk header or checksums.
 Kernel integration and persistent documentation intentionally deferred.
+
+## Built executable benchmark
+
+`bench_dxr_v003.c` consumes compiled, uncompressed `.dxr` files in the
+DAIMOS 64-bit little-endian container representation, where each container
+holds one 36-bit word. Each codec is required to round-trip all words exactly.
+It includes DXR metadata in the input; this is not a packed-process test.
+
+Run with a compiled host codec from `DAIMOS/tools/host/d6lz-codec.c`:
+
+    cc -std=c99 -O2 -Wall -Wextra -Werror -I DAIMOS/tools/host \
+        bench_dxr_v003.c codec_v003.c DAIMOS/tools/host/d6lz-codec.c -o bench
+    ./bench path/to/uncompressed/*.dxr
+
+The sample manifest `dxr-results-v003.tsv` is a snapshot of compiled DAIMOS
+build outputs. All entries passed exact round trips. Results are word counts,
+not PDP-6 dynamic instruction timing or net resident kernel-memory benefit.
