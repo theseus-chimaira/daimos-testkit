@@ -1,0 +1,6 @@
+files=81 source_words=159973 word_matches=6054 half_matches=5411 zero_matches=2
+distance=1 matches=9 represented_words=34
+distance=2-8 matches=749 represented_words=3179
+distance=9-32 matches=2166 represented_words=9688
+distance=33-128 matches=3130 represented_words=15891
+distance=129-511 matches=0 represented_words=0
