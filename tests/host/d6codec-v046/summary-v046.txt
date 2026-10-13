@@ -1,0 +1,1 @@
+TOTAL raw=159973 native_v045_policy=131463 v006_evenhalf=131556 gap=-93
