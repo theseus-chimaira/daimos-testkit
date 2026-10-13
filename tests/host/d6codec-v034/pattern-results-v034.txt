@@ -1,0 +1,16 @@
+random slots=8 full_ref_positions=0 index_hits=0 lost_ref_positions=0 false_candidates=504
+random slots=16 full_ref_positions=0 index_hits=0 lost_ref_positions=0 false_candidates=496
+random slots=32 full_ref_positions=0 index_hits=0 lost_ref_positions=0 false_candidates=475
+random slots=64 full_ref_positions=0 index_hits=0 lost_ref_positions=0 false_candidates=407
+period17 slots=8 full_ref_positions=495 index_hits=0 lost_ref_positions=495 false_candidates=504
+period17 slots=16 full_ref_positions=495 index_hits=436 lost_ref_positions=59 false_candidates=60
+period17 slots=32 full_ref_positions=495 index_hits=495 lost_ref_positions=0 false_candidates=0
+period17 slots=64 full_ref_positions=495 index_hits=495 lost_ref_positions=0 false_candidates=0
+mixed slots=8 full_ref_positions=224 index_hits=0 lost_ref_positions=224 false_candidates=504
+mixed slots=16 full_ref_positions=224 index_hits=0 lost_ref_positions=224 false_candidates=496
+mixed slots=32 full_ref_positions=224 index_hits=75 lost_ref_positions=149 false_candidates=405
+mixed slots=64 full_ref_positions=224 index_hits=121 lost_ref_positions=103 false_candidates=298
+uniform slots=8 full_ref_positions=511 index_hits=511 lost_ref_positions=0 false_candidates=0
+uniform slots=16 full_ref_positions=511 index_hits=511 lost_ref_positions=0 false_candidates=0
+uniform slots=32 full_ref_positions=511 index_hits=511 lost_ref_positions=0 false_candidates=0
+uniform slots=64 full_ref_positions=511 index_hits=511 lost_ref_positions=0 false_candidates=0

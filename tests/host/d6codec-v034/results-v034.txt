@@ -1,0 +1,4 @@
+slots=8 ram_words=8 probes=12700 exact_matches=0 hash_collisions=12000 empty=700
+slots=16 ram_words=16 probes=12700 exact_matches=0 hash_collisions=11200 empty=1500
+slots=32 ram_words=32 probes=12700 exact_matches=0 hash_collisions=9644 empty=3056
+slots=64 ram_words=64 probes=12700 exact_matches=0 hash_collisions=7240 empty=5460
