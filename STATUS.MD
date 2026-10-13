@@ -1,3 +1,15 @@
+# LOGIN shrink v2 (2026-10-13)
+
+Separate from the v1 stack-metadata step, LOGIN now links minimal
+console I/O and targeted monitor veneers, and uses the existing
+four-word LOGSTORE EVENT service. A fresh PDP-6 image measures image
+004375, BSS 000000, origin 000020 and reserved stack 001000, hence
+005415 required and 006000 after APR rounding (three APR blocks).
+The independent ROOT LOGIN/LOGD/LOGDUMP boot and physical AUXSTORE
+integrity check PASS. One-APR target 002000 remains open. Account
+parser/EXEC environment code needs further reduction. Keep the
+existing v1 size validator tied to v1, not this intermediate size.
+
 # LOGIN single-block allocation saving (2026-10-13 v1)
 
 An uncompressed LOGIN DXR2 executable now carries ST2 01000 rather than
