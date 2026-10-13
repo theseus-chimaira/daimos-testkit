@@ -1,3 +1,15 @@
+# LOGIN single-block allocation saving (2026-10-13 v1)
+
+An uncompressed LOGIN DXR2 executable now carries ST2 01000 rather than
+the normal 02000 stack reservation. Image 006133, BSS 000255, origin
+000020 and stack 001000 sum to 007430 octal words, rounding to 010000
+instead of 012000. The new versioned size/metadata verifier passes.
+Fresh PDP-6 disk image, ROOT LOGIN -> DSH, and all 115 DSH conformance
+probes PASS. Host physical AUXSTORE inspection verifies persisted
+INIT_READY and LOGIN records. Larger password/path/login stack-depth
+stress, repeated LOGIN respawn under pressure, and 32K boot acceptance
+remain open.
+
 # SUPERVISOR one-block PID 1 optimization (2026-10-12 v11)
 
 The resident SUPERVISOR is **001177 text, 000051 BSS**, with **0400
