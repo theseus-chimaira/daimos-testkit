@@ -1,3 +1,12 @@
+# Idle TTY event hub stage v3 (2026-10-13)
+
+The disabled-by-default kernel hub now has a PID-1-only TTYCTL interface,
+event generation, 21-bit idle registration/ready masks and notifications
+from CTY/DCS/GE PI handlers and child exits. A fresh image builds, and the
+short LOGIN/LOGSTORE/AUXSTORE smoke path passes. The existing supervisor
+does not register any idle TTY; idle receive scanner arming and lifecycle
+handoff remain unimplemented. This is **not** the live dispatcher.
+
 # Idle TTY combined-event model (2026-10-13 v2)
 
 A deterministic host-only model in
