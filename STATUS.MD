@@ -1,3 +1,11 @@
+# Idle-TTY scanner-arm stage (2026-10-13 v4)
+
+DCS and GE MRES now export idle scanner-arm entry points, installed
+through KINIT patchable KCORE jumps. PID-1 registration can start
+receiving without blocked LOGIN readers; existing mailbox bytes are
+not overwritten. Ordinary non-opt-in SUPERVISOR behavior is unchanged.
+Dedicated source/link checks cover export order and no-mailbox-overwrite.
+
 # Idle TTY event hub stage v3 (2026-10-13)
 
 The disabled-by-default kernel hub now has a PID-1-only TTYCTL interface,
