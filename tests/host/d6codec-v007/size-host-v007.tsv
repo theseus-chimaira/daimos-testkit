@@ -1,0 +1,7 @@
+source	function	x86_64_Os_text_bytes
+production-d6lz	d6lz_codec_compress	443
+production-d6lz	d6lz_codec_decompress	272
+v006-source	d6v006_source_encode	688
+v006-source	half	31
+v006-repack	d6v006_encode	690
+v006-repack	d6v006_decode	743
