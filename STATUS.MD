@@ -1,3 +1,13 @@
+# Idle TTY combined-event model (2026-10-13 v2)
+
+A deterministic host-only model in
+`tests/validation/daimos-idle-tty-event-model-20261013-v2.py` checks
+60 interleavings of two TTY arrivals, one child completion, registration
+and sleep, including preservation of both first input bytes. PASS. This
+is an ABI/design test, NOT a real kernel, simulator boot or memory saving.
+The source-driven hardware/scheduler design is documented in DAIMOS
+`design/SUPERVISOR-IDLE-TTY-EVENT-CONTRACT-20261013-v2.MD`.
+
 # LOGIN account reader separation (2026-10-13 v3)
 
 The PASSWD reader and account-file parser now form a separate statically
