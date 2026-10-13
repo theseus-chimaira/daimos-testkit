@@ -1,0 +1,8 @@
+98	1	popcount
+98	2	popcount,copy_bound
+98	2	popcount,zero_bound
+98	3	popcount,zero_bound,copy_bound
+99	0	
+99	1	copy_bound
+99	1	zero_bound
+99	2	zero_bound,copy_bound
