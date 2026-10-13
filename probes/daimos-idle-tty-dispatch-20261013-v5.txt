@@ -1,0 +1,13 @@
+# Targeted idle-TTY activation test after ROOT authenticated into DSH.
+# Multiple INITTAB LOGIN entries must not leave inactive LOGIN processes.
+probe idle-tty-ps-one-session
+command PS
+contains PID PPID S WORDS COMM
+contains INIT
+not_contains LOGIN
+end
+
+probe idle-tty-logstore-online
+command LOGD; LOGDUMP
+contains LOGSTORE READY
+end

@@ -20,6 +20,8 @@ usage: daimos-simh-harness-v6.sh --daimos-repo DIR --dofile FILE [options]
   --timeout SEC            command timeout, default 15
   --timeout-snapshot       interrupt SIMH and capture CPU history on timeout
   --login USER             log in through INIT/LOGIN before waiting for DSH
+  --wake-login             wake idle CTY LOGIN with a newline first
+  --verify-idle-respawn    after probes, logout and require wake before LOGIN
   --markdown-report FILE   markdown result report
 USAGE
         exit 2
@@ -37,6 +39,8 @@ pty_run=${DAIMOS_PTY_RUN:-}
 tcp_run=${DAIMOS_TCP_RUN:-}
 dcs_port=
 login_user=
+wake_login=no
+verify_idle_respawn=no
 timeout_snapshot=no
 
 while [ $# -gt 0 ]; do
@@ -52,6 +56,8 @@ while [ $# -gt 0 ]; do
         --boot-timeout) [ $# -ge 2 ] || usage; boot_timeout=$2; shift 2 ;;
         --timeout) [ $# -ge 2 ] || usage; default_timeout=$2; shift 2 ;;
         --login) [ $# -ge 2 ] || usage; login_user=$2; shift 2 ;;
+        --wake-login) wake_login=yes; shift ;;
+        --verify-idle-respawn) verify_idle_respawn=yes; shift ;;
         --timeout-snapshot) timeout_snapshot=yes; shift ;;
         --markdown-report) [ $# -ge 2 ] || usage; markdown_report=$2; shift 2 ;;
         *) usage ;;
@@ -292,7 +298,21 @@ if [ -n "$login_user" ]; then
                         wait_marker 'LOGIN: ' "$start" "$boot_timeout" || rc=$?
                 fi
         else
-                wait_marker 'LOGIN: ' "$boot_start" "$boot_timeout" || rc=$?
+                if [ "$wake_login" = yes ]; then
+                        wait_marker 'INIT V1' "$boot_start" "$boot_timeout" || rc=$?
+                        if [ "$rc" -eq 0 ]; then
+                                start=`log_size`
+                                send_slow_line ''
+                                wait_marker 'LOGIN: ' "$start" "$boot_timeout" || rc=$?
+                        fi
+                        if [ "$rc" -eq 0 ]; then
+                                start=`log_size`
+                                send_slow_line ''
+                                wait_marker 'LOGIN: ' "$start" "$boot_timeout" || rc=$?
+                        fi
+                else
+                        wait_marker 'LOGIN: ' "$boot_start" "$boot_timeout" || rc=$?
+                fi
         fi
         if [ "$rc" -ne 0 ]; then
                 echo "LOGIN prompt not reached (rc=$rc); transcript: $io_log" >&2
@@ -490,6 +510,27 @@ while IFS= read -r raw || [ -n "$raw" ]; do
         esac
 done < "$probes"
 [ -z "$probe_name" ] || { echo "unterminated probe: $probe_name" >&2; exit 1; }
+
+# Optional activation-cycle acceptance, separate from shell feature probes.
+# An idle-TTY supervisor should not produce a new LOGIN prompt until input.
+if [ "$verify_idle_respawn" = yes ] && [ "$stop_after_probe" = no ]; then
+        before=`log_size`
+        send_slow_line 'EXIT'
+        sleep 2
+        if [ -f "$io_log" ] && tail -c +$((before + 1)) "$io_log" | grep -F 'LOGIN: ' >/dev/null; then
+                echo 'FAIL idle-respawn: LOGIN started without terminal input' >&2
+                fail=$((fail + 1))
+        else
+                before=`log_size`
+                send_slow_line ''
+                if wait_marker 'LOGIN: ' "$before" "$boot_timeout"; then
+                        echo 'PASS idle-respawn: LOGIN starts after terminal input'
+                else
+                        echo 'FAIL idle-respawn: LOGIN not restarted on input' >&2
+                        fail=$((fail + 1))
+                fi
+        fi
+fi
 
 mkdir -p "`dirname "$markdown_report"`"
 {

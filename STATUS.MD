@@ -1,3 +1,16 @@
+# On-demand LOGIN dispatcher, experimental v5 (2026-10-13)
+
+Opt-in SUPERVISOR dispatch (`SUPERVISOR_IDLE_TTY_DISPATCH=1`) passed
+fresh-image targeted tests on CTY0 and DCS0. Both accept input while
+idle, launch LOGIN, and reach ROOT DSH. After shell exit the terminals
+remain idle until another input event, then LOGIN is relaunched. DCS0
+PS confirmed no idle LOGIN processes despite three default INITTAB
+LOGIN services; PID 1 is 2048 decimal words, temporarily two APR blocks.
+Short LOGSTORE/physical AUXSTORE checks pass. Opt-in image size:
+001420 image, 000053 BSS, 000400 ST2 stack, 000020 origin => 002113
+required, 004000 rounded APR. One-APR optimization, GE and concurrent
+DCS/GE inputs, 32K boot and full DSH conformance remain pending.
+
 # Idle-TTY scanner-arm stage (2026-10-13 v4)
 
 DCS and GE MRES now export idle scanner-arm entry points, installed
