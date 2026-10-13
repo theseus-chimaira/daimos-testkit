@@ -1,0 +1,1 @@
+TOTAL raw=159973 singleton=151853 grouped=139390 aligned_even=139390 v006=131548
