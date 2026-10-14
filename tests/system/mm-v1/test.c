@@ -569,6 +569,8 @@ int
 main(void)
 {
         kword_t base;
+        kword_t table_base;
+        kword_t managed_base;
         kword_t blocker;
         kword_t frag_process;
         kword_t frag_high;
@@ -588,6 +590,38 @@ main(void)
         unsigned int first;
         unsigned int second;
         unsigned int third;
+
+        /* The descriptor table is reserved above the live KINIT stack.
+         * No failed layout calculation is allowed to publish outputs. */
+        table_base = 01234UL;
+        managed_base = 05670UL;
+        check(mm_boot_table_region(0100000UL, 040000UL, 02000UL,
+            32U, &table_base, &managed_base) == MM_OK &&
+            table_base == 042000UL && managed_base == 042100UL,
+            "32K MM boot table location");
+        check(mm_boot_table_region(0200000UL, 040000UL, 02000UL,
+            48U, &table_base, &managed_base) == MM_OK &&
+            table_base == 042000UL && managed_base == 042140UL,
+            "64K MM boot table location");
+        check(mm_boot_table_region(0400000UL, 040000UL, 02000UL,
+            64U, &table_base, &managed_base) == MM_OK &&
+            table_base == 042000UL && managed_base == 042200UL,
+            "128K MM boot table location");
+        check(mm_boot_table_region(01000000UL, 040000UL, 02000UL,
+            64U, &table_base, &managed_base) == MM_OK &&
+            table_base == 042000UL && managed_base == 042200UL,
+            "256K MM boot table location");
+        check(mm_boot_table_region(01000001UL, 040000UL, 02000UL,
+            64U, &table_base, &managed_base) == MM_ERR_INVAL,
+            "reject non-addressable MM physical size");
+        check(mm_boot_table_region(042077UL, 040000UL, 02000UL,
+            32U, &table_base, &managed_base) == MM_ERR_NOMEM,
+            "reject insufficient MM table storage");
+        check(mm_boot_table_region(0100000UL, 040000UL, 02000UL,
+            31U, &table_base, &managed_base) == MM_ERR_INVAL,
+            "reject unsafe descriptor capacity");
+        check(table_base == 042000UL && managed_base == 042200UL,
+            "failed MM table reservation changed outputs");
 
         /* Equal effective priorities rotate by process-table position without
          * run-queue storage. */
