@@ -200,7 +200,9 @@ mm-core:
 		-I'$(DAIMOS_REPO)/system/kernel/proc' \
 		-I'$(DAIMOS_REPO)/system/kernel/storage' \
 		-o '$(BUILD_ROOT)/tests/system/mm-v1/test' \
-		tests/system/mm-v1/test.c '$(DAIMOS_REPO)/system/kernel/mm/mm.c' \
+		tests/system/mm-v1/test.c tests/system/mm-v1/storage_contract_v118.c \
+		'$(DAIMOS_REPO)/system/kernel/proc/proc_storage_map_v28.c' \
+		'$(DAIMOS_REPO)/system/kernel/mm/mm.c' \
 		'$(DAIMOS_REPO)/system/kernel/mm/mm_boot.c' \
 		'$(DAIMOS_REPO)/system/kernel/modules/module_runtime.c' \
 		'$(DAIMOS_REPO)/system/kernel/proc/proc.c' \

@@ -8,6 +8,7 @@
 #include "vm.h"
 #include "vm_pdp6.h"
 #include "proc_swap.h"
+#include "proc_storage_map_v28.h"
 #include "syscall.h"
 #include "module_runtime.h"
 #include "kcore_pi.h"
@@ -1246,6 +1247,8 @@ main(void)
         check(proc_swap_records[1].state != 0UL,
             "resident packed swap state is empty");
         check(proc_swap_out(1U) == 0, "swap out pure process");
+        check(proc_storage_get_v28(&proc_storage_runtime_v29, 1U) ==
+            PROC_STORAGE_DISK, "swap-out did not publish DISK state");
         check(PROC_STATE(&proc_table[1]) == PROC_STOP &&
             VM_PDP6_BASE(&proc_table[1]) == 0UL, "pure process not swapped");
         PROC_SET_STATE(&proc_table[1], PROC_SRUN);
@@ -1261,6 +1264,9 @@ main(void)
             "scheduler tried to run swapped process in PI context");
         check(proc_swap_service_one() == 1,
             "slot-0 service did not swap in runnable process");
+        check(proc_storage_get_v28(&proc_storage_runtime_v29, 1U) ==
+            PROC_STORAGE_RESIDENT,
+            "swap-in did not restore RESIDENT state");
         check(VM_SPACE_ACTIVE(&proc_table[1]),
             "slot-0 service left runnable process swapped");
         proc_runq_remove(1U);
@@ -1468,6 +1474,9 @@ main(void)
             "prepare swap read failure process");
         test_swap_fail_read = 1;
         check(proc_swap_in(1U) != 0, "forced swap read failure succeeded");
+        check(proc_storage_get_v28(&proc_storage_runtime_v29, 1U) ==
+            PROC_STORAGE_DISK,
+            "failed swap-in unexpectedly changed storage mode");
         test_swap_fail_read = 0;
         check(!VM_SPACE_ACTIVE(&proc_table[1]) &&
             test_swap_used_blocks() != 0UL,
