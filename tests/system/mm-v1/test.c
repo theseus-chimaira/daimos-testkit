@@ -591,6 +591,31 @@ main(void)
         unsigned int second;
         unsigned int third;
 
+        /* Low-memory reservation precedes the contiguous MRES region. */
+        table_base = 0UL;
+        managed_base = 0UL;
+        check(mm_boot_low_table(0100000UL, 023000UL, 030000UL,
+            32U, &table_base, &managed_base) == MM_OK &&
+            table_base == 023000UL && managed_base == 023100UL,
+            "32K low MM table/MRES order");
+        check(mm_boot_low_table(0200000UL, 023000UL, 030000UL,
+            48U, &table_base, &managed_base) == MM_OK &&
+            managed_base == 023140UL, "64K low MM table/MRES order");
+        check(mm_boot_low_table(0400000UL, 023000UL, 030000UL,
+            64U, &table_base, &managed_base) == MM_OK &&
+            managed_base == 023200UL, "128K low MM table/MRES order");
+        check(mm_boot_low_table(01000000UL, 023000UL, 030000UL,
+            64U, &table_base, &managed_base) == MM_OK &&
+            managed_base == 023200UL, "256K low MM table/MRES order");
+        check(mm_boot_low_table(0100000UL, 027740UL, 030000UL,
+            64U, &table_base, &managed_base) == MM_ERR_NOMEM,
+            "reject low MM table overlapping KINIT");
+        check(mm_boot_low_table(0100000UL, 023000UL, 030000UL,
+            31U, &table_base, &managed_base) == MM_ERR_INVAL,
+            "reject low MM table capacity below minimum");
+        check(table_base == 023000UL && managed_base == 023200UL,
+            "failed low MM table reservation modified outputs");
+
         /* The descriptor table is reserved above the live KINIT stack.
          * No failed layout calculation is allowed to publish outputs. */
         table_base = 01234UL;
