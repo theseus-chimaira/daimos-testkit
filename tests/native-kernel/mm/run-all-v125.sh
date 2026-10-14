@@ -14,5 +14,5 @@ for script in $(find "$here" -name 'run-v*.sh' -type f | LC_ALL=C sort); do
     sh "$script"
     count=$((count + 1))
 done
-test "$count" -eq 15
+test "$count" -eq 16
 printf 'PASS: %s PDP-6 MM regression scripts\n' "$count"

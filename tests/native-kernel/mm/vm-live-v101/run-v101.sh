@@ -28,5 +28,6 @@ ASM
  "$(dirname "$0")/../../../validation/d6codec-native-v051/crt_stack_v051.s" \
  "$(dirname "$0")/test-v101.s" \
  "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" \
+  "$(dirname "$0")/../table-v133.s" \
  "$out/entry-v101.s" "$out/vm-exact-v101.s" "$out/move-exact-v101.s" \
  "$(dirname "$0")/deps-v101.s"
