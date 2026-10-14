@@ -11,5 +11,6 @@ cc -std=c99 -O2 -Wall -Wextra \
   -I"$DAIMOS_REPO/system/kernel/storage" \
   "$DAIMOS_REPO/system/kernel/proc/proc_packed_layout_v36.c" \
   "$DAIMOS_REPO/system/kernel/proc/proc_packed_boot_v38.c" \
+  "$DAIMOS_REPO/system/kernel/proc/proc_packed_runtime_v086.c" \
   "$(dirname "$0")/test.c" -o "$TMPDIR/packed-boot-v38-test"
 "$TMPDIR/packed-boot-v38-test"

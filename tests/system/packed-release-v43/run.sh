@@ -11,5 +11,6 @@ cc -DDAIMOS_TEST_HOST_WORD_ADDR -std=c99 -O2 -Wall -Wextra -I"$DAIMOS_REPO/syste
   "$DAIMOS_REPO/system/kernel/proc/proc_packed_owner_v37.c" \
   "$DAIMOS_REPO/system/kernel/proc/proc_packed_release_v43.c" \
   "$DAIMOS_REPO/system/kernel/proc/proc_packed_boot_v38.c" \
+  "$DAIMOS_REPO/system/kernel/proc/proc_packed_runtime_v086.c" \
   "$(dirname "$0")/test.c" -o "$TMPDIR/packed-release-v43-test"
 "$TMPDIR/packed-release-v43-test"
