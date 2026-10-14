@@ -702,7 +702,12 @@ main(void)
                 proc_table[i].sched = PROC_SCHED_DEFAULT;
         }
 
+        /* Boot must discard any stale active ceiling before MM is used.
+         * The physical backing is still the original 32-entry array. */
+        mm_extent_capacity = 31U;
         mm_boot_init(0100000UL);
+        check(mm_extent_capacity == MM_MAX_EXTENTS,
+            "MM boot did not restore safe physical descriptor capacity");
         check(mm_add_free(020000UL, 010000UL) == MM_OK,
             "add low bootstrap range");
         check(mm_add_free(050000UL, 030000UL) == MM_OK,
