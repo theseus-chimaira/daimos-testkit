@@ -14,6 +14,7 @@ static int writes;
 static unsigned int owner_shift;
 int __test_exit;
 unsigned int dtfs_media[4];
+kword_t dtfs_media_base;
 
 int dtfs_chain_walk(unsigned int, unsigned int, unsigned int, kword_t *,
     unsigned int, unsigned int, int);
@@ -169,6 +170,7 @@ static int test_corrupt(void)
 int main(void)
 {
         int r;
+        dtfs_media_base = (kword_t)(unsigned long)dtfs_media;
         r = test_native(); if (r) return r;
         r = test_tenex(); if (r) return r;
         r = test_its(); if (r) return r;

@@ -2,7 +2,7 @@
         .text
         .globl main
         .globl dtfs_dtc_read
-        .globl dtfs_media
+        .globl dtfs_media_base
         .globl fs_block_workspace
         .globl fs_copy_words
         .globl kret_zero
@@ -15,8 +15,8 @@
         .globl vfs_name_words_equal
         .globl fs_words_equal
         .globl vfs_sixbit_name_chars
-        .globl tsfs_file_shape
-        .globl tsfs_extent_media
+        .globl tsfs_file_shape_base
+        .globl tsfs_extent_media_base
         .globl tsfs_read_words
         .globl mm_alloc
         .globl mm_free
@@ -27,13 +27,13 @@
 main:
         ; FILE table: physical DTC7, two records, block 4.
         move    1,[700002,,4]
-        movem   1,dtfs_media
+        movem   1,v15_media_table
         ; Logical members 0,1,2 -> physical DTC 4,1,7.
         movei   1,0714
-        movem   1,tsfs_file_shape
+        movem   1,v15_shape_table
         ; EXTENT table: physical DTC7, two records, block 5.
         move    1,[700002,,5]
-        movem   1,tsfs_extent_media
+        movem   1,v15_extent_table
 
         ; vnode = provider 7, mount 1/local kind 2, file record 1.
         movei   1,7
@@ -250,8 +250,14 @@ d6lz36_decode_core:
 bcache_reclaim:
         jrst    kret_zero
 
+        .data
+dtfs_media_base:        .word v15_media_table
+tsfs_file_shape_base:   .word v15_shape_table
+tsfs_extent_media_base: .word v15_extent_table
         .bss
-dtfs_media:             .block 4
+v15_media_table:        .block 4
+v15_shape_table:        .block 4
+v15_extent_table:       .block 4
 fs_block_workspace:     .block 0200
 result:                 .block 030
         .globl __test_exit

@@ -2,7 +2,7 @@
         .text
         .globl main
         .globl dtfs_dtc_read
-        .globl dtfs_media
+        .globl dtfs_media_base
         .globl fs_block_workspace
         .globl fs_copy_words
         .globl kret_zero
@@ -15,8 +15,8 @@
         .globl vfs_name_words_equal
         .globl fs_words_equal
         .globl vfs_sixbit_name_chars
-        .globl tsfs_file_shape
-        .globl tsfs_extent_media
+        .globl tsfs_file_shape_base
+        .globl tsfs_extent_media_base
         .globl tsfs_read_words
         .globl mm_alloc
         .globl mm_free
@@ -26,11 +26,11 @@
 
 main:
         move    1,[700002,,4]
-        movem   1,dtfs_media
+        movem   1,v15_media_table
         movei   1,4                    ; logical member 0 -> DTC4
-        movem   1,tsfs_file_shape
+        movem   1,v15_shape_table
         move    1,[700001,,5]
-        movem   1,tsfs_extent_media
+        movem   1,v15_extent_table
 
         movei   1,7
         lsh     1,036
@@ -237,8 +237,14 @@ vfs_name_chars_next:
         move    1,4
         popj    17,
 
+        .data
+dtfs_media_base:        .word v15_media_table
+tsfs_file_shape_base:   .word v15_shape_table
+tsfs_extent_media_base: .word v15_extent_table
         .bss
-dtfs_media:             .block 4
+v15_media_table:        .block 4
+v15_shape_table:        .block 4
+v15_extent_table:       .block 4
 fs_block_workspace:     .block 0200
 decodebuf:              .block 0400
 result:                 .block 020
