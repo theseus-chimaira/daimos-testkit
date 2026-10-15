@@ -91,6 +91,9 @@ d6fs_provider_space:
         popj    17,
 
         .data
+        .globl d6fs_reader_slots_base
+d6fs_reader_slots_base:
+        .word d6fs_reader_slots
 d6fs_mres_vector:
         .word   0
 

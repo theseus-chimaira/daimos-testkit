@@ -160,6 +160,9 @@ fs_backing_direct_write:
         popj    17,
 
         .data
+        .globl d6fs_reader_slots_base
+d6fs_reader_slots_base:
+        .word d6fs_reader_slots
 secondary_handoff:
         .word   7                       ; alloc cursor
         .word   0330200                 ; packed summary start + copy B

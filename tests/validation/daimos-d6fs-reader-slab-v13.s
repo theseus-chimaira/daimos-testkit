@@ -1,0 +1,225 @@
+        .set root_target,060001010003
+        .text
+        .globl  main
+        .globl  fs_mres_vector_dispatch
+        .globl  kret_neg1
+        .globl  vfs_mount
+        .globl  vfs_mount_prevalidated
+        .globl  vfs_mount_target
+        .globl  vfs_mount_root
+        .globl  vfs_mount_ro
+        .globl  mm_alloc
+        .globl  mm_free
+        .globl  fs_backing_direct_read
+        .globl  fs_backing_direct_write
+        .globl  d6fs_mres_vector
+        .globl  d6fs_active_reader
+        .globl  d6fs_reader_slots
+        .globl  d6fs_provider_toggle_state
+        .globl  d6fs_provider_prepare_unmount
+        .globl  d6fs_provider_space
+        .globl  __test_exit
+        .globl  kconst_1_1
+        .globl  kconst_2_2
+        .globl  kconst_3_3
+        .globl  kconst_4_4
+
+main:
+        ; Existing boot root occupies public mount id 1 / slot 0.
+        movei   1,root_reader
+        movem   1,d6fs_reader_slots
+        movem   1,d6fs_active_reader
+        ; KINIT's ordering: MINIT puts the bootstrap reader into fallback
+        ; slot zero, then the slab's reader table receives that pointer.
+        move    2,d6fs_reader_slots
+        movem   2,v13_reader_slab
+        movei   2,v13_reader_slab
+        movem   2,d6fs_reader_slots_base
+        movei   2,0123456
+        movem   2,d6fs_reader_slots     ; detect old direct accesses
+        movei   2,1
+        movem   2,root_reader+1
+        move    2,[1,,0100]
+        movem   2,root_reader+014       ; distinct root backing identity
+        movei   2,01000
+        movem   2,root_reader+015
+
+        ; Mount a second independently backed D6FS through production
+        ; FS_MRES_OP_MOUNT_UNIT.  AC4 is intentionally unused.
+        movei   1,secondary_handoff
+        movei   2,root_target
+        movei   3,1                     ; VFS_MOUNT_RDONLY
+        setz    4,
+        movei   6,022                   ; FS_MRES_OP_MOUNT_UNIT
+        pushj   17,d6fs_mres_dispatch
+        jumpn   1,multimount_fail
+
+        move    1,v13_reader_slab+1
+        caie    1,secondary_reader
+        jrst    multimount_fail
+        move    1,d6fs_active_reader
+        caie    1,secondary_reader
+        jrst    multimount_fail
+        move    1,v13_reader_slab
+        caie    1,root_reader
+        jrst    multimount_fail
+        move    1,d6fs_reader_slots
+        caie    1,0123456               ; legacy fallback untouched
+        jrst    multimount_fail
+
+        ; Runtime geometry and physical backing are independent per mount.
+        move    1,secondary_reader+3    ; total blocks
+        caie    1,02000
+        jrst    multimount_fail
+        move    1,secondary_reader+011  ; super A block
+        caie    1,020
+        jrst    multimount_fail
+        move    1,secondary_reader+012  ; super B block
+        caie    1,021
+        jrst    multimount_fail
+        move    1,secondary_reader+014  ; DRM set mask 0,2,3 + common base
+        came    1,[0600015,,0400]
+        jrst    multimount_fail
+        move    1,secondary_reader+015  ; backing capacity
+        caie    1,02000
+        jrst    multimount_fail
+        move    1,secondary_reader+013  ; trusted callbacks replaced marker
+        came    1,[fs_backing_direct_read,,fs_backing_direct_write]
+        jrst    multimount_fail
+
+        ; Runtime state receives mount id 2; root state remains untouched.
+        move    1,secondary_reader+1
+        andi    1,0277
+        caie    1,0202                  ; mount id 2, selected copy B
+        jrst    multimount_fail
+        move    1,root_reader+1
+        andi    1,077
+        caie    1,1
+        jrst    multimount_fail
+        move    1,root_reader+014
+        came    1,[1,,0100]
+        jrst    multimount_fail
+
+        ; Normal vnode dispatch independently selects both contexts.
+        movei   1,1
+        lsh     1,030
+        movei   6,1
+        pushj   17,d6fs_mres_dispatch
+        caie    1,root_reader
+        jrst    multimount_fail
+        movei   1,2
+        lsh     1,030
+        movei   6,1
+        pushj   17,d6fs_mres_dispatch
+        caie    1,secondary_reader
+        jrst    multimount_fail
+
+        setz    1,
+        popj    17,
+
+multimount_fail:
+        movei   1,1
+        popj    17,
+
+; mm_alloc fifth argument is basep at -1(17) after PUSHJ's return word.
+mm_alloc:
+        move    5,-1(17)
+        movei   6,secondary_reader
+        movem   6,(5)
+        setz    1,
+        popj    17,
+
+mm_free:
+        setz    1,
+        popj    17,
+
+; vfs_mount sixth argument is rootp at -2(17).  Allocate public mount id 2.
+vfs_mount:
+vfs_mount_prevalidated:
+        move    5,-2(17)
+        move    6,[060201000003]
+        movem   6,(5)
+        movei   7,1                     ; zero-based VFS slot 1
+        setz    1,
+        popj    17,
+
+fs_mres_vector_dispatch:
+        move    1,d6fs_active_reader
+        popj    17,
+
+kret_neg1:
+        seto    1,
+        popj    17,
+
+; Remount opcode is not exercised by this oracle.
+d6fs_provider_toggle_state:
+        seto    1,
+        popj    17,
+
+; Mount failure cleanup is outside this successful mount-isolation oracle.
+d6fs_provider_prepare_unmount:
+        setz    1,
+        popj    17,
+
+; SPACE is outside this mount-isolation oracle.
+d6fs_provider_space:
+        seto    1,
+        popj    17,
+
+fs_backing_direct_read:
+        setz    1,
+        popj    17,
+fs_backing_direct_write:
+        setz    1,
+        popj    17,
+
+        .data
+        .globl d6fs_reader_slots_base
+d6fs_reader_slots_base:
+        .word d6fs_reader_slots
+secondary_handoff:
+        .word   7                       ; alloc cursor
+        .word   0330200                 ; packed summary start + copy B
+        .word   012                     ; sequence
+        .word   02000                   ; total blocks
+        .word   3                       ; root FCB
+        .word   040                     ; FCB start
+        .word   010                     ; FCB count
+        .word   060                     ; freemap start
+        .word   2                       ; freemap blocks
+        .word   020                     ; super A block
+        .word   021                     ; super B block
+        .word   044066263602            ; D6FS_MOUNT_MAGIC
+        .word   0600015,,0400           ; DRM INTERLEAVE set mask,,base
+        .word   02000                   ; backing capacity
+
+d6fs_mres_vector:
+        .word   0
+kconst_1_1:
+        .word   1,,1
+kconst_2_2:
+        .word   2,,2
+kconst_3_3:
+        .word   3,,3
+kconst_4_4:
+        .word   4,,4
+
+        .bss
+d6fs_active_reader:
+        .block  1
+d6fs_reader_slots:
+        .block  4
+v13_reader_slab:
+        .block  4
+vfs_mount_target:
+        .block  4
+vfs_mount_root:
+        .block  4
+vfs_mount_ro:
+        .block  1
+root_reader:
+        .block  016
+secondary_reader:
+        .block  016
+__test_exit:
+        .block  1
