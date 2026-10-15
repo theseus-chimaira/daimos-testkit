@@ -1,4 +1,5 @@
 #include "proc_swap.h"
+#include "proc_storage_map_v28.h"
 #include "vm_pdp6.h"
 #include "exec.h"
 #include "bstore.h"
@@ -14,6 +15,7 @@
 
 static struct proc processes[2];
 static struct proc_swap_record records[2];
+static kword_t storage_mode_words[PROC_STORAGE_MAP_WORDS_V28(2U)];
 static kword_t uarea[PROC_UAREA_WORDS];
 static kword_t resident[TEST_WORDS];
 static kword_t restored[TEST_WORDS];
@@ -231,6 +233,13 @@ setup_process(int compressed)
 {
         unsigned int i;
 
+        /* Real swap transactions validate and publish the packed storage
+         * lifecycle.  The isolated fixture must provide the boot allocator's
+         * two-bit-per-slot map, initially RESIDENT (zero), not a null map.
+         */
+        storage_mode_words[0] = 0UL;
+        proc_storage_runtime_v29.words = storage_mode_words;
+        proc_storage_runtime_v29.slots = 2U;
         for (i = 0U; i < PROC_UAREA_WORDS; ++i)
                 uarea[i] = 0UL;
         for (i = 0U; i < TEST_WORDS; ++i) {

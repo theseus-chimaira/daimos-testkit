@@ -51,7 +51,11 @@ compile_swap()
     {
         cat "$work/swap-c-$mode.s"
         echo ".equ PROC_SWAP_VERIFY_PURE,$verify"
+        # The production swap package links PURE backing as a separate leaf.
+        # Keep the test's storage stubs, but include the real backing guard.
         cat "$kernel/proc/proc_swap_pdp6.s"
+        cat "$kernel/proc/proc_pure_backing_pdp6.s"
+        cat "$kernel/proc/proc_storage_runtime_v30.s"
     } >"$work/swap-$mode.s"
 }
 

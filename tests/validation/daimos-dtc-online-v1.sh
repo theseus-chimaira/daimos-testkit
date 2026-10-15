@@ -9,6 +9,8 @@ set -eu
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
 : "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
 : "${TMPDIR:?TMPDIR must be set}"
+: "${DAS_REPO:?DAS_REPO must be set}"
+: "${KCC_REPO:?KCC_REPO must be set}"
 
 make_cmd=${MAKE:-make}
 host_cc=${HOST_CC:-cc}
@@ -53,6 +55,7 @@ touch "$media"
 PATH="$PDP10_PREFIX/bin:$PATH" \
     "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
+    DAS_REPO="$DAS_REPO" KCC_REPO="$KCC_REPO" \
     DTC0_IMAGE="$media" >/dev/null
 cp -R "$boot/disk" "$pristine"
 
@@ -121,6 +124,7 @@ start_run()
         PATH="$PDP10_PREFIX/bin:$PATH" \
             "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
             BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
+            DAS_REPO="$DAS_REPO" KCC_REPO="$KCC_REPO" \
             DTC0_IMAGE="$media" \
             SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
 
