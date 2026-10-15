@@ -12,6 +12,13 @@ testkit=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)
  "$testkit/tests/validation/d6codec-native-v060/test_odd_overlap_v060.s" \
  "$DAIMOS_REPO/system/kernel/core/d6codec_decode_v059.s"
 
+"$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode go \
+ --start 1000 --timeout 15 --workdir "$TMPDIR/d6codec-v060-odd3" \
+ --name d6codec-v060-odd3 --expect __test_exit=0 \
+ "$testkit/tests/validation/daimos-test-crt0-v1.s" \
+ "$testkit/tests/validation/d6codec-native-v060/test_odd_distance3_v060.s" \
+ "$DAIMOS_REPO/system/kernel/core/d6codec_decode_v059.s"
+
 # Re-run the existing invalid-stream fixtures against the v059 decoder.
 mkdir -p "$TMPDIR/d6codec-v060-legacy-regressions"
 for fixture in $testkit/tests/validation/d6codec-native-v048/test_*_v048.s; do
