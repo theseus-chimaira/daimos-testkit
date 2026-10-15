@@ -49,6 +49,11 @@ test_fail:
         .globl  vfs_mount_root
 vfs_mount_root:
         .block  020
+        .data
+        .globl vfs_mount_root_base
+vfs_mount_root_base:
+        .word vfs_mount_root
+        .bss
 test_record:
         .block  1
         .globl  __test_exit

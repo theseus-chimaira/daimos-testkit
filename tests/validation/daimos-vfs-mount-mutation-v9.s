@@ -213,5 +213,11 @@ kconst_2_2:
         .word   2,,2
 kconst_13_13:
         .word   013,,013
+        .globl  vfs_mount_target_base
+        .globl  vfs_mount_root_base
+vfs_mount_target_base:
+        .word   vfs_mount_target
+vfs_mount_root_base:
+        .word   vfs_mount_root
 vfs_mount_limit:
         .word   4
