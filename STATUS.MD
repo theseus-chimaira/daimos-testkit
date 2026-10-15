@@ -1,3 +1,20 @@
+## 2026-10-15 V155–V156 REGRESSION SWEEP
+
+- Corrected the PURE-text swap target's stale object list: it now links
+  production PURE-backing and packed two-bit storage-mode operations, with an
+  initialized two-slot residency map. Both normal and verifier variants PASS
+  on PDP-6. Full GCC `make target` PASS; clean matrix rows 001 and 002 PASS.
+- Boot/source matrix row 004 PASS, including all Stage1 size checks. Size
+  row 003 remains FAIL: `SINGLE_ROOT` last address 045357 exceeds 040000.
+  Do not relax this limit or count the unfinished 32K acceptance as passing.
+- AUTO-root test updated to the production DRM236 member filename
+  `drum/dsk0.dsk` and to the authenticated LOGIN -> ROOT -> DSH session path.
+  Its all-media DISK priority case PASS; the no-DSK tape-root case still
+  fails after DTFS and INIT load. Explicit tape-root and boot/root cross
+  matrix tests also fail before interactive LOGIN acceptance.
+- Full 32-row GCC/KCC regression matrices remain OPEN; individual passed
+  rows and the v154 115/115 DSH conformance suite do not close the gate.
+
 ## 2026-10-12 P10FOLD I/O SKIP AND MULTI-TTY REGRESSION
 
 - `test-daimos-p10fold-io-skip-20261012-v1` protects the PDP-6 BLKI,
