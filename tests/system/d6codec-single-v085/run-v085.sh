@@ -1,0 +1,136 @@
+#!/bin/sh
+set -eu
+
+: "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
+: "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
+: "${TMPDIR:?TMPDIR must be set}"
+
+TESTKIT_ROOT=${TESTKIT_ROOT:-$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)}
+BUILD_ROOT=${BUILD_ROOT:-$TMPDIR/d6codec-single-v085-build-$$}
+KCC_REPO=${KCC_REPO:-$HOME/git/kcc}
+DAS_REPO=${DAS_REPO:-$HOME/git/das}
+export KCC_REPO DAS_REPO
+KERNEL_BUILD=${KERNEL_BUILD:-$BUILD_ROOT/tests/system/kernel}
+PTY_RUN=${PTY_RUN:-$BUILD_ROOT/tools/pty-run-v1}
+TCP_RUN=${TCP_RUN:-$BUILD_ROOT/tools/tcp-run-v1}
+LOGSTORE=${LOGSTORE:-$PDP10_PREFIX/bin/logstore}
+HARNESS=$TESTKIT_ROOT/tools/daimos-simh-harness-v4.sh
+WATCH_OUTPUT=$TESTKIT_ROOT/tools/watch-output.sh
+PROBES=$TESTKIT_ROOT/tests/system/d6codec-single-v085/probes-v085.txt
+MKDSK=${MKDSK:-$PDP10_PREFIX/bin/mkdsk}
+MKD6FS=${MKD6FS:-$PDP10_PREFIX/bin/mkd6fs}
+S6TEXT=${S6TEXT:-$PDP10_PREFIX/bin/s6text}
+SIMH_PDP6=${SIMH_PDP6:-$PDP10_PREFIX/bin/pdp6}
+WORK=$TMPDIR/daimos-d6codec-single-v085-$$
+dcs_port=$((29000 + ($$ % 1000)))
+REPORT=${D6CODEC_USERSPACE_V085_REPORT:-$BUILD_ROOT/report-v085.md}
+INITTAB=$WORK/inittab-dcs0
+INITTAB_S6REC=$WORK/inittab-dcs0.s6rec
+PASSWD_S6REC=$WORK/passwd.s6rec
+
+cleanup()
+{
+        rm -rf "$WORK"
+}
+trap cleanup 0 1 2 3 15
+mkdir -p "$WORK/disk" "$(dirname "$REPORT")" "$BUILD_ROOT/tools"
+printf '%s\n' '1:RESPAWN:/SYSTEM/EXEC/LOGIN' > "$INITTAB"
+"$S6TEXT" --encode "$INITTAB" "$INITTAB_S6REC"
+"$S6TEXT" --encode "$DAIMOS_REPO/userland/config/passwd" "$PASSWD_S6REC"
+
+if [ ! -x "$PTY_RUN" ]; then
+        ${HOST_CC:-cc} -std=c99 -O2 -Wall -Wextra \
+            -o "$PTY_RUN" "$TESTKIT_ROOT/tools/pty-run-v1.c"
+fi
+if [ ! -x "$TCP_RUN" ]; then
+        ${HOST_CC:-cc} -std=c99 -O2 -Wall -Wextra \
+            -o "$TCP_RUN" "$TESTKIT_ROOT/tools/tcp-run-v1.c"
+fi
+
+# Compile the sole host compressor from this DAIMOS worktree.
+HOST_CODEC_BUILD="$BUILD_ROOT/host-codec"
+make -C "$DAIMOS_REPO/tools/host" BUILD_ROOT="$HOST_CODEC_BUILD" \
+    "$HOST_CODEC_BUILD/tools/host/d6lz"
+D6LZ_HOST="$HOST_CODEC_BUILD/tools/host/d6lz"
+export D6LZ_HOST
+
+make -C "$TESTKIT_ROOT/tests/system/kernel" image \
+    DAIMOS_REPO="$DAIMOS_REPO" BUILD="$KERNEL_BUILD" \
+    PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$TMPDIR" \
+    BOOT_PROFILE=full COMPILER=gcc
+
+"$MKDSK" -n 1 -m clean -p "$KERNEL_BUILD/kinit.d6lz.words" \
+    -o "$WORK/disk" --d6fs-layout --logstore-blocks 0400 \
+    --swap-tail-blocks 0200
+# DSH dispatches these commands as external executables.  Supply every
+# program exercised by probes-v1.txt, rather than treating "NOT FOUND" as a
+# successful file operation on an otherwise empty bootstrap image.
+set -- -n 1 -d "$WORK/disk" \
+    -D /TEMP:0777 \
+    -D /SYSTEM:0555 -D /SYSTEM/EXEC:0555 -D /CONFIG:0755 \
+    -f "/SYSTEM/INIT:$KERNEL_BUILD/userland-build/userland/init.dxr:555:dxr" \
+    -f "/SYSTEM/EXEC/MOUNTALL:$KERNEL_BUILD/userland-build/userland/mountall.dxr:555:dxr" \
+    -f "/SYSTEM/EXEC/LOGIN:$KERNEL_BUILD/userland-build/userland/login.d6lz.dxr:555:dxr" \
+    -f "/SYSTEM/EXEC/DSH:$KERNEL_BUILD/userland-build/userland/dsh.d6lz.dxr:555:dxr" \
+    -f "/CONFIG/INITTAB:$INITTAB_S6REC:644:binwords" \
+    -f "/CONFIG/PASSWD:$PASSWD_S6REC:600:binwords"
+for command in TOUCH STAT ECHO CAT CP MV MKDIR RM LS; do
+        program=$KERNEL_BUILD/userland-build/userland/program/$command.d6lz.dxr
+        if [ ! -s "$program" ]; then
+                echo "d6fs-recovery-v1: missing userland command $program" >&2
+                exit 1
+        fi
+        set -- "$@" -f "/SYSTEM/EXEC/$command:$program:555:dxr"
+done
+set -- "$@" -f "/SYSTEM/EXEC/D6LZ:$KERNEL_BUILD/userland-build/userland/d6lz.dxr:555:dxr"
+"$MKD6FS" "$@"
+"$LOGSTORE" -n 1 -d "$WORK/disk" --init >/dev/null
+
+sed -e "s|set -q -n log .*|set -q -n log $WORK/simh.log|" \
+    -e "s|attach -q dsk0 .*|attach -q dsk0 $WORK/disk/dsk0.dsk|" \
+    -e '/^attach -q dsk[123] /d' \
+    -e "s|attach -q dcs0 .*|attach -q dcs0 $dcs_port|" \
+    -e '/^attach -q ge0 /d' \
+    "$KERNEL_BUILD/boot.ini" > "$WORK/kinit.ini"
+"$HARNESS" --daimos-repo "$DAIMOS_REPO" --dofile "$WORK/kinit.ini" \
+    --pty-run "$PTY_RUN" --tcp-run "$TCP_RUN" --dcs-port "$dcs_port" \
+    --boot-timeout 180 --login ROOT --probes "$PROBES" --work-dir "$WORK/run" \
+    --markdown-report "$REPORT"
+# Inspect the real on-disk files after the scripted userspace compressor ran.
+# The exporter reuses the exact D6FS checker mapping and extent reader.
+${HOST_CC:-cc} -std=c99 -O2 -Wall -Wextra -Werror \
+    -Wno-unused-function -I"$DAIMOS_REPO/tools/host" \
+    "$TESTKIT_ROOT/tests/system/d6codec-single-v085/export-v085.c" \
+    -o "$WORK/export-v085"
+${HOST_CC:-cc} -std=c99 -O2 -Wall -Wextra -Werror -pedantic \
+    -I"$DAIMOS_REPO/tools/host" \
+    "$TESTKIT_ROOT/tests/system/d6codec-single-v085/verify-v085.c" \
+    "$DAIMOS_REPO/tools/host/d6codec-group-v071.c" \
+    -o "$WORK/verify-v085"
+for path in /CONFIG/PASSWD /SYSTEM/INIT; do
+    case "$path" in
+        /CONFIG/PASSWD) name=PASSWD; compressed=/TEMP/GRP ;;
+        /SYSTEM/INIT) name=INIT; compressed=/TEMP/INITGRP ;;
+    esac
+    "$WORK/export-v085" "$WORK/disk" "$path" "$WORK/$name.source"
+    "$WORK/export-v085" "$WORK/disk" "$compressed" "$WORK/$name.grouped"
+    "$WORK/verify-v085" "$WORK/$name.source" "$WORK/$name.grouped"
+    # Native PDP-6 decode of the exact extracted stream, not regenerated
+    # host-compressed data. This catches independent decoder mismatches.
+    python3 "$TESTKIT_ROOT/tests/system/d6codec-single-v085/make-native-v085.py" \
+        "$WORK/$name.source" "$WORK/$name.grouped" "$WORK/$name.native.s"
+    # Resolve fixed decoder relocation locally inside one assembler unit.
+    awk '/^\.data$/ { exit } { print }' "$WORK/$name.native.s" \
+        > "$WORK/$name.native-combined.s"
+    cat "$DAIMOS_REPO/system/stand/pdp6/common/decompressor.inc" \
+        >> "$WORK/$name.native-combined.s"
+    awk '/^\.data$/ { copy=1 } copy { print }' "$WORK/$name.native.s" \
+        >> "$WORK/$name.native-combined.s"
+    "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
+        --exec-mode go --start 1000 --timeout 20 \
+        --workdir "$WORK/native-$name" \
+        --name "d6codec-$name-native-v085" --expect __test_exit=0 \
+        "$TESTKIT_ROOT/tests/validation/daimos-test-crt0-v1.s" \
+        "$WORK/$name.native-combined.s"
+done
+echo 'PASS d6codec-single-v085 256K system and extracted host decoder parity'
