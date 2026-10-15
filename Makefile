@@ -1057,6 +1057,13 @@ test-pdp10-tools: check-prefix
 		PDP10_TOOLS_REPO="$$(cd '$(PDP10_TOOLS_REPO)' && pwd -P)" \
 		tests/tools/pdp10-tools/run.sh
 
+# FCB owner IDs are index+2 and cannot be represented by an 8-bit checker
+# bitmap once a filesystem carries more than 254 distinct file records.
+test-daimos-d6fsck-fcb-owners-v154: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+		PDP10_TOOLS_REPO="$$(cd '$(PDP10_TOOLS_REPO)' && pwd -P)" \
+		sh tests/validation/check-d6fsck-fcb-owners-v154.sh
+
 clean:
 	$(MAKE) -C tests/system/kernel clean DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD='$(abspath $(KERNEL_BUILD))'
 	$(MAKE) -C tests/system/stand clean DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD_ROOT='$(abspath $(BUILD_ROOT))'
