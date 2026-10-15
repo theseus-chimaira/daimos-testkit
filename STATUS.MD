@@ -1,3 +1,17 @@
+## 2026-10-15 V156: PDP-6 PURE TEXT SWAP TARGET TEST COMPLETION
+
+- `target-swap-pure-text-pdp6` now passes both normal PURE/non-PURE swap
+  and the deliberate PURE-integrity verifier modes after v154 linked the
+  production storage/backing helpers. The previous timeout was in the
+  harness stopping method: `HALT .` did not terminate `p10run --exec-mode go`
+  on this PDP-6 SIMH build. Both modes now run with a bounded instruction
+  step count and the normal result begins with a nonzero sentinel. This
+  prevents a short or never-completed run from passing by reading zeroed BSS.
+  Direct simulator breakpoints confirmed `proc_swap_out`, `proc_swap_in`, and
+  the normal test return with AC1=0. No DAIMOS kernel code was changed.
+- DTC Stage1 v155 size gate also passes at exactly 106/106 words. Neither
+  targeted PASS is a complete GCC/KCC DAIMOS regression matrix acceptance.
+
 ## 2026-10-12 P10FOLD I/O SKIP AND MULTI-TTY REGRESSION
 
 - `test-daimos-p10fold-io-skip-20261012-v1` protects the PDP-6 BLKI,

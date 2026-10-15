@@ -34,7 +34,10 @@ kword_t backstore_blocks_used;
 unsigned int backstore_enabled = 1U;
 kword_t *backstore_bitmap;
 kword_t fs_block_workspace[DSK_WORDS_PER_SECTOR];
-kword_t daimos_swap_pure_text_pdp6_result;
+/* A zero result must prove that _start returned from the test.  Leaving
+ * this word in zeroed BSS would let a timed-out/short simulation pass.
+ */
+kword_t daimos_swap_pure_text_pdp6_result = 0777777777777UL;
 
 static void
 copy_words(kword_t *dst, const kword_t *src, unsigned int words)

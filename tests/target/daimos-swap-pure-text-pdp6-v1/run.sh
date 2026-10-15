@@ -63,8 +63,11 @@ compile_swap()
 compile_test normal ""
 compile_swap normal 0
 
+# Bound execution by an instruction count, not by the PDP-6 simulator's
+# self-targeting HALT. The result begins as an all-ones sentinel, so the
+# expected zero requires the test to complete, not merely to run long enough.
 PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
-    --machine pdp6 --mode deposit --exec-mode go --timeout 10 \
+    --machine pdp6 --mode deposit --exec-mode step --step-limit 1000000 --timeout 15 \
     --workdir "$work/run" --name daimos-swap-pure-text-pdp6-v1 \
     --expect daimos_swap_pure_text_pdp6_result=0 --report "$work/report.txt" \
     "$here/start.s" "$work/test-normal.s" "$here/stubs.s" "$work/swap-normal.s" \
@@ -73,8 +76,11 @@ PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
 compile_test verify "-DTEST_VERIFY_PURE=1"
 compile_swap verify 1
 
+# The verifier deliberately trips the PURE integrity assertion. Its marker
+# is set immediately before the asserted swap operation, so success means
+# the integrity-check path was entered and did not return normally.
 PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
-    --machine pdp6 --mode deposit --exec-mode go --timeout 10 \
+    --machine pdp6 --mode deposit --exec-mode step --step-limit 1000000 --timeout 15 \
     --workdir "$work/run-verify" --name daimos-swap-pure-verify-pdp6-v1 \
     --expect daimos_swap_pure_text_pdp6_result=1 \
     --report "$work/report-verify.txt" \
