@@ -19,7 +19,8 @@ trap cleanup EXIT HUP INT TERM
 mkdir -p "$build"
 PATH="$PDP10_PREFIX/bin:$PATH" \
     make -C "$DAIMOS_REPO/system/kernel" \
-    BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" "$asm" >/dev/null
+    BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" COMPILER=kcc \
+    "$asm" >/dev/null
 
 if grep -E '^[[:space:]]*[Aa][Dd][Jj][Ss][Pp][[:space:]]' "$asm" >/dev/null 2>&1; then
         grep -n -E '^[[:space:]]*[Aa][Dd][Jj][Ss][Pp][[:space:]]' "$asm" >&2 || true
