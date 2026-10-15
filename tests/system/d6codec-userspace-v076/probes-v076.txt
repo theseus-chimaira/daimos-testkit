@@ -1,0 +1,12 @@
+probe grouped-compress
+command D6LZ -G /CONFIG/PASSWD /TEMP/GRP
+not_contains DSH: NOT FOUND
+not_contains ?D6LZ
+end
+
+probe grouped-compressed-stat
+command STAT /TEMP/GRP
+not_contains DSH: NOT FOUND
+contains /TEMP/GRP
+contains WORDS
+end
