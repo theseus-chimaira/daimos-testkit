@@ -26,7 +26,10 @@ cleanup()
 trap cleanup 0 1 2 3 15
 mkdir -p "$WORK"
 
-printf '%s\n' '1:RESPAWN:/SYSTEM/EXEC/DSH' > "$INITTAB"
+# DSH is a login shell: NEWSESSION/TTY_ATTACH/TTY_SETFG belong to LOGIN,
+# not to INIT or a bare DSH child. Exercise automatic root selection through
+# the supported authenticated terminal path.
+printf '%s\n' '1:RESPAWN:/SYSTEM/EXEC/LOGIN' > "$INITTAB"
 cat > "$SYSTEM_DISK" <<'EOT'
 # DAIMOS SYSTEM POLICY V1
 # ROOTCLASS DISK
@@ -68,7 +71,10 @@ PATH="$PDP10_PREFIX/bin:$PATH" make -C "$BOOT_DIR" image \
 # The AUTO build supplies the DSK root and simulator configuration.  Replace its
 # empty alternate-root media with complete roots produced by the normal builder.
 cp "$BUILD_TAPE/media/dtc0.tap" "$BUILD/media/dtc0.tap"
-cp "$BUILD_DRUM/media/dr0.drm" "$BUILD/media/dr0.drm"
+# DRM236 images are D6FS member disks under drum/dskN.dsk, not the
+# historical media/drN.drm filenames.  Copy the production member selected
+# by the simulator configuration, preserving the exact geometry/layout.
+cp "$BUILD_DRUM/drum/dsk0.dsk" "$BUILD/drum/dsk0.dsk"
 
 run_case()
 {
@@ -86,7 +92,7 @@ EOT
         PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$TMPDIR" \
             "$HARNESS" --daimos-repo "$DAIMOS_REPO" --dofile "$ini" \
             --pty-run "$PTY_RUN" --tcp-run "$TCP_RUN" --dcs-port "$dcs_port" \
-            --boot-timeout 300 --probes "$probes" \
+            --boot-timeout 300 --login ROOT --probes "$probes" \
             --work-dir "$WORK/run-$name" --markdown-report "$WORK/$name.md" >/dev/null
         printf '%s\n' "auto-root-$name: PASS (selected $expected)"
 }
