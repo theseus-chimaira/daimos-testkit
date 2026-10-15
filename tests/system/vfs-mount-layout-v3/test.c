@@ -10,7 +10,8 @@ main(void)
         assert(vfs_mount_layout_v3(0U, &l) == -1);
         assert(vfs_mount_layout_v3(18U, &l) == -1);
         assert(vfs_mount_layout_v3(4U, 0) == -1);
-        for (n = 1U; n <= 17U; ++n) {
+        assert(vfs_mount_layout_v3(17U, &l) == -1);
+        for (n = 1U; n <= 16U; ++n) {
                 assert(vfs_mount_layout_v3(n, &l) == 0);
                 assert(l.capacity == n);
                 assert(l.target_off == 0U);
