@@ -164,7 +164,7 @@ static void run_mode(unsigned int format)
         registry_words[1] = 1UL;
         registry_words[2] = 3UL;
         registry_words[3] = 1UL;
-        assert(proc_packed_evict_transaction_v45(SLOT, OFFSET, 64U,
+        assert(proc_packed_evict_reg_v45(SLOT, OFFSET, 64U,
             pair_encode) == MM_ERR_INVAL);
         assert(find_extent(DEST) >= 0 && find_extent(SOURCE) < 0);
         assert(VM_PDP6_BASE(&processes[SLOT]) == DEST);
@@ -172,17 +172,17 @@ static void run_mode(unsigned int format)
         memset(registry_words, 0, sizeof(registry_words));
     }
     /* A failing encoder cannot alter process MM ownership or storage mode. */
-    assert(proc_packed_evict_transaction_v45(SLOT, OFFSET, 64U,
+    assert(proc_packed_evict_reg_v45(SLOT, OFFSET, 64U,
         bad_encode) != MM_OK);
     assert(VM_PDP6_BASE(&processes[SLOT]) == DEST);
     assert(mm_extent_count == 1 && find_extent(SOURCE) < 0);
     assert(proc_storage_get_v28(&proc_storage_runtime_v29, SLOT) ==
         PROC_STORAGE_RESIDENT);
     assert(PROC_TRANSITION(&processes[SLOT]));
-    assert(proc_packed_evict_transaction_v45(SLOT, OFFSET, 128U,
+    assert(proc_packed_evict_reg_v45(SLOT, OFFSET, 128U,
         pair_encode) == MM_ERR_INVAL);
     /* Registry publication must finish before TRANSITION can clear. */
-    assert(proc_packed_evict_transaction_v45(SLOT, OFFSET, 64U,
+    assert(proc_packed_evict_reg_v45(SLOT, OFFSET, 64U,
         pair_encode) == MM_OK);
     assert(!PROC_TRANSITION(&processes[SLOT]));
     assert(VM_PDP6_BASE(&processes[SLOT]) == 0UL);

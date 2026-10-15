@@ -156,19 +156,19 @@ static void exercise(unsigned int format)
     unsigned int i;
     prepare(format);
     fail_decoder = 1;
-    assert(proc_packed_restore_transaction_v46(SLOT, BACKING,
+    assert(proc_packed_restore_reg_v46(SLOT, BACKING,
         decode, reload) != MM_OK);
     assert(VM_PDP6_BASE(&processes[SLOT]) == 0UL);
     assert(proc_storage_get_v28(&proc_storage_runtime_v29, SLOT) == PROC_STORAGE_PACKED);
     assert(proc_packed_layout_find_v36(&proc_packed_runtime_v38, SLOT));
     assert(mm_extent_count == 1 && MM_EXTENT_PINS(&mm_extents[0]) == 0U);
     prepare(format);
-    assert(proc_packed_restore_transaction_v46(SLOT, BACKING + 1UL,
+    assert(proc_packed_restore_reg_v46(SLOT, BACKING + 1UL,
         decode, reload) != MM_OK);
     assert(reload_count == 0 && mm_extent_count == 1);
     prepare(format);
     deny_source_free = 1;
-    assert(proc_packed_restore_transaction_v46(SLOT, BACKING,
+    assert(proc_packed_restore_reg_v46(SLOT, BACKING,
         decode, reload) == MM_ERR_BUSY);
     assert(find_extent(SOURCE) >= 0 && find_extent(DEST) < 0);
     assert(proc_packed_layout_find_v36(&proc_packed_runtime_v38, SLOT));
@@ -176,7 +176,7 @@ static void exercise(unsigned int format)
         PROC_STORAGE_PACKED);
     deny_source_free = 0;
     prepare(format);
-    assert(proc_packed_restore_transaction_v46(SLOT, BACKING,
+    assert(proc_packed_restore_reg_v46(SLOT, BACKING,
         decode, reload) == MM_OK);
     assert(reload_count == 1 && mm_extent_count == 1 && find_extent(SOURCE) < 0);
     assert(VM_PDP6_BASE(&processes[SLOT]) == DEST);
