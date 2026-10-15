@@ -52,6 +52,10 @@ compile_swap()
         cat "$work/swap-c-$mode.s"
         echo ".equ PROC_SWAP_VERIFY_PURE,$verify"
         cat "$kernel/proc/proc_swap_pdp6.s"
+        # Production swap is split across service, PURE backing, and compact
+        # two-bit residency leaves. Exercise all three real implementations.
+        cat "$kernel/proc/proc_pure_backing_pdp6.s"
+        cat "$kernel/proc/proc_storage_runtime_v30.s"
     } >"$work/swap-$mode.s"
 }
 

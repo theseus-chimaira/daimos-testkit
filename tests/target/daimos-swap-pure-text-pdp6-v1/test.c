@@ -5,6 +5,7 @@
 #include "bcache.h"
 #include "fs_mres.h"
 #include "memfs.h"
+#include "proc_storage_map_v28.h"
 
 #define TEST_WORDS       04000U
 #define TEST_TEXT_WORDS  01000U
@@ -14,6 +15,7 @@
 
 static struct proc processes[2];
 static struct proc_swap_record records[2];
+static kword_t storage_words[PROC_STORAGE_MAP_WORDS_V28(2U)];
 static kword_t uarea[PROC_UAREA_WORDS];
 static kword_t resident[TEST_WORDS];
 static kword_t restored[TEST_WORDS];
@@ -230,6 +232,12 @@ static void
 setup_process(int compressed)
 {
         unsigned int i;
+
+        /* The boot allocator supplies this packed map in production. */
+        for (i = 0U; i < PROC_STORAGE_MAP_WORDS_V28(2U); ++i)
+                storage_words[i] = 0UL;
+        proc_storage_runtime_v29.words = storage_words;
+        proc_storage_runtime_v29.slots = 2U;
 
         for (i = 0U; i < PROC_UAREA_WORDS; ++i)
                 uarea[i] = 0UL;
