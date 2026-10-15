@@ -5,6 +5,7 @@
 #include "bcache.h"
 #include "fs_mres.h"
 #include "memfs.h"
+#include "proc_storage_map_v28.h"
 
 #define TEST_WORDS       04000U
 #define TEST_TEXT_WORDS  01000U
@@ -14,6 +15,9 @@
 
 static struct proc processes[2];
 static struct proc_swap_record records[2];
+/* The one-word backing record recovers its provider from the live mount. */
+kword_t vfs_mount_root[VFS_NMOUNT];
+static kword_t storage_modes[1];
 static kword_t uarea[PROC_UAREA_WORDS];
 static kword_t resident[TEST_WORDS];
 static kword_t restored[TEST_WORDS];
@@ -230,6 +234,11 @@ static void
 setup_process(int compressed)
 {
         unsigned int i;
+
+        vfs_mount_root[0] = TEST_NODE;
+        storage_modes[0] = 0UL;         /* both slots begin RESIDENT */
+        proc_storage_runtime_v29.words = storage_modes;
+        proc_storage_runtime_v29.slots = 2U;
 
         for (i = 0U; i < PROC_UAREA_WORDS; ++i)
                 uarea[i] = 0UL;

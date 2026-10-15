@@ -51,7 +51,11 @@ compile_swap()
     {
         cat "$work/swap-c-$mode.s"
         echo ".equ PROC_SWAP_VERIFY_PURE,$verify"
-        cat "$kernel/proc/proc_swap_pdp6.s"
+        # Match the production proc_swap.s bundle: the PURE backing and
+        # storage-state leaves are native assembly, not C fallbacks.
+        cat "$kernel/proc/proc_swap_pdp6.s" \
+            "$kernel/proc/proc_pure_backing_pdp6.s" \
+            "$kernel/proc/proc_storage_runtime_v30.s"
     } >"$work/swap-$mode.s"
 }
 
