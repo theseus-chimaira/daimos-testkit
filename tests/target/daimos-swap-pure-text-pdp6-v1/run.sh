@@ -52,6 +52,11 @@ compile_swap()
         cat "$work/swap-c-$mode.s"
         echo ".equ PROC_SWAP_VERIFY_PURE,$verify"
         cat "$kernel/proc/proc_swap_pdp6.s"
+        # Match the production proc_swap assembly unit.  Its PURE backing
+        # services and storage helpers are linked from these two sources,
+        # not from standalone unresolved external symbols.
+        cat "$kernel/proc/proc_pure_backing_pdp6.s"
+        cat "$kernel/proc/proc_storage_runtime_v30.s"
     } >"$work/swap-$mode.s"
 }
 
