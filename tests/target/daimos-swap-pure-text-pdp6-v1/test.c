@@ -17,6 +17,7 @@ static struct proc processes[2];
 static struct proc_swap_record records[2];
 /* The one-word backing record recovers its provider from the live mount. */
 kword_t vfs_mount_root[VFS_NMOUNT];
+kword_t vfs_mount_limit = VFS_NMOUNT;
 static kword_t storage_modes[1];
 static kword_t uarea[PROC_UAREA_WORDS];
 static kword_t resident[TEST_WORDS];

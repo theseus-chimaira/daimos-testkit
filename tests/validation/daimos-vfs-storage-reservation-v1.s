@@ -13,6 +13,7 @@
         .globl  vfs_mount_target
         .globl  vfs_mount_root
         .globl  vfs_mount_ro
+        .globl  vfs_mount_limit
         .globl  __test_exit
         .globl  kconst_2_2
         .globl  kconst_7_7
@@ -169,3 +170,5 @@ kconst_2_2:
         .word   2,,2
 kconst_13_13:
         .word   013,,013
+vfs_mount_limit:
+        .word   4
