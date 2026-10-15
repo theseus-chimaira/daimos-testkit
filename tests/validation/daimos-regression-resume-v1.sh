@@ -4,6 +4,8 @@ set -eu
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
 : "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
 : "${TMPDIR:?TMPDIR must be set}"
+: "${DAS_REPO:?DAS_REPO must be set}"
+: "${KCC_REPO:?KCC_REPO must be set}"
 : "${COMPILER:=kcc}"
 case "$COMPILER" in gcc|kcc) ;; *) echo "invalid COMPILER: $COMPILER" >&2; exit 2 ;; esac
 export COMPILER
@@ -157,6 +159,7 @@ while IFS='|' read -r id subsystem targets description; do
         "$MAKE_CMD" -k -C "$testkit_repo" $targets \
             COMPILER="$COMPILER" \
             PDP10_PREFIX="$PDP10_PREFIX" DAIMOS_REPO="$DAIMOS_REPO" \
+            DAS_REPO="$DAS_REPO" KCC_REPO="$KCC_REPO" \
             TMPDIR="$TMPDIR" >"$log" 2>&1
         rc=$?
         set -e
