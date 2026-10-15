@@ -40,7 +40,11 @@ cleanup()
         if [ "$dcs_fd_open" -ne 0 ]; then
                 exec 3>&- 2>/dev/null || true
         fi
-        rm -rf "$work"
+        if [ "${DTC_TEST_KEEP_LOGS:-0}" != 1 ]; then
+                rm -rf "$work"
+        else
+                printf 'DTC diagnostic artifacts retained in %s\n' "$work" >&2
+        fi
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -54,6 +58,7 @@ touch "$media"
 # pristine-root restore between the two target boots.
 PATH="$PDP10_PREFIX/bin:$PATH" \
     "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
+    COMPILER="${COMPILER:-gcc}" \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
     DAS_REPO="$DAS_REPO" KCC_REPO="$KCC_REPO" \
     DTC0_IMAGE="$media" >/dev/null
@@ -123,6 +128,7 @@ start_run()
 
         PATH="$PDP10_PREFIX/bin:$PATH" \
             "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
+            COMPILER="${COMPILER:-gcc}" \
             BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
             DAS_REPO="$DAS_REPO" KCC_REPO="$KCC_REPO" \
             DTC0_IMAGE="$media" \
@@ -214,6 +220,11 @@ cp -R "$pristine" "$boot/disk"
 port2=$((27000 + ($$ % 4000)))
 ge2=$((45000 + ($$ % 4000)))
 start_run run2 "$port2" "$ge2"
+if [ "${DTC_TEST_DIAGNOSE:-0}" = 1 ]; then
+        start=`log_size "$dcs_out"`
+        send_slow 'FSCK.DTFS -O NATIVE /DEV/DTC0'
+        wait_new "$dcs_out" '# ' "$start" 600 || fail_run 'second-boot FSCK did not return'
+fi
 start=`log_size "$dcs_out"`
 send_slow 'MOUNT /DEV/DTC0 /MOUNT/DT0'
 wait_new "$dcs_out" '# ' "$start" 600 || fail_run 'MOUNT did not return'
