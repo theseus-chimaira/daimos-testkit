@@ -7,10 +7,16 @@ set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 work="$TMPDIR/daimos-swap-pure-text-pdp6-v1-$$"
 mkdir -p "$work"
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+if [ "${DAIMOS_KEEP_TEST_LOGS:-0}" != 1 ]; then
+    trap 'rm -rf "$work"' EXIT HUP INT TERM
+else
+    printf '%s\n' "swap test logs: $work"
+fi
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 p10run="$PDP10_PREFIX/bin/p10run"
+simh=${SIMH_PDP6:-$PDP10_PREFIX/bin/pdp6}
+export SIMH_PDP6="$simh"
 kernel="$DAIMOS_REPO/system/kernel"
 decoder="$DAIMOS_REPO/system/stand/pdp6/common/decompressor.inc"
 
@@ -52,6 +58,10 @@ compile_swap()
         cat "$work/swap-c-$mode.s"
         echo ".equ PROC_SWAP_VERIFY_PURE,$verify"
         cat "$kernel/proc/proc_swap_pdp6.s"
+        # Production proc_swap.s links these leaves in one assembler unit.
+        # Omitting them leaves proc_swap_backing_busy unresolved in this test.
+        cat "$kernel/proc/proc_pure_backing_pdp6.s"
+        cat "$kernel/proc/proc_storage_runtime_v30.s"
     } >"$work/swap-$mode.s"
 }
 
