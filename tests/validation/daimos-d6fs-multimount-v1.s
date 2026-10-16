@@ -7,7 +7,7 @@
         .globl  vfs_mount_prevalidated
         .globl  vfs_mount_target
         .globl  vfs_mount_root
-        .globl  vfs_mount_ro
+        .globl  vfs_mount_policy
         .globl  mm_alloc
         .globl  mm_free
         .globl  fs_backing_direct_read
@@ -199,7 +199,7 @@ vfs_mount_target:
         .block  4
 vfs_mount_root:
         .block  4
-vfs_mount_ro:
+vfs_mount_policy:
         .block  1
 root_reader:
         .block  016

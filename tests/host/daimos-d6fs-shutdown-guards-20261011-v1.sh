@@ -15,7 +15,7 @@ body = vfs[start:end]
 # The guards precede the barrier; a read-only root must never be toggled.
 ordered = ['move    1,vfs_namespace_root', 'jumpe   1,kret_zero',
            'caie    7,6', 'sojl    2,kret_neg1',
-           'cail    2,4', 'tdne    4,vfs_mount_ro',
+           'caml    2,vfs_mount_limit', 'tdne    4,vfs_mount_policy',
            'jrst    kret_zero', 'pushj   17,vfs_sync',
            'jumpn   1,kret_neg1', 'jrst    vfs_remount']
 position = -1

@@ -12,7 +12,7 @@
         .globl  vfs_namespace_root
         .globl  vfs_mount_target
         .globl  vfs_mount_root
-        .globl  vfs_mount_ro
+        .globl  vfs_mount_policy
         .globl  vfs_mount_limit
         .globl  __test_exit
         .globl  kconst_2_2
@@ -38,9 +38,11 @@ main:
         jumpn   1,test_fail
         skipn   root1
         jrst    test_fail
-        move    7,vfs_mount_ro
-        andi    7,0420
-        caie    7,0420
+        ldb     7,[POINT 5,vfs_mount_policy,19] ; SWAP owner
+        caie    7,1
+        jrst    test_fail
+        ldb     7,[POINT 5,vfs_mount_policy,14] ; LOGSTORE owner
+        caie    7,1
         jrst    test_fail
 
         ; Another mount cannot steal swap while mount 1 owns it.
@@ -61,10 +63,10 @@ main:
         movei   2,020
         pushj   17,vfs_storage_release
         jumpn   1,test_fail
-        move    7,vfs_mount_ro
-        trne    7,020
-        jrst    test_fail
-        trnn    7,0400
+        ldb     7,[POINT 5,vfs_mount_policy,19]
+        jumpn   7,test_fail
+        ldb     7,[POINT 5,vfs_mount_policy,14]
+        caie    7,1
         jrst    test_fail
         move    1,root1
         pushj   17,vfs_unmount
@@ -84,9 +86,11 @@ main:
         jumpn   1,test_fail
         skipn   root2
         jrst    test_fail
-        move    7,vfs_mount_ro
-        andi    7,0440
-        caie    7,0440               ; slot0 log=0400, slot1 swap=040
+        ldb     7,[POINT 5,vfs_mount_policy,19]
+        caie    7,2                    ; SWAP owned by mount ID 2
+        jrst    test_fail
+        ldb     7,[POINT 5,vfs_mount_policy,14]
+        caie    7,1                    ; LOGSTORE remains mount ID 1
         jrst    test_fail
 
         ; Mount 2 remains pinned until its swap reservation is released.
@@ -119,7 +123,7 @@ main:
         jrst    test_fail
         skipe   vfs_mount_target
         jrst    test_fail
-        skipe   vfs_mount_ro
+        skipe   vfs_mount_policy
         jrst    test_fail
 
         ; Reuse the now-free root mount slot with read-only policy.
@@ -137,7 +141,7 @@ main:
         move    7,vfs_mount_root
         came    7,root3
         jrst    test_fail
-        move    7,vfs_mount_ro
+        move    7,vfs_mount_policy
         andi    7,1
         caie    7,1
         jrst    test_fail
@@ -149,7 +153,7 @@ main:
         jrst    test_fail
         skipe   vfs_mount_target
         jrst    test_fail
-        skipe   vfs_mount_ro
+        skipe   vfs_mount_policy
         jrst    test_fail
 
         setz    1,
@@ -195,7 +199,7 @@ vfs_mount_target:
         .block  4
 vfs_mount_root:
         .block  4
-vfs_mount_ro:
+vfs_mount_policy:
         .block  1
 root1:
         .block  1

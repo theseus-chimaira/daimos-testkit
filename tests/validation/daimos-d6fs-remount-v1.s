@@ -13,7 +13,7 @@
         .globl  d6fs_active_reader
         .globl  d6fs_reader_slots
         .globl  d6fs_provider_space
-        .globl  vfs_mount_ro
+        .globl  vfs_mount_policy
         .globl  fs_block_workspace
         .globl  __test_exit
 
@@ -30,7 +30,7 @@ main:
         movem   1,reader+011
         movei   1,021
         movem   1,reader+012
-        setzm   vfs_mount_ro
+        setzm   vfs_mount_policy
         setzm   write_fail
 
         ; RW -> RO: publish CLEAN sequence 6 to opposite copy B first.
@@ -46,7 +46,7 @@ main:
         andi    1,0300
         caie    1,0200                  ; RO, copy B
         jrst    remount_fail
-        move    1,vfs_mount_ro
+        move    1,vfs_mount_policy
         trnn    1,1
         jrst    remount_fail
 
@@ -64,7 +64,7 @@ main:
         andi    1,0300
         caie    1,0100                  ; RW, copy A
         jrst    remount_fail
-        move    1,vfs_mount_ro
+        move    1,vfs_mount_policy
         trne    1,1
         jrst    remount_fail
 
@@ -85,7 +85,7 @@ main:
         andi    1,0300
         caie    1,0100
         jrst    remount_fail
-        move    1,vfs_mount_ro
+        move    1,vfs_mount_policy
         trne    1,1
         jrst    remount_fail
 
@@ -110,7 +110,7 @@ remount_slot_clear_ok:
         jrst    remount_active_clear_ok
         jrst    remount_fail_active
 remount_active_clear_ok:
-        move    1,vfs_mount_ro
+        move    1,vfs_mount_policy
         trnn    1,1                     ; provider published CLEAN/RO first
         jrst    remount_fail_ro
         setz    1,
@@ -294,7 +294,7 @@ d6fs_active_reader:
         .block  1
 d6fs_reader_slots:
         .block  4
-vfs_mount_ro:
+vfs_mount_policy:
         .block  1
 fs_block_workspace:
         .block  0200

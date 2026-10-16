@@ -2,6 +2,13 @@
 
 int __test_exit;
 
+/* KINIT installs these before any mount. This standalone oracle must do the
+ * same now that obsolete resident fallback tables have been removed. */
+extern kword_t vfs_mount_target_base;
+extern kword_t vfs_mount_root_base;
+static kword_t test_mount_targets[4];
+static kword_t test_mount_roots[4];
+
 #define TEST_PROVIDER 4U
 #define TEST_KIND_DIR 1U
 #define TEST_NODE ((((kword_t)TEST_PROVIDER) << 30) | \
@@ -12,6 +19,9 @@ main(void)
 {
         vnode_t root;
         unsigned int ch;
+
+        vfs_mount_target_base = (kword_t)(unsigned long)test_mount_targets;
+        vfs_mount_root_base = (kword_t)(unsigned long)test_mount_roots;
 
         /* The STAT stub stores all six vfs_stat words.  These calls therefore
          * detect a local frame that overlaps the PUSHJ return word. */
