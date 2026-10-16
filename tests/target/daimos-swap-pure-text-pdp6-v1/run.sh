@@ -30,7 +30,7 @@ compile_test()
 {
     mode=$1
     extra=$2
-    "$cc" -std=c99 -Os $extra \
+    "$cc" -std=c99 -Os ${EXTRA_TEST_FLAGS:-} $extra \
         -I"$PDP10_PREFIX/include" \
         -I"$kernel/core" -I"$kernel/fs" -I"$kernel/mm" \
         -I"$kernel/proc" -I"$kernel/storage" \

@@ -10,15 +10,20 @@
 #define TEST_WORDS       04000U
 #define TEST_TEXT_WORDS  01000U
 #define TEST_BLOCKS      (TEST_WORDS / DSK_WORDS_PER_SECTOR)
+#ifndef TEST_MOUNT_ID
+#define TEST_MOUNT_ID 1U
+#endif
+#define TEST_MOUNT_CAPACITY \
+    ((TEST_MOUNT_ID > VFS_NMOUNT) ? TEST_MOUNT_ID : VFS_NMOUNT)
 #define TEST_NODE VFS_NODE(MEMFS_PROVIDER, \
-    VFS_MOUNT_KIND(1U, MEMFS_KIND_NODE), 012345U)
+    VFS_MOUNT_KIND(TEST_MOUNT_ID, MEMFS_KIND_NODE), 012345U)
 
 static struct proc processes[2];
 static struct proc_swap_record records[2];
 /* The one-word backing record recovers its provider from the live mount. */
-kword_t vfs_mount_root[VFS_NMOUNT];
+kword_t vfs_mount_root[TEST_MOUNT_CAPACITY];
 kword_t vfs_mount_root_base = (kword_t)(unsigned long)vfs_mount_root;
-kword_t vfs_mount_limit = VFS_NMOUNT;
+kword_t vfs_mount_limit = TEST_MOUNT_CAPACITY;
 static kword_t storage_modes[1];
 static kword_t uarea[PROC_UAREA_WORDS];
 static kword_t resident[TEST_WORDS];
@@ -237,7 +242,7 @@ setup_process(int compressed)
 {
         unsigned int i;
 
-        vfs_mount_root[0] = TEST_NODE;
+        vfs_mount_root[TEST_MOUNT_ID - 1U] = TEST_NODE;
         storage_modes[0] = 0UL;         /* both slots begin RESIDENT */
         proc_storage_runtime_v29.words = storage_modes;
         proc_storage_runtime_v29.slots = 2U;
@@ -294,7 +299,7 @@ daimos_swap_pure_text_pdp6_test(void)
                 return 031;
         if (proc_swap_backing_busy(TEST_NODE) == 0)
                 return 035;
-        if (proc_swap_mount_busy(1U) == 0)
+        if (proc_swap_mount_busy(TEST_MOUNT_ID) == 0)
                 return 041;
         if (allocated_blocks != clean_blocks)
                 return 032;
@@ -306,7 +311,7 @@ daimos_swap_pure_text_pdp6_test(void)
                 return 4;
         if (proc_swap_backing_busy(TEST_NODE) != 0)
                 return 036;
-        if (proc_swap_mount_busy(1U) != 0)
+        if (proc_swap_mount_busy(TEST_MOUNT_ID) != 0)
                 return 042;
         if (VM_PDP6_BASE(&processes[1]) !=
             (kword_t)(unsigned long)restored)
@@ -326,7 +331,7 @@ daimos_swap_pure_text_pdp6_test(void)
         if (proc_swap_out(1) != 0 || allocated_blocks != TEST_BLOCKS)
                 return 8;
         if (proc_swap_backing_busy(TEST_NODE) != 0 ||
-            proc_swap_mount_busy(1U) != 0)
+            proc_swap_mount_busy(TEST_MOUNT_ID) != 0)
                 return 9;
         if (proc_swap_in(1) != 0 ||
             restored[0400U] != resident[0400U])

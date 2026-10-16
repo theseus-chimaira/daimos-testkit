@@ -15,6 +15,7 @@ main:
         lsh     3,026
         ior     1,3
         movem   1,test_record
+        movei   2,owner_uarea
         pushj   17,proc_swap_unpack_backing
         jumpe   1,test_fail
         caie    2,037777
@@ -36,6 +37,7 @@ main:
         ; without manufacturing an invalid provider or returning text words.
         setzm   vfs_mount_root+017
         move    1,test_record
+        movei   2,owner_uarea
         pushj   17,proc_swap_unpack_backing
         jumpn   1,test_fail
         jumpn   2,test_fail
@@ -53,9 +55,14 @@ vfs_mount_root:
         .globl vfs_mount_root_base
 vfs_mount_root_base:
         .word vfs_mount_root
+        .globl vfs_mount_limit
+vfs_mount_limit:
+        .word 020
         .bss
 test_record:
         .block  1
+owner_uarea:
+        .block  070
         .globl  __test_exit
 __test_exit:
         .block  1
