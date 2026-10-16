@@ -47,10 +47,10 @@ main:
         jumpn   1,test_fail
         skipn   root1
         jrst    test_fail
-        ldb     7,[POINT 5,vfs_mount_policy,19] ; SWAP owner
+        ldb     7,[POINT 5,vfs_mount_policy,9] ; SWAP owner
         caie    7,1
         jrst    test_fail
-        ldb     7,[POINT 5,vfs_mount_policy,14] ; LOGSTORE owner
+        ldb     7,[POINT 5,vfs_mount_policy,4] ; LOGSTORE owner
         caie    7,1
         jrst    test_fail
 
@@ -72,9 +72,9 @@ main:
         movei   2,020
         pushj   17,vfs_storage_release
         jumpn   1,test_fail
-        ldb     7,[POINT 5,vfs_mount_policy,19]
+        ldb     7,[POINT 5,vfs_mount_policy,9]
         jumpn   7,test_fail
-        ldb     7,[POINT 5,vfs_mount_policy,14]
+        ldb     7,[POINT 5,vfs_mount_policy,4]
         caie    7,1
         jrst    test_fail
         move    1,root1
@@ -95,10 +95,10 @@ main:
         jumpn   1,test_fail
         skipn   root2
         jrst    test_fail
-        ldb     7,[POINT 5,vfs_mount_policy,19]
+        ldb     7,[POINT 5,vfs_mount_policy,9]
         caie    7,2                    ; SWAP owned by mount ID 2
         jrst    test_fail
-        ldb     7,[POINT 5,vfs_mount_policy,14]
+        ldb     7,[POINT 5,vfs_mount_policy,4]
         caie    7,1                    ; LOGSTORE remains mount ID 1
         jrst    test_fail
 

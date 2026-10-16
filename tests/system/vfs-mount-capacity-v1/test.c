@@ -23,9 +23,9 @@ main(void)
 {
         assert(capacity(0, 0, 4, 0, 0, 7, 0) == 2);
         assert(capacity(0, 0, 4, 0, 0, 3, 0) == 3);
-        assert(capacity(4, 4, 8, 1, 0, 0, 1) == 16);
+        assert(capacity(4, 4, 8, 1, 0, 0, 1) == 17);
         assert(capacity(4, 4, 8, 15, 0, 0, 1) == 14);
-        assert(capacity(4, 4, 8, 0, 1, 0, 1) == 16);
+        assert(capacity(4, 4, 8, 0, 1, 0, 1) == 17);
         assert(capacity(0, 0, 4, 0, 0, 16, 0) == 0);
         assert(capacity(4, 4, 8, 1, 1, 0, 0) == 0);
         assert(capacity(4, 4, 8, 0, 0, 0, 0) == 0);
