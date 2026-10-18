@@ -1,0 +1,11 @@
+# Test executed external programs and require a fresh DSH prompt.
+probe echo-external-v24
+command ECHO RETESTED_OK_V24
+line ^RETESTED_OK_V24$
+not_contains DSH: NOT FOUND
+end
+probe pwd-external-v24
+command PWD
+line ^/$
+not_contains DSH: NOT FOUND
+end
