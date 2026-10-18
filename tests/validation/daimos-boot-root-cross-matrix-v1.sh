@@ -38,6 +38,12 @@ for boot in drm dtc mtc ptr; do
                 build=$WORK/build-$boot-$root
                 dcs_port=$((25000 + ($$ % 500) * 32 + case_no))
                 ge_port=$((dcs_port + 16000))
+                boot_timeout=300
+                command_timeout=15
+                if [ "$root" = tape ]; then
+                        boot_timeout=600
+                        command_timeout=120
+                fi
 
                 PATH="$PDP10_PREFIX/bin:$PATH" make -C "$BOOT_DIR" image \
                     BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
@@ -48,7 +54,8 @@ for boot in drm dtc mtc ptr; do
                     "$HARNESS" --daimos-repo "$DAIMOS_REPO" \
                     --dofile "$build/boot.ini" --pty-run "$PTY_RUN" \
                     --tcp-run "$TCP_RUN" --dcs-port "$dcs_port" \
-                    --boot-timeout 300 --login ROOT --probes "$PROBES" \
+                    --boot-timeout "$boot_timeout" --timeout "$command_timeout" \
+                    --login ROOT --probes "$PROBES" \
                     --work-dir "$WORK/run-$boot-$root" \
                     --markdown-report "$WORK/$boot-$root.md" >/dev/null
                 printf '%s\n' "boot-root-$boot-$root: PASS"

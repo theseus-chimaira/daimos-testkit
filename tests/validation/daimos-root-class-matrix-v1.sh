@@ -38,6 +38,14 @@ for root in disk drum tape; do
         build=$WORK/build-$root
         dcs_port=$((18000 + ($$ % 1000) * 4 + case_no))
         ge_port=$((dcs_port + 4000))
+        # DECtape root operations involve long sequential seeks, unlike D6FS.
+        # Bound the whole boot and each shell command separately.
+        boot_timeout=300
+        command_timeout=15
+        if [ "$root" = tape ]; then
+                boot_timeout=600
+                command_timeout=120
+        fi
 
         PATH="$PDP10_PREFIX/bin:$PATH" make -C "$BOOT_DIR" image \
             BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
@@ -48,7 +56,8 @@ for root in disk drum tape; do
             "$HARNESS" --daimos-repo "$DAIMOS_REPO" \
             --dofile "$build/boot.ini" --pty-run "$PTY_RUN" \
             --tcp-run "$TCP_RUN" --dcs-port "$dcs_port" \
-            --boot-timeout 300 --login ROOT --probes "$PROBES" \
+            --boot-timeout "$boot_timeout" --timeout "$command_timeout" \
+            --login ROOT --probes "$PROBES" \
             --work-dir "$WORK/run-$root" \
             --markdown-report "$WORK/$root.md" >/dev/null
         printf '%s\n' "root-class-$root: PASS (DSK compressed boot -> explicit root -> login)"

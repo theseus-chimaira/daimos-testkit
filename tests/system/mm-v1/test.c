@@ -17,6 +17,7 @@
 #include "exec.h"
 #include "memfs.h"
 #include "file.h"
+#include "proc_storage_map_v28.h"
 
 static struct proc proc_table_store[PROC_MAX_SLOTS];
 struct proc *proc_table = proc_table_store;
@@ -31,6 +32,31 @@ kword_t proc_rt_owner;
 extern unsigned int proc_sched_age_phase;
 kword_t mach_kernel_stack_base;
 struct file *file_table;
+kword_t vfs_mount_limit = 26UL;
+
+/* The host MM fixture has no native filesystem block cache.  The real
+ * kernel invalidates its shared workspace in bcache_pdp6.s before direct
+ * BACKSTORE reads; this symbol is inert in this isolated host test. */
+void
+bcache_workspace_invalidate(void)
+{
+}
+
+/* The host fixture uses the production map's compare-and-publish contract. */
+int
+proc_storage_publish_v30(unsigned int slot, unsigned int old_state,
+    unsigned int new_state)
+{
+        return proc_storage_change_v28(&proc_storage_runtime_v29, slot,
+            old_state, new_state);
+}
+
+void
+proc_swap_storage_invariant_v30(void)
+{
+        fprintf(stderr, "process storage publication invariant failed\n");
+        exit(1);
+}
 kword_t fs_block_workspace[DSK_WORDS_PER_SECTOR];
 extern kword_t proc_tty_line_bases[];
 

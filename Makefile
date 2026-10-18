@@ -11,7 +11,14 @@ AAP_PDP6_REPO ?= ../pdp6
 SIMH_PDP6 ?= $(PDP10_PREFIX)/bin/pdp6
 SIMS_REPO ?= ../sims
 PDP10_TOOLS_REPO = $(DAIMOS_REPO)/tools/host
+# Termux workspaces may contain binaries copied from a Linux host.  Keep
+# Android host helpers in an architecture-specific directory so Make cannot
+# mistake a foreign ELF executable for an up-to-date local test helper.
+ifeq ($(shell uname -o 2>/dev/null),Android)
+BUILD_ROOT ?= $(CURDIR)/build/$(COMPILER)-android-$(shell uname -m)
+else
 BUILD_ROOT ?= $(CURDIR)/build/$(COMPILER)
+endif
 HOST_CC ?= cc
 HOST_CFLAGS ?= -std=c99 -O2 -Wall -Wextra
 HARNESS = tools/daimos-simh-harness-v4.sh
@@ -191,6 +198,7 @@ d6fs-mres:
 mm-core:
 	mkdir -p '$(BUILD_ROOT)/tests/system/mm-v1'
 	$(HOST_CC) -std=c99 -O2 -Wall -Wextra -Werror \
+		-I'$(PDP10_PREFIX)/include' \
 		-I'$(DAIMOS_REPO)/system/kernel' \
 		-I'$(DAIMOS_REPO)/system/kernel/core' \
 		-I'$(DAIMOS_REPO)/system/kernel/drivers' \
@@ -205,6 +213,7 @@ mm-core:
 		'$(DAIMOS_REPO)/system/kernel/modules/module_runtime.c' \
 		'$(DAIMOS_REPO)/system/kernel/proc/proc.c' \
 		'$(DAIMOS_REPO)/system/kernel/proc/proc_boot.c' \
+		'$(DAIMOS_REPO)/system/kernel/proc/proc_storage_map_v28.c' \
 		'$(DAIMOS_REPO)/system/kernel/proc/vm_pdp6.c' \
 		'$(DAIMOS_REPO)/system/kernel/proc/vm_pdp6_swap.c' \
 		'$(DAIMOS_REPO)/system/kernel/proc/proc_swap_boot.c'

@@ -68,7 +68,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" make -C "$BOOT_DIR" image \
 # The AUTO build supplies the DSK root and simulator configuration.  Replace its
 # empty alternate-root media with complete roots produced by the normal builder.
 cp "$BUILD_TAPE/media/dtc0.tap" "$BUILD/media/dtc0.tap"
-cp "$BUILD_DRUM/media/dr0.drm" "$BUILD/media/dr0.drm"
+cp "$BUILD_DRUM/drum/dsk0.dsk" "$BUILD/drum/dsk0.dsk"
 
 run_case()
 {
