@@ -15,9 +15,9 @@ mkdir -p "$work"
 das="$PDP10_PREFIX/bin/das"
 dlink="$PDP10_PREFIX/bin/dlink"
 dxrconvert="$PDP10_PREFIX/bin/dxrconvert"
-aap="$AAP_PDP6_REPO/emu/pdp6"
+aap="$AAP_PDP6_REPO/emu/pdp6_headless_v1"
 
-test -x "$aap" || make -C "$AAP_PDP6_REPO/emu" pdp6 >/dev/null
+test -x "$aap" || make -C "$AAP_PDP6_REPO/emu" pdp6_headless_v1 >/dev/null
 
 "$das" -C -F -O "$work/harness.dobj" "$self/daimos-apr-aap-v1.s"
 "$das" -C -F -O "$work/clk.dobj" "$DAIMOS_REPO/system/kernel/drivers/clk_io.s"
@@ -31,32 +31,20 @@ test -n "$result" || {
         exit 1
 }
 
-cat >"$work/init.ini" <<EOF
-mkdev apr apr166
-mkdev tty tty626
-mkdev ptr ptr760
-mkdev ptp ptp761
-mkdev fmem fmem162 0
-mkdev mem0 moby $work/mem0
-connectio tty apr
-connectio ptr apr
-connectio ptp apr
-connectmem fmem 0 apr -1
-connectmem mem0 0 apr 0
-load -r $work/test.rim
-EOF
-
 set +e
 (
         cd "$work"
         {
+                # The headless executable uses its built-in CPU/memory layout
+                # instead of reading init.ini, so load the program explicitly.
+                printf 'load -r %s\n' "$work/test.rim"
                 printf '%s\n' 'power on'
                 sleep 1
                 printf '%s\n' 'start 020'
                 sleep 1
                 printf 'examine 0%s\n' "$result"
                 printf '%s\n' quit
-        } | SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy "$aap"
+        } | "$aap"
 ) >"$work/aap.out" 2>&1
 rc=$?
 set -e
