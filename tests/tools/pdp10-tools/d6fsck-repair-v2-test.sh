@@ -142,6 +142,11 @@ with open(P,'r+b') as f:
     wrw(f,base+summary_start,0,v^(1<<35))
 PY
 
+# The current repair performs exactly three durable writes: publish DIRTY,
+# update the changed free-summary block, and publish CLEAN.  Unmodified
+# blocks are not rewritten.  A cut after write 3 therefore leaves a valid
+# CLEAN generation; asking for cut 4 must run to ordinary success because
+# there is no fourth write.  Verify both sides of the commit boundary.
 for cut in 1 2 3 4; do
         rm -rf "$work/order-$cut"
         mkdir -p "$work/order-$cut"
@@ -151,14 +156,21 @@ for cut in 1 2 3 4; do
             -d "$work/order-$cut" >"$work/order-$cut.out" 2>&1
         rc=$?
         set -e
-        if [ "$rc" -ne 99 ]; then
-                echo "d6fsck fault cut $cut did not abort at durable write (rc=$rc)" >&2
+        expected_rc=99
+        if [ "$cut" -eq 4 ]; then
+                expected_rc=0
+        fi
+        if [ "$rc" -ne "$expected_rc" ]; then
+                echo "d6fsck fault cut $cut returned rc=$rc, expected $expected_rc" >&2
                 exit 1
         fi
         ./d6fsck -n 1 -d "$work/order-$cut" \
             >"$work/order-$cut.check" 2>&1 || true
-        if [ "$cut" -lt 4 ]; then
+        if [ "$cut" -lt 3 ]; then
                 grep -q 'selected superblock .* state=DIRTY' "$work/order-$cut.check"
+        else
+                grep -q 'selected superblock .* state=CLEAN' "$work/order-$cut.check"
+                grep -q 'clean$' "$work/order-$cut.check"
         fi
         ./d6fsck -r -n 1 -d "$work/order-$cut" \
             >"$work/order-$cut.repair" 2>&1
