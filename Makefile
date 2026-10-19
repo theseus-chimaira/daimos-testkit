@@ -222,6 +222,15 @@ mm-core:
 
 target: mm-core target-backstore-pdp6 target-monitorfs-wordio-pdp6 target-memfs-pdp6 target-memfs-fifo-pdp6 target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-swap-pure-text-pdp6 target-stage1-d6lz-pdp6 target-wordtoken-pdp6 target-kcc-indexed-byteptr-pdp6 test-daimos-compiler-selection-20261012-v1 test-daimos-p10fold-io-skip-20261012-v1 test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-pi-restore
 
+# Every direct PDP-6 target sweep also checks optimized 9-bit character
+# accesses when a stack-local array crosses a 36-bit word boundary.
+target: test-pdp10-gcc-char-word-boundary-v45
+
+.PHONY: test-pdp10-gcc-char-word-boundary-v45
+test-pdp10-gcc-char-word-boundary-v45: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+		sh tests/validation/pdp10-gcc-char-word-boundary-v45.sh
+
 target-swap-pure-text-pdp6: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
