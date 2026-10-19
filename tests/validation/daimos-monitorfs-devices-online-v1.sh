@@ -70,6 +70,7 @@ set ge disabled
 detach dtc0
 detach dtc1
 detach dtc2
+detach dtc3
 set dtc disabled
 detach mtc0
 detach mtc1
