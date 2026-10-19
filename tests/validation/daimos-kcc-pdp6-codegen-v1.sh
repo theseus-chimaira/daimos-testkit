@@ -27,9 +27,12 @@ if grep -E '^[[:space:]]*[Aa][Dd][Jj][Ss][Pp][[:space:]]' "$asm" >/dev/null 2>&1
         exit 1
 fi
 
-if ! grep -E '^[[:space:]]*(ADD|add|SUB|sub)[[:space:]]+17,\[[0-7]+,,[0-7]+\]' "$asm" >/dev/null 2>&1; then
+# GCC emits PDP-6 AC names in octal (017), while KCC emits 17.
+# Either spelling must be accepted, but both must use a paired-halfword
+# stack adjustment rather than the PDP-10-only ADJSP instruction.
+if ! grep -Ei '^[[:space:]]*(add|sub)[[:space:]]+0?17,\[[0-7]+,,[0-7]+\]' "$asm" >/dev/null 2>&1; then
         echo "$tag: expected PDP-6 simulated stack adjustment missing" >&2
         exit 1
 fi
 
-printf '%s\n' "$tag: PASS (PDP-6 KCC build contains only simulated stack adjustment)"
+printf '%s\n' "$tag: PASS (PDP-6 compiler build contains simulated stack adjustment, no ADJSP)"

@@ -160,6 +160,10 @@ fs_backing_direct_write:
         popj    17,
 
         .data
+; Mirror the four-slot boot inventory used by this mount-isolation oracle.
+        .globl vfs_mount_limit
+vfs_mount_limit:
+        .word   4
         .globl d6fs_reader_slots_base
 d6fs_reader_slots_base:
         .word d6fs_reader_slots

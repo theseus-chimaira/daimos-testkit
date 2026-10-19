@@ -283,6 +283,10 @@ kret_neg1:
         popj    17,
 
         .data
+; Remount uses the same runtime capacity limit as regular VFS dispatch.
+        .globl vfs_mount_limit
+vfs_mount_limit:
+        .word   4
         .globl d6fs_reader_slots_base
 d6fs_reader_slots_base:
         .word d6fs_reader_slots

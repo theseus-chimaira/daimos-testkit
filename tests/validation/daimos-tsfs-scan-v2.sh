@@ -15,6 +15,7 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
         -I"$DAIMOS_REPO/system/kernel/fs" \
         -I"$DAIMOS_REPO/system/kernel/storage" \
         -I"$DAIMOS_REPO/system/kernel/core" \
+        -I"$DAIMOS_REPO/tools/host" \
         "$self/daimos-tsfs-scan-v2-test.c" \
         "$DAIMOS_REPO/userland/tsfs/tsfs_scan.c" -o "$work/test"
 "$work/test"

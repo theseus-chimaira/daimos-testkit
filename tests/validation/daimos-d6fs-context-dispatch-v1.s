@@ -91,6 +91,11 @@ d6fs_provider_space:
         popj    17,
 
         .data
+; The production selector bounds mount ids against KINIT's published slot
+; capacity.  This oracle models the four-slot fixture, not the boot inventory.
+        .globl vfs_mount_limit
+vfs_mount_limit:
+        .word   4
         .globl d6fs_reader_slots_base
 d6fs_reader_slots_base:
         .word d6fs_reader_slots

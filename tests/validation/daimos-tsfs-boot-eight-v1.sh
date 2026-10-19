@@ -8,7 +8,8 @@ work="$TMPDIR/daimos-tsfs-boot-eight-v1-$$"
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 mkdir -p "$work"
 
-"$host_cc" -std=c99 -pedantic -O2 -Wall -Wextra -Werror -DKINIT_FULL=1 \
+"$host_cc" -std=c99 -pedantic -O2 -Wall -Wextra -Werror \
+        -DKINIT_FULL=1 -DKINIT_TAPE_BOOT=1 \
         -I"$DAIMOS_REPO/system/kernel/boot" \
         -I"$DAIMOS_REPO/system/kernel/core" \
         -I"$DAIMOS_REPO/system/kernel/fs" \
