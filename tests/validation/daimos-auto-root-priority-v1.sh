@@ -76,7 +76,13 @@ PATH="$PDP10_PREFIX/bin:$PATH" make -C "$BOOT_DIR" image \
 # The AUTO build supplies the DSK root and simulator configuration.  Replace its
 # empty alternate-root media with complete roots produced by the normal builder.
 cp "$BUILD_TAPE/media/dtc0.tap" "$BUILD/media/dtc0.tap"
-cp "$BUILD_DRUM/drum/dsk0.dsk" "$BUILD/drum/dsk0.dsk"
+# Drum D6FS roots are a *four-member set*.  Copying only member zero leaves
+# the other three slots holding unrelated blank media from the AUTO build;
+# boot discovery then correctly rejects the incomplete membership mask.
+# Preserve the entire set from the independently formatted drum root.
+for unit in 0 1 2 3; do
+        cp "$BUILD_DRUM/drum/dsk$unit.dsk" "$BUILD/drum/dsk$unit.dsk"
+done
 
 run_case()
 {
