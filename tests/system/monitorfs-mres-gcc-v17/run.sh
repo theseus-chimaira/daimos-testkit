@@ -11,7 +11,9 @@ work="$TMPDIR/daimos-monitorfs-mres-gcc-v17-$$"
 mkdir -p "$work"
 echo "MonitorFS MRES v17 test build: $work"
 if ! make -C "$DAIMOS_REPO/system/boot/pdp6" image \
-    BOOT_PROFILE=lowmem COMPILER=gcc MONITORFS_MRES_ENABLED=1 \
+    BOOT_PROFILE=lowmem ROOT=disk BOOT=dsk COMPILER=gcc \
+    BOOT_CORE_WORDS=0140000 SIMH_CPU_KWORDS=48 DSH_IMAGE_LIMIT=037000 \
+    MONITORFS_MRES_ENABLED=1 \
     PDP10_PREFIX="$PDP10_PREFIX" BUILD="$work/build" \
     > "$work/build.log" 2>&1; then
     tail -35 "$work/build.log" >&2

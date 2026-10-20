@@ -1,0 +1,24 @@
+probe mres-process-names
+command CAT /MONITOR/PROCESSES/1/NAME
+contains INIT
+end
+
+probe mres-process-metadata
+command CAT /MONITOR/PROCESSES/2/CMDLINE
+contains /SYSTEM/EXEC/DSH
+end
+
+probe mres-process-state
+command CAT /MONITOR/PROCESSES/2/STATE
+contains SLEEP
+end
+
+probe mres-domain-list
+command LS /MONITOR/DOMAINS
+contains 1
+end
+
+probe mres-device-list
+command LS /MONITOR/DEVICES
+contains DSK0
+end
