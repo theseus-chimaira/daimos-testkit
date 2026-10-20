@@ -31,7 +31,11 @@ cleanup()
                 wait "$sim_pid" 2>/dev/null || true
         fi
         exec 3>&- 2>/dev/null || true
-        rm -rf "$work"
+        # Preserve guest output and fresh boot image when diagnosing a failed
+        # relative MonitorFS walk; normal acceptance still reclaims the work.
+        if [ "${DAIMOS_MONITORFS_KEEP_WORK:-0}" != 1 ]; then
+                rm -rf "$work"
+        fi
 }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$run"
@@ -125,10 +129,32 @@ wait_new "$dcs" '# ' "$start" 800 || fail 'cd into process directory failed'
 start=`log_size "$dcs"`
 send_slow 'cd ..'
 wait_new "$dcs" '# ' "$start" 800 || fail 'cd .. from process directory failed'
+if [ "${DAIMOS_MONITORFS_TRACE:-0}" = 1 ]; then
+        # Diagnostic only: distinguish an absent process leaf, empty file,
+        # wrong PID, and relative-path resolution before touching the oracle.
+        for command in 'pwd' 'ps' \
+            'cat /monitor/processes/1/name' \
+            'cat /monitor/processes/2/state' \
+            'cat /monitor/processes/2/name' \
+            'cat /monitor/processes/3/name' \
+            'stat /monitor/processes/2/name'; do
+                start=`log_size "$dcs"`
+                send_slow "$command"
+                wait_new "$dcs" '# ' "$start" 800 || \
+                    fail "diagnostic command did not finish: $command"
+        done
+        echo "$tag: diagnostic process-name and PID probe completed" >&2
+fi
 start=`log_size "$dcs"`
 send_slow 'cat 2/name'
-wait_new "$dcs" 'DSH' "$start" 800 || \
-    fail 'cd .. did not return to process root'
+if ! wait_new "$dcs" 'DSH' "$start" 800; then
+        # Isolate a broken parent traversal from an unavailable process node.
+        # PWD and absolute CAT are diagnostic only; neither relaxes the
+        # original relative-name acceptance contract above.
+        send_slow 'pwd'
+        send_slow 'cat /monitor/processes/2/name'
+        fail 'cd .. did not return to process root'
+fi
 wait_new "$dcs" '# ' "$start" 800 || fail 'relative process read did not return'
 
 start=`log_size "$dcs"`
