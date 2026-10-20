@@ -236,6 +236,12 @@ target-swap-pure-text-pdp6: check-prefix
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		tests/target/daimos-swap-pure-text-pdp6-v1/run.sh
 
+.PHONY: target-startup-snapshot-pdp6-v72
+target-startup-snapshot-pdp6-v72: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		sh tests/target/daimos-startup-snapshot-pdp6-v72/run.sh
+
 target-backstore-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-backstore-pdp6-v1/run.sh
