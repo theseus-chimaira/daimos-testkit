@@ -64,6 +64,12 @@ dcs_port=$((30000 + ($$ % 10000)))
 ge_port=$((45000 + ($$ % 10000)))
 "$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
     "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
+if [ "${DAIMOS_V75_STACK_WATERMARK:-0}" = 1 ]; then
+        address=$(awk '$1 == "kernel_idle_stack_highwater" { print $2 }' "$boot/kcore.map")
+        test -n "$address" || { echo "$tag: missing stack watermark symbol" >&2; exit 1; }
+        sed "/^go 020$/a ex $address" "$boot/boot.headless.ini" > "$boot/boot.watermark-v75.ini"
+        mv "$boot/boot.watermark-v75.ini" "$boot/boot.headless.ini"
+fi
 set +e
 (
         cd "$boot"
@@ -80,7 +86,7 @@ fi
 
 text=$(tr -d '\r\n' <"$out")
 case "$text" in
-*'!'*)
+    *'!'*)
         cat "$out" >&2
         echo "$tag: target process reported failure" >&2
         exit 1
@@ -94,5 +100,23 @@ case "$text" in
         exit 1
         ;;
 esac
+
+if [ "${DAIMOS_V75_STACK_WATERMARK:-0}" = 1 ]; then
+        # The simulator prints the first untouched idle-stack word offset as
+        # an octal PDP-10 word.  Check the *actual* high-water mark, not the
+        # configured capacity.  This instrumentation belongs only in tests.
+        used_oct=$(sed -n "s/^0*${address#0}:[[:space:]]*\([0-7][0-7]*\).*$/\1/p" "$out" | tail -n 1)
+        test -n "$used_oct" || {
+                echo "$tag: idle stack watermark was not reported" >&2
+                exit 1
+        }
+        used=$((0$used_oct))
+        limit=$((0${DAIMOS_V75_STACK_WORDS:-140}))
+        if [ "$used" -ge "$limit" ]; then
+                echo "$tag: idle stack watermark $used exceeds reserved $limit words" >&2
+                exit 1
+        fi
+        printf '%s\n' "$tag: slot-0 first untouched word=$used (decimal); capacity=$limit"
+fi
 
 printf '%s\n' "$tag: PASS (48K real swapped-process MonitorFS NAME/CMDLINE/ENVIRONMENT, wake and WAIT)"
