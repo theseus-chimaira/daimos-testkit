@@ -10,7 +10,10 @@
 
 static struct proc proc_store[2];
 static struct proc_swap_record swap_store[2];
-static kword_t image[02040];
+/* Initial user image had 02040 words; BRK grew its allocated VM to 04040.
+ * The startup vectors stay at initial_words - 02000, not at the new end. */
+static kword_t image[04040];
+static kword_t uarea[PROC_UAREA_WORDS];
 
 struct proc *proc_table = proc_store;
 unsigned int proc_slots = 2U;
@@ -74,11 +77,15 @@ daimos_monitorfs_wordio_test(void)
         unsigned int meta;
         int n;
 
-        proc_store[1].meta = 0UL;
+        proc_store[1].meta =
+            ((kword_t)(unsigned long)uarea << PROC_HALF_SHIFT) |
+            ((kword_t)PROC_F_UAREA << PROC_FLAGS_SHIFT);
+        uarea[PROC_BRK_OFFSET] =
+            ((kword_t)02040UL << PROC_HALF_SHIFT) | 02050UL;
         PROC_SET_PARENT_SLOT(&proc_store[1], 0U);
         proc_store[1].sched = 0UL;
         PROC_SET_STATE(&proc_store[1], PROC_SRUN);
-        proc_store[1].vm_state = ((kword_t)02040UL << 18U) |
+        proc_store[1].vm_state = ((kword_t)04040UL << 18U) |
             ((kword_t)(unsigned long)image & HALF_MASK);
 
         meta = 040U; /* 02040 - 02000 */

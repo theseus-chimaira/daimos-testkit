@@ -11,7 +11,7 @@
 
 static struct proc test_proc[2];
 static kword_t test_uarea[PROC_UAREA_WORDS];
-static kword_t test_image[2U * EXEC_DXR_STACK_WORDS];
+static kword_t test_image[3U * EXEC_DXR_STACK_WORDS];
 static kword_t test_copy[0100];
 static unsigned int test_pinned = 1U;
 static unsigned int test_alloc_fail;
@@ -82,8 +82,15 @@ daimos_snap_target_v72(void)
         test_proc[1].meta =
             ((kword_t)(unsigned long)test_uarea << PROC_HALF_SHIFT) |
             ((kword_t)PROC_F_UAREA << PROC_FLAGS_SHIFT);
-        test_proc[1].vm_state =
+        /* The process started with 2*STACK words, then enlarged its heap
+         * by one full APR quantum.  Startup metadata did NOT move to the
+         * new end of the physical extent.  Regression: V72 used vm_state LH
+         * rather than the stable heap-floor LH when capturing the record. */
+        test_uarea[PROC_BRK_OFFSET] =
             ((kword_t)(2U * EXEC_DXR_STACK_WORDS) << PROC_HALF_SHIFT) |
+            (2U * EXEC_DXR_STACK_WORDS + 17UL);
+        test_proc[1].vm_state =
+            ((kword_t)(3U * EXEC_DXR_STACK_WORDS) << PROC_HALF_SHIFT) |
             (kword_t)(unsigned long)test_image;
         v = &test_image[EXEC_DXR_STACK_WORDS];
         v[0] = ((kword_t)1UL << PROC_HALF_SHIFT) | 2UL;
@@ -138,6 +145,14 @@ daimos_snap_target_v72(void)
         if (proc_snap_take_v72(1U) == 0 || test_alloc_count != 1U)
                 return 6;
         test_alloc_fail = 0U;
+        test_uarea[PROC_BRK_OFFSET] =
+            ((kword_t)(4U * EXEC_DXR_STACK_WORDS) << PROC_HALF_SHIFT) |
+            (2U * EXEC_DXR_STACK_WORDS + 17UL);
+        if (proc_snap_take_v72(1U) == 0 || test_alloc_count != 1U)
+                return 8;             /* heap floor beyond allocated VM */
+        test_uarea[PROC_BRK_OFFSET] =
+            ((kword_t)(2U * EXEC_DXR_STACK_WORDS) << PROC_HALF_SHIFT) |
+            (2U * EXEC_DXR_STACK_WORDS + 17UL);
         test_pinned = 0U;
         if (proc_snap_take_v72(1U) == 0 || test_alloc_count != 1U)
                 return 7;
