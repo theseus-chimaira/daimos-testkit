@@ -21,12 +21,20 @@ SYSTEM_DRUM=$WORK/system-drum
 
 cleanup()
 {
-        rm -rf "$WORK"
+        # Preserve all three boot transcripts when investigating a fallback
+        # failure; the ordinary regression still removes transient media.
+        if [ "${DAIMOS_AUTO_ROOT_KEEP_WORK:-0}" != 1 ]; then
+                rm -rf "$WORK"
+        fi
 }
 trap cleanup 0 1 2 3 15
 mkdir -p "$WORK"
 
-printf '%s\n' '1:RESPAWN:/SYSTEM/EXEC/DSH' > "$INITTAB"
+# Exercise root selection through a real login session, as the root-class
+# matrix does.  The harness and INITTAB must agree about that contract:
+# launch LOGIN and supply --login ROOT below.  Running DSH directly would
+# bypass authentication, while LOGIN without --login leaves DSH unreachable.
+printf '%s\n' '1:RESPAWN:/SYSTEM/EXEC/LOGIN' > "$INITTAB"
 cat > "$SYSTEM_DISK" <<'EOT'
 # DAIMOS SYSTEM POLICY V1
 # ROOTCLASS DISK
@@ -76,6 +84,17 @@ run_case()
         expected=$2
         ini=$3
         probes=$WORK/probes-$name
+        boot_timeout=300
+        command_timeout=15
+        # A fallback TSFS root performs long physical tape seeks for LOGIN,
+        # DSH and CAT.  The 120-second CAT allowance timed out after DSH
+        # was already running; repeating the exact probe against the same
+        # image with a 360-second allowance passed and printed ROOTCLASS TAPE.
+        # Limit this adjustment to the actual tape-root transport.
+        if [ "$expected" = TAPE ]; then
+                boot_timeout=600
+                command_timeout=360
+        fi
 
         cat > "$probes" <<EOT
 probe auto-root-$name
@@ -83,23 +102,44 @@ command CAT /CONFIG/SYSTEM
 contains ROOTCLASS $expected
 end
 EOT
-        PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$TMPDIR" \
+        if PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$TMPDIR" \
             "$HARNESS" --daimos-repo "$DAIMOS_REPO" --dofile "$ini" \
             --pty-run "$PTY_RUN" --tcp-run "$TCP_RUN" --dcs-port "$dcs_port" \
-            --boot-timeout 300 --probes "$probes" \
+            --boot-timeout "$boot_timeout" --timeout "$command_timeout" \
+            --login ROOT --probes "$probes" \
             --work-dir "$WORK/run-$name" --markdown-report "$WORK/$name.md" >/dev/null
+        then
+                :
+        else
+                rc=$?
+                printf '%s\n' "auto-root-$name: FAIL (rc=$rc)" >&2
+                if [ -f "$WORK/run-$name/dcs0.log" ]; then
+                        tail -60 "$WORK/run-$name/dcs0.log" >&2
+                fi
+                if [ -f "$WORK/run-$name/simh.log" ]; then
+                        printf '%s\n' "--- SIMH $name ---" >&2
+                        tail -100 "$WORK/run-$name/simh.log" >&2
+                fi
+                if [ -f "$WORK/$name.md" ]; then
+                        cat "$WORK/$name.md" >&2
+                fi
+                exit "$rc"
+        fi
         printf '%s\n' "auto-root-$name: PASS (selected $expected)"
 }
 
 # AUTO must prefer DSK while all three root classes are available.
 run_case all DISK "$BUILD/boot.ini"
 
-# Remove DSK; AUTO must fall back to the TSFS root on DTC.
-sed '/^attach -q dsk0 /d' "$BUILD/boot.ini" > "$WORK/no-dsk.ini"
+# Make the entire DSK root class unavailable: the other three units may have
+# readable D6FS media, and AUTO is entitled to select any valid unit.
+sed '/^attach -q dsk[0-3] /d' "$BUILD/boot.ini" > "$WORK/no-dsk.ini"
 run_case no-dsk TAPE "$WORK/no-dsk.ini"
 
-# Remove DTC as well; DRM is then the remaining supported root class.
-sed -e '/^attach -q dsk0 /d' -e '/^attach -q dtc0 /d' \
+# Remove all DTC units as well.  An alternate TSFS volume on DTC1..3 can
+# legitimately win AUTO over DRM, even if it lacks a complete boot tree.
+# Only an absent DTC class makes this an unambiguous drum fallback test.
+sed -e '/^attach -q dsk[0-3] /d' -e '/^attach -q dtc[0-3] /d' \
     "$BUILD/boot.ini" > "$WORK/drm-only.ini"
 run_case drm-only DRUM "$WORK/drm-only.ini"
 
