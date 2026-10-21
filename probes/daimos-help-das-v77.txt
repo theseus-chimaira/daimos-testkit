@@ -1,0 +1,8 @@
+probe help-compact-das-v77
+command HELP DAS
+timeout 150
+contains DAS - DAIMOS PDP-6 AND PDP-10 ASSEMBLER
+contains -O FILE
+contains SOURCE
+not_contains SOURCE FORM
+end

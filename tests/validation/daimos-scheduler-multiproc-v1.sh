@@ -56,6 +56,8 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$build/system/boot/pdp6" \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=5 \
+    DAS_REPO="${DAS_REPO:-$HOME/git/das}" \
+    KCC_REPO="${KCC_REPO:-$HOME/git/kcc}" \
     SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 
 boot="$build/system/boot/pdp6"
