@@ -78,6 +78,42 @@ vfs_sync:
         setz    1,
         popj    17,
 
+; Targeted device-word I/O fixture: use the actual one-word MINIT-style
+; patchable KCORE jump entries, not direct calls to the test service.
+; Every FILE device path must pass mapped buffer/count in AC1/AC2 and
+; return through the common offset-accounting code after service POPJ.
+        .globl file_test_patch_devices
+        .globl file_test_device_buf
+        .globl file_test_device_count
+        .globl file_test_device_slot
+        .globl tty_write_s6rec_jump
+        .globl ptp_write_words_jump
+        .globl cp_write_words_jump
+        .globl lpt_write_s6rec_jump
+        .globl dpy_write_words_jump
+        .globl wcnsls_write_words_jump
+        .globl tty_read_s6rec_jump
+        .globl ptr_read_words_jump
+        .globl cr_read_words_jump
+file_test_patch_devices:
+        move    1,[jrst file_test_device_service]
+        movem   1,tty_write_s6rec_jump
+        movem   1,ptp_write_words_jump
+        movem   1,cp_write_words_jump
+        movem   1,lpt_write_s6rec_jump
+        movem   1,dpy_write_words_jump
+        movem   1,wcnsls_write_words_jump
+        movem   1,tty_read_s6rec_jump
+        movem   1,ptr_read_words_jump
+        movem   1,cr_read_words_jump
+        popj    17,
+file_test_device_service:
+        movem   1,file_test_device_buf
+        movem   2,file_test_device_count
+        movem   4,file_test_device_slot
+        movei   1,2                  ; deterministic short transfer
+        popj    17,
+
         .globl  pipe_readchar
         .globl  pipe_writechar
         .globl  pipe_fifo_open
@@ -116,3 +152,6 @@ file_test_write_node:   .block 1
 file_test_write_off:    .block 1
 file_test_write_buf:    .block 1
 file_test_write_count:  .block 1
+file_test_device_buf:   .block 1
+file_test_device_count: .block 1
+file_test_device_slot:  .block 1

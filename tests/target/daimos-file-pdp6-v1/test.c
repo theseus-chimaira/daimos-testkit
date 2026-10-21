@@ -13,6 +13,19 @@ extern kword_t file_test_write_node;
 extern kword_t file_test_write_off;
 extern kword_t file_test_write_buf;
 extern kword_t file_test_write_count;
+extern void file_test_patch_devices(void);
+extern kword_t file_test_device_buf;
+extern kword_t file_test_device_count;
+extern kword_t file_test_device_slot;
+extern kword_t tty_write_s6rec_jump;
+extern kword_t ptp_write_words_jump;
+extern kword_t cp_write_words_jump;
+extern kword_t lpt_write_s6rec_jump;
+extern kword_t dpy_write_words_jump;
+extern kword_t wcnsls_write_words_jump;
+extern kword_t tty_read_s6rec_jump;
+extern kword_t ptr_read_words_jump;
+extern kword_t cr_read_words_jump;
 
 kword_t daimos_file_pdp6_result;
 
@@ -54,7 +67,8 @@ daimos_file_pdp6_test(void)
                 TEST_SIX6('Y',' ',' ',' ',' ',' ')
         };
         struct vfs_name name;
-        struct file table[FILE_NFILE];
+        /* File mount-extension bitmap is at file_table+041 octal. */
+        struct file table[FILE_NFILE + 2];
         unsigned int pos;
         unsigned int i;
         vnode_t vnode;
@@ -192,5 +206,57 @@ daimos_file_pdp6_test(void)
         if (file_read_words(1, wordbuf, 4U) != -1 ||
             table[1].offset != 014UL)
                 return 25;
+
+        /* Regression for the shared, MINIT-patchable device-word dispatch.
+         * Compare AC4 against the expected KCORE jump-slot address: this
+         * detects a misrouted device even if every test service returns 2.
+         * The raw WCNSLS read path is intentionally not transformed. */
+        {
+                static const struct {
+                        kword_t node;
+                        unsigned int writing;
+                        kword_t *slot;
+                } cases[] = {
+                        { 020002000000UL, 1U, &tty_write_s6rec_jump },
+                        { 020002000003UL, 1U, &ptp_write_words_jump },
+                        { 020002000005UL, 1U, &cp_write_words_jump },
+                        { 020002000022UL, 1U, &lpt_write_s6rec_jump },
+                        { 020002000010UL, 1U, &dpy_write_words_jump },
+                        { 020002000012UL, 1U, &wcnsls_write_words_jump },
+                        { 020002000000UL, 0U, &tty_read_s6rec_jump },
+                        { 020002000002UL, 0U, &ptr_read_words_jump },
+                        { 020002000004UL, 0U, &cr_read_words_jump }
+                };
+                const unsigned int nc = sizeof(cases) / sizeof(cases[0]);
+
+                /* The original unpatched stub must fail without advancing
+                 * the descriptor: no hardware installation is also valid. */
+                table[0].node_meta = 020002000003UL | FILE_META_WRITE;
+                table[0].offset = 5U;
+                if (file_write_words(0, wordbuf, 4U) != -1 ||
+                    table[0].offset != 5U)
+                        return 35;
+
+                file_test_patch_devices();
+                for (i = 0U; i < nc; ++i) {
+                        table[0].node_meta = cases[i].node |
+                            (cases[i].writing ? FILE_META_WRITE :
+                            FILE_META_READ);
+                        table[0].offset = 5U;
+                        file_test_device_slot = 0UL;
+                        file_test_device_buf = 0UL;
+                        file_test_device_count = 0UL;
+                        rc = cases[i].writing ?
+                            file_write_words(0, wordbuf, 4U) :
+                            file_read_words(0, wordbuf, 4U);
+                        if (rc != 2 || table[0].offset != 7U ||
+                            file_test_device_buf !=
+                            (kword_t)(unsigned long)wordbuf ||
+                            file_test_device_count != 4U ||
+                            file_test_device_slot !=
+                            (kword_t)(unsigned long)cases[i].slot)
+                                return 26 + (int)i;
+                }
+        }
         return 0;
 }
