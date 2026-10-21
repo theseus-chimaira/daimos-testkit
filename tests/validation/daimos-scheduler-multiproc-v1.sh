@@ -55,6 +55,7 @@ grep -Eq '^_start[[:space:]]+000020$' "$user/init.map" || {
 PATH="$PDP10_PREFIX/bin:$PATH" \
     "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$build/system/boot/pdp6" \
+    COMPILER="${DAIMOS_SCHED_KERNEL_COMPILER:-kcc}" \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=5 \
     DAS_REPO="${DAS_REPO:-$HOME/git/das}" \
     KCC_REPO="${KCC_REPO:-$HOME/git/kcc}" \
