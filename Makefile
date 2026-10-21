@@ -159,6 +159,21 @@ test-daimos-dsh-angle-parameter-20261021-v1: check-prefix $(PTY_RUN) image
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
 		--probes probes/daimos-dsh-angle-parameter-20261021-v1.txt
 
+.PHONY: test-daimos-dsh-help-compact-20261021-v1 test-daimos-gcc-help-toolchain-20261021-v46
+
+# Separate the compiler acceptance gate from HELP rendering.  A stale
+# installed GCC passes -O0 but miscompiles optimized 9-bit char loads at a
+# four-character PDP-6 word boundary, causing valid SIXMD HELP headings to
+# disappear.  Run the existing -O0/-O1/-O2/-Os native reproducer first.
+test-daimos-gcc-help-toolchain-20261021-v46: test-pdp10-gcc-char-word-boundary-v45 test-daimos-dsh-help-compact-20261021-v1
+
+test-daimos-dsh-help-compact-20261021-v1: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-help-compact-20261021-v1.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--probes probes/daimos-dsh-help-compact-20261021-v1.txt
+
 test-daimos-dsh-resource-contract:
 	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" tests/validation/daimos-dsh-resource-contract-20261010-v1.sh
 

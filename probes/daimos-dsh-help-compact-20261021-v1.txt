@@ -1,0 +1,11 @@
+probe help-echo-status-v1
+command HELP ECHO; ECHO RETURN:$?
+contains RETURN:0
+contains [ARG ...]
+end
+
+probe help-das-status-v1
+command HELP DAS; ECHO RETURN:$?
+contains RETURN:0
+contains -O FILE
+end
