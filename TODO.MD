@@ -8,6 +8,11 @@
   multimember and recovery now pass independently under both compilers.
   Retake the full non-size serial matrix when the remaining active groups
   have been repaired; 027 is still deferred by request.
+- Group 030's 66/66 runtime probe suite and CTY READCHAR accounting
+  now pass under both compilers (v132). Remaining: DTFS runtime,
+  EXEC replacement and child-session, native Type-340 refresh,
+  userspace multi-TTY and make-boot multi-TTY. Keep these tests
+  independent and do not accept group 030 until all are green.
 - Strict 32K boot and resident-size gates remain deferred.
 
 DATE: 2026-09-30

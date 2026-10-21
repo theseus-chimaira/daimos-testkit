@@ -1,3 +1,29 @@
+## 2026-10-21 RUNTIME PROBES AND CTY ACCOUNTING V136
+
+- The versioned `daimos-runtime-probes-v132.txt` suite passes all
+  **66/66 probes under both KCC and GCC** (fresh 256K images). The
+  previous STAT test expected a non-existent CHARS field; its revised
+  oracle verifies TYPE, WORDS, MODE, UID, GID and MTIME. DF is checked
+  against the current FILESYSTEM/MOUNT/TOTAL/USED/FREE tabulation and
+  a populated MEMFS /TEMP row. Assertion coverage is preserved.
+- `/MONITOR/DEVICES/CTY0/STATS` is a READCHAR character stream, not a
+  S6REC word file: native CAT correctly prints no content. The v132
+  suite now checks its metadata using STAT, while the independent
+  `test-daimos-monitorfs-cty-stats-v132` target checks all three
+  twelve-digit octal lines and EOF via READCHAR plus the incremented
+  CTY output counter. It passes under KCC v133 and GCC v134.
+- That target exposed a genuine missing-counter defect in DAIMOS
+  `cty_io.s`. DAIMOS commit `08625cf` increments the existing
+  MonitorFS CTY IN/OUT slots only on completed I/O. It adds no BSS.
+- Runtime logs: `$TMPDIR/daimos-group030-runtime-kcc-v135.log` and
+  `$TMPDIR/daimos-group030-runtime-gcc-v136.log`; counter logs:
+  `$TMPDIR/daimos-monitorfs-cty-kcc-v133.log` and
+  `$TMPDIR/daimos-monitorfs-cty-gcc-v134.log`.
+- Only the runtime-build/MonitorFS portion of group 030 is accepted.
+  Exec, DTFS, display, and multi-TTY cases still need fresh retakes;
+  group 030 and the complete serial matrix remain OPEN. Group 027
+  remains explicitly deferred, as do strict 32K/size gates.
+
 ## 2026-10-21 D6FS HDD / MULTIMEMBER / RECOVERY GROUP 029 V131
 
 - Group 029 passes independent KCC and GCC non-size acceptance.
