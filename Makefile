@@ -777,6 +777,11 @@ test-daimos-trap-frequency: check-prefix
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		tests/validation/daimos-trap-frequency-v1.sh
 
+# This standalone SIMH CPU/console check needs no DAIMOS image or compiler.
+test-daimos-simh-console-pc-v115: check-prefix
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+		tests/validation/daimos-simh-console-pc-v115.sh
+
 test-daimos-credentials:
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" tests/validation/daimos-credentials-v1.sh
