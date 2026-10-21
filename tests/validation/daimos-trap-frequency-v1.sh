@@ -54,6 +54,7 @@ if [ -z "${DAIMOS_TRAP_PREBUILT:-}" ]; then
         PATH="$PDP10_PREFIX/bin:$PATH" "$make_cmd" \
                 -C "$DAIMOS_REPO/system/boot/pdp6" image \
                 BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
+                DSH_IMAGE_LIMIT=037000 \
                 SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
 fi
 
