@@ -56,6 +56,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
         BUILD="$build" USERLAND_BUILD_ROOT="$build" \
         PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
         DAS_REPO="$DAS_REPO" HOST_TOOLS="$build/tools/host" \
+        KCC_REPO="${KCC_REPO:-$HOME/git/kcc}" \
         SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
 cp "$work/media/member0.dta" "$build/media/dtc0.tap"
 cp "$work/media/member1.dta" "$build/media/dtc1.tap"
