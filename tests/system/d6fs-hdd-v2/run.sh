@@ -53,7 +53,10 @@ TMPDIR="$TMPDIR" PDP10_PREFIX="$PDP10_PREFIX" \
     --pty-run "$PTY_RUN" --login ROOT --probes "$PROBES" \
     --work-dir "$WORK" --markdown-report "$REPORT"
 
-"$LOGSTORE" -n 1 -d "$KERNEL_BUILD/disk" --dump > "$WORK/d6log.out"
+# This boot fixture formats a four-member interleaved D6FS disk set.
+# Inspecting it as a single-member set maps BADMAP to the wrong physical
+# block and incorrectly reports "invalid badmap" after a successful boot.
+"$LOGSTORE" -n 4 -d "$KERNEL_BUILD/disk" --dump > "$WORK/d6log.out"
 if grep -q 'valid=1' "$WORK/d6log.out"; then
         cat "$WORK/d6log.out" >&2
         echo 'd6fs-hdd-v2: clean boot created a LOGSTORE record' >&2
