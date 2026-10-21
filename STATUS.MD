@@ -1,3 +1,20 @@
+## 2026-10-21 SIMH CONSOLE PC AND TRAP FREQUENCY V120
+
+- `test-daimos-simh-console-pc-v115` verifies that a startup-script PC
+  survives entry into the interactive console, an actual PDP-6 instruction
+  breakpoint, and single-step. It fails on the old simulator and passes
+  after the global `PC` to `kx10_pc` namespace correction (`sims` 1a41f45).
+- The existing `test-daimos-trap-frequency` passes the full runtime oracle
+  on corrected SIMH under **KCC and GCC**. KCC measured startup/echo/
+  memstat/ls/ps/cat128 as 111/16/19/33/23/18 traps; GCC measured
+  90/16/19/33/25/18. All original ceilings (128/35/70/70/110/45) hold.
+- The trap fixture explicitly uses functional `DSH_IMAGE_LIMIT=037000`
+  (`0f6ad07`), separate from the deferred strict 32K boot/image-size gate.
+- These independent checks resolve group 022 only. The last non-size
+  KCC/GCC group results still require fresh acceptance for 027-030; no
+  full matrix pass is claimed. Evidence: `$TMPDIR/daimos-trap-runtime-fixed-pc-v117.log`
+  and `$TMPDIR/daimos-trap-gcc-fixed-pc-v118.log`.
+
 ## 2026-10-12 P10FOLD I/O SKIP AND MULTI-TTY REGRESSION
 
 - `test-daimos-p10fold-io-skip-20261012-v1` protects the PDP-6 BLKI,
