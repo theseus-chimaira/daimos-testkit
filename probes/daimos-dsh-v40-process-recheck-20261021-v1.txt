@@ -1,0 +1,34 @@
+# Isolated reproducer for process/pipeline anomalies seen when multiple
+# independent PDP-6 SIMH instances were running at the same time.
+
+probe dsh-pipeline-data-isolated-v40
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
+
+probe dsh-pipeline-three-isolated-v40
+command ECHO THREE ! CAT ! CAT
+line ^THREE$
+end
+
+probe dsh-pipeline-eight-isolated-v40
+command ECHO P8 ! CAT ! CAT ! CAT ! CAT ! CAT ! CAT ! CAT
+line ^P8$
+end
+
+probe dsh-positional-eight-isolated-v40
+setup ECHO 'ECHO P:$3:$4:$5:$6:$7:$8:$#' > /CONFIG/DSHP8
+command ECHO 'A B C D E F G H' ! XARGS -N 10 DSH /CONFIG/DSHP8
+line ^P:C:D:E:F:G:H:8$
+end
+
+probe dsh-positional-eight-cleanup-isolated-v40
+command RM /CONFIG/DSHP8
+not_contains RM:
+end
+
+probe dsh-background-group-isolated-v40
+command SET BGVAR PARENT; BEGIN SET BGVAR CHILD; ECHO BG:$BGVAR END &; WAIT %1; ECHO PARENT:$BGVAR
+contains BG:CHILD
+contains PARENT:PARENT
+end

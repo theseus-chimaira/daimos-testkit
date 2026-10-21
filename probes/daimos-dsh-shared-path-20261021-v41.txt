@@ -1,0 +1,22 @@
+# PATH directory joining and glob traversal share bounded SIXBIT appending
+# but have intentionally different rules for existing trailing slashes.
+
+probe dsh-path-lookup-trailing-slash-v41
+command DSH -C 'SET PATH /SYSTEM/EXEC/; DSH -C EXIT'; ECHO P:$?
+line ^P:0$
+end
+
+probe dsh-path-lookup-no-slash-v41
+command DSH -C 'SET PATH /SYSTEM/EXEC; DSH -C EXIT'; ECHO P:$?
+line ^P:0$
+end
+
+probe dsh-glob-root-prefix-v41
+command ECHO /SYSTEM/EXEC/D?H
+line ^/SYSTEM/EXEC/DSH$
+end
+
+probe dsh-glob-directory-prefix-v41
+command ECHO /SYSTE?/EXEC/DSH
+line ^/SYSTEM/EXEC/DSH$
+end
