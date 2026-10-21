@@ -7,6 +7,7 @@ export COMPILER
 PDP10_TOOLS_BIN = $(PDP10_PREFIX)/bin
 DAIMOS_REPO ?= ../DAIMOS
 DAS_REPO ?= ../das
+KCC_REPO ?= ../kcc
 AAP_PDP6_REPO ?= ../pdp6
 SIMH_PDP6 ?= $(PDP10_PREFIX)/bin/pdp6
 SIMS_REPO ?= ../sims
@@ -83,7 +84,8 @@ coverage:
 
 image:
 	$(MAKE) -C '$(abspath $(DAIMOS_REPO))/system/boot/pdp6' image \
-		BUILD='$(abspath $(KERNEL_BUILD))' PDP10_PREFIX='$(PDP10_PREFIX)'
+		BUILD='$(abspath $(KERNEL_BUILD))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAS_REPO='$(abspath $(DAS_REPO))' KCC_REPO='$(abspath $(KCC_REPO))'
 
 inventory: check
 	env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
@@ -132,6 +134,21 @@ test-daimos-dsh-variable-heap-20261012-v1: check-prefix $(PTY_RUN) image
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
 		--probes probes/daimos-dsh-variable-heap-20261012-v1.txt
+
+test-daimos-dsh-loop-control-20261021-v1: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-loop-control-20261021-v1.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--probes probes/daimos-dsh-loop-control-20261021-v1.txt
+
+test-daimos-edcore-20261021-v1:
+	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
+	@$(HOST_CC) $(HOST_CFLAGS) -I'$(DAIMOS_REPO)/userland/libc' \
+		-I'$(DAIMOS_REPO)/system/kernel/core' \
+		tests/host/daimos-edcore-20261021-v1.c \
+		'$(DAIMOS_REPO)/userland/libc/edcore.c' -o '$(TMPDIR)/daimos-edcore-20261021-v1-test'
+	@'$(TMPDIR)/daimos-edcore-20261021-v1-test'
 
 test-daimos-dsh-resource-contract:
 	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" tests/validation/daimos-dsh-resource-contract-20261010-v1.sh

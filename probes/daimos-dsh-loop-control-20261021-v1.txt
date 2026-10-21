@@ -1,0 +1,80 @@
+probe dsh-break-simple-v1
+command FOR I IN A B C DO ECHO B:$I; BREAK; ECHO WRONG DONE; ECHO AFTER
+contains B:A
+contains AFTER
+not_contains B:B
+not_contains WRONG
+end
+
+probe dsh-continue-simple-v1
+command FOR I IN A B C DO ECHO C:$I; CONTINUE; ECHO WRONG DONE; ECHO AFTER
+contains C:A
+contains C:B
+contains C:C
+contains AFTER
+not_contains WRONG
+end
+
+probe dsh-break-outside-v1
+command BREAK; ECHO STATUS:$?
+contains STATUS:2
+end
+
+probe dsh-continue-outside-v1
+command CONTINUE; ECHO STATUS:$?
+contains STATUS:2
+end
+
+probe dsh-break-two-level-v1
+command FOR X IN A B DO FOR Y IN C D DO ECHO IN:$X:$Y; BREAK 2 DONE; ECHO WRONG DONE; ECHO FINISHED
+contains IN:A:C
+contains FINISHED
+not_contains IN:B
+not_contains WRONG
+end
+
+probe dsh-break-function-boundary-v1
+command DEF F DO BREAK DONE; FOR X IN A B DO F; ECHO STILL:$X DONE
+contains STILL:A
+contains STILL:B
+end
+
+probe dsh-continue-two-level-v1
+command FOR X IN A B DO FOR Y IN C D DO ECHO CC:$X:$Y; CONTINUE 2 DONE; ECHO WRONG DONE; ECHO FINISHED
+contains CC:A:C
+contains CC:B:C
+contains FINISHED
+not_contains CC:A:D
+not_contains WRONG
+end
+
+probe dsh-while-break-v1
+command WHILE TRUE DO ECHO WLOOP; BREAK; ECHO WRONG DONE; ECHO WEND
+contains WLOOP
+contains WEND
+not_contains WRONG
+end
+
+probe dsh-until-break-v1
+command UNTIL FALSE DO ECHO ULOOP; BREAK; ECHO WRONG DONE; ECHO UEND
+contains ULOOP
+contains UEND
+not_contains WRONG
+end
+
+probe dsh-break-zero-v1
+command FOR I IN A DO BREAK 0; ECHO ERROR:$? DONE
+contains ERROR:2
+end
+
+probe dsh-break-in-function-own-loop-v1
+command DEF F DO FOR X IN A B DO ECHO FN:$X; BREAK DONE DONE; F
+contains FN:A
+not_contains FN:B
+end
+
+probe dsh-source-break-script-v1
+command ECHO 'BREAK; ECHO WRONG' > /CONFIG/LOOPBR; FOR I IN A B DO SOURCE /CONFIG/LOOPBR; ECHO WRONG DONE; ECHO AFTER
+contains AFTER
+not_contains WRONG
+end
