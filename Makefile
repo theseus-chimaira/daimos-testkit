@@ -335,7 +335,8 @@ test-daimos-monitorfs-storage-accounting: check-prefix
 kernel-runtime:
 	$(MAKE) -C tests/system/kernel test \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD='$(abspath $(KERNEL_SMOKE_BUILD))' \
-		PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)'
+		PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+		SIMH_PDP6='$(SIMH_PDP6)' COMPILER='$(COMPILER)' HOST_CC='$(HOST_CC)'
 
 stand-runtime:
 	$(MAKE) -C tests/system/stand test \

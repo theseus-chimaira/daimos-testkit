@@ -36,13 +36,14 @@ $(BUILD):
 minboot: image
 	$(SIMH_PDP6) '$(SIMH_INI)'
 
-test: image
-	@version=`cat '$(PROJECT_ROOT)/VERSION'`; \
-	STDBUF='$(STDBUF)' '$(WATCH_OUTPUT)' -f 6 -t 3 \
-		'$(SIMH_PDP6)' '$(SIMH_INI)' '$(SIMH_LOG)' '$(LOG)' \
-		"DAIMON                              V$$version" \
-		'LOGIN:' >/dev/null
-	@echo 'DAIMOS production disk-boot smoke test PASS'
+# A boot banner on CTY cannot prove that LOGIN/DSH reached the DCS0
+# terminal. Exercise the real device and require two external commands.
+test:
+	@DAIMOS_REPO='$(PROJECT_ROOT)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		TMPDIR='$(TMPDIR)' BUILD='$(abspath $(BUILD))' \
+		COMPILER='$(COMPILER)' SIMH_PDP6='$(SIMH_PDP6)' \
+		HOST_CC='$(HOST_CC)' D6FS_SPARE_BLOCKS='$(D6FS_SPARE_BLOCKS)' \
+		sh '$(CURDIR)/daimos-kernel-boot-dcs-v121.sh'
 
 clean:
 	$(MAKE) -C '$(BOOT_DIR)' clean BUILD='$(abspath $(BUILD))' \
