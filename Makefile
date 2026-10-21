@@ -150,6 +150,15 @@ test-daimos-edcore-20261021-v1:
 		'$(DAIMOS_REPO)/userland/libc/edcore.c' -o '$(TMPDIR)/daimos-edcore-20261021-v1-test'
 	@'$(TMPDIR)/daimos-edcore-20261021-v1-test'
 
+test-daimos-dsh-angle-parameter-20261021-v1: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-angle-parameter-20261021-v1.txt
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
+		sh tests/host/daimos-dsh-angle-lex-20261021-v1.sh
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--probes probes/daimos-dsh-angle-parameter-20261021-v1.txt
+
 test-daimos-dsh-resource-contract:
 	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" tests/validation/daimos-dsh-resource-contract-20261010-v1.sh
 

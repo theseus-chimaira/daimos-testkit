@@ -1,0 +1,130 @@
+probe angle-basic-v1
+command SET ANG ABC; ECHO $<ANG>
+line ^ABC$
+end
+
+probe angle-default-unset-v1
+command UNSET ANG; ECHO X$<ANG:-FALLBACK>Y
+line ^XFALLBACKY$
+end
+
+probe angle-default-empty-v1
+command SET ANG ""; ECHO $<ANG:-EMPTY>
+line ^EMPTY$
+end
+
+probe angle-default-set-v1
+command SET ANG REAL; ECHO $<ANG:-WRONG>
+line ^REAL$
+not_contains WRONG
+end
+
+probe angle-assign-unset-v1
+command UNSET ANG; ECHO $<ANG:=STORED>; ECHO $ANG
+contains STORED
+end
+
+probe angle-assign-empty-v1
+command SET ANG ""; ECHO X$<ANG:=REPLACED>Y; ECHO $ANG
+contains XREPLACEDY
+contains REPLACED
+end
+
+probe angle-assign-set-v1
+command SET ANG OLD; ECHO $<ANG:=NEW>; ECHO $ANG
+contains OLD
+not_contains NEW
+end
+
+probe angle-assign-preserve-export-v1
+command EXPORT ANG=; ECHO $<ANG:=VISIBLE>; DSH -C 'ECHO CHILD:$ANG'
+contains CHILD:VISIBLE
+end
+
+probe angle-alternative-set-v1
+command SET ANG A; ECHO A$<ANG:+ALT>B
+line ^AALTB$
+end
+
+probe angle-alternative-unset-v1
+command UNSET ANG; ECHO A$<ANG:+ALT>B
+line ^AB$
+end
+
+probe angle-alternative-empty-v1
+command SET ANG ""; ECHO A$<ANG:+ALT>B
+line ^AB$
+end
+
+probe angle-required-present-v1
+command SET ANG A; ECHO $<ANG:?ERROR>
+line ^A$
+not_contains ERROR
+end
+
+probe angle-required-unset-v1
+command UNSET ANG; ECHO $<ANG:?REQUIRED>; ECHO STATUS:$?
+contains PARAMETER: REQUIRED
+contains STATUS:2
+end
+
+probe angle-required-empty-v1
+command SET ANG ""; ECHO $<ANG:?>; ECHO STATUS:$?
+contains PARAMETER: ANG
+contains STATUS:2
+end
+
+probe angle-redirection-v1
+command SET ANG CONTENT; ECHO $<ANG> > /CONFIG/ANGLETST; CAT < /CONFIG/ANGLETST; RM /CONFIG/ANGLETST
+line ^CONTENT$
+end
+
+probe angle-adjacent-v1
+command SET ANG MID; ECHO PRE$<ANG>POST
+line ^PREMIDPOST$
+end
+
+probe angle-single-quoted-v1
+command SET ANG VALUE; ECHO '$<ANG>'
+line ^\$<ANG>$
+end
+
+probe angle-double-quoted-v1
+command SET ANG VALUE; ECHO "A$<ANG>B"
+line ^AVALUEB$
+end
+
+probe angle-escaped-v1
+command SET ANG VALUE; ECHO \$<ANG>
+line ^\$<ANG>$
+end
+
+probe angle-unterminated-v1
+command ECHO $<ANG
+contains SYNTAX
+end
+
+probe angle-invalid-operator-v1
+command ECHO $<ANG:!NO>; ECHO STATUS:$?
+contains STATUS:2
+end
+
+probe angle-invalid-name-v1
+command ECHO $<1ANG>; ECHO STATUS:$?
+contains STATUS:2
+end
+
+probe angle-empty-default-v1
+command UNSET ANG; ECHO A$<ANG:->B
+line ^AB$
+end
+
+probe angle-default-with-space-v1
+command UNSET ANG; ECHO X$<ANG:-A B>Y
+line ^XA BY$
+end
+
+probe angle-no-recursive-default-v1
+command UNSET ANG; ECHO $<ANG:-$OTHER>; ECHO STATUS:$?
+contains STATUS:2
+end
