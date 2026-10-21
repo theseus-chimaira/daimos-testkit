@@ -1,3 +1,26 @@
+## 2026-10-21 D6FS HDD / MULTIMEMBER / RECOVERY GROUP 029 V131
+
+- Group 029 passes independent KCC and GCC non-size acceptance.
+  `d6fs-hdd-runtime` passes all 16 guest probes and the four-member
+  LOGSTORE badmap inspection (KCC fresh v128; GCC confirmed v119).
+- The replacement `run-multimember-v126.sh` (commit `552428c`) fixes
+  two test-fixture defects: old SIMH disk attachments overwrote fresh
+  two-/four-member test media, and the synthetic D6FS root omitted
+  MOUNTALL, FSTAB, system policy and the commands exercised by the
+  probes. Both compilers now pass all 16 operations for each supported
+  member count, both malformed/missing-member rejection cases and
+  LOGSTORE checks. No DAIMOS kernel or D6FS implementation changed.
+- Dual-superblock recovery, 16 guest probes, bootstream preservation,
+  LOGSTORE verification and DIRTY reboot rejection pass under both
+  compilers (KCC v130; GCC v129).
+- Logs: `$TMPDIR/daimos-d6fs-multi-kcc-v126.log`,
+  `$TMPDIR/daimos-d6fs-multi-gcc-v127.log`,
+  `$TMPDIR/daimos-d6fs-hdd-runtime-kcc-v128.log`,
+  `$TMPDIR/daimos-d6fs-recovery-gcc-v129.log` and
+  `$TMPDIR/daimos-d6fs-recovery-kcc-v130.log`.
+- Group 027 remains deferred; group 030 and the complete serial
+  non-size regression matrix remain open. Strict 32K gates are deferred.
+
 ## 2026-10-21 KERNEL AND STANDALONE RUNTIME GROUP 028 V123
 
 - Group 028 now passes independently under both KCC and GCC. The original

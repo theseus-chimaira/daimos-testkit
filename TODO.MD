@@ -4,9 +4,10 @@
 
 - Group 027 (DECtape/TSFS): explicitly deferred for now; do not run or
   change its acceptance contract while working on the following groups.
-- Next: group 029 (D6FS HDD, multimember and recovery), then group 030
-  (userspace runtime/multi-TTY). Retake the full non-size serial matrix
-  when its remaining groups have been repaired.
+- Next: group 030 (userspace runtime/multi-TTY). Group 029 D6FS runtime,
+  multimember and recovery now pass independently under both compilers.
+  Retake the full non-size serial matrix when the remaining active groups
+  have been repaired; 027 is still deferred by request.
 - Strict 32K boot and resident-size gates remain deferred.
 
 DATE: 2026-09-30
