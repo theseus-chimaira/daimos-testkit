@@ -1,3 +1,10 @@
+.PHONY: test-daimos-kcore-oneptr-v97
+test-daimos-kcore-oneptr-v97: check-prefix
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" \
+	    TMPDIR="$(TMPDIR)" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	    DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" \
+	    tests/validation/daimos-kcore-oneptr-v97-v1.sh
+
 PDP10_PREFIX ?= /usr/local/cross
 COMPILER ?= kcc
 ifeq ($(filter $(COMPILER),gcc kcc),)
