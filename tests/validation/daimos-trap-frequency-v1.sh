@@ -31,7 +31,11 @@ cleanup()
                 fi
         done
         exec 3>&- 4>&- 2>/dev/null || true
-        rm -rf "$work"
+        # Preserve both sides of the interactive PTY/DCS handoff during
+        # transport diagnostics. The normal acceptance path still cleans up.
+        if [ "${DAIMOS_TRAP_KEEP_WORK:-0}" != 1 ]; then
+                rm -rf "$work"
+        fi
 }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$work"
@@ -193,15 +197,16 @@ wait_new "$dcs_log" 'LOGIN: ' "$start" 600 || {
 prev=`stop_count`
 startup=$((initial - prev))
 
-# Authentication/session setup is not part of the command syscall-frequency
-# budget.  Resume, log in through the reliable DCS path, then reset the
-# baseline after DSH has printed its first prompt.
+# Login traffic is excluded from measured command deltas.  The simulator
+# stop/resume instability remains an open PDP-6 emulator defect.
 resume_guest
 start=`log_size "$dcs_log"`
 send_slow ROOT
 wait_new "$dcs_log" '# ' "$start" 600 || {
         echo "$tag: ROOT login did not reach DSH" >&2
         tail -120 "$dcs_log" >&2 || true
+        echo "$tag: SIMH CTY transcript at login failure" >&2
+        tail -100 "$cty_log" >&2 || true
         exit 1
 }
 prev=`stop_count`
