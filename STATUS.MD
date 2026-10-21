@@ -1,3 +1,23 @@
+## 2026-10-21 KERNEL AND STANDALONE RUNTIME GROUP 028 V123
+
+- Group 028 now passes independently under both KCC and GCC. The original
+  `kernel-runtime` CTY watcher incorrectly expected `LOGIN:` on CTY with a
+  three-second phase timeout; interactive ROOT LOGIN and DSH use DCS0.
+- The v121 kernel smoke fixture builds the production PDP-6 disk image,
+  checks CTY DAIMON version and BSET initialization, logs in as ROOT on DCS0,
+  and requires external ECHO and PWD output through a fresh DSH prompt.
+  This preserves and strengthens boot acceptance instead of raising the
+  stale CTY timeout. KCC and GCC fresh 256K images each passed both probes.
+- The independently rebuilt standalone boot suite passes 26/26: DSK,
+  PTR, MTC, and DTC, with zero failures.
+- Functional `DSH_IMAGE_LIMIT=037000` is explicit in this fixture; strict
+  32K image/boot gates remain deferred, not accepted. Evidence:
+  `$TMPDIR/daimos-kernel-group028-kcc-v121.log`,
+  `$TMPDIR/daimos-kernel-group028-gcc-v122.log`,
+  and `$TMPDIR/daimos-stand-group028-v122.txt`.
+- Group 027 is deferred by request. Groups 029 and 030, and the full
+  non-size regression matrix, remain open.
+
 ## 2026-10-21 SIMH CONSOLE PC AND TRAP FREQUENCY V120
 
 - `test-daimos-simh-console-pc-v115` verifies that a startup-script PC

@@ -1,5 +1,14 @@
 # DAIMOS TESTKIT TODO
 
+## 2026-10-21 NON-SIZE FUNCTIONAL GROUPS
+
+- Group 027 (DECtape/TSFS): explicitly deferred for now; do not run or
+  change its acceptance contract while working on the following groups.
+- Next: group 029 (D6FS HDD, multimember and recovery), then group 030
+  (userspace runtime/multi-TTY). Retake the full non-size serial matrix
+  when its remaining groups have been repaired.
+- Strict 32K boot and resident-size gates remain deferred.
+
 DATE: 2026-09-30
 
 THIS FILE CONTAINS OPEN TESTKIT WORK ONLY.  SUBSTANTIAL DSH WORK DOES NOT START
