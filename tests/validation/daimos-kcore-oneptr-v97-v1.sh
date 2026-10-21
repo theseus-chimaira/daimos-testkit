@@ -68,4 +68,4 @@ fi
 case "${text#*<}" in
 *'!'*) cat "$out" >&2; echo "$tag: target failure" >&2; exit 1 ;;
 esac
-echo "$tag: PASS (CHDIR GETCWD MKDIR UNLINK TRUNCATE MEMINFO + bad mapping)"
+echo "$tag: PASS (six mapped calls, MEMINFO/PROCINFO pinned MRES, bad mapping)"

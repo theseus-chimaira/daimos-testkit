@@ -38,14 +38,22 @@ int
 main(void)
 {
         struct sys_meminfo info;
+        struct sys_procinfo pinfo;
         struct vfs_stat st;
         kword_t cwd[8];
         kword_t words[3];
         int fd;
+        int pid;
 
         mark('<');
-        if (dsys_meminfo(&info) != 0 || info.process_slots_used == 0UL)
+        if (dsys_meminfo(&info) != 0 || info.process_slots_used == 0UL ||
+            info.resident_words == 0UL ||
+            info.resident_words > info.total_words)
                 fail('I');
+        pid = dsys_getpid();
+        if (pid < 0 || dsys_procinfo((unsigned int)pid, &pinfo) != 0 ||
+            pinfo.pid != (kword_t)(unsigned int)pid || pinfo.state == 0UL)
+                fail('J');
         if (dsys_mkdir(test_dir) != 0)
                 fail('M');
         if (dsys_chdir(test_dir) != 0)
@@ -74,8 +82,11 @@ main(void)
         /* A low user word cannot map; the syscall must fail and must
          * release its mapping hold so a valid subsequent call succeeds. */
         if (dsys_meminfo((struct sys_meminfo *)1UL) != -1 ||
+            dsys_procinfo((unsigned int)pid,
+                (struct sys_procinfo *)1UL) != -1 ||
             dsys_getcwd((kword_t *)1UL, 8U) != -1 ||
-            dsys_meminfo(&info) != 0)
+            dsys_meminfo(&info) != 0 ||
+            dsys_procinfo((unsigned int)pid, &pinfo) != 0)
                 fail('B');
 
         mark('P');
