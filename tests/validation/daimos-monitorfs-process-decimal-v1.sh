@@ -93,4 +93,4 @@ case "$text" in
         ;;
 esac
 
-printf '%s\n' "$tag: PASS (/PROC alias: two-digit lookup and S6REC STATE)"
+printf '%s\n' "$tag: PASS (/PROC alias: DIRREAD, two-digit lookup, PROCINFO and S6REC STATE)"

@@ -17,6 +17,33 @@ static kword_t init_path[] = {
         TEST_SIX6('M', '/', 'I', 'N', 'I', 'T')
 };
 
+/* `/PROC` aliases the built-in process directory.  This exercises the
+ * native DIRREAD mapped-output syscall, in addition to the PROCINFO
+ * mapped-output syscall already exercised by wait_zombie_by_eof(). */
+static kword_t proc_dir[] = {
+        5UL,
+        TEST_SIX6('/', 'P', 'R', 'O', 'C', ' ')
+};
+
+static int
+check_proc_dirread(void)
+{
+        struct vfs_dirent entry;
+        int fd;
+        int rc;
+
+        fd = dsys_open(proc_dir, SYS_O_RDONLY);
+        if (fd < 3)
+                return -1;
+        rc = dsys_dirread(fd, &entry);
+        if (rc != 1 || entry.name.chars == 0U ||
+            entry.type != VFS_TYPE_DIR) {
+                (void)dsys_close(fd);
+                return -1;
+        }
+        return dsys_close(fd);
+}
+
 static int
 mark(int ch)
 {
@@ -198,6 +225,9 @@ main(int argc, kword_t **argv)
                     write_fd) != 0)
                         fail('C', 012);
         }
+
+        if (check_proc_dirread() != 0)
+                fail('D', 015);
 
         i = read_exact(state10, "ZOMB");
         if (i != 0)
