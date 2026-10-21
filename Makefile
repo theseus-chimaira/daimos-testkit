@@ -182,6 +182,14 @@ test-daimos-dsh-packed-name-equality-20261021-v31: check-prefix $(PTY_RUN) image
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-packed-name-equality-20261021-v31.txt
 
+.PHONY: test-daimos-dsh-packed-unalias-20261021-v32
+test-daimos-dsh-packed-unalias-20261021-v32: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-packed-unalias-20261021-v32.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-packed-unalias-20261021-v32.txt
+
 .PHONY: test-daimos-simh-media-isolation-20261021-v1
 test-daimos-simh-media-isolation-20261021-v1:
 	@TMPDIR='$(TMPDIR)' sh tests/validation/daimos-simh-isolate-media-20261021-v1.sh

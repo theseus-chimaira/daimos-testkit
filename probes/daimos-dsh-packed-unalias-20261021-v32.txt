@@ -1,0 +1,24 @@
+# An UNALIAS removal must compare the complete name, including the
+# second SIXBIT word, without removing its same-prefix neighbor.
+
+probe dsh-unalias-first-word-boundary-v32
+command ALIAS FOOBAR1=FALSE; ALIAS FOOBAR2=TRUE; UNALIAS FOOBAR1; ALIAS
+contains FOOBAR2=TRUE
+not_contains FOOBAR1=
+end
+
+probe dsh-unalias-second-word-boundary-v32
+command ALIAS FOOBAR1=FALSE; ALIAS FOOBAR2=TRUE; UNALIAS FOOBAR2; ALIAS
+contains FOOBAR1=FALSE
+not_contains FOOBAR2=
+end
+
+probe dsh-unalias-exact-v32
+command ALIAS FOOBAR1=TRUE; UNALIAS FOOBAR1; ALIAS
+not_contains FOOBAR1=
+end
+
+probe dsh-unalias-missing-v32
+command UNALIAS DOESNOTEXIST; ECHO STATUS:$?
+line ^STATUS:0$
+end
