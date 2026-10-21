@@ -1,0 +1,25 @@
+# Compare names across the 6-character SIXBIT word boundary.  Different
+# names may have identical first words and differ only in their last byte.
+
+probe dsh-packed-alias-distinct-v31
+command ALIAS FOOBAR1=ECHO; ALIAS FOOBAR2=FALSE; FOOBAR1 FIRST; FOOBAR2; ECHO STATUS:$?
+line ^FIRST$
+line ^STATUS:1$
+end
+
+probe dsh-packed-alias-redefine-v31
+command ALIAS FOOBAR1=ECHO; ALIAS FOOBAR1=TRUE; FOOBAR1; ECHO STATUS:$?
+line ^STATUS:0$
+end
+
+probe dsh-packed-function-distinct-v31
+command DEF FUNCAB1 DO ECHO ONE DONE; DEF FUNCAB2 DO ECHO TWO DONE; FUNCAB1; FUNCAB2
+line ^ONE$
+line ^TWO$
+end
+
+probe dsh-packed-function-redefine-v31
+command DEF FUNCAB1 DO ECHO WRONG DONE; DEF FUNCAB1 DO ECHO CORRECT DONE; FUNCAB1
+line ^CORRECT$
+not_contains WRONG
+end

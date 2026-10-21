@@ -105,41 +105,41 @@ test-daimos-dsh-conformance: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) $(DSH_PROBES)
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --probes '$(DSH_PROBES)'
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media --probes '$(DSH_PROBES)'
 
 test-daimos-dsh-pipeline: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) probes/daimos-dsh-pipeline-regression-20261010-v1.txt
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-pipeline-regression-20261010-v1.txt
 
 test-daimos-dsh-source: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) probes/daimos-dsh-source-nested-regression-20261010-v1.txt
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-source-nested-regression-20261010-v1.txt
 
 test-daimos-dsh-argument-frames: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) probes/daimos-dsh-argument-frames-20261010-v1.txt
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-argument-frames-20261010-v1.txt
 
 test-daimos-dsh-variable-heap-20261012-v1: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) probes/daimos-dsh-variable-heap-20261012-v1.txt
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-variable-heap-20261012-v1.txt
 
 test-daimos-dsh-loop-control-20261021-v1: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) probes/daimos-dsh-loop-control-20261021-v1.txt
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-loop-control-20261021-v1.txt
 
 test-daimos-edcore-20261021-v1:
@@ -156,7 +156,7 @@ test-daimos-dsh-angle-parameter-20261021-v1: check-prefix $(PTY_RUN) image
 		sh tests/host/daimos-dsh-angle-lex-20261021-v1.sh
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-angle-parameter-20261021-v1.txt
 
 .PHONY: test-daimos-dsh-help-compact-20261021-v1 test-daimos-gcc-help-toolchain-20261021-v46
@@ -171,8 +171,20 @@ test-daimos-dsh-help-compact-20261021-v1: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) probes/daimos-dsh-help-compact-20261021-v1.txt
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
-		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-help-compact-20261021-v1.txt
+
+.PHONY: test-daimos-dsh-packed-name-equality-20261021-v31
+test-daimos-dsh-packed-name-equality-20261021-v31: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-packed-name-equality-20261021-v31.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-packed-name-equality-20261021-v31.txt
+
+.PHONY: test-daimos-simh-media-isolation-20261021-v1
+test-daimos-simh-media-isolation-20261021-v1:
+	@TMPDIR='$(TMPDIR)' sh tests/validation/daimos-simh-isolate-media-20261021-v1.sh
 
 test-daimos-dsh-resource-contract:
 	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" tests/validation/daimos-dsh-resource-contract-20261010-v1.sh
