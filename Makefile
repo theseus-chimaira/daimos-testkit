@@ -1186,3 +1186,10 @@ test-daimos-libc-memcpy-20261008-v1:
 	 tests/host/daimos-libc-memcpy-20261008-v1.c \
 	 "$(abspath $(DAIMOS_REPO))/userland/libc/string.c"
 	"$${TMPDIR:-$$HOME/tmp}/daimos-libc-memcpy-20261008-v1"
+
+.PHONY: test-daimos-dsh-image-provenance-20261022-v1
+test-daimos-dsh-image-provenance-20261022-v1:
+	@test -n '$(REFERENCE_DSH_DXR)' || { echo 'REFERENCE_DSH_DXR is required' >&2; exit 2; }
+	@sh tests/validation/daimos-dsh-image-provenance-20261022-v1.sh \
+		'$(REFERENCE_DSH_DXR)' \
+		'$(abspath $(KERNEL_BUILD)/userland-build/userland/dsh.dxr)'
