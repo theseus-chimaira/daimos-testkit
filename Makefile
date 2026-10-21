@@ -1193,3 +1193,11 @@ test-daimos-dsh-image-provenance-20261022-v1:
 	@sh tests/validation/daimos-dsh-image-provenance-20261022-v1.sh \
 		'$(REFERENCE_DSH_DXR)' \
 		'$(abspath $(KERNEL_BUILD)/userland-build/userland/dsh.dxr)'
+
+.PHONY: test-daimos-dsh-invalid-uuo-sequence-20261022-v1
+test-daimos-dsh-invalid-uuo-sequence-20261022-v1: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-invalid-uuo-sequence-20261022-v1.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-invalid-uuo-sequence-20261022-v1.txt
