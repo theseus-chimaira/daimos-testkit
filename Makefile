@@ -26,7 +26,7 @@ PTY_RUN_SRC = tools/pty-run-v1.c
 PTY_RUN = $(BUILD_ROOT)/tools/pty-run-v1
 TCP_RUN_SRC = tools/tcp-run-v1.c
 TCP_RUN = $(BUILD_ROOT)/tools/tcp-run-v1
-PROBES = probes/daimos-runtime-probes-v3.txt
+PROBES = probes/daimos-runtime-probes-v132.txt
 DSH_PROBES = probes/daimos-dsh-conformance-v1.txt
 PROBE_CHECK = tests/validation/check-probe-format-v1.sh
 COVERAGE = tests/validation/check-command-coverage-v1.sh
@@ -331,6 +331,12 @@ test-daimos-monitorfs-storage-accounting: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		tests/validation/daimos-monitorfs-storage-accounting-v1.sh
+
+test-daimos-monitorfs-cty-stats-v132: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		COMPILER='$(COMPILER)' SIMH_PDP6='$(SIMH_PDP6)' \
+		tests/validation/daimos-monitorfs-cty-stats-v132.sh
 
 kernel-runtime:
 	$(MAKE) -C tests/system/kernel test \
