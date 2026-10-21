@@ -9,7 +9,7 @@ tag=daimos-trap-frequency-v1
 make_cmd=${MAKE:-make}
 host_cc=${HOST_CC:-cc}
 work="$TMPDIR/$tag-$$"
-build="$work/build"
+build=${DAIMOS_TRAP_PREBUILT:-$work/build}
 pty="$work/pty-run"
 tcp="$work/tcp-run"
 cty_log="$work/cty.log"
@@ -19,8 +19,14 @@ dcs_fifo="$work/dcs.in"
 initial=1000000
 child=
 dcs_child=
-dcs_port=$((26000 + ($$ % 6000)))
-ge_port=$((42000 + ($$ % 6000)))
+dcs_port=${DAIMOS_TRAP_DCS_PORT:-$((26000 + ($$ % 6000)))}
+ge_port=${DAIMOS_TRAP_GE_PORT:-$((42000 + ($$ % 6000)))}
+# Reusing an image is for simulator debugging only.  The ports embedded in
+# its boot.ini must match the DCS/GE transports selected by this test.
+if [ -n "${DAIMOS_TRAP_PREBUILT:-}" ]; then
+        : "${DAIMOS_TRAP_DCS_PORT:?prebuilt boot requires DCS port}"
+        : "${DAIMOS_TRAP_GE_PORT:?prebuilt boot requires GE port}"
+fi
 
 cleanup()
 {
@@ -44,10 +50,12 @@ mkdir -p "$work"
         "`dirname "$0"`/../../tools/pty-run-v1.c"
 "$host_cc" -std=c99 -O2 -Wall -Wextra -o "$tcp" \
         "`dirname "$0"`/../../tools/tcp-run-v1.c"
-PATH="$PDP10_PREFIX/bin:$PATH" "$make_cmd" \
-        -C "$DAIMOS_REPO/system/boot/pdp6" image \
-        BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
-        SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
+if [ -z "${DAIMOS_TRAP_PREBUILT:-}" ]; then
+        PATH="$PDP10_PREFIX/bin:$PATH" "$make_cmd" \
+                -C "$DAIMOS_REPO/system/boot/pdp6" image \
+                BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
+                SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
+fi
 
 trap_addr=`awk '$1 == "mach_syscall" { print $2 }' "$build/kcore.map"`
 [ -n "$trap_addr" ] || {
@@ -67,7 +75,7 @@ exec 3<>"$cty_fifo"
 exec 4<>"$dcs_fifo"
 (
         cd "$DAIMOS_REPO"
-        exec "$pty" -r "$PDP10_PREFIX/bin/pdp6" "$work/boot.ini" \
+        exec "$pty" -r "${DAIMOS_TRAP_SIMH:-$PDP10_PREFIX/bin/pdp6}" "$work/boot.ini" \
                 <"$cty_fifo" >"$cty_log" 2>&1
 ) &
 child=$!
