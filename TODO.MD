@@ -1,3 +1,12 @@
+## 2026-10-22 GROUP 030 DTC3 BLOCKER V180
+
+The valid tape-root + separate DTC3 topology reaches DSH and loads
+DTFS, but guest MKFS.DTFS on an empty DTC3 and MOUNT.DTFS on a
+host-initialized valid DTC3 each fail to complete in V179/V180
+diagnostics. Isolate DTC3 block transport and provider mount before
+reattempting the full two-boot mutation/persistence suite. Keep the
+diagnostics unregistered until repaired; group 030 stays open.
+
 ## 2026-10-22 GROUP 030 TAPE-ROOT V178
 
 Supported DECtape-root boot and shell execution PASS (DTFS provider

@@ -1,3 +1,22 @@
+## 2026-10-22 DTFS DTC3 TAPE-ROOT DIAGNOSTICS V179/V180
+
+- A true TSFS-root test boots successfully, logs `DTFS LOADED`,
+  and enters DSH. With an initially empty separate DTC3 image,
+  the first `MKFS.DTFS -O NATIVE /DEV/DTC3` produced no completion
+  before the diagnostic was interrupted; the image remained zero bytes.
+- With DTC3 initialized using the host `mkdtfs` utility to the native
+  directory layout, `MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME`
+  likewise produced no completion before interruption. The image
+  was nonempty (591872 bytes), so this second result does not
+  depend on guest formatting. The simulator was consuming CPU.
+- The versioned V179 and V180 tests and probes are retained as
+  **diagnostic, failing, unregistered** fixtures. Neither result
+  demonstrates successful DTC3 I/O or DTFS write/persistence.
+- Next investigation: isolate raw DTC3 read/write from a tape-root
+  kernel, followed by provider mount calls; check for tape controller
+  contention, unit selection and dispatcher wait conditions. Do not
+  change the read-only TSFS boot-root contract or MRES residency guard.
+
 ## 2026-10-22 GROUP 030 DECtape-root runtime V178
 
 - Reconnected to DevSpace2 and ran the existing `daimos-simh-dtc-selected-v34.sh`

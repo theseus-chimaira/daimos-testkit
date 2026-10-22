@@ -1,0 +1,26 @@
+probe mount-dtc3
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME
+not_contains MOUNT.DTFS:
+timeout 120
+end
+probe create-home
+command ECHO PERSIST_V179 > /HOME/V179
+not_contains ECHO:
+timeout 120
+end
+probe read-home
+command CAT /HOME/V179
+contains PERSIST_V179
+not_contains CAT:
+timeout 120
+end
+probe unmount-home
+command UNMOUNT /HOME
+not_contains UNMOUNT:
+timeout 120
+end
+probe halt
+command HALT
+terminal eof
+timeout 30
+end
