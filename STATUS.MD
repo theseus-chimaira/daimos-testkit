@@ -1,3 +1,21 @@
+## 2026-10-22 TSFS BOOT-ROOT-ONLY TEST CONTRACT V165
+
+- TSFS is usable only as the boot filesystem. The former
+  `MOUNT.TSFS` post-boot mount operation is obsolete; TSFS media
+  creation and writes are performed by userspace tooling and `dd`.
+- Removed `daimos-tsfs-mount-v1.sh`, `daimos-tsfs-dir-v2.sh` and
+  unregistered obsolete `daimos-tsfs-scan-v1.sh` with its mount-handoff
+  fixture. Removed the two active targets and their names from both
+  group-027 regression matrices, coverage inventory and Makefile.
+- The remaining eight-member TSFS scan test now tests media discovery
+  and ninth-member rejection, not the retired secondary-mount handoff.
+  `daimos-tsfs-scan-v2` PASS; retained tape-root boot and image tests
+  still require matrix acceptance under KCC/GCC.
+- The DAIMOS userspace build no longer creates or publishes
+  `MOUNT.TSFS`. The obsolete userspace syscall and the handoff
+  builder have now also been removed. KINIT's direct boot-root
+  provider operation remains intact. Group 027 remains active.
+
 ## 2026-10-22 P10FOLD INSTALLED TOOL FIX / GROUP 030 V164
 
 - Root cause of missing GE0 LOGIN: `$PDP10_PREFIX/bin/p10fold` was an

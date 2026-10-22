@@ -51,7 +51,6 @@ take {
         take = cont
 }
 ''' "$makefile" | sort -u)
-commands=$(printf '%s\n%s\n' "$commands" MOUNT.TSFS | sort -u)
 [ -n "$commands" ] || fail "no standalone command inventory found in $makefile"
 
 covered=

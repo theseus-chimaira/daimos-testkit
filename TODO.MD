@@ -21,11 +21,14 @@
   actual LOGIN spawn versus terminal transport with pristine media.
 
 - Group 027 (DECtape/TSFS): ACTIVE TODO again (2026-10-22, by request).
-  Reconcile the root-selected DTFS/TSFS MRES boot fixtures, retest the
-  tape-root and secondary-mount behavior, and accept only after the
-  unchanged functional assertions pass under KCC and GCC. Do not add
-  permanent resident modules solely to satisfy an invalid disk-root
-  fixture.
+  TSFS is **boot-root only**: no post-boot TSFS mounts are supported.
+  V165 removed both obsolete mount tests and their registration, and
+  removed mount-handoff assertions from the retained eight-member
+  scanner. Retest tape-root boot, scanning, compression and DECtape I/O
+  under KCC and GCC; build TSFS media in userspace and write it with dd.
+  Do not restore secondary TSFS mounts to satisfy obsolete test cases.
+  The retired userspace TSFS mount syscall and handoff builder are
+  removed. KINIT still invokes the TSFS provider for the boot root.
 - Next: group 030 (userspace runtime/multi-TTY). Group 029 D6FS runtime,
   multimember and recovery now pass independently under both compilers.
   Retake the full non-size serial matrix when the remaining active groups
