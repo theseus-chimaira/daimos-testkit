@@ -1,3 +1,20 @@
+## 2026-10-22 GROUP 030 EXEC TIMING V174
+
+- EXEC replacement v174 PASS on immutable DAIMOS `40bc094`:
+  replacement preserves PID, credentials, cwd, session, pgrp, TTY
+  and descriptors.
+- EXEC child-session v174 PASS: child survives image replacement,
+  parent reaps it. SIMH runs headless to avoid host WCNSLS
+  graphical-device startup failures.
+- Both tests now use `daimos-exec-sentinel-timing-v174.py` to
+  separate a bounded boot-start interval (120 s) from the
+  post-pre-EXEC-sentinel deadline (15 s). Child-session timing log
+  reported 17.953 s boot and 0.029 s after sentinel. These are
+  host-output arrival timings, **not** precise target CPU cycle
+  counts or standalone EXEC microbenchmarks.
+- Group 030 is still open for DTFS fixture support and complete
+  KCC/GCC runtime/matrix integration.
+
 ## 2026-10-22 GROUP 030 REGISTRATION AUDIT V173
 
 - The regression Makefile had still selected obsolete scripts despite

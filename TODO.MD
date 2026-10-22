@@ -1,3 +1,11 @@
+## 2026-10-22 GROUP 030 EXEC V174
+
+EXEC replacement and child-session semantics pass using the v174
+headless SIMH fixtures and the 15-second post-sentinel host deadline.
+Do not interpret that host-output interval as a cycle-count benchmark.
+Remaining: DTFS runtime valid root configuration, group 030 GCC and
+full serial matrix; strict DSH 036000 size gate remains separate.
+
 ## 2026-10-22 GROUP 027 INDEPENDENT ACCEPTANCE V172
 
 Eight active targets now pass under both KCC and GCC against fixed

@@ -691,14 +691,14 @@ test-daimos-exec-replace: check-prefix
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 	    DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-	    tests/validation/daimos-exec-replace-v137.sh
+	    tests/validation/daimos-exec-replace-v174.sh
 
 test-daimos-exec-child-session: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 	    DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-	    tests/validation/daimos-exec-child-session-v140.sh
+	    tests/validation/daimos-exec-child-session-v174.sh
 
 test-daimos-init-once: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
