@@ -1201,3 +1201,15 @@ test-daimos-dsh-invalid-uuo-sequence-20261022-v1: check-prefix $(PTY_RUN) image
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-invalid-uuo-sequence-20261022-v1.txt
+
+# Full 34-command history + first pipeline regression, separate from the
+# shorter invalid-UUO sequence. Verify the installed executable against its
+# reference using test-daimos-dsh-image-provenance-20261022-v1 before
+# interpreting results as source-code differences.
+.PHONY: test-daimos-dsh-invalid-uuo-history-20261022-v2
+test-daimos-dsh-invalid-uuo-history-20261022-v2: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-invalid-uuo-history-20261022-v2.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-invalid-uuo-history-20261022-v2.txt
