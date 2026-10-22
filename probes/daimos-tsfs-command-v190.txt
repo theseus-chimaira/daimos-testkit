@@ -1,0 +1,10 @@
+probe echo-simple-v190
+command ECHO ECHOV190
+line ^ECHOV190$
+timeout 240
+end
+probe pwd-simple-v190
+command PWD
+contains /
+timeout 240
+end

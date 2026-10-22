@@ -1,3 +1,12 @@
+## 2026-10-22 DTFS V190/V191 CONTROLLED TIMING RECHECK
+
+V190 external ECHO and PWD succeed with the established 240-second
+tape-root command policy. V191 MOUNT.DTFS on host-formatted DTC3
+still times out at 240 seconds. The V187-V189 short-deadline
+RUN/WAIT probes are not conclusive. Separate valid DTFSPROBE
+completion/exit-status checks from the mount syscall, then investigate
+the implicated path. Do not modify the tape block driver on inference.
+
 ## 2026-10-22 V185/V186 RUN/WAIT ISOLATION
 
 Direct DTFSPROBE (normal and DEEP) returned to DSH; FSCK's

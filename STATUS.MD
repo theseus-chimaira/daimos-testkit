@@ -1,3 +1,25 @@
+## 2026-10-22 GROUP 030 TSFS COMMAND BASELINE AND DTFS RETRY V190/V191
+
+- V187-V189 exploratory RUN/WAIT probes used 55-second guest-command
+  deadlines, shorter than the previously accepted tape-root runtime
+  fixture's 240 seconds. One V187 test also invoked TRUE, absent from
+  this TSFS image. These earlier runs are **not** sufficient evidence
+  for a scheduler or process-lifecycle defect.
+- V190 revalidated independent ordinary external ECHO and PWD on a
+  genuine TSFS-root guest with a host-created native DTC3 image,
+  preserving the established 240-second per-probe limit: **PASS**.
+- V191 kept the identical supported TSFS-root plus native DTC3
+  topology and the 240-second mount deadline. The guest reached DSH,
+  but `MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME` **timed out**.
+  Its deeper file and reboot-persistence probes did not execute.
+- Evidence: `$TMPDIR/daimos-tsfs-command-v190.log`,
+  `$TMPDIR/daimos-dtfs-taperoot-v191.log`, and their preserved
+  `run-a/results.tsv` transcripts. V190 is a positive baseline,
+  V191 remains failing and is **not** part of accepted group 030.
+- Keep the original size and removable-provider policies unchanged;
+  next isolate DTFSPROBE child RUN/WAIT versus DTFS mount dispatch
+  using equivalent, validated tape-root command deadlines.
+
 ## 2026-10-22 GROUP 030 PROBE ISOLATION V185/V186
 
 - V185, on a host-initialized 591872-byte DTC3 image and a TSFS-root
