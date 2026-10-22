@@ -1,3 +1,8 @@
+.PHONY: test-daimos-kcore-swap-input-deps-v101
+test-daimos-kcore-swap-input-deps-v101:
+	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" \
+	    sh tests/validation/daimos-kcore-swap-input-deps-v101.sh
+
 .PHONY: test-daimos-sysinfo-optional-v99
 test-daimos-sysinfo-optional-v99: check-prefix
 	@PATH="$(PDP10_TOOLS_BIN):$$PATH" \
