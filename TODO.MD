@@ -1,3 +1,11 @@
+## 2026-10-22 GROUP 030 MAKE BOOT V177
+
+Public `make boot` multi-TTY V177 passes, including the native
+ASMUTILS installation. Functional image limit and late TCP client
+connections remove build-time false failures. DTFS runtime remains
+the unsupported-root fixture blocker; redesign for true tape-root
+coverage. Then rerun serialized KCC/GCC group 030 and the matrix.
+
 ## 2026-10-22 GROUP 030 EXEC V174
 
 EXEC replacement and child-session semantics pass using the v174

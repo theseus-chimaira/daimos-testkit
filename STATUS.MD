@@ -1,3 +1,24 @@
+## 2026-10-22 GROUP 030 PUBLIC BOOT MULTITTY V177
+
+- `test-daimos-make-boot-multitty` now selects versioned v177.
+  It uses `DSH_IMAGE_LIMIT=037000` for functional boot testing,
+  without changing the independent strict `036000` size gate.
+- DCS0/GE0 TCP clients are started only after the simulator reports
+  the Type-340 device, preventing the earlier race where clients
+  expired while the public `make boot` target was still compiling.
+- V177 **PASS** against immutable DAIMOS `40bc094`, covering public
+  EXEC/WHICH, DPY-routed TTY0, interactive DCS0 and GE0 input,
+  native ASMUTILS `make install`, and double-TAB completion.
+  Guest evidence is retained under
+  `$TMPDIR/daimos-make-boot-multitty-v177-*` and outer log under
+  `$TMPDIR/daimos-make-boot-multitty-v177.log`.
+- The surviving group 030 DTFS fixture still assumes a D6FS-root
+  kernel can post-mount DTFS, but `dtfs_minit` is root-selected and
+  does not install the provider for a D6FS root. Rewrite the fixture
+  for a legitimate DECtape-root configuration; do not lift the
+  residency guard or silently delete its persistence assertions.
+- Full serialized KCC/GCC group 030 acceptance is not yet complete.
+
 ## 2026-10-22 GROUP 030 EXEC TIMING V174
 
 - EXEC replacement v174 PASS on immutable DAIMOS `40bc094`:

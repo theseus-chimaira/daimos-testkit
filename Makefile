@@ -747,7 +747,7 @@ test-daimos-make-boot-multitty: check-prefix
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 	    DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-	    tests/validation/daimos-make-boot-multitty-v1.sh
+	    tests/validation/daimos-make-boot-multitty-v177.sh
 
 test-daimos-tty-session-state: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
