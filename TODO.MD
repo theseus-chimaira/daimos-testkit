@@ -14,12 +14,16 @@
   inventory is inconclusive due carrier/port startup. Isolate
   actual LOGIN spawn versus terminal transport with pristine media.
 
-- Group 027 (DECtape/TSFS): explicitly deferred for now; do not run or
-  change its acceptance contract while working on the following groups.
+- Group 027 (DECtape/TSFS): ACTIVE TODO again (2026-10-22, by request).
+  Reconcile the root-selected DTFS/TSFS MRES boot fixtures, retest the
+  tape-root and secondary-mount behavior, and accept only after the
+  unchanged functional assertions pass under KCC and GCC. Do not add
+  permanent resident modules solely to satisfy an invalid disk-root
+  fixture.
 - Next: group 030 (userspace runtime/multi-TTY). Group 029 D6FS runtime,
   multimember and recovery now pass independently under both compilers.
   Retake the full non-size serial matrix when the remaining active groups
-  have been repaired; 027 is still deferred by request.
+  have been repaired; group 027 is no longer deferred.
 - Group 030's 66/66 runtime probe suite and CTY READCHAR accounting
   now pass under both compilers (v132). Remaining: DTFS runtime,
   EXEC replacement and child-session, native Type-340 refresh,
