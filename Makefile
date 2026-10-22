@@ -172,6 +172,13 @@ dtfs-runtime: check image $(KERNEL_HOST_CHECK)
 		KERNEL_DOS='$(abspath $(KERNEL_DOS))' PTY_RUN='$(abspath $(PTY_RUN))' \
 		HOST_CHECK='$(abspath $(KERNEL_HOST_CHECK))' $(DTFS_RUN)
 
+.PHONY: test-daimos-dtfs-tape-root-runtime-v178
+test-daimos-dtfs-tape-root-runtime-v178: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	    DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    SIMH_PDP6='$(SIMH_PDP6)' \
+	    sh tests/validation/daimos-simh-dtc-selected-v34.sh
+
 dtfs-mres:
 	TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD_ROOT='$(abspath $(BUILD_ROOT))' \

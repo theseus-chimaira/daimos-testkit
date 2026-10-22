@@ -1,3 +1,11 @@
+## 2026-10-22 GROUP 030 TAPE-ROOT V178
+
+Supported DECtape-root boot and shell execution PASS (DTFS provider
+loaded). Registered the v178 check in the group-030 matrices without
+removing the deeper `dtfs-runtime` fixture. Rework that fixture for a
+supported tape-root provider and retain its actual file operations and
+multi-boot persistence assertions. Full KCC/GCC group acceptance open.
+
 ## 2026-10-22 GROUP 030 MAKE BOOT V177
 
 Public `make boot` multi-TTY V177 passes, including the native

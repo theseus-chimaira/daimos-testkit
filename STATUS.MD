@@ -1,3 +1,18 @@
+## 2026-10-22 GROUP 030 DECtape-root runtime V178
+
+- Reconnected to DevSpace2 and ran the existing `daimos-simh-dtc-selected-v34.sh`
+  against isolated DAIMOS commit `40bc094` and corrected SIMH.
+  **PASS**: genuine `BOOT=dtc ROOT=tape` image, `DTFS LOADED`,
+  INIT, ROOT login and DSH, with external ECHO and PWD probes passing.
+  Log: `$TMPDIR/daimos-dtfs-root-supported-v178.log` and
+  `$TMPDIR/daimos-simh-dtc-selected-v34-30045/report-v34.md`.
+- New target `test-daimos-dtfs-tape-root-runtime-v178` exposes this
+  supported root-selection regression in both group-030 matrices.
+  The original deeper `dtfs-runtime` remains registered and failing:
+  its D6FS-root secondary mount setup cannot exercise a DTFS MRES.
+  The tape-root smoke test is **not** a replacement for native DTFS
+  read/write/rename/persistence coverage.
+
 ## 2026-10-22 GROUP 030 PUBLIC BOOT MULTITTY V177
 
 - `test-daimos-make-boot-multitty` now selects versioned v177.
