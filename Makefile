@@ -1213,3 +1213,13 @@ test-daimos-dsh-invalid-uuo-history-20261022-v2: check-prefix $(PTY_RUN) image
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-invalid-uuo-history-20261022-v2.txt
+
+# Follow the exact invalid-UUO command history with repeated two- and
+# three-stage pipelines; run only against an image with checked provenance.
+.PHONY: test-daimos-dsh-invalid-uuo-stress-20261022-v3
+test-daimos-dsh-invalid-uuo-stress-20261022-v3: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-invalid-uuo-stress-20261022-v3.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-invalid-uuo-stress-20261022-v3.txt
