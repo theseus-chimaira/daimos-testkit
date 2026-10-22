@@ -1,3 +1,11 @@
+## 2026-10-22 V185/V186 RUN/WAIT ISOLATION
+
+Direct DTFSPROBE (normal and DEEP) returned to DSH; FSCK's
+RUN/WAIT-wrapped probe timed out, and HALT after direct DEEP also
+timed out. Do not conclude successful probe exit from shell prompt
+alone. Isolate nested child exit/wait and TSFS-root command lifecycle;
+do not modify Type-551 I/O without confirming a controller defect.
+
 ## 2026-10-22 DTC3 REPRODUCTION V184
 
 Fresh no-debug V180 retry reproduced DTC3 mount timeout on TSFS root

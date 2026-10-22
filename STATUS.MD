@@ -1,3 +1,23 @@
+## 2026-10-22 GROUP 030 PROBE ISOLATION V185/V186
+
+- V185, on a host-initialized 591872-byte DTC3 image and a TSFS-root
+  guest, returned to DSH after `DTFSPROBE /DEV/DTC3`, but timed out
+  on `FSCK.DTFS -O NATIVE /DEV/DTC3`. Recorded results:
+  `PASS dtfsprobe-direct`, `FAIL fsck-dtc3 timeout`.
+- V186 returned to DSH after `DTFSPROBE /DEV/DTC3 DEEP`, but timed
+  out on the following `HALT`. The harness checks prompt recovery,
+  **not** the standalone DTFSPROBE exit status: successful filesystem
+  validation is not proven by these PASS records.
+- The userspace `cmd_dtfs_probe` used by FSCK/MOUNT launches
+  `/SYSTEM/EXEC/DTFSPROBE` with `dsys_run` then waits with
+  `dsys_wait`; its direct command does not use this parent-child
+  pattern. Thus investigate RUN/WAIT, child exit/wakeup, and shell
+  liveness in addition to Type-136 I/O. No kernel change is justified
+  by the current observations. V185/V186 are diagnostic-only, not
+  part of group-030 acceptance.
+- Unsafe V183 script with unbounded SIMH debug logging was discarded;
+  its prior runaway log must not be used as a normal regression.
+
 ## 2026-10-22 GROUP 030 DTC3 FRESH RETRY V184
 
 - Re-ran unmodified V180 host-preformatted DTC3 mount fixture in

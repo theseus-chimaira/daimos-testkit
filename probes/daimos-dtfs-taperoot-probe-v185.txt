@@ -1,0 +1,15 @@
+probe dtfsprobe-direct
+command DTFSPROBE /DEV/DTC3
+not_contains DTFSPROBE:
+timeout 55
+end
+probe fsck-dtc3
+command FSCK.DTFS -O NATIVE /DEV/DTC3
+contains FSCK.DTFS NATIVE OK
+timeout 55
+end
+probe halt
+command HALT
+terminal eof
+timeout 20
+end
