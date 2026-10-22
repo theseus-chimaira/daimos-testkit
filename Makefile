@@ -1233,3 +1233,14 @@ test-daimos-dsh-pipeline-failed-launch-reap-20261022-v1: check-prefix $(PTY_RUN)
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-pipeline-failed-launch-reap-20261022-v1.txt
+
+# Deliberately opt-in stress regression: existing v41/v43/v53 images can
+# stall or trap after repeated nested three-/four-stage pipelines.  Do not
+# add to default acceptance until the process/pipe root bug is fixed.
+.PHONY: test-daimos-dsh-nested-uuo-stress-20261022-v4
+test-daimos-dsh-nested-uuo-stress-20261022-v4: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-uuo-nested-process-stress-20261022-v4.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-uuo-nested-process-stress-20261022-v4.txt
