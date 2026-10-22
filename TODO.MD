@@ -2,6 +2,18 @@
 
 ## 2026-10-21 NON-SIZE FUNCTIONAL GROUPS
 
+- 2026-10-22 update: EXEC replacement and child-session complete
+  in 18-19 seconds on fresh media, but their existing 15-second
+  wall-clock acceptance gates fail. Preserve the gates while
+  evaluating deterministic performance/correctness measurement.
+- DTFS v143 exposes D6FS-root versus DTFS-MRES install mismatch:
+  a failed MOUNT.DTFS makes later mountpoint operations false
+  positives. Reconcile with legitimate DECtape-root support; no
+  blanket assertion removal or fake mount result.
+- Multi-TTY v144 still fails remote GE0 LOGIN; v145 CTY process
+  inventory is inconclusive due carrier/port startup. Isolate
+  actual LOGIN spawn versus terminal transport with pristine media.
+
 - Group 027 (DECtape/TSFS): explicitly deferred for now; do not run or
   change its acceptance contract while working on the following groups.
 - Next: group 030 (userspace runtime/multi-TTY). Group 029 D6FS runtime,

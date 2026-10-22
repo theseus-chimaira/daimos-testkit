@@ -1,3 +1,34 @@
+## 2026-10-22 GROUP 030 EXEC, DTFS, MULTI-TTY DIAGNOSTICS V148
+
+- EXEC replacement and child-session guest semantics finish normally on
+  corrected SIMH with fresh media. A fresh simulation-only EXEC run
+  completed in 18 seconds with `<E` and HALT; child-session diagnostic
+  completed in 19 seconds with `<xEP` and HALT. Both original 15-second
+  wall-clock acceptance gates therefore remain FAIL, not silently relaxed.
+  The versioned `daimos-exec-replace-v137.sh` and
+  `daimos-exec-child-session-v140.sh` retain 15 seconds by default;
+  explicit `DAIMOS_EXEC_DIAGNOSTIC_TIMEOUT` is for investigation only.
+- Three repeat boots against reused writable media emitted `?RT`
+  instead of a completion marker. They do not provide independent
+  latency evidence; every accepted runtime retake needs pristine disks.
+  The guest-only result is in
+  `$TMPDIR/daimos-exec-simh-timed-v148.log` and the child-session
+  diagnostic in `$TMPDIR/daimos-exec-child-diagnostic-v141.log`.
+- DTFS v143 functional-size fixture reaches runtime, but phase A fails
+  MOUNT.DTFS and UNMOUNT. The D6FS-rooted boot deliberately omits the
+  DTFS/TSFS MRES: `dtfs_minits` installs it only for KINIT_ROOT_DTC.
+  Subsequent successful file probes therefore ran on the underlying
+  mountpoint, not DECtape. The previous CHARS-based STAT oracle is
+  separately stale. DTFS must be adapted to a genuine supported
+  DECtape-root configuration; no fake pass or provider policy change.
+- Multi-TTY v144 with corrected SIMH shows DCS0 LOGIN but no GE0
+  LOGIN prompt, failing the original remote carrier assertion. v145
+  instruments CTY PS; its initial reused-media attempt halted in
+  `?RT`, and a regenerated-root run timed out connecting DCS0,
+  preventing a reliable process inventory. This remains open.
+- Group 027 stays deferred by user request. Group 030 and the full
+  serial matrix remain open, with strict 32K acceptance deferred.
+
 ## 2026-10-21 RUNTIME PROBES AND CTY ACCOUNTING V136
 
 - The versioned `daimos-runtime-probes-v132.txt` suite passes all
