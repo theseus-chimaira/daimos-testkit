@@ -1,3 +1,20 @@
+## 2026-10-22 GROUP 030 DTC3 FRESH RETRY V184
+
+- Re-ran unmodified V180 host-preformatted DTC3 mount fixture in
+  fresh SIMH, without controller debug tracing, against immutable
+  DAIMOS `40bc094`. DevSpace2 stayed connected throughout.
+- Boot, DTFS provider load, ROOT login and DSH succeeded, but
+  `MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME` **timed out** under
+  the fixture's existing harness deadline. Exit status 1.
+- Evidence `$TMPDIR/daimos-dtfs-taperoot-retry-v184.log` and
+  `$TMPDIR/daimos-dtfs-taperoot-persist-v180-*/run-a/results.tsv`
+  containing `FAIL mount-dtc3 ... timeout`. The simulator exited;
+  no residual test SIMH process was observed.
+- Confirms reproducible full-guest mount stall independent of
+  DevSpace2 connection drop and V183's unbounded debug log.
+  This is **not** DTFS functional acceptance. Next isolate provider
+  probe/dispatch and Type-136 completion using bounded instrumentation.
+
 ## 2026-10-22 DTFS DTC3 TAPE-ROOT DIAGNOSTICS V179/V180
 
 - A true TSFS-root test boots successfully, logs `DTFS LOADED`,

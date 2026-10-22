@@ -1,3 +1,11 @@
+## 2026-10-22 DTC3 REPRODUCTION V184
+
+Fresh no-debug V180 retry reproduced DTC3 mount timeout on TSFS root
+with stable DevSpace2 connectivity. The issue is a guest/simulator
+runtime problem, not the plugin disconnection itself. Investigate
+bounded provider and Type-136 I/O trace; preserve full persistence
+assertions and root-only residency policy.
+
 ## 2026-10-22 GROUP 030 DTC3 BLOCKER V180
 
 The valid tape-root + separate DTC3 topology reaches DSH and loads
