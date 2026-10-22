@@ -1,3 +1,20 @@
+## 2026-10-22 GROUP 030 REGISTRATION AUDIT V173
+
+- The regression Makefile had still selected obsolete scripts despite
+  later corrected standalone testing. The EXEC replacement target now
+  invokes v137, child-session v140, Type-340 native refresh v150, and
+  userspace multi-TTY v144; command coverage uses the same v150 DPY
+  script. Shell syntax checks and Makefile diff lint PASS.
+- This is a registration repair, not group-030 acceptance. The EXEC
+  tests retain their 15-second default timeouts, previously exceeding
+  host wall-clock timing while completing semantically at 18-19s.
+  They still need a supported performance policy and retest.
+- DTFS v143 still tests a D6FS-rooted system without the DTFS provider
+  MRES, and its post-boot mount test is invalid in that configuration.
+  Keep this separate from TSFS boot-root-only acceptance (group 027).
+- Independently accepted group-027 source is in its own clean worktree;
+  the concurrent main DAIMOS KCORE optimization must not be disturbed.
+
 ## 2026-10-22 GROUP 027 KCC/GCC INDEPENDENT ACCEPTANCE V172
 
 - All eight **active boot-root-only group 027 targets PASS independently**

@@ -84,7 +84,7 @@ coverage:
 	$(COVERAGE) --daimos-repo '$(DAIMOS_REPO)' --probes '$(PROBES)' \
 		--script 'tests/validation/daimos-dtc-online-v171.sh' \
 		--script 'tests/validation/daimos-low-memory-boot-v2.sh' \
-		--script 'tests/validation/daimos-dpy-native-refresh-smoke-v1.sh'
+		--script 'tests/validation/daimos-dpy-native-refresh-smoke-v150.sh'
 
 image:
 	$(MAKE) -C '$(abspath $(DAIMOS_REPO))/system/boot/pdp6' image \
@@ -680,7 +680,7 @@ test-daimos-dpy-native-refresh: check-prefix
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-		tests/validation/daimos-dpy-native-refresh-smoke-v1.sh
+		tests/validation/daimos-dpy-native-refresh-smoke-v150.sh
 
 test-daimos-exec-abi: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
@@ -691,14 +691,14 @@ test-daimos-exec-replace: check-prefix
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 	    DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-	    tests/validation/daimos-exec-replace-v1.sh
+	    tests/validation/daimos-exec-replace-v137.sh
 
 test-daimos-exec-child-session: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 	    DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-	    tests/validation/daimos-exec-child-session-v1.sh
+	    tests/validation/daimos-exec-child-session-v140.sh
 
 test-daimos-init-once: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
@@ -740,7 +740,7 @@ test-daimos-userspace-multitty: check-prefix
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 	    DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-	    tests/validation/daimos-userspace-multitty-v1.sh
+	    tests/validation/daimos-userspace-multitty-v144.sh
 
 test-daimos-make-boot-multitty: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
