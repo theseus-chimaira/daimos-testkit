@@ -82,7 +82,7 @@ check: $(PTY_RUN)
 
 coverage:
 	$(COVERAGE) --daimos-repo '$(DAIMOS_REPO)' --probes '$(PROBES)' \
-		--script 'tests/validation/daimos-dtc-online-v169.sh' \
+		--script 'tests/validation/daimos-dtc-online-v171.sh' \
 		--script 'tests/validation/daimos-low-memory-boot-v2.sh' \
 		--script 'tests/validation/daimos-dpy-native-refresh-smoke-v1.sh'
 
@@ -991,7 +991,7 @@ test-daimos-dtc-online: check-prefix
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
 	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-		tests/validation/daimos-dtc-online-v169.sh
+		tests/validation/daimos-dtc-online-v171.sh
 
 
 test-daimos-dtc-stream-online: check-prefix

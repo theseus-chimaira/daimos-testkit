@@ -1,3 +1,29 @@
+## 2026-10-22 GROUP 027 KCC/GCC INDEPENDENT ACCEPTANCE V172
+
+- All eight **active boot-root-only group 027 targets PASS independently**
+  with KCC and GCC, testing the immutable DAIMOS source at commit
+  `40bc094`. Tests: `dtc-online` (userspace format, native FSCK,
+  pristine-system-disk reboot and persisted-media native FSCK),
+  `dtc-stream-online`, `tsfs-image-online`, `tsfs-scan`,
+  `tsfs-boot-eight`, `tsfs-multiextent`, `tsfs-d6lz` and
+  `dtc-reverse-online` (actual reverse direction confirmed in SIMH).
+- The v171 online runner propagates `COMPILER` to both production
+  image builds and allows explicit `SIMH_PDP6`. Its former v169
+  secondary `MOUNT.DTFS` oracle was invalid for a D6FS-root kernel:
+  `dtfs_minit()` only installs the tape FS MRES on DECtape-root
+  configurations. The replacement preserves two-boot media
+  persistence verification without introducing a resident module.
+- Evidence: `$TMPDIR/daimos-group027-dtc-online-v170-isolated2.log`
+  (KCC v170 PASS), `$TMPDIR/daimos-group027-dtc-gcc-v171.log`
+  (GCC v171 PASS), and
+  `$TMPDIR/daimos-group027-gcc-v172-*.log` (other GCC targets).
+  Earlier KCC independent target logs are in
+  `$TMPDIR/daimos-group027-v167-*.log` and `v168-*.log`.
+- This accepts **independent functional group 027**; the complete
+  serialized regression matrix and strict `036000` size gate have
+  **not** been accepted. The concurrent KCORE optimization is in a
+  different, dirty DAIMOS checkout and was not modified.
+
 ## 2026-10-22 GROUP 027 SUPPORT TESTS V169
 
 - The TSFS boot-root-only contract remains enforced: no post-boot

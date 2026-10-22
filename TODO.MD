@@ -1,3 +1,13 @@
+## 2026-10-22 GROUP 027 INDEPENDENT ACCEPTANCE V172
+
+Eight active targets now pass under both KCC and GCC against fixed
+DAIMOS commit `40bc094`, using the v171 dual-boot persisted-media
+test instead of the invalid post-boot mount oracle. No TSFS
+secondary-mount testing is required. Group 027 independent functional
+work is complete; continue with the serialized full matrix and
+separately deferred strict memory-size acceptance. Keep the
+concurrent KCORE checkout isolated from tests.
+
 # DAIMOS TESTKIT TODO
 
 ## 2026-10-22 GROUP 027 VALIDATION V169
