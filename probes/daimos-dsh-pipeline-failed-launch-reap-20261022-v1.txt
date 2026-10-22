@@ -1,0 +1,15 @@
+# The shell must reap children already launched when a later pipeline stage
+# cannot start.  PS exposes the previous child as ZOMB if it was not reaped.
+probe dsh-pipeline-late-failure-v1
+command ECHO SHOULDNOTBLOCK ! /NO/SUCH/PROGRAM; ECHO RC:$?
+contains RC:127
+end
+probe dsh-pipeline-late-failure-ps-v1
+command PS
+contains PID PPID S WORDS COMM
+not_line ^[0-9]+[[:space:]]+[0-9]+[[:space:]]+4[[:space:]]
+end
+probe dsh-pipeline-late-failure-next-v1
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end

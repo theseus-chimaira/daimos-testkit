@@ -1223,3 +1223,13 @@ test-daimos-dsh-invalid-uuo-stress-20261022-v3: check-prefix $(PTY_RUN) image
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
 		--probes probes/daimos-dsh-invalid-uuo-stress-20261022-v3.txt
+
+# A failed later pipeline stage must terminate and *reap* every child that
+# successfully started, not leave a zombie and eventually exhaust proc slots.
+.PHONY: test-daimos-dsh-pipeline-failed-launch-reap-20261022-v1
+test-daimos-dsh-pipeline-failed-launch-reap-20261022-v1: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-pipeline-failed-launch-reap-20261022-v1.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-pipeline-failed-launch-reap-20261022-v1.txt
