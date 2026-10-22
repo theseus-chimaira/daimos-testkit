@@ -1,5 +1,15 @@
 # DAIMOS TESTKIT TODO
 
+## 2026-10-22 GROUP 027 VALIDATION V169
+
+Seven supported tests pass independently: counted DTC stream,
+TSFS image, eight-member scan and KINIT boot selection, cross-member
+extent, D6LZ restart, and physical reverse DTC transfer.
+Investigate `dtc-online` v169: the persisted DTFS medium fails to
+mount on its second boot. Retain DTFS mount assertions, then repeat
+the active group 027 under GCC before atomic acceptance. Boot-root TSFS only;
+never revive `MOUNT.TSFS`.
+
 ## 2026-10-21 NON-SIZE FUNCTIONAL GROUPS
 
 - 2026-10-22 v164: GE0 LOGIN and Type-340 native refresh fixed by

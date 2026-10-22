@@ -1,3 +1,27 @@
+## 2026-10-22 GROUP 027 SUPPORT TESTS V169
+
+- The TSFS boot-root-only contract remains enforced: no post-boot
+  `MOUNT.TSFS` tests or userspace mount syscall.
+- Supported DECtape/TSFS group 027 checks pass independently on the
+  installed PDP-6 toolchain: `dtc-stream-online` (counted block
+  write/read), `tsfs-image-online` (host-created tape through the
+  production Type-551 driver), `tsfs-scan-v2` (eight members,
+  ninth rejected), `tsfs-boot-eight` (KINIT member map),
+  `tsfs-multiextent` (cross-member read), `tsfs-d6lz` (restart
+  and transient free), and `dtc-reverse-online` (real reverse
+  read/write validated against emulator trace).
+- `daimos-tsfs-image-online-v1.sh` now uses the installed
+  `$PDP10_PREFIX/bin/mktsfs` instead of an obsolete external
+  checkout `make build` target.
+- The versioned `daimos-dtc-online-v169.sh` retains the functional
+  mount/DTFS online test, passing only `DSH_IMAGE_LIMIT=037000`
+  to its production-image make invocations. The guest reached DSH
+  and performed its initial format/mount cycle; **the persisted-media
+  second-boot MOUNT.DTFS fails**. This remains a functional failure,
+  distinct from the 036000 size gate. Group 027 remains open.
+- Logs: `$TMPDIR/daimos-group027-v168-*.log`;
+  `$TMPDIR/daimos-group027-dtc-online-v169.log`.
+
 ## 2026-10-22 TSFS BOOT-ROOT-ONLY TEST CONTRACT V165
 
 - TSFS is usable only as the boot filesystem. The former
