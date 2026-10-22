@@ -2,6 +2,12 @@
 
 ## 2026-10-21 NON-SIZE FUNCTIONAL GROUPS
 
+- 2026-10-22 v164: GE0 LOGIN and Type-340 native refresh fixed by
+  installing the already-corrected source `p10fold` binary into
+  `$PDP10_PREFIX/bin`; KCC standalone multi-TTY and DPY pass.
+  The installed binary previously applied the invalid skip/JRST fold.
+  Revalidate GCC and the full group 030 using the fixed host tools.
+
 - 2026-10-22 update: EXEC replacement and child-session complete
   in 18-19 seconds on fresh media, but their existing 15-second
   wall-clock acceptance gates fail. Preserve the gates while

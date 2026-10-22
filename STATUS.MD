@@ -1,3 +1,26 @@
+## 2026-10-22 P10FOLD INSTALLED TOOL FIX / GROUP 030 V164
+
+- Root cause of missing GE0 LOGIN: `$PDP10_PREFIX/bin/p10fold` was an
+  older binary that folded GE GTYO CONSO/JRST polling pairs with different
+  skip successors. The *current* DAIMOS `tools/host/p10fold.c` source
+  already rejects the unsafe fold. Compiling that source produced a
+  header-only GE fold plan; the stale installed binary produced a
+  two-word FOLD entry. The corrected source-built executable was
+  installed at `$HOME/cross/bin/p10fold`, and the production image
+  rebuilt with an empty GE fold plan.
+- With the corrected optimizer, versioned multi-TTY v145 PASS verifies
+  CTY/DCS0/GE0 LOGIN, routing, respawn, resource stability and STOP
+  isolation: `$TMPDIR/daimos-ge-correct-p10fold-multitty-v161.log`.
+- Type-340 native/shifted refresh v150 also PASS on a fresh KCC disk
+  using the newly installed tool:
+  `$TMPDIR/daimos-ge-correct-p10fold-dpy-v163.log`.
+- The new `test-daimos-installed-p10fold-ge-v164` guard assembles
+  the actual GE source and refuses any fold from the installed
+  optimizer for its skip-controlled transmit loops. PASS.
+- The source-level P10FOLD skip regression also PASS; source fix
+  predated this run. Other group 030 tests and GCC whole-group
+  acceptance remain open; group 027 is active.
+
 ## 2026-10-22 GROUP 027 REACTIVATION / DPY V150 RETEST
 
 - Group 027 DECtape/TSFS is **active again by explicit request**;

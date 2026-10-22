@@ -47,6 +47,12 @@ test-daimos-p10fold-io-skip-20261012-v1: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-p10fold-io-skip-20261012-v1.sh
 
+.PHONY: test-daimos-installed-p10fold-ge-v164
+test-daimos-installed-p10fold-ge-v164: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/daimos-installed-p10fold-ge-v164.sh
+
 test-daimos-compiler-selection-20261012-v1: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	    TMPDIR='$(TMPDIR)' COMPILER='$(COMPILER)' \
