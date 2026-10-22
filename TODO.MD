@@ -4,8 +4,11 @@ The valid tape-root + separate DTC3 topology reaches DSH and loads
 DTFS, but guest MKFS.DTFS on an empty DTC3 and MOUNT.DTFS on a
 host-initialized valid DTC3 each fail to complete in V179/V180
 diagnostics. Isolate DTC3 block transport and provider mount before
-reattempting the full two-boot mutation/persistence suite. Keep the
-diagnostics unregistered until repaired; group 030 stays open.
+reattempting the full two-boot mutation/persistence suite. Standalone
+production Type-551 DTC3 counted I/O and DTC1-to-DTC3 switching now
+PASS in V181/V182. Investigate the guest syscall/VFS/PI scheduling
+path under TSFS root rather than changing basic DTC unit encoding.
+Keep diagnostics unregistered until repaired; group 030 stays open.
 
 ## 2026-10-22 GROUP 030 TAPE-ROOT V178
 

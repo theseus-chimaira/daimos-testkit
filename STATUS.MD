@@ -16,6 +16,13 @@
   kernel, followed by provider mount calls; check for tape controller
   contention, unit selection and dispatcher wait conditions. Do not
   change the read-only TSFS boot-root contract or MRES residency guard.
+- Follow-up standalone tests: `daimos-dtc-stream-unit3-v181.sh` PASS
+  for DTC3 counted two-block write/read using production Type-551
+  driver. `daimos-dtc-switch-unit1-3-v182.sh` PASS for sequential
+  DTC1-to-DTC3 writes plus DTC3 counted readback. Therefore isolated
+  unit-3 selection and simple switching are functional; the failure
+  is specific to the complete tape-root guest/system-call context.
+  Both are diagnostic testkit scripts, not yet group-030 acceptance.
 
 ## 2026-10-22 GROUP 030 DECtape-root runtime V178
 
