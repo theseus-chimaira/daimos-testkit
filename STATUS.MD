@@ -1,3 +1,19 @@
+## 2026-10-22 GROUP 027 REACTIVATION / DPY V150 RETEST
+
+- Group 027 DECtape/TSFS is **active again by explicit request**;
+  it is no longer deferred. The original root-selected MRES policy
+  and positive/negative acceptance assertions remain in force.
+- The versioned Type-340 native-refresh test
+  `daimos-dpy-native-refresh-smoke-v150.sh` uses corrected SIMH,
+  functional DSH ceiling 037000 and preserved assertion checks.
+  Its fresh 256K KCC image boots and DCS0 receives LOGIN, but
+  GE0 connects without LOGIN; test FAILS `remote LOGIN missing`
+  before display refresh assertions. Evidence:
+  `$TMPDIR/daimos-dpy-native-v150.log`.
+- This corroborates the independent userspace multi-TTY GE0 startup
+  blocker (v144); it does **not** establish a Type-340 driver defect.
+  Prioritize root-causing INIT/GE0 session setup, then rerun DPY.
+
 ## 2026-10-22 GROUP 030 EXEC, DTFS, MULTI-TTY DIAGNOSTICS V148
 
 - EXEC replacement and child-session guest semantics finish normally on
