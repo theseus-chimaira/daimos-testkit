@@ -46,14 +46,24 @@ main(void)
         int pid;
 
         mark('<');
+#ifndef SYSINFO_EXPECT_ABSENT
         if (dsys_meminfo(&info) != 0 || info.process_slots_used == 0UL ||
             info.resident_words == 0UL ||
             info.resident_words > info.total_words)
                 fail('I');
+#endif
         pid = dsys_getpid();
+#ifdef SYSINFO_EXPECT_ABSENT
+        /* Optional diagnostic MRES may be absent; the rest of the kernel,
+         * including process creation and file paths, must still work. */
+        if (pid < 0 || dsys_procinfo((unsigned int)pid, &pinfo) != -1 ||
+            dsys_meminfo(&info) != -1)
+                fail('J');
+#else
         if (pid < 0 || dsys_procinfo((unsigned int)pid, &pinfo) != 0 ||
             pinfo.pid != (kword_t)(unsigned int)pid || pinfo.state == 0UL)
                 fail('J');
+#endif
         if (dsys_mkdir(test_dir) != 0)
                 fail('M');
         if (dsys_chdir(test_dir) != 0)
@@ -84,10 +94,17 @@ main(void)
         if (dsys_meminfo((struct sys_meminfo *)1UL) != -1 ||
             dsys_procinfo((unsigned int)pid,
                 (struct sys_procinfo *)1UL) != -1 ||
-            dsys_getcwd((kword_t *)1UL, 8U) != -1 ||
-            dsys_meminfo(&info) != 0 ||
+            dsys_getcwd((kword_t *)1UL, 8U) != -1)
+                fail('B');
+#ifdef SYSINFO_EXPECT_ABSENT
+        if (dsys_meminfo(&info) != -1 ||
+            dsys_procinfo((unsigned int)pid, &pinfo) != -1)
+                fail('B');
+#else
+        if (dsys_meminfo(&info) != 0 ||
             dsys_procinfo((unsigned int)pid, &pinfo) != 0)
                 fail('B');
+#endif
 
         mark('P');
         (void)dsys_exit(0);

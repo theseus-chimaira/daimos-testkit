@@ -1,3 +1,10 @@
+.PHONY: test-daimos-sysinfo-optional-v99
+test-daimos-sysinfo-optional-v99: check-prefix
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" \
+	    TMPDIR="$(TMPDIR)" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	    DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" \
+	    tests/validation/daimos-sysinfo-optional-v99-v1.sh
+
 .PHONY: test-daimos-kcore-oneptr-v97
 test-daimos-kcore-oneptr-v97: check-prefix
 	@PATH="$(PDP10_TOOLS_BIN):$$PATH" \

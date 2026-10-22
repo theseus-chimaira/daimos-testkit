@@ -14,11 +14,17 @@ mkdir -p "$user"
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
+sysinfo_enabled=${SYSINFO_MRES_ENABLED:-1}
+case "$sysinfo_enabled" in
+0) sysinfo_cflags=-DSYSINFO_EXPECT_ABSENT=1 ;;
+1) sysinfo_cflags= ;;
+*) echo "$tag: invalid SYSINFO_MRES_ENABLED=$sysinfo_enabled" >&2; exit 2 ;;
+esac
 das="$PDP10_PREFIX/bin/das"
 dlink="$PDP10_PREFIX/bin/dlink"
 self=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
-"$cc" -std=c99 -Os \
+"$cc" -std=c99 -Os $sysinfo_cflags \
     -I"$DAIMOS_REPO/system/kernel/boot" \
     -I"$DAIMOS_REPO/system/kernel/core" \
     -I"$DAIMOS_REPO/system/kernel/drivers" \
@@ -44,6 +50,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     DAS_REPO="${DAS_REPO:-$HOME/git/das}" \
     KCC_REPO="${KCC_REPO:-$HOME/git/kcc}" \
     COMPILER=kcc BOOT_PROFILE=full ROOT=disk BOOT=dsk \
+    SYSINFO_MRES_ENABLED="$sysinfo_enabled" \
     SIMH_CPU_KWORDS=256 PROC_BOOT_USERS=1 \
     SYSTEM_INIT_DXR="$user/init.dxr" >"$work/build.log" 2>&1 || {
         tail -60 "$work/build.log" >&2
@@ -68,4 +75,4 @@ fi
 case "${text#*<}" in
 *'!'*) cat "$out" >&2; echo "$tag: target failure" >&2; exit 1 ;;
 esac
-echo "$tag: PASS (six mapped calls, MEMINFO/PROCINFO pinned MRES, bad mapping)"
+echo "$tag: PASS (six mapped calls, SYSINFO_MRES_ENABLED=$sysinfo_enabled, bad mapping)"
