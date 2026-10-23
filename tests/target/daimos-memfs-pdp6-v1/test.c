@@ -183,6 +183,8 @@ daimos_memfs_pdp6_test(void)
         vnode_t child;
         int r;
         kword_t xip_base;
+        kword_t xip_entry;
+        kword_t xip_header[2];
         struct memfs *xip_fs;
 
         fs.nodes = node_store;
@@ -359,6 +361,25 @@ daimos_memfs_pdp6_test(void)
         xip_alignment_blocked = 0;
         if (memfs_truncate_words(xip_fs, node, 02001U) != 0)
                 return 0163;
+        /* A generic large MEMFS file is not automatically an XIP image. */
+        xip_entry = 0777UL;
+        xip_base = 0777UL;
+        if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) == 0 ||
+            xip_base != 0777UL || xip_entry != 0777UL ||
+            extent_pins != 0U || memfs_xip_any_pinned())
+                return 0202;
+        xip_header[0] = 054506000000UL;
+        xip_header[1] = 020UL;
+        if (memfs_write_words(xip_fs, node, 0U, xip_header, 2U) != 2)
+                return 0203;
+        xip_base = 0UL;
+        xip_entry = 0UL;
+        if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) != 0 ||
+            xip_entry != 020UL || extent_pins != 1U ||
+            (xip_base & 01777U))
+                return 0204;
+        if (memfs_xip_unpin(xip_fs, node) != 0 || extent_pins != 0U)
+                return 0205;
         xip_base = 0UL;
         if (memfs_xip_pin(xip_fs, node, &xip_base) != 0) return 0172;
         if (!xip_base) return 0173;
