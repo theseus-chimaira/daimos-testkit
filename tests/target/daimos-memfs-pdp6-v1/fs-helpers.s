@@ -97,6 +97,7 @@ fs_mres_context_vector_dispatch:
         .globl  test_memfs_dispatch_stat
         .globl  memfs_mres_dispatch
         .globl  test_xip_vm_release_v213
+        .globl  test_xip_mres_admit_v219
         .globl  fs_provider_reg_call
 fs_provider_reg_call:
         caie    7,4
@@ -113,6 +114,10 @@ proc_swap_detach:
 ; AC1=physical base, result 0 unknown / 1 released / -1 error.
 test_xip_vm_release_v213:
         movei   6,026
+        jrst    memfs_mres_dispatch
+; AC1=vnode, AC2=&base, AC3=&entry: no direct MEMFS call by KCORE.
+test_xip_mres_admit_v219:
+        movei   6,027
         jrst    memfs_mres_dispatch
 test_memfs_dispatch_stat:
         movei   6,3                    ; FS_MRES_OP_STAT

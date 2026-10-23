@@ -34,6 +34,8 @@ static int pool_live;
 
 extern struct memfs memfs_mres_fs;
 extern int test_xip_vm_release_v213(kword_t base);
+extern int test_xip_mres_admit_v219(vnode_t node, kword_t *base,
+    kword_t *entry);
 extern int vm_space_destroy(kword_t *vm_descriptor, unsigned int slot);
 static kword_t xip_vm_descriptor_v215[3];
 extern kword_t test_xip_instruction_template;
@@ -430,7 +432,7 @@ daimos_memfs_pdp6_test(void)
         if (memfs_write_words(xip_fs, node, 1U, &xip_header[1], 1U) != 1 ||
             memfs_chmod(xip_fs, node, 0555U) != 0)
                 return 0226;
-        if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) != 0 ||
+        if (test_xip_mres_admit_v219(node, &xip_base, &xip_entry) != 0 ||
             xip_entry != 020UL || extent_pins != 1U ||
             (xip_base & 01777U))
                 return 0204;
