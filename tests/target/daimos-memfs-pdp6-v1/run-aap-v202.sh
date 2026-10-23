@@ -22,13 +22,17 @@ aap="$AAP_PDP6_REPO/emu/pdp6_headless_v1"
 test -x "$aap" || make -C "$AAP_PDP6_REPO/emu" pdp6_headless_v1
 "$cc" -std=c99 -Os -I"$PDP10_PREFIX/include" -I"$inc" -I"$mm" \
     -I"$storage" -I"$kernel/core" -S "$here/test.c" -o "$work/test.s"
+awk '/^vm_space_destroy:/{copy=1} /^vm_space_load_file:/{copy=0} copy {print}' \
+    "$kernel/proc/vm_pdp6.s" > "$work/vm-destroy-v215.s"
+sed -i '1i\        .text\n        .globl vm_space_destroy' "$work/vm-destroy-v215.s"
 
 # The SIMH run also produces the identical executable RIM used by AAP.
 "$p10run" --machine pdp6 --mode rim --exec-mode go --timeout 15 \
     --workdir "$work/run" --name daimos-memfs-xip-v202 \
     --expect daimos_memfs_pdp6_result=0 \
     "$here/start.s" "$work/test.s" "$inc/memfs_data_pdp6.s" \
-    "$inc/memfs_runtime.s" "$here/fs-helpers.s" "$kernel/core/ret.s"
+    "$inc/memfs_runtime.s" "$here/fs-helpers.s" \
+    "$work/vm-destroy-v215.s" "$kernel/core/ret.s"
 
 result=$(awk '$1 == "daimos_memfs_pdp6_result" {print $2; exit}' \
     "$work/run/daimos-memfs-xip-v202.map")

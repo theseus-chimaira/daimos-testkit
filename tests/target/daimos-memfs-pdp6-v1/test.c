@@ -28,6 +28,8 @@ static int pool_live;
 
 extern struct memfs memfs_mres_fs;
 extern int test_xip_vm_release_v213(kword_t base);
+extern int vm_space_destroy(kword_t *vm_descriptor, unsigned int slot);
+static kword_t xip_vm_descriptor_v215[3];
 extern kword_t test_xip_instruction_template;
 extern kword_t test_xip_execute_word(kword_t address);
 #ifdef XIP_USER_APR_TEST_V209
@@ -429,11 +431,15 @@ daimos_memfs_pdp6_test(void)
             extent_pins != 1U || !memfs_xip_any_pinned())
                 return 0214;
         xip_unpin_injected_failure_v214 = 1;
-        if (test_xip_vm_release_v213(xip_base) != -1 ||
+        xip_vm_descriptor_v215[1] = (02000UL << 18U) | xip_base;
+        if (vm_space_destroy(xip_vm_descriptor_v215, 1U) == 0 ||
+            xip_vm_descriptor_v215[1] != ((02000UL << 18U) | xip_base) ||
             extent_pins != 1U || !memfs_xip_owns_base(xip_base))
                 return 0217;
         xip_unpin_injected_failure_v214 = 0;
-        if (test_xip_vm_release_v213(xip_base) != 1 || extent_pins != 0U ||
+        if (vm_space_destroy(xip_vm_descriptor_v215, 1U) != 0 ||
+            xip_vm_descriptor_v215[1] != 0777777777777UL ||
+            extent_pins != 0U ||
             memfs_xip_owns_base(xip_base))
                 return 0205;
         if (test_xip_vm_release_v213(xip_base) != 0)

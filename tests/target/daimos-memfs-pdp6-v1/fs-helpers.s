@@ -97,6 +97,18 @@ fs_mres_context_vector_dispatch:
         .globl  test_memfs_dispatch_stat
         .globl  memfs_mres_dispatch
         .globl  test_xip_vm_release_v213
+        .globl  fs_provider_reg_call
+fs_provider_reg_call:
+        caie    7,4
+        jrst    kret_neg1
+        jrst    memfs_mres_dispatch
+        .globl  proc_storage_expect_v30
+proc_storage_expect_v30:
+        setz    1,
+        popj    17,
+        .globl  proc_swap_detach
+proc_swap_detach:
+        popj    17,
 ; Exercise the exact private VM-to-MRES operation through its real dispatcher.
 ; AC1=physical base, result 0 unknown / 1 released / -1 error.
 test_xip_vm_release_v213:
