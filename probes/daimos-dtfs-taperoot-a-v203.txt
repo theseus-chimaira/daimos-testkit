@@ -1,0 +1,33 @@
+# Distinguish ordinary program launch from a failed DTFS write target.
+probe mount-dtc3-v203
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME
+not_contains MOUNT.DTFS:
+not_contains DSH: NOT FOUND:
+timeout 1800
+end
+probe postmount-echo-v203
+command ECHO POST_MOUNT_CONTROL_V203
+line ^POST_MOUNT_CONTROL_V203$
+not_contains DSH:
+timeout 600
+end
+probe write-home-v203
+command ECHO V203_PERSIST > /HOME/V203
+not_contains DSH:
+not_contains ECHO:
+timeout 1800
+end
+probe read-home-v203
+command CAT /HOME/V203
+line ^V203_PERSIST$
+not_contains DSH:
+not_contains CAT:
+timeout 1800
+end
+probe stat-home-v203
+command STAT /HOME/V203
+contains /HOME/V203
+not_contains DSH:
+not_contains STAT:
+timeout 1800
+end

@@ -641,3 +641,25 @@ PRE-DSH TODO ALREADY TRACKS ROOT/TSFS STARTUP LOCALITY AS THE NEXT WORK ITEM.
 - No kernel change has been made. The isolated DAIMOS worktree contains
   a separate uncommitted `userland/exec/commands.c` edit not authored
   by this test; it has not been touched or rebuilt by V202.
+
+## 2026-10-23 GROUP 030 MOUNTED DTFS WRITE DIAGNOSTIC V202/V203
+
+- V202 ran to completion against the existing TSFS-root boot and
+  host-formatted native DTC3 image. Mount command returned, as in V201,
+  but guest transcript showed `DSH: NOT FOUND: ECHO` during
+  `ECHO V202_PERSIST > /HOME/V202`, followed by `DSH: NOT FOUND: CAT`
+  and `DSH: NOT FOUND: STAT`. The DTC3 image remained 591872 bytes
+  and its mtime did not change. No file write or readback was verified.
+- V202 erroneously marked the redirected ECHO `PASS` because it only
+  rejected `ECHO:` output, not the actual `DSH: NOT FOUND:` diagnostic.
+  Its CAT and STAT assertions failed. Evidence:
+  `$TMPDIR/daimos-dtfs-mount-write-v202.log` and
+  `$TMPDIR/daimos-dtfs-taperoot-persist-v202-16668/run-a/simh.log`.
+- Independent production-assembler test
+  `tests/validation/daimos-dtfs-create-v1.sh` **PASS**, including native,
+  TENEX, ITS and rollback paths. This does not validate full guest
+  pathname opening, RUN fd mapping or DTC3 media writes.
+- V203 repairs the negative guards and separates post-mount plain ECHO
+  from redirected ECHO and CAT/STAT. V203 has syntax-checked but was
+  **not run**; it is a diagnostic, not group-030 acceptance. Do not
+  weaken the root-selected provider policy or strict size gate.

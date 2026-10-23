@@ -228,3 +228,14 @@ functional deadline, contradicting the earlier supposed permanent mount
 hang. V202 tests the first filesystem mutation/readback. Do not infer
 write correctness from mount alone; investigate costly controller/TSFS
 seeks and retain a separate performance limit after functionality passes.
+
+## 2026-10-23 V202/V203 DTFS WRITE FOLLOW-UP
+
+The true TSFS-root DTFS mount returns under the extended functional
+window, but V202 did not create `/HOME/V202`: DSH reports NOT FOUND
+when launching redirected ECHO, CAT, and STAT. Previous V202 ECHO
+PASS was an insufficient test guard. V203 explicitly rejects DSH
+errors and tests ordinary post-mount external execution separately.
+Investigate DTFS pathname/create/open and RUN descriptor mapping; the
+isolated `dtfs_create` assembly regression passes. No persistence
+acceptance exists yet.
