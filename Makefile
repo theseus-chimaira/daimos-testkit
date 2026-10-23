@@ -588,6 +588,12 @@ test-daimos-run-vm-oom: check-prefix
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		sh tests/validation/daimos-run-vm-oom-v198.sh
 
+.PHONY: test-daimos-run-create-oom
+test-daimos-run-create-oom: check-prefix
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
+		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		sh tests/validation/daimos-run-create-oom-v199.sh
+
 test-daimos-process-id-lifetime: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }

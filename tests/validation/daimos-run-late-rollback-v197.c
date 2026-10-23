@@ -21,7 +21,8 @@
 #define FAILED_RUNS        16U
 #define CHILD_EXIT_STATUS  051U
 
-/* Nontrivial VM extents make failed-load release observable to the MM. */
+/* Every parent variant uses the same known-bootable image footprint. The
+ * dedicated v199 child has a larger BSS image, independently installed. */
 static volatile kword_t vm_pressure[040000];
 
 static kword_t init_path[] = {
@@ -84,6 +85,10 @@ wait_exit(unsigned int pid)
             SYS_WAIT_STATUS_VALUE(status) == CHILD_EXIT_STATUS ? 0 : -1;
 }
 
+#ifdef TEST_VM_CREATE_OOM_V199
+#include "daimos-run-create-oom-v199.h"
+#endif
+
 #ifdef TEST_VM_OOM_V198
 #include "daimos-run-vm-oom-v198.h"
 #endif
@@ -122,6 +127,10 @@ main(int argc, kword_t **argv)
         if (base.process_slots_used == 0UL)
                 fail('3');
         (void)dsys_writechar(1, '<');
+
+#ifdef TEST_VM_CREATE_OOM_V199
+        check_run_create_oom_v199();
+#endif
 
         pair = dsys_pipe();
         if (pair == ~0UL)
