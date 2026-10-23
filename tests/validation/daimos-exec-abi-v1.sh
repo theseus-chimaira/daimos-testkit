@@ -7,7 +7,8 @@ sh="$DAIMOS_REPO/system/kernel/proc/syscall.h"
 sd="$DAIMOS_REPO/system/kernel/proc/syscall_dispatch_pdp6.s"
 dh="$DAIMOS_REPO/userland/libc/dsys.h"
 ss="$DAIMOS_REPO/userland/libc/syscall.s"
-ex="$DAIMOS_REPO/system/kernel/proc/exec.c"
+ex="$DAIMOS_REPO/system/kernel/proc/exec_lowmem_pdp6.s"
+load="$DAIMOS_REPO/system/kernel/proc/exec_load.s"
 
 # EXEC is an extension of UUO 077 so the already-full monitor UUO bank does not
 # grow another ABI.  Successful EXEC must reset the saved user context in the
@@ -24,8 +25,11 @@ grep -q '^dsys_exec:' "$ss" || {
 grep -q 'native_sys_exec,,pclk_time36' "$sd" || {
         echo "$tag: EXEC not dispatched by UUO 077" >&2; exit 1;
 }
-grep -q 'exec_replace_current' "$ex" || {
+grep -q '^exec_replace_current:' "$ex" || {
         echo "$tag: current-image replacement implementation missing" >&2; exit 1;
+}
+grep -q '^exec_load_process:' "$load" || {
+        echo "$tag: executable loader implementation missing" >&2; exit 1;
 }
 
 printf '%s\n' "$tag: PASS (EXEC ABI and current-image replacement plumbing)"
