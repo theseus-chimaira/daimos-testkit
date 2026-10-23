@@ -73,6 +73,19 @@ mm_pin(kword_t base)
 }
 
 int
+mm_alloc_aligned(kword_t words, kword_t alignment, unsigned int type,
+    unsigned int owner, unsigned int preference, kword_t *basep)
+{
+        int rc;
+        if (alignment != 02000U || !xip_test_mode)
+                return MM_ERR_INVAL;
+        rc = mm_alloc(words, type, owner, preference, basep);
+        if (rc == MM_OK && ((*basep & (alignment - 1U)) != 0U))
+                return MM_ERR_INVAL;
+        return rc;
+}
+
+int
 mm_unpin(kword_t base)
 {
         if (!pool_live || base != allocated_base || extent_pins == 0U)
