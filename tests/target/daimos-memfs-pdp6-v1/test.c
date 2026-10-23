@@ -391,6 +391,16 @@ daimos_memfs_pdp6_test(void)
 #endif
         xip_base = 0UL;
         xip_entry = 0UL;
+        /* A magic header alone is insufficient: no write mode, executable. */
+        if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) == 0 ||
+            extent_pins != 0U || memfs_xip_any_pinned())
+                return 0211;
+        if (memfs_chmod(xip_fs, node, 0444U) != 0 ||
+            memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) == 0 ||
+            extent_pins != 0U || memfs_xip_any_pinned())
+                return 0212;
+        if (memfs_chmod(xip_fs, node, 0555U) != 0)
+                return 0213;
         if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) != 0 ||
             xip_entry != 020UL || extent_pins != 1U ||
             (xip_base & 01777U))
