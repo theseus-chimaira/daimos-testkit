@@ -71,10 +71,10 @@ if [ "$rc" -ne 0 ]; then
 fi
 text=$(tr -d '\r\n' <"$out")
 case "$text" in
-    *'<abRN'*'HALT'*) ;;
+    *'<abcdRN'*'HALT'*) ;;
     *) cat "$out" >&2; echo "$tag: rollback/admission/release markers missing" >&2; exit 1 ;;
 esac
 case "$text" in
     *'!'*) cat "$out" >&2; echo "$tag: failure marker detected" >&2; exit 1 ;;
 esac
-echo "$tag: PASS (rollback of new RT claim, preservation of previous owner, admission and release across EXEC)"
+echo "$tag: PASS (RT rollback at header and post-VM decoder failure, preserved owner, admission and release)"

@@ -46,6 +46,8 @@ replace_with(const char *path)
 #endif
 
 #if TEST_RT_STAGE == 0
+#include "daimos-exec-rt-postvm-v193.h"
+
 static void
 make_broken_rt_image(void)
 {
@@ -98,6 +100,10 @@ main(void)
         if (dsys_rtctl(SYS_RTCTL_DISABLE) != 0)
                 fail('4');
         (void)dsys_writechar(1, 'b');
+
+        /* Separate rollback probe: valid compressed DXR2 geometry,
+         * malformed D6LZ stream, and failure after VM allocation. */
+        check_bad_d6lz_exec_v193();
 
         (void)replace_with("/SYSTEM/EXEC/TSFSPROBE");
         fail('5');
