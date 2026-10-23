@@ -569,6 +569,16 @@ test-daimos-exec-commit-rollback: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		TMPDIR='$(TMPDIR)' sh tests/validation/daimos-exec-commit-rollback-v200.sh
 
+.PHONY: test-daimos-exec-create-oom
+test-daimos-exec-create-oom: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		TMPDIR='$(TMPDIR)' sh tests/validation/daimos-exec-create-oom-v205.sh
+
+.PHONY: test-daimos-exec-pressure
+test-daimos-exec-pressure: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		TMPDIR='$(TMPDIR)' sh tests/validation/daimos-exec-pressure-v201.sh
+
 
 test-daimos-scheduler-realtime: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
