@@ -96,6 +96,12 @@ fs_mres_context_vector_dispatch:
 
         .globl  test_memfs_dispatch_stat
         .globl  memfs_mres_dispatch
+        .globl  test_xip_vm_release_v213
+; Exercise the exact private VM-to-MRES operation through its real dispatcher.
+; AC1=physical base, result 0 unknown / 1 released / -1 error.
+test_xip_vm_release_v213:
+        movei   6,026
+        jrst    memfs_mres_dispatch
 test_memfs_dispatch_stat:
         movei   6,3                    ; FS_MRES_OP_STAT
         jrst    memfs_mres_dispatch

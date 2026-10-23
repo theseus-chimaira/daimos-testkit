@@ -25,6 +25,7 @@ kword_t daimos_memfs_xip_user_base_v209;
 static int pool_live;
 
 extern struct memfs memfs_mres_fs;
+extern int test_xip_vm_release_v213(kword_t base);
 extern kword_t test_xip_instruction_template;
 extern kword_t test_xip_execute_word(kword_t address);
 #ifdef XIP_USER_APR_TEST_V209
@@ -419,12 +420,15 @@ daimos_memfs_pdp6_test(void)
         if (test_xip_execute_word(xip_base + xip_entry) != 01234UL ||
             extent_pins != 1U)
                 return 0207;
-        if (memfs_xip_unpin_base(xip_base + 1U) == 0 ||
+        if (test_xip_vm_release_v213(xip_base + 1U) != 0 ||
+            memfs_xip_unpin_base(xip_base + 1U) == 0 ||
             extent_pins != 1U || !memfs_xip_any_pinned())
                 return 0214;
-        if (memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U ||
+        if (test_xip_vm_release_v213(xip_base) != 1 || extent_pins != 0U ||
             memfs_xip_owns_base(xip_base))
                 return 0205;
+        if (test_xip_vm_release_v213(xip_base) != 0)
+                return 0216;
         xip_base = 0UL;
         if (memfs_xip_pin(xip_fs, node, &xip_base) != 0) return 0172;
         if (!xip_base) return 0173;
