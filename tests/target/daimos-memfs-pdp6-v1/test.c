@@ -419,6 +419,17 @@ daimos_memfs_pdp6_test(void)
                 return 0212;
         if (memfs_chmod(xip_fs, node, 0555U) != 0)
                 return 0213;
+        /* Executable permissions and a valid magic still do not authorize
+         * XIP unless the existing PURE promise is explicitly present. */
+        if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) == 0 ||
+            extent_pins != 0U || memfs_xip_any_pinned())
+                return 0224;
+        if (memfs_chmod(xip_fs, node, 0644U) != 0)
+                return 0225;
+        xip_header[1] = (MEMFS_XIP_PURE_FLAG << 18U) | 020UL;
+        if (memfs_write_words(xip_fs, node, 1U, &xip_header[1], 1U) != 1 ||
+            memfs_chmod(xip_fs, node, 0555U) != 0)
+                return 0226;
         if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) != 0 ||
             xip_entry != 020UL || extent_pins != 1U ||
             (xip_base & 01777U))
