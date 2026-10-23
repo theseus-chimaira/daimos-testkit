@@ -416,7 +416,10 @@ daimos_memfs_pdp6_test(void)
         if (test_xip_execute_word(xip_base + xip_entry) != 01234UL ||
             extent_pins != 1U)
                 return 0207;
-        if (memfs_xip_unpin(xip_fs, node) != 0 || extent_pins != 0U)
+        if (memfs_xip_unpin_base(xip_base + 1U) == 0 ||
+            extent_pins != 1U || !memfs_xip_any_pinned())
+                return 0214;
+        if (memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U)
                 return 0205;
         xip_base = 0UL;
         if (memfs_xip_pin(xip_fs, node, &xip_base) != 0) return 0172;
@@ -432,11 +435,11 @@ daimos_memfs_pdp6_test(void)
             memfs_truncate_words(xip_fs, node, 0U) == 0 ||
             memfs_data_reclaim(02000U) != 0UL || !pool_live)
                 return 0166;
-        if (memfs_xip_unpin(xip_fs, node) != 0 || extent_pins != 1U ||
+        if (memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 1U ||
             !memfs_xip_is_pinned(1U)) return 0167;
-        if (memfs_xip_unpin(xip_fs, node) != 0 || extent_pins != 0U ||
+        if (memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U ||
             memfs_xip_is_pinned(1U) || memfs_xip_any_pinned()) return 0170;
-        if (memfs_xip_unpin(xip_fs, node) == 0 ||
+        if (memfs_xip_unpin_base(xip_base) == 0 ||
             memfs_truncate_words(xip_fs, node, 0U) != 0 || pool_live)
                 return 0171;
         return 0;
