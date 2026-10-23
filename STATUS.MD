@@ -7,8 +7,11 @@
 - `SYS_DTFS_TYPE_NATIVE` is **010U (octal)**, i.e. 8 decimal, in
   `system/kernel/proc/syscall.h`. V193 mistakenly asserted 1 and
   therefore failed despite the correct guest statuses. V194 corrects
-  those assertions to 8; its shell syntax has been validated, but
-  the corrected fixture has **not yet been rerun**.
+  those assertions to 8; the corrected fixture has now been **rerun
+  successfully**, returning 8 for both shallow and deep probes.
+  Its original inherited success text incorrectly claimed write and
+  reboot persistence; only direct probe status was checked, and that
+  diagnostic output is corrected in the test script.
 - Direct shallow and deep probe processes and shell status propagation
   work. Previous standalone prompt-return-only evidence is now
   strengthened by explicit exit-status capture. The 240-second

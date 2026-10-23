@@ -1,5 +1,5 @@
 #!/bin/sh
-# Two-boot DTFS persistence test, with TSFS as root and DTC3 as data media.
+# Single-boot native DTC3 direct probe status test on a TSFS root.
 set -eu
 : "${TMPDIR:=$HOME/tmp}"
 : "${DAIMOS_REPO:?}"
@@ -11,7 +11,7 @@ work="$TMPDIR/daimos-dtfs-taperoot-persist-v194-$$"
 mkdir -p "$work"
 trap 'if [ "${DAIMOS_DTFS_KEEP_WORK:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 boot=$DAIMOS_TSFS_ROOT_BOOT_INI
-# Preserve the root media; only the test DTC3 image is copied and modified.
+# Preserve the root media; the test DTC3 image is host-formatted separately.
 media=$(awk '$1=="attach" && $3=="dtc3" {print $4; exit}' "$boot")
 test -n "$media" && test -f "$media"
 ${HOST_CC:-cc} -std=c99 -O2 -Wall -Wextra -Werror \
@@ -28,4 +28,4 @@ for phase in a; do
       --work-dir "$work/run-$phase" --boot-timeout 360 --timeout 240 \
       --markdown-report "$work/report-$phase.md"
 done
-echo 'daimos-dtfs-taperoot-persist-v194: PASS (DTC3 write and rebooted read on TSFS root)'
+echo 'daimos-dtfs-direct-status-v194: PASS (native shallow/deep probe status only; no write/persistence checked)'
