@@ -1,3 +1,22 @@
+## 2026-10-23 GROUP 030 NESTED DSH RUN/WAIT CONTROL V196
+
+- Against isolated DAIMOS source `40bc094`, V196 booted real TSFS
+  root with a host-formatted native DTC3 image and executed
+  `DSH -C "ECHO NESTED_V196"; ECHO NESTED_EXIT:$?`.
+- Guest harness recorded **PASS** for nested DSH, with transcript
+  `NESTED_V196` and `NESTED_EXIT:0`. A subsequent independent
+  `ECHO DIRECT_V196` also recorded **PASS**, both with 240-second
+  command deadlines.
+- The shell wrapper's final exit status was 2 after its file was
+  edited during execution, producing a trailing syntax error.
+  The current file passes `sh -n`; do not claim full wrapper
+  acceptance until a clean rerun. The guest probe results were
+  saved independently in `run-a/results.tsv`.
+- Ordinary nested DSH child execution and result propagation work;
+  the FSCK/MOUNT timeout is not evidence of a general RUN/WAIT
+  failure. Continue with the specific `cmd_dtfs_probe` RUN block,
+  child process I/O/map, and DTFS provider paths. No kernel patch.
+
 ## 2026-10-23 GROUP 030 NEGATIVE FSCK EXPERIMENT V195
 
 - Attempted an FSCK negative control on unattached `/DEV/DTC7` in

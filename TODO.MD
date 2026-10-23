@@ -1,3 +1,11 @@
+## 2026-10-23 GROUP 030 RUN/WAIT CONTROL V196
+
+Nested `DSH -C ECHO` + `$?=0` and a separate ECHO both pass on
+TSFS root, with supported timeouts. Wrapper modified during its
+run returned syntax error after the two probe successes; rerun
+cleanly before acceptance. Focus investigation on the specific
+FSCK/MOUNT child probe handoff rather than generic RUN/WAIT.
+
 ## 2026-10-23 GROUP 030 V195 INCONCLUSIVE NEGATIVE CONTROL
 
 Unattached-DTC7 FSCK did not return during an interrupted diagnostic.

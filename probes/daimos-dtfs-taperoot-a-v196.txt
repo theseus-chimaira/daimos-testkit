@@ -1,0 +1,11 @@
+probe nested-dsh-v196
+command DSH -C "ECHO NESTED_V196"; ECHO NESTED_EXIT:$?
+contains NESTED_V196
+contains NESTED_EXIT:0
+timeout 240
+end
+probe direct-echo-v196
+command ECHO DIRECT_V196
+line ^DIRECT_V196$
+timeout 240
+end
