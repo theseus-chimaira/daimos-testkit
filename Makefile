@@ -576,6 +576,12 @@ test-daimos-process-lifecycle: check-prefix
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		tests/validation/daimos-process-lifecycle-v1.sh
 
+.PHONY: test-daimos-run-late-rollback
+test-daimos-run-late-rollback: check-prefix
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
+		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		sh tests/validation/daimos-run-late-rollback-v197.sh
+
 test-daimos-process-id-lifetime: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
