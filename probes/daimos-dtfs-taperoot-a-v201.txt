@@ -1,0 +1,12 @@
+# Deliberately long mount deadline: DECtape seeks and nested program loads
+# can be expensive even under SIMH.  Functional-only timing experiment.
+probe mount-dtc3-long-v201
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME
+not_contains MOUNT.DTFS:
+timeout 1800
+end
+probe postmount-echo-v201
+command ECHO POST_MOUNT_V201
+line ^POST_MOUNT_V201$
+timeout 360
+end
