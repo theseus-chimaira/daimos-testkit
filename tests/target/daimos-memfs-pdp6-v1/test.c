@@ -7,6 +7,11 @@ static struct memfs fs;
 static kword_t metadata[MEMFS_METADATA_WORDS];
 static struct memfs_node *node_store = (struct memfs_node *)metadata;
 static kword_t pool[02000];
+/* Separate aligned extent for the dedicated XIP reservation test. */
+static kword_t xip_pool[05000];
+static int xip_test_mode;
+static kword_t allocated_base;
+static unsigned int extent_pins;
 #define backing (metadata + MEMFS_BACKING_OFFSET)
 static kword_t swap_image[0200];
 static int backstore_live;
@@ -38,13 +43,48 @@ mm_alloc(kword_t words, unsigned int type, unsigned int owner,
     unsigned int preference, kword_t *basep)
 {
         (void)preference;
-        if (pool_live || words < 0200U || words > 02000U ||
+        if (pool_live || words < 0200U ||
             (words & 0177U) != 0U || type != MM_TYPE_KERNEL_DYNAMIC ||
             owner != 011U || basep == 0)
                 return MM_ERR_NOMEM;
+        if (xip_test_mode) {
+                if (words <= 02000U || words > 04000U)
+                        return MM_ERR_NOMEM;
+                allocated_base =
+                    ((kword_t)(unsigned long)xip_pool + 01777UL) &
+                    ~01777UL;
+        } else {
+                if (words > 02000U)
+                        return MM_ERR_NOMEM;
+                allocated_base = (kword_t)(unsigned long)pool & 0777777UL;
+        }
         pool_live = 1;
-        *basep = (kword_t)(unsigned long)pool & 0777777UL;
+        *basep = allocated_base;
         return MM_OK;
+}
+
+int
+mm_pin(kword_t base)
+{
+        if (!pool_live || base != allocated_base || extent_pins == 255U)
+                return MM_ERR_INVAL;
+        ++extent_pins;
+        return MM_OK;
+}
+
+int
+mm_unpin(kword_t base)
+{
+        if (!pool_live || base != allocated_base || extent_pins == 0U)
+                return MM_ERR_INVAL;
+        --extent_pins;
+        return MM_OK;
+}
+
+int
+mm_is_pinned(kword_t base)
+{
+        return pool_live && base == allocated_base && extent_pins != 0U;
 }
 
 int
@@ -91,7 +131,7 @@ backstore_write(kword_t first, kword_t blocks, const kword_t *buf)
 int
 mm_free(kword_t base, unsigned int type, unsigned int owner)
 {
-        if (!pool_live || base != ((kword_t)(unsigned long)pool & 0777777UL) ||
+        if (!pool_live || base != allocated_base || extent_pins ||
             type != MM_TYPE_KERNEL_DYNAMIC || owner != 011U)
                 return MM_ERR_INVAL;
         pool_live = 0;
@@ -125,6 +165,8 @@ daimos_memfs_pdp6_test(void)
         vnode_t root;
         vnode_t child;
         int r;
+        kword_t xip_base;
+        struct memfs *xip_fs;
 
         fs.nodes = node_store;
         fs.pool_words = 0200U;
@@ -277,5 +319,43 @@ daimos_memfs_pdp6_test(void)
         r = memfs_truncate_words(&fs, node, 0U);
         if (r != 0 || fs.used_words != 0U || pool_live || backing[1] != 0UL)
                 return 4;
+        /* A regular small MEMFS file cannot become an XIP allocation. */
+        if (memfs_truncate_words(&fs, node, 1U) != 0) return 0160;
+        xip_base = 0123456UL;
+        memfs_mres_fs = fs;
+        if (memfs_xip_pin(&memfs_mres_fs, node, &xip_base) == 0 ||
+            xip_base != 0123456UL || extent_pins != 0U) return 0161;
+        if (memfs_truncate_words(&fs, node, 0U) != 0) return 0162;
+
+        /* This is a dedicated, aligned file allocation, not an executable.
+         * Exercise the pin and mutation/reclaim guards before any EXEC XIP
+         * integration exists. Multiple file references share one MM pin. */
+        xip_test_mode = 1;
+        fs.pool_words = 04000U;
+        memfs_mres_fs = fs;
+        xip_fs = &memfs_mres_fs;
+        if (memfs_truncate_words(xip_fs, node, 02001U) != 0)
+                return 0163;
+        xip_base = 0UL;
+        if (memfs_xip_pin(xip_fs, node, &xip_base) != 0) return 0172;
+        if (!xip_base) return 0173;
+        if (xip_base & 01777U) return 0174;
+        if (extent_pins != 1U) return 0175;
+        if (!memfs_xip_is_pinned(1U)) return 0176;
+        if (!memfs_xip_any_pinned()) return 0177;
+        if (memfs_xip_pin(xip_fs, node, &xip_base) != 0 || extent_pins != 1U)
+                return 0165;
+        put[0] = 07777UL;
+        if (memfs_write_words(xip_fs, node, 0U, put, 1U) >= 0 ||
+            memfs_truncate_words(xip_fs, node, 0U) == 0 ||
+            memfs_data_reclaim(02000U) != 0UL || !pool_live)
+                return 0166;
+        if (memfs_xip_unpin(xip_fs, node) != 0 || extent_pins != 1U ||
+            !memfs_xip_is_pinned(1U)) return 0167;
+        if (memfs_xip_unpin(xip_fs, node) != 0 || extent_pins != 0U ||
+            memfs_xip_is_pinned(1U) || memfs_xip_any_pinned()) return 0170;
+        if (memfs_xip_unpin(xip_fs, node) == 0 ||
+            memfs_truncate_words(xip_fs, node, 0U) != 0 || pool_live)
+                return 0171;
         return 0;
 }

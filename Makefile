@@ -248,6 +248,13 @@ target-memfs-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-memfs-pdp6-v1/run.sh
 
+.PHONY: target-memfs-xip-aap-v202
+target-memfs-xip-aap-v202: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		AAP_PDP6_REPO='$(abspath $(AAP_PDP6_REPO))' \
+		sh tests/target/daimos-memfs-pdp6-v1/run-aap-v202.sh
+
 target-memfs-fifo-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-memfs-fifo-pdp6-v1/run.sh

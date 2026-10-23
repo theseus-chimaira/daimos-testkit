@@ -49,6 +49,9 @@ void memfs_data_destroy(void) { }
 int memfs_data_ensure(struct memfs *fs, unsigned int slot)
 { (void)fs; (void)slot; return 0; }
 void memfs_data_dirty(unsigned int slot) { (void)slot; }
+/* FIFO-only fixture does not link the optional MEMFS XIP allocator. */
+int memfs_xip_is_pinned(unsigned int slot) { (void)slot; return 0; }
+int memfs_xip_any_pinned(void) { return 0; }
 
 int
 vfs_mount(vnode_t target, unsigned int provider, unsigned int kind,
