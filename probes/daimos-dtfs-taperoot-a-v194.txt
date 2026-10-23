@@ -1,0 +1,10 @@
+probe direct-native-status-v194
+command DTFSPROBE /DEV/DTC3; ECHO DIRECT_STATUS:$?
+contains DIRECT_STATUS:8
+timeout 240
+end
+probe direct-deep-status-v194
+command DTFSPROBE /DEV/DTC3 DEEP; ECHO DEEP_STATUS:$?
+contains DEEP_STATUS:8
+timeout 240
+end

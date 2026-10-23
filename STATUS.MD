@@ -1,3 +1,21 @@
+## 2026-10-23 GROUP 030 DTFSPROBE EXIT STATUS V193/V194
+
+- Real TSFS-root guest with host-built native DTC3: both
+  `DTFSPROBE /DEV/DTC3; ECHO DIRECT_STATUS:$?` and
+  `DTFSPROBE /DEV/DTC3 DEEP; ECHO DEEP_STATUS:$?` returned to DSH
+  with the exact result **8** for each (V193 captured transcript).
+- `SYS_DTFS_TYPE_NATIVE` is **010U (octal)**, i.e. 8 decimal, in
+  `system/kernel/proc/syscall.h`. V193 mistakenly asserted 1 and
+  therefore failed despite the correct guest statuses. V194 corrects
+  those assertions to 8; its shell syntax has been validated, but
+  the corrected fixture has **not yet been rerun**.
+- Direct shallow and deep probe processes and shell status propagation
+  work. Previous standalone prompt-return-only evidence is now
+  strengthened by explicit exit-status capture. The 240-second
+  FSCK/MOUNT timeouts still remain unresolved, pointing toward their
+  nested probe RUN/WAIT or mount command flow rather than simple
+  corruption or failure of the direct native format probe.
+
 ## 2026-10-23 GROUP 030 FSCK 240-SECOND ISOLATION V192
 
 - Verified committed V190 standalone TSFS-root ECHO/PWD probe results

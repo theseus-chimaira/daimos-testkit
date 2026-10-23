@@ -1,3 +1,12 @@
+## 2026-10-23 DTFSPROBE V194
+
+Native DTFS type code is octal 010 (decimal 8). Both shallow and
+DEEP direct DTFSPROBE exit with this correct status in V193's
+captured guest output; V194 fixes the test expectations. Investigate
+why FSCK/MOUNT do not finish their nested RUN/WAIT-probe sequence
+even though direct probes complete. Preserve 240-second regression
+deadline and do not change kernel storage code without evidence.
+
 ## 2026-10-23 GROUP 030 FSCK V192
 
 FSCK.DTFS with the established 240-second deadline times out on a
