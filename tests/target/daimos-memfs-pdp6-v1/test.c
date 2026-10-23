@@ -24,6 +24,8 @@ kword_t daimos_memfs_pdp6_result;
 static int pool_live;
 
 extern struct memfs memfs_mres_fs;
+extern kword_t test_xip_instruction_template;
+extern kword_t test_xip_execute_word(kword_t address);
 extern int test_memfs_dispatch_stat(vnode_t node, struct vfs_stat *st);
 extern int test_memfs_dispatch_readdir(vnode_t dir, unsigned int off,
     struct vfs_dirent *ent);
@@ -372,12 +374,19 @@ daimos_memfs_pdp6_test(void)
         xip_header[1] = 020UL;
         if (memfs_write_words(xip_fs, node, 0U, xip_header, 2U) != 2)
                 return 0203;
+        if (memfs_write_words(xip_fs, node, 020U,
+            &test_xip_instruction_template, 1U) != 1)
+                return 0206;
         xip_base = 0UL;
         xip_entry = 0UL;
         if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) != 0 ||
             xip_entry != 020UL || extent_pins != 1U ||
             (xip_base & 01777U))
                 return 0204;
+        /* Actual PDP-6 XCT fetch at the MEMFS-owned physical location. */
+        if (test_xip_execute_word(xip_base + xip_entry) != 01234UL ||
+            extent_pins != 1U)
+                return 0207;
         if (memfs_xip_unpin(xip_fs, node) != 0 || extent_pins != 0U)
                 return 0205;
         xip_base = 0UL;
