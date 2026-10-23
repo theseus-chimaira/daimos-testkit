@@ -1,3 +1,11 @@
+## 2026-10-23 V197 RUN/WAIT CONTROL ACCEPTED
+
+The clean nested DSH RUN/WAIT control passes completely, including
+status 0, follow-on ECHO and wrapper exit. Investigate FSCK/MOUNT's
+specific `cmd_dtfs_probe` RUN-block construction, descriptor passing
+and provider entry; do not alter generic process WAIT without a
+reproducing regression. Group 030 remains open.
+
 ## 2026-10-23 GROUP 030 RUN/WAIT CONTROL V196
 
 Nested `DSH -C ECHO` + `$?=0` and a separate ECHO both pass on

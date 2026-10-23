@@ -1,3 +1,17 @@
+## 2026-10-23 GROUP 030 CLEAN NESTED RUN/WAIT V197
+
+- A clean rerun of the unchanged V196 nested-DSH fixture against the
+  isolated `40bc094` tape-root image completed with **exit code 0**.
+  Guest probes both **PASS**: `DSH -C "ECHO NESTED_V196"` returned
+  `NESTED_EXIT:0`, and an independent subsequent ECHO succeeded.
+  Evidence: `$TMPDIR/daimos-tsfs-nested-runwait-clean-v197.log`.
+- This supersedes the V196 wrapper-syntax uncertainty. Ordinary
+  nested child execution, status propagation and shell continuation
+  are functional under the established 240-second command policy.
+- Deep FSCK and DTFS mount still fail; focus on the specific
+  `cmd_dtfs_probe` RUN-block data/descriptor mapping and subsequent
+  provider path rather than claiming generic WAIT failure.
+
 ## 2026-10-23 GROUP 030 NESTED DSH RUN/WAIT CONTROL V196
 
 - Against isolated DAIMOS source `40bc094`, V196 booted real TSFS
