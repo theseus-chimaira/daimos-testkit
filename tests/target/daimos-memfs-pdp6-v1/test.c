@@ -14,6 +14,8 @@ static int xip_test_mode;
 static int xip_alignment_blocked;
 static kword_t allocated_base;
 static unsigned int extent_pins;
+/* v214: fault-inject MM unpin to test failed VM release rollback. */
+static int xip_unpin_injected_failure_v214;
 #define backing (metadata + MEMFS_BACKING_OFFSET)
 static kword_t swap_image[0200];
 static int backstore_live;
@@ -100,6 +102,8 @@ mm_alloc_aligned(kword_t words, kword_t alignment, unsigned int type,
 int
 mm_unpin(kword_t base)
 {
+        if (xip_unpin_injected_failure_v214)
+                return MM_ERR_BUSY;
         if (!pool_live || base != allocated_base || extent_pins == 0U)
                 return MM_ERR_INVAL;
         --extent_pins;
@@ -424,6 +428,11 @@ daimos_memfs_pdp6_test(void)
             memfs_xip_unpin_base(xip_base + 1U) == 0 ||
             extent_pins != 1U || !memfs_xip_any_pinned())
                 return 0214;
+        xip_unpin_injected_failure_v214 = 1;
+        if (test_xip_vm_release_v213(xip_base) != -1 ||
+            extent_pins != 1U || !memfs_xip_owns_base(xip_base))
+                return 0217;
+        xip_unpin_injected_failure_v214 = 0;
         if (test_xip_vm_release_v213(xip_base) != 1 || extent_pins != 0U ||
             memfs_xip_owns_base(xip_base))
                 return 0205;
