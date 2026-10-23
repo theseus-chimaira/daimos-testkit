@@ -551,6 +551,12 @@ test-daimos-rt-required: check-prefix
 	PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(DAIMOS_REPO)' TMPDIR='$(TMPDIR)' \
 		tests/validation/daimos-rt-required-v1.sh
 
+.PHONY: test-daimos-exec-rt-owner
+test-daimos-exec-rt-owner: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		TMPDIR='$(TMPDIR)' DAIMOS_EXEC_OBSERVE_SECONDS='$(DAIMOS_EXEC_OBSERVE_SECONDS)' \
+		sh tests/validation/daimos-exec-rt-owner-v191.sh
+
 
 test-daimos-scheduler-realtime: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
