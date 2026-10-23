@@ -8,7 +8,7 @@ static kword_t metadata[MEMFS_METADATA_WORDS];
 static struct memfs_node *node_store = (struct memfs_node *)metadata;
 static kword_t pool[02000];
 /* Separate aligned extent for the dedicated XIP reservation test. */
-static kword_t xip_pool[05000];
+kword_t xip_pool[05000];
 static int xip_test_mode;
 /* Simulate pressure where enough words exist but no aligned gap fits. */
 static int xip_alignment_blocked;
@@ -21,11 +21,16 @@ kword_t backstore_blocks;
 static kword_t put[2];
 static kword_t got[2];
 kword_t daimos_memfs_pdp6_result;
+kword_t daimos_memfs_xip_user_base_v209;
 static int pool_live;
 
 extern struct memfs memfs_mres_fs;
 extern kword_t test_xip_instruction_template;
 extern kword_t test_xip_execute_word(kword_t address);
+#ifdef XIP_USER_APR_TEST_V209
+extern kword_t test_xip_user_instruction_store_v209;
+extern kword_t test_xip_user_instruction_halt_v209;
+#endif
 extern int test_memfs_dispatch_stat(vnode_t node, struct vfs_stat *st);
 extern int test_memfs_dispatch_readdir(vnode_t dir, unsigned int off,
     struct vfs_dirent *ent);
@@ -377,12 +382,26 @@ daimos_memfs_pdp6_test(void)
         if (memfs_write_words(xip_fs, node, 020U,
             &test_xip_instruction_template, 1U) != 1)
                 return 0206;
+#ifdef XIP_USER_APR_TEST_V209
+        if (memfs_write_words(xip_fs, node, 021U,
+            &test_xip_user_instruction_store_v209, 1U) != 1 ||
+            memfs_write_words(xip_fs, node, 022U,
+            &test_xip_user_instruction_halt_v209, 1U) != 1)
+                return 0210;
+#endif
         xip_base = 0UL;
         xip_entry = 0UL;
         if (memfs_xip_admit(xip_fs, node, &xip_base, &xip_entry) != 0 ||
             xip_entry != 020UL || extent_pins != 1U ||
             (xip_base & 01777U))
                 return 0204;
+#ifdef XIP_USER_APR_TEST_V209
+        /* This isolated fixture intentionally demonstrates that PDP-6 user
+         * relocation DOES NOT enforce immutability of XIP image backing.
+         * It is neither safe process startup nor a production executable. */
+        daimos_memfs_xip_user_base_v209 = xip_base;
+        return 0;
+#endif
         /* Actual PDP-6 XCT fetch at the MEMFS-owned physical location. */
         if (test_xip_execute_word(xip_base + xip_entry) != 01234UL ||
             extent_pins != 1U)
