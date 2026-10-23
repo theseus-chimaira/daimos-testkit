@@ -405,6 +405,9 @@ daimos_memfs_pdp6_test(void)
             xip_entry != 020UL || extent_pins != 1U ||
             (xip_base & 01777U))
                 return 0204;
+        if (!memfs_xip_owns_base(xip_base) ||
+            memfs_xip_owns_base(xip_base + 1U))
+                return 0215;
 #ifdef XIP_USER_APR_TEST_V209
         /* This isolated fixture intentionally demonstrates that PDP-6 user
          * relocation DOES NOT enforce immutability of XIP image backing.
@@ -419,7 +422,8 @@ daimos_memfs_pdp6_test(void)
         if (memfs_xip_unpin_base(xip_base + 1U) == 0 ||
             extent_pins != 1U || !memfs_xip_any_pinned())
                 return 0214;
-        if (memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U)
+        if (memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U ||
+            memfs_xip_owns_base(xip_base))
                 return 0205;
         xip_base = 0UL;
         if (memfs_xip_pin(xip_fs, node, &xip_base) != 0) return 0172;
