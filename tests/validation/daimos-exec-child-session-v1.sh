@@ -7,6 +7,10 @@ set -eu
 
 make_cmd=${MAKE:-make}
 tag=daimos-exec-child-session-v1
+: "${DAIMOS_EXEC_OBSERVE_SECONDS:=15}"
+case "$DAIMOS_EXEC_OBSERVE_SECONDS" in
+        ''|*[!0-9]*) echo "$tag: invalid observation seconds" >&2; exit 2 ;;
+esac
 work="$TMPDIR/$tag-$$"
 build="$work/build"
 user="$work/user"
@@ -44,7 +48,7 @@ boot="$build/system/boot/pdp6"
 set +e
 (
         cd "$boot"
-        TERM=dumb timeout -k 2s 15s stdbuf -o0 -e0 \
+        TERM=dumb timeout -k 2s "${DAIMOS_EXEC_OBSERVE_SECONDS}s" stdbuf -o0 -e0 \
             "$PDP10_PREFIX/bin/pdp6" boot.ini
 ) >"$out" 2>&1
 rc=$?
