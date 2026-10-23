@@ -10,6 +10,8 @@ static kword_t pool[02000];
 /* Separate aligned extent for the dedicated XIP reservation test. */
 static kword_t xip_pool[05000];
 static int xip_test_mode;
+/* Simulate pressure where enough words exist but no aligned gap fits. */
+static int xip_alignment_blocked;
 static kword_t allocated_base;
 static unsigned int extent_pins;
 #define backing (metadata + MEMFS_BACKING_OFFSET)
@@ -79,6 +81,8 @@ mm_alloc_aligned(kword_t words, kword_t alignment, unsigned int type,
         int rc;
         if (alignment != 02000U || !xip_test_mode)
                 return MM_ERR_INVAL;
+        if (xip_alignment_blocked)
+                return MM_ERR_FRAGMENTED;
         rc = mm_alloc(words, type, owner, preference, basep);
         if (rc == MM_OK && ((*basep & (alignment - 1U)) != 0U))
                 return MM_ERR_INVAL;
@@ -347,6 +351,12 @@ daimos_memfs_pdp6_test(void)
         fs.pool_words = 04000U;
         memfs_mres_fs = fs;
         xip_fs = &memfs_mres_fs;
+        xip_alignment_blocked = 1;
+        if (memfs_truncate_words(xip_fs, node, 02001U) == 0 ||
+            pool_live || xip_fs->used_words != 0U ||
+            node_store[1].data != 0UL || memfs_xip_any_pinned())
+                return 0201;
+        xip_alignment_blocked = 0;
         if (memfs_truncate_words(xip_fs, node, 02001U) != 0)
                 return 0163;
         xip_base = 0UL;
