@@ -1,3 +1,12 @@
+## 2026-10-23 GROUP 030 NESTED DTFS PROBE V197
+
+V197 proves nested DSH -> DTFSPROBE DEEP returns the expected
+native filesystem type 8, as does direct DTFSPROBE DEEP, both with
+240-second host command gates. The problem is *not* arbitrary nested
+process depth. Focus on `cmd_dtfs_probe` RUN block construction and
+the FSCK-specific wait path. Preserve DTFS-mount and reboot-persist
+requirements; group 030 remains open.
+
 ## 2026-10-23 V197 RUN/WAIT CONTROL ACCEPTED
 
 The clean nested DSH RUN/WAIT control passes completely, including

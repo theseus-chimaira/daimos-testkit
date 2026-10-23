@@ -1,0 +1,10 @@
+probe nested-probe-v197
+command DSH -C "DTFSPROBE /DEV/DTC3 DEEP"; ECHO NESTED_PROBE:$?
+contains NESTED_PROBE:8
+timeout 240
+end
+probe direct-probe-v197
+command DTFSPROBE /DEV/DTC3 DEEP; ECHO DIRECT_PROBE:$?
+contains DIRECT_PROBE:8
+timeout 240
+end

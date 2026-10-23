@@ -1,3 +1,21 @@
+## 2026-10-23 GROUP 030 NESTED DTFS PROBE V197
+
+- A fresh `BOOT=dtc ROOT=tape` SIMH boot against immutable DAIMOS
+  `40bc094`, with a host-created native DTC3 image, passed both
+  `DSH -C "DTFSPROBE /DEV/DTC3 DEEP"; ECHO NESTED_PROBE:$?`
+  and direct `DTFSPROBE /DEV/DTC3 DEEP; ECHO DIRECT_PROBE:$?`.
+  Both asserted the native DTFS status **8 decimal (010 octal)**
+  and the test wrapper exited zero.
+- Three-level child execution, DTC3 reading, process completion and
+  status propagation therefore succeed in this environment through
+  the DSH RUN/WAIT path. This is **not** a passing FSCK/MOUNT test:
+  the custom `cmd_dtfs_probe` RUN request still differs from DSH's.
+- The V192 240-second FSCK timeout and V191 240-second DTFS mount
+  timeout remain unresolved. Next isolate the FSCK command's precise
+  `cmd_dtfs_probe` RUN/WAIT construction and the mount syscall.
+- Evidence `$TMPDIR/daimos-tsfs-nested-dtfsprobe-v197.log` and
+  `$TMPDIR/daimos-dtfs-taperoot-persist-v197-*/run-a/results.tsv`.
+
 ## 2026-10-23 GROUP 030 CLEAN NESTED RUN/WAIT V197
 
 - A clean rerun of the unchanged V196 nested-DSH fixture against the
