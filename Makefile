@@ -262,6 +262,13 @@ target-memfs-xip-user-apr-v209: check-prefix
 		AAP_PDP6_REPO='$(abspath $(AAP_PDP6_REPO))' \
 		sh tests/target/daimos-memfs-pdp6-v1/run-user-apr-v209.sh
 
+.PHONY: target-memfs-xip-user-lifecycle-v216
+target-memfs-xip-user-lifecycle-v216: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		AAP_PDP6_REPO='$(abspath $(AAP_PDP6_REPO))' \
+		sh tests/target/daimos-memfs-pdp6-v1/run-user-lifecycle-v216.sh
+
 target-memfs-fifo-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-memfs-fifo-pdp6-v1/run.sh

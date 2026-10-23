@@ -24,6 +24,12 @@ static kword_t put[2];
 static kword_t got[2];
 kword_t daimos_memfs_pdp6_result;
 kword_t daimos_memfs_xip_user_base_v209;
+#ifdef XIP_USER_LIFECYCLE_V216
+kword_t daimos_memfs_xip_user_vm_v216[3];
+static kword_t daimos_memfs_xip_user_node_v216;
+static kword_t daimos_memfs_xip_user_base_v216;
+extern kword_t test_xip_user_instruction_exit_v216;
+#endif
 static int pool_live;
 
 extern struct memfs memfs_mres_fs;
@@ -389,6 +395,11 @@ daimos_memfs_pdp6_test(void)
         if (memfs_write_words(xip_fs, node, 020U,
             &test_xip_instruction_template, 1U) != 1)
                 return 0206;
+#ifdef XIP_USER_LIFECYCLE_V216
+        if (memfs_write_words(xip_fs, node, 021U,
+            &test_xip_user_instruction_exit_v216, 1U) != 1)
+                return 0220;
+#endif
 #ifdef XIP_USER_APR_TEST_V209
         if (memfs_write_words(xip_fs, node, 021U,
             &test_xip_user_instruction_store_v209, 1U) != 1 ||
@@ -415,6 +426,15 @@ daimos_memfs_pdp6_test(void)
         if (!memfs_xip_owns_base(xip_base) ||
             memfs_xip_owns_base(xip_base + 1U))
                 return 0215;
+#ifdef XIP_USER_LIFECYCLE_V216
+        /* The standalone harness represents one XIP process with a normal
+         * three-word process descriptor.  No per-process state is added. */
+        daimos_memfs_xip_user_node_v216 = node;
+        daimos_memfs_xip_user_base_v216 = xip_base;
+        daimos_memfs_xip_user_vm_v216[1] = (02000UL << 18U) | xip_base;
+        daimos_memfs_xip_user_base_v209 = xip_base;
+        return 0;
+#endif
 #ifdef XIP_USER_APR_TEST_V209
         /* This isolated fixture intentionally demonstrates that PDP-6 user
          * relocation DOES NOT enforce immutability of XIP image backing.
@@ -467,3 +487,30 @@ daimos_memfs_pdp6_test(void)
                 return 0171;
         return 0;
 }
+
+#ifdef XIP_USER_LIFECYCLE_V216
+/* Called from the executive UUO trap after a strictly non-writing user image.
+ * Check the MEMFS instructions before calling the real VM teardown routine.
+ * The provider and storage stubs only stand in for the scheduler/runtime. */
+int
+daimos_memfs_xip_finish_v216(void)
+{
+        kword_t base;
+
+        base = daimos_memfs_xip_user_base_v216;
+        if (!memfs_xip_owns_base(base) || extent_pins != 1U ||
+            ((kword_t *)(unsigned long)base)[020] !=
+                test_xip_instruction_template ||
+            ((kword_t *)(unsigned long)base)[021] !=
+                test_xip_user_instruction_exit_v216)
+                return 0221;
+        if (vm_space_destroy(daimos_memfs_xip_user_vm_v216, 1U) != 0 ||
+            daimos_memfs_xip_user_vm_v216[1] != 0777777777777UL ||
+            extent_pins != 0U || memfs_xip_owns_base(base))
+                return 0222;
+        if (memfs_truncate_words(&memfs_mres_fs,
+            daimos_memfs_xip_user_node_v216, 0U) != 0 || pool_live)
+                return 0223;
+        return 0;
+}
+#endif
