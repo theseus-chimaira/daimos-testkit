@@ -1,4 +1,5 @@
 #include "u.h"
+#include "daimos-exec-malformed-v190.h"
 
 static kword_t path_dsh[U_PATH_WORDS];
 static kword_t path_temp[U_PATH_WORDS];
@@ -45,6 +46,8 @@ main(void)
         exec->version_words = SYS_RUN_HEADER(SYS_EXEC_VERSION_1, total);
         exec->argc = 1UL;
         exec->envc = 0UL;
+        if (!malformed_v190_check(exec_block, total, path_words))
+                fail();
         (void)dsys_writechar(1, '<');
         (void)dsys_exec(exec);
         fail();

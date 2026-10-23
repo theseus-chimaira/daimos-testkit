@@ -90,4 +90,4 @@ case "$text" in
 *'E'*'HALT'*) ;;
 *) cat "$out" >&2; echo "$tag: replacement image/HALT missing" >&2; exit 1 ;;
 esac
-printf '%s\n' "$tag: PASS (EXEC replaces current image and preserves PID, credentials, cwd, session, pgrp, TTY and descriptors)"
+printf '%s\n' "$tag: PASS (28 malformed EXEC/RUN rejects, then EXEC replacement preserving PID, credentials, cwd, session, pgrp, TTY and descriptors)"
