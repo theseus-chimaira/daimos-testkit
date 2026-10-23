@@ -557,6 +557,11 @@ test-daimos-exec-rt-owner: check-prefix
 		TMPDIR='$(TMPDIR)' DAIMOS_EXEC_OBSERVE_SECONDS='$(DAIMOS_EXEC_OBSERVE_SECONDS)' \
 		sh tests/validation/daimos-exec-rt-owner-v191.sh
 
+.PHONY: test-daimos-exec-commit-rollback
+test-daimos-exec-commit-rollback: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		TMPDIR='$(TMPDIR)' sh tests/validation/daimos-exec-commit-rollback-v200.sh
+
 
 test-daimos-scheduler-realtime: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
