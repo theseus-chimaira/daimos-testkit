@@ -1,3 +1,21 @@
+## 2026-10-23 GROUP 030 FSCK 240-SECOND ISOLATION V192
+
+- Verified committed V190 standalone TSFS-root ECHO/PWD probe results
+  PASS and V191 DTC3 mount timeout under the same 240-second per-
+  command deadline (testkit commit `66fc928`).
+- V192 boots the identical TSFS-root kernel with a fresh host-mkdtfs
+  native DTC3 image and invokes only `FSCK.DTFS -O NATIVE /DEV/DTC3`
+  with the established 240-second command limit. It reports
+  `FAIL fsck-deep-v192 ... timeout`, with no `NATIVE OK` output.
+  The following echo assertion was not reached. This is a confirmed
+  functional failure, not regression acceptance.
+- V192 is a versioned *diagnostic-only* test, intentionally omitted
+  from the accepted group-030 matrix. The evidence supports a stuck
+  FSCK command under TSFS-root, but does not yet identify whether the
+  nested DTFSPROBE RUN/WAIT, device read, or scheduler caused it.
+- Trace: `$TMPDIR/daimos-dtfs-probe-fsck-v192.log` and
+  `$TMPDIR/daimos-dtfs-taperoot-persist-v192-*/run-a/results.tsv`.
+
 ## 2026-10-22 GROUP 030 TSFS COMMAND BASELINE AND DTFS RETRY V190/V191
 
 - V187-V189 exploratory RUN/WAIT probes used 55-second guest-command

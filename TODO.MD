@@ -1,3 +1,12 @@
+## 2026-10-23 GROUP 030 FSCK V192
+
+FSCK.DTFS with the established 240-second deadline times out on a
+host-formatted DTC3 while running from TSFS root. ECHO/PWD pass
+and MOUNT.DTFS independently times out in the prior V190/V191 runs.
+The next focused test must isolate child exit status and wait
+notifications from raw DTC3 access. Keep the failing deep filesystem
+acceptance checks intact, and do not patch the kernel on speculation.
+
 ## 2026-10-22 DTFS V190/V191 CONTROLLED TIMING RECHECK
 
 V190 external ECHO and PWD succeed with the established 240-second

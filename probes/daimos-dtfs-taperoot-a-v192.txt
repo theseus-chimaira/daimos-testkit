@@ -1,0 +1,10 @@
+probe fsck-deep-v192
+command FSCK.DTFS -O NATIVE /DEV/DTC3
+contains FSCK.DTFS NATIVE OK
+timeout 240
+end
+probe echo-after-fsck-v192
+command ECHO AFTER_FSCK_V192
+line ^AFTER_FSCK_V192$
+timeout 240
+end
