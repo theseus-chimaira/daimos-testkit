@@ -61,6 +61,12 @@ test-pdp10-tools-mkd6fs-encoding:
 check-prefix:
 	@test -n "$(PDP10_PREFIX)" || { echo "PDP10_PREFIX must be set" >&2; exit 2; }
 
+.PHONY: test-daimos-dlink-xip-v218
+test-daimos-dlink-xip-v218: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		HOST_CC='$(HOST_CC)' sh tests/host/dlink-xip-v218.sh
+
 $(PTY_RUN): $(PTY_RUN_SRC)
 	mkdir -p '$(dir $@)'
 	$(HOST_CC) $(HOST_CFLAGS) -o '$@' '$<'
