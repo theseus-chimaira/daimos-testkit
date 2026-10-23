@@ -220,3 +220,11 @@ CHECKPOINT SECTIONS INSTEAD OF ACCUMULATING DATED SNAPSHOTS.
 
 DAIMOS-SPECIFIC TESTS STAY HERE.  GENERIC DAS, KCC, ABI, OR PDP-10 TOOLCHAIN
 TESTS STAY IN PDP10-TESTKIT.
+
+## 2026-10-23 GROUP 030 DTFS V202
+
+V201 demonstrated a real DTC3 mount return on TSFS root using a long
+functional deadline, contradicting the earlier supposed permanent mount
+hang. V202 tests the first filesystem mutation/readback. Do not infer
+write correctness from mount alone; investigate costly controller/TSFS
+seeks and retain a separate performance limit after functionality passes.

@@ -1,0 +1,23 @@
+# Functional acceptance requires actual mount then data mutation/readback.
+probe mount-dtc3-v202
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME
+not_contains MOUNT.DTFS:
+timeout 1800
+end
+probe write-home-v202
+command ECHO V202_PERSIST > /HOME/V202
+not_contains ECHO:
+timeout 1800
+end
+probe read-home-v202
+command CAT /HOME/V202
+line ^V202_PERSIST$
+not_contains CAT:
+timeout 1800
+end
+probe check-home-v202
+command STAT /HOME/V202
+contains /HOME/V202
+not_contains STAT:
+timeout 1800
+end

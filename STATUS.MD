@@ -624,3 +624,20 @@ AUTO ROOT PRIORITY WITH ALL ROOT MEDIA ATTACHED: THE HARNESS DOES NOT REACH THE
 DSH PROMPT BEFORE ITS EXISTING 300-SECOND BOOT LIMIT.  A FOCUSED RERUN
 REPRODUCES THE SAME FAILURE.  DO NOT MASK IT WITH A LONGER TIMEOUT; THE DAIMOS
 PRE-DSH TODO ALREADY TRACKS ROOT/TSFS STARTUP LOCALITY AS THE NEXT WORK ITEM.
+
+## 2026-10-23 GROUP 030 DTC3 MOUNT RETURN V201 / MUTATION DIAGNOSTIC V202
+
+- Captured completed V201 result in `$TMPDIR/daimos-dtfs-background-v201.log`:
+  a true `BOOT=dtc ROOT=tape` guest on native host-formatted DTC3 returned
+  successfully from `MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME` and a
+  subsequent `ECHO POST_MOUNT_V201`, wrapper exit status zero. Host
+  elapsed time from logged START to END is 11m47s; this is a functional
+  result, **not** acceptable mount latency or persistence verification.
+- V202 is a new, independent diagnostic against the same image baseline;
+  after mount it checks `ECHO ... > /HOME/V202`, `CAT /HOME/V202`, and
+  `STAT /HOME/V202` with strict expected output. It must pass before
+  any write/persistence claim. The fixture uses explicit 1800-second
+  per-command upper bounds; timing performance remains a separate gate.
+- No kernel change has been made. The isolated DAIMOS worktree contains
+  a separate uncommitted `userland/exec/commands.c` edit not authored
+  by this test; it has not been touched or rebuilt by V202.
