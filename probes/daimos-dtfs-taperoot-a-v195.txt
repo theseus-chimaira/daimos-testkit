@@ -1,0 +1,10 @@
+probe invalid-fsck-v195
+command FSCK.DTFS -O NATIVE /DEV/DTC7; ECHO FSCK_BAD_STATUS:$?
+contains FSCK_BAD_STATUS:
+timeout 240
+end
+probe alive-after-invalid-v195
+command ECHO AFTER_FSCK_BAD_V195
+line ^AFTER_FSCK_BAD_V195$
+timeout 240
+end

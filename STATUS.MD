@@ -1,3 +1,19 @@
+## 2026-10-23 GROUP 030 NEGATIVE FSCK EXPERIMENT V195
+
+- Attempted an FSCK negative control on unattached `/DEV/DTC7` in
+  a TSFS-root guest, with a subsequent shell status check. Guest
+  reached `FSCK.DTFS -O NATIVE /DEV/DTC7` but emitted no completion
+  before the prolonged run was interrupted. The harness recorded
+  `FAIL invalid-fsck-v195 ... SIMH exited before expected terminal`.
+- This result is **inconclusive**: missing media introduces a separate
+  controller/error-handling variable, and the run was interrupted
+  rather than finishing its own deadline. Do not treat it as evidence
+  of a general RUN/WAIT bug, nor as DTFS acceptance. Keep this
+  versioned diagnostic outside the group-030 matrix.
+- More useful control: test nested RUN/WAIT with an installed simple
+  child on the same TSFS-root image, or a *valid attached* DTFS volume
+  with a deliberately invalid directory, before changing kernel code.
+
 ## 2026-10-23 GROUP 030 DTFSPROBE EXIT STATUS V193/V194
 
 - Real TSFS-root guest with host-built native DTC3: both

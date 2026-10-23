@@ -1,3 +1,10 @@
+## 2026-10-23 GROUP 030 V195 INCONCLUSIVE NEGATIVE CONTROL
+
+Unattached-DTC7 FSCK did not return during an interrupted diagnostic.
+Because absent-media transport is a separate variable, do not infer
+RUN/WAIT root cause from V195. Continue with attached-media and
+simple-child controls; preserve full DTC3 persistence regression.
+
 ## 2026-10-23 DTFSPROBE V194
 
 Native DTFS type code is octal 010 (decimal 8). Both shallow and
