@@ -18,9 +18,9 @@ capacity=$(word_at mm_extent_capacity)
 [ "$end" = "$table" ] || {
     echo "MM table not directly at KCORE end: $table != $end" >&2; exit 1;
 }
-# A 32-descriptor table reserves 0100 octal words below KINIT 030000.
+# The maximum 136-descriptor table reserves 0420 octal words below KINIT.
 end_decimal=$(printf '%d' "0$end")
-[ $((end_decimal + 64)) -le $((030000)) ] || {
+[ $((end_decimal + 272)) -le $((030000)) ] || {
     echo 'MM table overlaps KINIT image' >&2; exit 1;
 }
 grep -q 'camge[[:space:]]*7,mm_extent_capacity' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" || {
