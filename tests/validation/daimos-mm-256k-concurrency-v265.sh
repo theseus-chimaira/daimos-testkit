@@ -1,0 +1,150 @@
+#!/bin/sh
+set -eu
+
+: "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
+: "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
+: "${TMPDIR:?TMPDIR must be set}"
+
+make_cmd=${MAKE:-make}
+tag=daimos-mm-256k-concurrency-v265
+work="$TMPDIR/$tag-$$"
+build="$work/build"
+user="$work/user"
+out="$work/simh.out"
+self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
+
+cleanup()
+{
+        # Optionally retain the isolated 256K boot image and simulator transcript.
+        if [ "${DAIMOS_SCHED_KEEP_WORK:-0}" != 1 ]; then
+                rm -rf "$work"
+        fi
+}
+trap cleanup EXIT HUP INT TERM
+
+mkdir -p "$user"
+cc=${PDP10_GCC:-$PDP10_PREFIX/bin/pdp10-dec-none-gcc}
+das="$PDP10_PREFIX/bin/das"
+dlink="$PDP10_PREFIX/bin/dlink"
+
+"$cc" -std=c99 -Os \
+    -I"$DAIMOS_REPO/system/kernel/boot" \
+    -I"$DAIMOS_REPO/system/kernel/core" \
+    -I"$DAIMOS_REPO/system/kernel/drivers" \
+    -I"$DAIMOS_REPO/system/kernel/fs" \
+    -I"$DAIMOS_REPO/system/kernel/mm" \
+    -I"$DAIMOS_REPO/system/kernel/modules" \
+    -I"$DAIMOS_REPO/system/kernel/proc" \
+    -I"$DAIMOS_REPO/system/kernel/storage" \
+    -I"$DAIMOS_REPO/userland/libc" \
+    -S "$self/daimos-mm-256k-concurrency-v265.c" \
+    -o "$user/init.s"
+"$das" -C -F -O "$user/init.dobj" "$user/init.s"
+"$das" -C -F -O "$user/crt0.dobj" "$DAIMOS_REPO/userland/libc/crt0.s"
+"$das" -C -F -O "$user/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"
+libgcc=$($cc -print-libgcc-file-name)
+"$dlink" -b 020 -o "$user/init.dxr" -M "$user/init.map" \
+    "$user/crt0.dobj" "$user/syscall.dobj" "$user/init.dobj" "$libgcc"
+
+grep -Eq '^_start[[:space:]]+000020$' "$user/init.map" || {
+        echo "$tag: test INIT is not linked at logical 020" >&2
+        exit 1
+}
+
+PATH="$PDP10_PREFIX/bin:$PATH" \
+    "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
+    BUILD="$build/system/boot/pdp6" \
+    PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=${DAIMOS_MM_CONCURRENCY_COUNT:-48} \
+    BOOT_PROFILE=full BOOT_CORE_WORDS=01000000 SIMH_CPU_KWORDS=256 COMPILER=gcc \
+    SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
+
+boot="$build/system/boot/pdp6"
+dcs_port=$((30000 + ($$ % 10000)))
+ge_port=$((45000 + ($$ % 10000)))
+"$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
+    "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
+# A four-tick (60 Hz) preemption test needs real elapsed clock time.  SIMH
+# otherwise runs at unrestricted host speed, which can finish BURN_LONG
+# before a quantum passes and falsely report that the scheduler failed.
+# Limit this one timing-sensitive test to 8M instructions/second: still
+# thirty-two times the approximately 0.25 MIPS physical PDP-6, but slow
+# enough for the fixed CPU-bound work to span multiple clock quanta.
+# Preserve all guest-side scheduling, context, and I/O assertions.
+sched_rate=${DAIMOS_SCHED_SIMH_RATE:-8M}
+sched_timeout=${DAIMOS_SCHED_SIMH_TIMEOUT:-90}
+case "$sched_timeout" in
+*[!0-9]*|'')
+        echo "$tag: invalid scheduler SIMH timeout: $sched_timeout" >&2
+        exit 2 ;;
+esac
+simh_ini="$boot/boot.headless-rate-v57.ini"
+if [ "$sched_rate" = unthrottled ]; then
+        cp "$boot/boot.headless.ini" "$simh_ini"
+else
+        case "$sched_rate" in
+        *[!0-9KM]*|'')
+                echo "$tag: invalid scheduler SIMH rate: $sched_rate" >&2
+                exit 2 ;;
+        esac
+        awk -v rate="$sched_rate" '
+            /^go 020$/ { print "set throttle " rate }
+            { print }
+        ' "$boot/boot.headless.ini" > "$simh_ini"
+fi
+if [ "${DAIMOS_SCHED_CLOCK_DIAG:-0}" = 1 ]; then
+        # SIMH EXPECT stops the CPU immediately at each guest sentinel; read
+        # proc_timer_clock at the sentinel and the first two scheduling
+        # checkpoints.  This is a diagnostic, never the acceptance path.
+        clock_addr=$(awk '$1 == "proc_timer_clock" { print $2; exit }' \
+            "$boot/kcore.map")
+        if [ -z "$clock_addr" ]; then
+                echo "$tag: proc_timer_clock missing from kernel map" >&2
+                exit 1
+        fi
+        simh_ini="$boot/boot.headless-clock-v54.ini"
+        sed '/^go 020$/,$d' "$boot/boot.headless-rate-v57.ini" > "$simh_ini"
+        cat >> "$simh_ini" <<EOF
+set debug $work/simh-clock-v54.log
+set cpu debug=CONO
+expect "<"
+go 020
+examine $clock_addr
+expect "A"
+go
+examine $clock_addr
+expect "b"
+go
+examine $clock_addr
+go
+exit
+EOF
+        printf '%s: clock address %s, diagnostics %s\n' \
+            "$tag" "$clock_addr" "$work" >&2
+fi
+set +e
+(
+        cd "$boot"
+        TERM=dumb timeout -k 2s "${sched_timeout}s" stdbuf -o0 -e0 \
+            "$PDP10_PREFIX/bin/pdp6" "$simh_ini"
+) >"$out" 2>&1
+rc=$?
+set -e
+if [ "$rc" -ne 0 ]; then
+        cat "$out" >&2
+        echo "$tag: simulator failed: $rc" >&2
+        exit 1
+fi
+
+# Each guest writes three-character tokens: [HH] at start, {HH} at
+# completion.  Hex slot identifiers remain unique at 63 processes.
+count=${DAIMOS_MM_CONCURRENCY_COUNT:-48}
+case "$count" in 48|63) : ;; *) echo "$tag: count must be 48 or 63" >&2; exit 2 ;; esac
+text=$(tr -d '\r\n' < "$out")
+case "$text" in *'<'*) text=${text#*<} ;; *) echo "$tag: no start marker" >&2; exit 1 ;; esac
+case "$text" in *'!'*|*'@'*) echo "$tag: guest failure" >&2; exit 1 ;; esac
+for slot in $(seq 1 "$count"); do
+    hex=$(printf '%02X' "$slot")
+    case "$text" in *"[$hex]"*) : ;; *) echo "$tag: missing start [$hex]" >&2; exit 1 ;; esac
+    case "$text" in *"{$hex}"*) : ;; *) echo "$tag: missing finish {$hex}" >&2; exit 1 ;; esac
+done
+printf '%s\n' "$tag: PASS ($count process start and completion markers)"
