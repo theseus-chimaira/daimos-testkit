@@ -1220,3 +1220,9 @@ test-daimos-procinfo-current-v350: check-prefix
 	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
 	 TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 	 sh tests/validation/daimos-procinfo-current-v350.sh
+
+.PHONY: test-daimos-procinfo-zombie-v354
+test-daimos-procinfo-zombie-v354: check-prefix
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	 TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+	 sh tests/validation/daimos-procinfo-zombie-v354.sh
