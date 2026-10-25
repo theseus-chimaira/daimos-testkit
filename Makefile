@@ -1190,3 +1190,9 @@ test-daimos-provider-lock-native-v326:
 test-daimos-provider-lock-native-v327:
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	    TMPDIR="$${TMPDIR:-$$HOME/tmp}" sh tests/validation/daimos-provider-lock-native-v327.sh
+
+.PHONY: test-daimos-monitorfs-mres-device-v341
+test-daimos-monitorfs-mres-device-v341: check-prefix
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	 TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+	 sh tests/validation/daimos-monitorfs-mres-device-v341.sh
