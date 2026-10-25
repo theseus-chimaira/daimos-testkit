@@ -1180,3 +1180,8 @@ test-daimos-libc-memcpy-20261008-v1:
 test-daimos-provider-lock-contract-v325:
 	@python3 tests/validation/daimos-provider-lock-contract-v325.py \
 	    "$(abspath $(DAIMOS_REPO))/system/kernel/fs/fs_mres.s"
+
+.PHONY: test-daimos-provider-lock-native-v326
+test-daimos-provider-lock-native-v326:
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    TMPDIR="$${TMPDIR:-$$HOME/tmp}" sh tests/validation/daimos-provider-lock-native-v326.sh
