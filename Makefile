@@ -1202,3 +1202,9 @@ test-daimos-monitorfs-mres-proc-basic-v343: check-prefix
 	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
 	 TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 	 sh tests/validation/daimos-monitorfs-mres-proc-basic-v343.sh
+
+.PHONY: test-daimos-monitorfs-mres-domains-v344
+test-daimos-monitorfs-mres-domains-v344: check-prefix
+	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
+	 TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+	 sh tests/validation/daimos-monitorfs-mres-domains-v344.sh
