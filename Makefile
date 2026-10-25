@@ -1175,3 +1175,8 @@ test-daimos-libc-memcpy-20261008-v1:
 	 tests/host/daimos-libc-memcpy-20261008-v1.c \
 	 "$(abspath $(DAIMOS_REPO))/userland/libc/string.c"
 	"$${TMPDIR:-$$HOME/tmp}/daimos-libc-memcpy-20261008-v1"
+
+.PHONY: test-daimos-provider-lock-contract-v325
+test-daimos-provider-lock-contract-v325:
+	@python3 tests/validation/daimos-provider-lock-contract-v325.py \
+	    "$(abspath $(DAIMOS_REPO))/system/kernel/fs/fs_mres.s"
