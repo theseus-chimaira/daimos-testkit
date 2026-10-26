@@ -18,6 +18,8 @@ mkdir -p "$work"
     printf '%s\n' '.set DTFS_ENABLE_TENEX,1' '.set DTFS_ENABLE_ITS,1' \
         '.set DTFS_ENABLE_FOREIGN,1' '.text'
     cat <<'ASM'
+; Extracted DTFS code now references the shared kernel stack constant.
+kconst_2_2: .word 2,,2
 dtfs_restore4:
         pop 17,013
 dtfs_restore3:
