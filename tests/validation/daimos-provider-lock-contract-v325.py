@@ -20,7 +20,7 @@ def require(section, pattern, message):
 
 entry = block('fs_provider_reg_call', 'fs_provider_serialized')
 locked = block('fs_provider_serialized', 'fs_provider_lock_wait')
-waiting = block('fs_provider_lock_wait', 'fs_provider_locked_no_service')
+waiting = block('fs_provider_lock_wait', 'fs_provider_unlock')
 unlock = block('fs_provider_unlock', 'fs_memfs_service_jump')
 require(entry, r'^\s*subi\s+7,4\b', 'provider ID normalization missing')
 require(entry, r'^\s*jumpn\s+7,fs_provider_serialized\b', 'non-MEMFS dispatch missing')

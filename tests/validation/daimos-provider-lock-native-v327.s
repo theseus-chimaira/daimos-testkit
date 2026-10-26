@@ -54,6 +54,16 @@ physical_next:
         aoj 010,
         caig 010,7
         jrst physical_loop
+        ; A missing physical service must still release the provider lease.
+        movei 0,fs_mres_no_service
+        hrrm 0,fs_tsfs_service_jump
+        movei 7,7
+        pushj 17,fs_provider_reg_call
+        jumpge 1,fail
+        skipn fs_provider_ready
+        jrst fail
+        movei 0,provider_oracle
+        hrrm 0,fs_tsfs_service_jump
         ; Invalid providers fail without entering serialization.
         movei 7,3
         pushj 17,fs_provider_reg_call
