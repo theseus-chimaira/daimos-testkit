@@ -50,6 +50,7 @@ grep -Eq '^_start[[:space:]]+000020$' "$user/init.map" || {
 PATH="$PDP10_PREFIX/bin:$PATH" make \
     -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$build/system/boot/pdp6" \
+    BOOT_PROFILE=full COMPILER=gcc \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
     SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 
