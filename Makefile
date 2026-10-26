@@ -43,6 +43,15 @@ DTFS_RUN = tests/system/dtfs-native-v1/run.sh
 .PHONY: test-daimos-boot-source-matrix test-daimos-root-class-matrix test-daimos-auto-root-priority test-daimos-boot-root-cross-matrix test-daimos-root-login-lifecycle test-daimos-monitorfs-live-state test-daimos-monitorfs-storage-accounting test-daimos-dsh-conformance test-daimos-dsh-pipeline test-daimos-dsh-source test-daimos-dsh-argument-frames test-daimos-dsh-foreground test-daimos-native-tools test-daimos-img2dpic test-type340-timing regression regression-status regression-restart test-daimos-sleep test-daimos-multiuser-kernel-auth test-daimos-multiuser-auth-runtime
 .PHONY: test-daimos-compiler-selection-20261012-v1
 .PHONY: test-daimos-p10fold-io-skip-20261012-v1
+.PHONY: test-daimos-file-directmount-20261026-v417
+test-daimos-file-directmount-20261026-v417: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-file-directmount-20261026-v417.sh
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-pipe-directmount-20261026-v417.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' sh tests/validation/daimos-file-cutover-guard-20261026-v416.sh
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-vfs-umask-20261026-v417.sh
 test-daimos-p10fold-io-skip-20261012-v1: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-p10fold-io-skip-20261012-v1.sh

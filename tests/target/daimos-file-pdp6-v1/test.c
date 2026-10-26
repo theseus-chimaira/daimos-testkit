@@ -127,7 +127,6 @@ daimos_file_pdp6_test(void)
             (table[0].node_meta & FILE_META_READ) == 0UL ||
             (table[0].node_meta & FILE_META_WRITE) == 0UL ||
             (table[0].node_meta & FILE_META_DIR) != 0UL ||
-            (table[0].node_meta & FILE_META_OWNER_MASK) != 0UL ||
             (table[0].node_meta & FILE_META_STATE_MASK) != 0UL)
                 return 12;
 
@@ -150,14 +149,21 @@ daimos_file_pdp6_test(void)
         if (fd2 != FILE_FD_FIRST + 2)
                 return 15;
         table[2].node_meta |= FILE_META_REGULAR;
-        if (file_lock(fd2, VFS_LOCK_EXCLUSIVE) != -1)
+        if (file_lock(fd2, VFS_LOCK_EXCLUSIVE) != 0 ||
+            (table[0].node_meta & FILE_META_STATE_MASK) !=
+                FILE_META_LOCK_EXCL ||
+            (table[1].node_meta & FILE_META_STATE_MASK) !=
+                FILE_META_LOCK_EXCL)
                 return 16;
         if (file_lock(fd0, VFS_LOCK_UNLOCK) != 0 ||
             (table[0].node_meta & FILE_META_STATE_MASK) != FILE_META_REGULAR ||
-            (table[1].node_meta & FILE_META_STATE_MASK) != FILE_META_REGULAR)
+            (table[1].node_meta & FILE_META_STATE_MASK) != FILE_META_REGULAR ||
+            (table[2].node_meta & FILE_META_STATE_MASK) != FILE_META_REGULAR)
                 return 17;
         if (file_lock(fd2, VFS_LOCK_EXCLUSIVE) != 0 ||
-            file_lock(fd0, VFS_LOCK_SHARED) != -1)
+            file_lock(fd0, VFS_LOCK_SHARED) != 0 ||
+            (table[2].node_meta & FILE_META_STATE_MASK) !=
+                FILE_META_LOCK_SHARED)
                 return 18;
         if (file_close(fd2) != 0 || table[2].node_meta != 0UL)
                 return 19;

@@ -15,6 +15,7 @@ for spec in \
     'system/kernel/fs/file.h:FILE_META_OWNER_MASK' \
     'system/kernel/proc/proc_run.s:PROC_FDMOUNT_OFFSET' \
     'system/kernel/ipc/pipe.s:041(010)' \
+    'system/kernel/fs/vfs.s:move    6,041(6)' \
     'system/kernel/proc/proc.h:PROC_FDMOUNT_OFFSET'; do
     path=${spec%%:*}
     pattern=${spec#*:}
@@ -26,6 +27,11 @@ done
 
 if [ "$fail" -ne 0 ]; then
     echo 'FILE cutover guard: FAIL (old-format references remain)'
+    exit 1
+fi
+if ! grep -F -q '#define FILE_NODE_VNODE_MASK       077707777777UL' \
+    system/kernel/fs/file.h; then
+    echo 'FILE cutover guard: missing full six-bit vnode mask'
     exit 1
 fi
 echo 'FILE cutover guard: PASS (no enumerated old-format references)'
