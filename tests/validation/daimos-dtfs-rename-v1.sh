@@ -21,6 +21,8 @@ mkdir -p "$work"
         '.set DTFS_ENABLE_FOREIGN,1'
     cat <<'ASM'
 .text
+; The extracted routine references the shared resident stack constant.
+kconst_1_1: .word 1,,1
 dtfs_restore4:
         pop 17,013
 dtfs_restore3:
