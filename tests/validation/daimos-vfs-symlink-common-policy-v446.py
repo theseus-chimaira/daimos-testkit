@@ -13,6 +13,6 @@ for pattern in (r'jumpe\s+4,kret_neg1', r'push\s+17,4',
     if not re.search(pattern, body):
         raise SystemExit('FAIL: missing SYMLINK mapping ' + pattern)
 dispatch = s[s.index('vfs_create_dispatch_v445:\n'):s.index('vfs_create_store_result:\n')]
-if not re.search(r'caie\s+6,010.*setz\s+5,.*pushj\s+17,fs_provider_reg_call', dispatch, re.S):
+if not re.search(r'cain\s+6,010.*setz\s+5,.*pushj\s+17,fs_provider_reg_call', dispatch, re.S):
     raise SystemExit('FAIL: SYMLINK must zero unused provider argument e')
 print('vfs-symlink-common-policy-v446: PASS (ABI mapping and provider e)')
