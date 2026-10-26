@@ -30,4 +30,14 @@ for provider in range(64):
                 raise SystemExit('FAIL: XOR namespace comparison diverged')
 if len(seen) != 4096:
     raise SystemExit('FAIL: incomplete namespace identity space')
+# Exercise actual distinct-namespace comparisons, not only uniqueness.
+# For each identity, flip every provider and mount bit independently.
+for identity in seen:
+    for bit in range(24, 36):
+        other = identity ^ (1 << bit)
+        if other not in seen or not ((identity ^ other) & mask):
+            raise SystemExit('FAIL: differing namespace accepted')
+    for local in (0, 1, 0xffffff):
+        if ((identity | local) ^ identity) & mask:
+            raise SystemExit('FAIL: local vnode bits change namespace')
 print('vfs-rename-namespace-v450: PASS (4096 provider/mount identities)')
