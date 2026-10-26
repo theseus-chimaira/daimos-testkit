@@ -79,6 +79,10 @@ run_root()
 {
         root=$1
         n=$2
+        # Tape-backed command execution can incur very long seeks.
+        # Allow 15 minutes for each interactive response on TSFS only.
+        response_ticks=3000
+        if [ "$root" = tape ]; then response_ticks=9000; fi
         build=$WORK/build-$root
         run=$WORK/run-$root
         cty=$run/cty.log
@@ -113,7 +117,7 @@ run_root()
         # The initial prompt can precede TCP carrier.  Force a fresh prompt.
         start=`log_size "$dcs"`
         send_slow 3 ''
-        wait_new "$dcs" 'LOGIN: ' "$start" 3000 || {
+        wait_new "$dcs" 'LOGIN: ' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: LOGIN prompt missing" >&2
                 return 1
@@ -122,12 +126,12 @@ run_root()
         # Reject a nonexistent account and reprompt on the same terminal.
         start=`log_size "$dcs"`
         send_slow 3 NOSUCH
-        wait_new "$dcs" 'LOGIN INCORRECT' "$start" 3000 || {
+        wait_new "$dcs" 'LOGIN INCORRECT' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: invalid account was not rejected" >&2
                 return 1
         }
-        wait_new "$dcs" 'LOGIN: ' "$start" 3000 || {
+        wait_new "$dcs" 'LOGIN: ' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: no reprompt after invalid account" >&2
                 return 1
@@ -136,14 +140,14 @@ run_root()
         # Valid ROOT login proves the controlling terminal is usable by DSH.
         start=`log_size "$dcs"`
         send_slow 3 ROOT
-        wait_new "$dcs" 'DSH V1' "$start" 3000 || {
+        wait_new "$dcs" 'DSH V1' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: ROOT did not enter DSH" >&2
                 return 1
         }
         start=`log_size "$dcs"`
         send_slow 3 PWD
-        wait_new "$dcs" '# ' "$start" 3000 || {
+        wait_new "$dcs" '# ' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: PWD did not return" >&2
                 return 1
@@ -158,21 +162,21 @@ run_root()
         # EXIT must terminate the shell/login process; PID 1 must respawn LOGIN.
         start=`log_size "$dcs"`
         send_slow 3 EXIT
-        wait_new "$dcs" 'LOGIN: ' "$start" 3000 || {
+        wait_new "$dcs" 'LOGIN: ' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: LOGIN did not respawn after EXIT" >&2
                 return 1
         }
         start=`log_size "$dcs"`
         send_slow 3 ROOT
-        wait_new "$dcs" 'DSH V1' "$start" 3000 || {
+        wait_new "$dcs" 'DSH V1' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: second ROOT login failed" >&2
                 return 1
         }
         start=`log_size "$dcs"`
         send_slow 3 'ECHO RELOGINOK'
-        wait_new "$dcs" 'RELOGINOK' "$start" 3000 || {
+        wait_new "$dcs" 'RELOGINOK' "$start" "$response_ticks" || {
                 cat "$cty" "$dcs" >&2 || true
                 echo "root-login-$root: respawned session is not usable" >&2
                 return 1
