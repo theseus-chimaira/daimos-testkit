@@ -5,7 +5,11 @@ import sys
 
 source = (Path(sys.argv[1]) / 'system/kernel/fs/vfs.s').read_text()
 body = source[source.index('vfs_rename:\n'):source.index('vfs_rename_ro:\n')]
-if body.count('and     7,[0777700000000]') != 1 or body.count('and     5,[0777700000000]') != 1:
+old_mask = (body.count('and     7,[0777700000000]') == 1 and
+            body.count('and     5,[0777700000000]') == 1)
+new_mask = ('xor     7,3' in body and
+            'tdne    7,[0777700000000]' in body)
+if not (old_mask or new_mask):
     raise SystemExit('FAIL: RENAME namespace mask missing')
 mask = 0o777700000000
 seen = set()
@@ -20,6 +24,10 @@ for provider in range(64):
         if identity in seen:
             raise SystemExit('FAIL: distinct provider/mount identities collide')
         seen.add(identity)
+        if new_mask:
+            other = node ^ ((provider << 30) | (mount << 24))
+            if bool((node ^ other) & mask) != bool((node & mask) != (other & mask)):
+                raise SystemExit('FAIL: XOR namespace comparison diverged')
 if len(seen) != 4096:
     raise SystemExit('FAIL: incomplete namespace identity space')
 print('vfs-rename-namespace-v450: PASS (4096 provider/mount identities)')
