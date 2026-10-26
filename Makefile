@@ -1,3 +1,9 @@
+.PHONY: test-daimos-vfs-rename-native-v455
+test-daimos-vfs-rename-native-v455: check-prefix
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		sh tests/validation/daimos-vfs-rename-native-v455.sh
+
 PDP10_PREFIX ?= /usr/local/cross
 COMPILER ?= kcc
 ifeq ($(filter $(COMPILER),gcc kcc),)
