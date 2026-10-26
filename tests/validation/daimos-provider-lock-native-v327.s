@@ -86,7 +86,21 @@ physical_next:
         skipn fs_provider_ready
         jrst fail
         skipn wait_count
+        jrst memfs_missing_test_v432
+        jrst fail
+memfs_missing_test_v432:
+        ; The direct MEMFS slot may be unbound. Its normal trampoline
+        ; returns -1 without claiming or releasing the provider lease.
+        movei 0,fs_mres_no_service
+        hrrm 0,fs_memfs_service_jump
+        movei 7,4
+        pushj 17,fs_provider_reg_call
+        jumpge 1,fail
+        skipn fs_provider_ready
+        jrst fail
+        skipn wait_count
         jrst success
+        jrst fail
 fail:
         movei 1,1
         popj 17,
