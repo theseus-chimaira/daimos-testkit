@@ -1,3 +1,9 @@
+.PHONY: test-daimos-file-rename-native-v457
+test-daimos-file-rename-native-v457: check-prefix
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+		sh tests/validation/daimos-file-rename-native-v457.sh
+
 .PHONY: test-daimos-vfs-rename-native-v455
 test-daimos-vfs-rename-native-v455: check-prefix
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
