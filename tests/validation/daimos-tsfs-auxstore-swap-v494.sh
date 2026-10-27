@@ -12,7 +12,7 @@ build="$work/build"
 user="$work/user"
 out="$work/simh.out"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+trap 'if [ "${KEEP_V494_FILES:-0}" != 1 ]; then rm -rf "$work"; else echo "v494 diagnostics: $work" >&2; fi' EXIT HUP INT TERM
 mkdir -p "$user"
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
@@ -52,6 +52,12 @@ PATH="$PDP10_PREFIX/bin:$PATH" make \
     INIT_DXR="$user/init.dxr" >/dev/null
 
 boot="$build/system/boot/pdp6"
+# Assert the actual TSFS manifest carries the test INIT before booting.
+manifest="$boot/tsfs-root.manifest"
+grep -F "F /SYSTEM/INIT $user/init.dxr " "$manifest" || {
+    echo "$tag: TSFS manifest does not contain custom INIT" >&2
+    exit 1
+}
 # Provision only a private temporary image. Never touch the default disk.
 aux="$work/aux.dsk"
 "$PDP10_PREFIX/bin/mkauxstore" --blank "$aux" --blocks 020000
@@ -79,6 +85,13 @@ if [ "$rc" -ne 0 ]; then
 fi
 
 text=$(tr -d '\r\n' <"$out")
+case "$text" in
+*'INIT V1'*)
+        echo "$tag: unexpected stock INIT; custom TSFS INIT not executing" >&2
+        echo "$tag: inspect preserved image/TSFS startup (KEEP_V494_FILES=1)" >&2
+        exit 1
+        ;;
+esac
 case "$text" in
 *'!'*)
         cat "$out" >&2
