@@ -49,7 +49,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" make \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 BOOT_PROFILE=lowmem \
     COMPILER=gcc ROOT=tape \
     DAS_REPO="$DAS_REPO" \
-    INIT_DXR="$user/init.dxr" >/dev/null
+    SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 
 boot="$build/system/boot/pdp6"
 # Assert the actual TSFS manifest carries the test INIT before booting.
