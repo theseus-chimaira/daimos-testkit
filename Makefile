@@ -504,6 +504,11 @@ test-daimos-permanent-size: check-prefix
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		tests/validation/daimos-permanent-size-v1.sh
 
+.PHONY: test-daimos-kcore-end-boundary-v484
+test-daimos-kcore-end-boundary-v484: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-kcore-end-boundary-v484.sh
+
 .PHONY: test-daimos-root-tapefs-selection
 test-daimos-root-tapefs-selection: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
