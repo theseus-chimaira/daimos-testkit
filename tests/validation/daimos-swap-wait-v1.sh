@@ -47,6 +47,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" make \
     -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$build/system/boot/pdp6" \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 BOOT_PROFILE=lowmem \
+    COMPILER=gcc ROOT=disk \
     DAS_REPO="$DAS_REPO" \
     SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 

@@ -54,6 +54,7 @@ compile_swap()
         # Match the production proc_swap.s bundle: the PURE backing and
         # storage-state leaves are native assembly, not C fallbacks.
         cat "$kernel/proc/proc_swap_pdp6.s" \
+            "$kernel/proc/proc_swap_entry_v481.s" \
             "$kernel/proc/proc_pure_backing_pdp6.s" \
             "$kernel/proc/proc_storage_runtime_v30.s"
     } >"$work/swap-$mode.s"
