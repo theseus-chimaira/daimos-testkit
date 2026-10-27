@@ -1,3 +1,8 @@
+.PHONY: test-daimos-tsfs-auxstore-positive-v493
+test-daimos-tsfs-auxstore-positive-v493: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-tsfs-auxstore-positive-v493.sh
+
 .PHONY: test-daimos-auxstore-choice-v492
 test-daimos-auxstore-choice-v492:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
