@@ -1,5 +1,5 @@
 #!/bin/sh
-# Verify lowmem tape bootstrap does not install SWAP while disk still does.
+# Verify TSFS SWAP MINIT gates installation on validated AUXST1 backing.
 set -eu
 : "${DAIMOS_REPO:?}"
 : "${PDP10_PREFIX:?}"
@@ -16,10 +16,17 @@ for root in tape disk; do
     test -s "$build/module_minit.s"
     # This is the compiled KINIT implementation, not a source-text guard.
     if [ "$root" = tape ]; then
-        awk '/^proc_swap_minit_v481:/{getline; if ($1 != "popj" || $2 != "17,") exit 1; ok=1} END {if (!ok) exit 1}' \
-            "$build/module_minit.s" || {
-                echo 'swapless TSFS entry must return without installation' >&2; exit 1;
-            }
+        awk '/^proc_swap_minit_v481:/{active=1} active && /^minit_register:/{exit} active {print}' \
+            "$build/module_minit.s" > "$build/swap-minit.txt"
+        grep -q 'auxstore_boot_discover' "$build/swap-minit.txt" || {
+            echo 'TSFS swap selection does not discover AUXSTORE' >&2; exit 1;
+        }
+        grep -q 'auxstore_backstore_blocks' "$build/swap-minit.txt" || {
+            echo 'TSFS swap selection does not require backing capacity' >&2; exit 1;
+        }
+        grep -q 'minit_install' "$build/swap-minit.txt" || {
+            echo 'TSFS with valid backing cannot install SWAP' >&2; exit 1;
+        }
     else
         grep -q 'proc_swap_minit_v481:' "$build/module_minit.s"
     fi
