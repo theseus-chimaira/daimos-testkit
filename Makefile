@@ -1,3 +1,8 @@
+.PHONY: test-daimos-tsfs-swapless-minit-v490
+test-daimos-tsfs-swapless-minit-v490: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-tsfs-swapless-minit-v490.sh
+
 .PHONY: test-daimos-file-rename-native-v457
 test-daimos-file-rename-native-v457: check-prefix
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
