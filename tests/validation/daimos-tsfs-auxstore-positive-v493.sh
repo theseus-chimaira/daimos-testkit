@@ -44,6 +44,7 @@ if [ "${rc:-0}" -ne 0 ] && [ "${rc:-0}" -ne 124 ]; then
     exit 1
 fi
 grep -q 'DSK270.*OK' "$work/native.log"
+grep -Eq '^MEM[[:space:]]+32 K' "$work/native.log"
 grep -q 'INIT V1' "$work/native.log"
 test_passed=1
 echo 'daimos-tsfs-auxstore-positive-v493: PASS (provisioned device boot; swap transaction not verified)'
