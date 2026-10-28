@@ -1166,7 +1166,7 @@ test-daimos-tsfs-mount: check-prefix
 		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		PDP10_TOOLS_REPO="$$(cd "$(PDP10_TOOLS_REPO)" && pwd -P)" \
 		DAS_REPO="$$(cd "$(DAS_REPO)" && pwd -P)" \
-		tests/validation/daimos-tsfs-mount-v1.sh
+		tests/validation/daimos-dtfs-tape-root-mount-v578.sh
 
 
 test-daimos-dtc-reverse-online: check-prefix
