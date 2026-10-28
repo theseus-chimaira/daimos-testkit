@@ -8,14 +8,25 @@ export TMPDIR="${TMPDIR:-$HOME/tmp}"
 mkdir -p "$TMPDIR"
 work="$TMPDIR/daimos-tsfs-auxstore-positive-v493-$$"
 mkdir -p "$work"
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+cleanup()
+{
+    if [ "${test_passed:-0}" -eq 1 ]; then
+        rm -rf "$work"
+    else
+        echo "v493: retained failed build and media at $work" >&2
+        if [ -f "$work/build.log" ]; then
+            tail -n 25 "$work/build.log" >&2
+        fi
+    fi
+}
+trap cleanup EXIT HUP INT TERM
 PATH="$PDP10_PREFIX/bin:$PATH"
 export PATH
 build="$work/build"
 make -s -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BOOT_PROFILE=lowmem ROOT=tape COMPILER=gcc BUILD="$build" > "$work/build.log" 2>&1
 mkauxstore --blank "$work/aux.dsk" --blocks 020000
-mkauxstore -i "$work/aux.dsk" --d6fs-base 1 --d6fs-blocks 07000 \
+mkauxstore -i "$work/aux.dsk" --confirm-destructive --d6fs-base 1 --d6fs-blocks 07000 \
     --d6fs-super-a 0 --d6fs-super-b 1 \
     --backstore-blocks 01000 --logstore-blocks 0 --cache-blocks 07777
 mkauxstore --inspect "$work/aux.dsk" > "$work/inspect.log"
@@ -34,4 +45,5 @@ if [ "${rc:-0}" -ne 0 ] && [ "${rc:-0}" -ne 124 ]; then
 fi
 grep -q 'DSK270.*OK' "$work/native.log"
 grep -q 'INIT V1' "$work/native.log"
+test_passed=1
 echo 'daimos-tsfs-auxstore-positive-v493: PASS (provisioned device boot; swap transaction not verified)'

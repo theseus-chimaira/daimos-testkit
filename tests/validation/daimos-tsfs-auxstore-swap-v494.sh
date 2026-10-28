@@ -61,7 +61,7 @@ grep -F "F /SYSTEM/INIT $user/init.dxr " "$manifest" || {
 # Provision only a private temporary image. Never touch the default disk.
 aux="$work/aux.dsk"
 "$PDP10_PREFIX/bin/mkauxstore" --blank "$aux" --blocks 020000
-"$PDP10_PREFIX/bin/mkauxstore" -i "$aux" \
+"$PDP10_PREFIX/bin/mkauxstore" -i "$aux" --confirm-destructive \
     --d6fs-base 1 --d6fs-blocks 07000 \
     --d6fs-super-a 0 --d6fs-super-b 1 \
     --backstore-blocks 01000 --logstore-blocks 0 --cache-blocks 07777
