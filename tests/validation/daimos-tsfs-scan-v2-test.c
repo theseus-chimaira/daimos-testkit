@@ -143,10 +143,7 @@ int
 main(void)
 {
         struct tsfs_scan_result r;
-        kword_t handoff[SYS_TSFS_MOUNT_WORDS];
         kword_t tdir_sum;
-        kword_t hi;
-        kword_t member_map;
         unsigned int logical_to_unit[8] = { 4U, 1U, 6U, 2U, 5U, 3U, 0U, 7U };
         unsigned int i;
 
@@ -158,24 +155,14 @@ main(void)
         if (tsfs_scan(4U, &r) != 0 || r.members != 8U ||
             r.tdir_member != 7U || r.tdir_block != 3U)
                 return 1;
-        member_map = 0;
         for (i = 0U; i < 8U; ++i) {
-                if (r.unit[i] != logical_to_unit[i])
-                        return 1;
-                member_map |= (kword_t)logical_to_unit[i] << (3U * i);
+            if (r.unit[i] != logical_to_unit[i])
+                return 1;
         }
-        if (tsfs_build_mount_handoff(&r, handoff) != 0)
-                return 1;
-        hi = (handoff[SYS_TSFS_FILE_LOC] >> 18) & HALF18;
-        if ((unsigned int)(hi >> 15) != 7U ||
-            (unsigned int)(hi & 077777U) != 2U ||
-            (unsigned int)(handoff[SYS_TSFS_FILE_LOC] & HALF18) != 4U ||
-            handoff[SYS_TSFS_FILE_SHAPE] != member_map)
-                return 1;
-        hi = (handoff[SYS_TSFS_EXTENT_LOC] >> 18) & HALF18;
-        if ((unsigned int)(hi >> 15) != 7U ||
-            (unsigned int)(hi & 077777U) != 2U ||
-            (unsigned int)(handoff[SYS_TSFS_EXTENT_LOC] & HALF18) != 5U)
+        /* The userspace scanner now returns validated locators directly.
+         * Legacy SYS_TSFS_* handoff offsets were removed with the old ABI.
+         * Preserve the physical member/TDIR assertions, not obsolete packing. */
+        if (r.tdir_blocks != 1U || r.tdir_checksum != tdir_sum)
                 return 1;
 
         /* The new bound is exactly eight: a declared ninth member is invalid. */
