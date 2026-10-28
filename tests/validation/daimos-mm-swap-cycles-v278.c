@@ -291,6 +291,7 @@ run_stopped_job_case(void)
         int job;
         int pressure_a;
         int pressure_b;
+        int pressure_slots[2];
         unsigned int pgrp;
         kword_t word;
 
@@ -317,12 +318,13 @@ run_stopped_job_case(void)
                 return -1;
         pressure_b = spawn_child(PRESSURE_MODE, SYS_RUN_PGRP_INHERIT, 0U,
             gate_r, -1);
+        pressure_slots[0] = pressure_a;
+        pressure_slots[1] = pressure_b;
         if (pressure_b <= 1 || pressure_b == pressure_a || pressure_b == job ||
             dsys_close(gate_r) != 0 ||
             wait_state((unsigned int)pressure_b, PROC_SLEEP) != 0 ||
             wait_state((unsigned int)job, PROC_STOP) != 0 ||
-            !target_is_swapped((unsigned int)job,
-            (unsigned int)pressure_a, (unsigned int)pressure_b))
+            !target_is_swapped((unsigned int)job, pressure_slots, 2U))
                 return -1;
 
         /* Foreground transfer is deliberately performed while the stopped job
