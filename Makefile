@@ -1155,7 +1155,7 @@ test-daimos-tsfs-dir: check-prefix
 	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
 		DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		PDP10_TOOLS_REPO="$$(cd "$(PDP10_TOOLS_REPO)" && pwd -P)" \
-		tests/validation/daimos-tsfs-dir-v2.sh
+		tests/validation/daimos-tsfs-root-directory-v577.sh
 
 
 test-daimos-tsfs-mount: check-prefix
