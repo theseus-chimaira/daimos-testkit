@@ -229,7 +229,7 @@ d6fs-hdd-multi: $(PTY_RUN) $(TCP_RUN)
 	TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD_ROOT='$(abspath $(BUILD_ROOT))' \
 		PTY_RUN='$(abspath $(PTY_RUN))' TCP_RUN='$(abspath $(TCP_RUN))' \
-		tests/system/d6fs-hdd-v2/run-multimember-v1.sh
+		tests/system/d6fs-hdd-v2/run-multimember-v582.sh
 
 d6fs-recovery: $(PTY_RUN) $(TCP_RUN)
 	TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
