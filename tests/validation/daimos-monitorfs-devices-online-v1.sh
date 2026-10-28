@@ -56,7 +56,13 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 boot="$build/system/boot/pdp6"
 
-sed '/^go 020$/,$d' "$boot/boot.ini" >"$ini"
+# This is a non-graphical device-state test.  Initialize SIMH with the
+# shared headless policy so host SDL2 windows cannot crash the runner.
+dcs_port=$((30000 + ($$ % 10000)))
+ge_port=$((45000 + ($$ % 10000)))
+"$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
+    "$boot/boot.headless-v564.ini" "$dcs_port" "$ge_port"
+sed '/^go 020$/,$d' "$boot/boot.headless-v564.ini" >"$ini"
 cat >>"$ini" <<'EOF'
 detach ptp
 set ptp disabled
