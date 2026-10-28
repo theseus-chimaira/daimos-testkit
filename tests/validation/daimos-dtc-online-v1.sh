@@ -204,12 +204,21 @@ fi
 }
 
 # Second boot starts with a pristine DSK root so persisted DTFS data must come
-# from the DECtape file rather than kernel/controller cache state.
+# from the DECtape file rather than kernel/controller cache state.  The
+# disk-root module policy deliberately does NOT install the DTFS mount MRES:
+# validate native media persistence with FSCK, and the explicit refusal to
+# mount, rather than incorrectly demanding an installed DTFS provider.
 rm -rf "$boot/disk"
 cp -R "$pristine" "$boot/disk"
 port2=$((27000 + ($$ % 4000)))
 ge2=$((45000 + ($$ % 4000)))
 start_run run2 "$port2" "$ge2"
+start=`log_size "$dcs_out"`
+send_slow 'FSCK.DTFS -O NATIVE /DEV/DTC0'
+wait_new "$dcs_out" 'FSCK.DTFS NATIVE OK' "$start" 600 || \
+        fail_run 'persisted DECtape failed second-boot native FSCK'
+wait_new "$dcs_out" '# ' "$start" 600 || \
+        fail_run 'second-boot native FSCK prompt missing'
 start=`log_size "$dcs_out"`
 send_slow 'MOUNT /DEV/DTC0 /MOUNT/DT0'
 wait_new "$dcs_out" '# ' "$start" 600 || fail_run 'MOUNT did not return'
@@ -228,9 +237,15 @@ grep -Eq '^DTC[[:space:]]+OK' "$run2_simh" || {
         echo "$tag: DTC did not probe on second boot" >&2
         exit 1
 }
-if tr -d '\r' < "$run2_dcs" | grep -Eq '^MOUNT(\.DTFS)?:'; then
+if ! tr -d '\r' < "$run2_dcs" | grep -q '^FSCK.DTFS NATIVE OK'; then
         cat "$run2_dcs" >&2
-        echo "$tag: persisted-media mount reported an error" >&2
+        echo "$tag: persisted-media FSCK was not verified" >&2
+        exit 1
+fi
+mount_refusals=$(tr -d '\r' < "$run2_dcs" | grep -c '^MOUNT.DTFS: /MOUNT/DT0' || true)
+if [ "$mount_refusals" -ne 2 ]; then
+        cat "$run2_dcs" >&2
+        echo "$tag: disk-root DTFS mount refusal contract failed" >&2
         exit 1
 fi
 clean2="$work/run2.clean"
@@ -246,4 +261,4 @@ grep -q '^# MOUNT.DTFS /DEV/DTC0 /MOUNT/DT0' "$clean2" || {
         exit 1
 }
 
-printf '%s\n' "$tag: PASS (Type-551 persisted format/write and rebooted mount/read through DCS login)"
+printf '%s\n' "$tag: PASS (Type-551 persisted native DTFS after reboot, disk-root mount correctly unavailable)"
