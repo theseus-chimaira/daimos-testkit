@@ -59,7 +59,7 @@ PTY_RUN_SRC = tools/pty-run-v1.c
 PTY_RUN = $(BUILD_ROOT)/tools/pty-run-v1
 TCP_RUN_SRC = tools/tcp-run-v1.c
 TCP_RUN = $(BUILD_ROOT)/tools/tcp-run-v1
-PROBES = probes/daimos-runtime-probes-v585.txt
+PROBES = probes/daimos-runtime-probes-v590.txt
 DSH_PROBES = probes/daimos-dsh-conformance-v1.txt
 PROBE_CHECK = tests/validation/check-probe-format-v1.sh
 COVERAGE = tests/validation/check-command-coverage-v1.sh
@@ -146,6 +146,7 @@ runtime: check
 		--markdown-report '$(REPORT_MD)'
 
 runtime-build: image runtime
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' tests/validation/daimos-monitorfs-cty-stats-v589.sh
 
 test-daimos-dsh-conformance: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) $(DSH_PROBES)
