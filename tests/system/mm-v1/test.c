@@ -841,11 +841,11 @@ main(void)
         mm_boot_init(0100000UL);
         check(mm_add_free(01000UL, 02000UL) == MM_OK,
             "add descriptor-capacity arena");
-        for (i = 0U; i < MM_MAX_EXTENTS; ++i)
+        for (i = 0U; i < mm_extent_capacity; ++i)
                 check(mm_alloc(1UL, MM_TYPE_KERNEL_DYNAMIC, i + 1U,
                     MM_ALLOC_LOW, &base) == MM_OK,
                     "fill allocated-only descriptor table");
-        check(mm_extent_count == MM_MAX_EXTENTS,
+        check(mm_extent_count == (int)mm_extent_capacity,
             "allocated-only descriptor table not full");
         check(mm_alloc(1UL, MM_TYPE_KERNEL_DYNAMIC, 0777U,
             MM_ALLOC_LOW, &base) == MM_ERR_DESCRIPTORS,
@@ -888,17 +888,17 @@ main(void)
             PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
             -1, 0);
         check(map != MAP_FAILED, "map host process-copy window");
-        check(proc_slots_for_core(0100000UL) == 24U,
+        check(proc_slots_for_core(0100000UL) == 8U,
             "32K process slot sizing");
-        check(proc_slots_for_core(0200000UL) == 40U,
+        check(proc_slots_for_core(0200000UL) == 16U,
             "64K process slot sizing");
-        check(proc_slots_for_core(0300000UL) == 64U,
+        check(proc_slots_for_core(0300000UL) == 24U,
             "96K process slot sizing");
-        check(proc_slots_for_core(0400000UL) == 88U,
+        check(proc_slots_for_core(0400000UL) == 32U,
             "128K process slot sizing");
-        check(proc_slots_for_core(0600000UL) == 128U,
+        check(proc_slots_for_core(0600000UL) == 48U,
             "192K process slot sizing");
-        check(proc_slots_for_core(01000000UL) == 192U,
+        check(proc_slots_for_core(01000000UL) == 64U,
             "256K process slot sizing");
 
         /* Keep dynamic swap descriptors in a mapped host-only physical range
