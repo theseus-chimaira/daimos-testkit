@@ -13,7 +13,7 @@ unpin=body.index('pushj   17,mm_unpin',write)
 free=body.index('pushj   17,mm_free',unpin)
 publish=body.index('pushj   17,proc_storage_publish_v30',free)
 check(write<unpin<free<publish,'publication must follow successful MM release')
-check(re.search(r'pushj\s+17,mm_unpin\s*\n\s*jumpn\s+1,proc_swap_out_record_fail',body[write:free]),'failed unpin must rollback')
+check(re.search(r'pushj\s+17,mm_unpin\s*\n(?:[^\n]*\n)*?\s*jumpn\s+1,proc_swap_storage_invariant_v30',body[write:free]),'failed unpin must halt on invalid MM ownership')
 check(re.search(r'pushj\s+17,mm_free\s*\n\s*jumpn\s+1,proc_swap_out_record_fail',body[unpin:publish]),'failed MM free must rollback')
 tail=body.split('proc_swap_out_record_fail:',1)[1].split('proc_swap_out_restore:',1)[0]
 check('pushj   17,backstore_free' in tail,'failed MM release must free backing extent')
