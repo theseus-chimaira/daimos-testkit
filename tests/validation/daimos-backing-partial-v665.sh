@@ -10,8 +10,8 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
     printf '%s\n' '.text' '.globl volume_tail_configure' \
         '.globl device_range_configure' '.globl backstore_read' \
-        '.globl backstore_write' '.globl blockset_runtime_service_jump'
-    sed -n '/^blockset_runtime_service_jump:$/,/^; Register provider ABI/p' \
+        '.globl backstore_write' '.globl blockset_runtime_service_call'
+    sed -n '/^; Legacy configuration entry:/,/^; Register provider ABI/p' \
         "$DAIMOS_REPO/system/kernel/fs/fs_mres.s" | sed '$d'
     printf '%s\n' '.bss' '.globl device_region_map' '.globl volume_data_blocks' \
         '.globl backing_region_count' 'device_region_map: .block 1' \

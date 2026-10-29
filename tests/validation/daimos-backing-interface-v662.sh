@@ -16,6 +16,6 @@ assert 'jrst    backing_region_io' in bridge
 assert 'blocks = backing_region_blocks();' in swap
 assert 'pushj   17,backing_region_blocks' in monitor
 assert 'kword_t backing_region_blocks(void);' in header
-assert 'jrst    blockset_direct_tail_error' in bridge
+assert 'blockset_runtime_service_call:\n        pushj   17,kret_neg1' in bridge
 print('daimos-backing-interface-v662: PASS')
 PY
