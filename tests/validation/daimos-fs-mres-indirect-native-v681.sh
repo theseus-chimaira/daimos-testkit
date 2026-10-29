@@ -20,9 +20,12 @@ locked=('        hrrz    7,fs_memfs_service_jump(7)\n'
         '        ; The missing-service trampoline already returns -1 normally.\n'
         '        ; Invoke it under the same lease and use the common unlock path.\n'
         '        pushj   17,(7)')
-assert s.count(fast)==1 and s.count(locked)==1
-s=s.replace(fast,'        jrst    @fs_memfs_service_jump(7)')
-s=s.replace(locked,'        pushj   17,@fs_memfs_service_jump(7)')
+if s.count(fast)==1 and s.count(locked)==1:
+ s=s.replace(fast,'        jrst    @fs_memfs_service_jump(7)')
+ s=s.replace(locked,'        pushj   17,@fs_memfs_service_jump(7)')
+else:
+ assert s.count('        jrst    @fs_memfs_service_jump(7)')==1
+ assert s.count('        pushj   17,@fs_memfs_service_jump(7)')==1
 prefix='\n'.join('.globl '+x for x in ('fs_provider_reg_call',
     'fs_dtfs_service_jump','fs_memfs_service_jump',
     'fs_d6fs_service_jump','fs_tsfs_service_jump'))
