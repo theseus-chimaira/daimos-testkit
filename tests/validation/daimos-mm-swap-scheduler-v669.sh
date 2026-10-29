@@ -59,7 +59,15 @@ else
         DAS_REPO="$DAS_REPO" \
         SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 
-    boot="$build/system/boot/pdp6"
+boot="$build/system/boot/pdp6"
+# A valid boot file is not sufficient: the selected D6FS root must also
+# contain a regular /SYSTEM/INIT, otherwise KINIT emits ?RT before tests.
+[ -f "$boot/boot.ini" ] || { echo "$tag: missing boot.ini" >&2; exit 1; }
+if [ -x "$PDP10_PREFIX/bin/d6fsck" ] && [ -d "$boot/disk" ]; then
+    "$PDP10_PREFIX/bin/d6fsck" -n 4 -d "$boot/disk" >/dev/null || {
+        echo "$tag: D6FS root preflight failed" >&2; exit 1;
+    }
+fi
 fi
 dcs_port=$((30000 + ($$ % 10000)))
 ge_port=$((45000 + ($$ % 10000)))
