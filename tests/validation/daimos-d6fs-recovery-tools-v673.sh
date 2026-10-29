@@ -14,7 +14,7 @@ for token in ("PDP10_SIX6('I', 'N', 'I', 'T', ' ', ' ')",
               "PDP10_SIX6('M', 'O', 'U', 'N', 'T', ' ')"):
     assert token in s, token
 assert 'st.size_words == 0UL' in s
-assert 'vfs_read_words(node, 0U, &first, 1U) != 1' in s
+assert 'vfs_read_words(node, (unsigned int)offset,' in s
 assert 'if ((flags & VFS_MOUNT_RDONLY) != 0U &&' in s
 assert 'd6fs_boot_recovery_programs() != 0)' in s
 assert 'vfs_unmount(vfs_namespace_root)' in s
