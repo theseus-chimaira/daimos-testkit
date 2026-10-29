@@ -15,7 +15,7 @@ assert 'caile   5,033' in s
 assert '.word   native_sys_brk,,native_sys_d6fs_read_block' in s
 for item in ('file_check_root', 'vfs_namespace_root',
              'vfs_readonly', 'native_sys_map_one',
-             'blockset_read_block'):
+             'fs_provider_reg_call'):
     assert item in f, item
 assert 'blockset_write_block' not in f
 assert 'dsys_d6fs_read_block:' in u
