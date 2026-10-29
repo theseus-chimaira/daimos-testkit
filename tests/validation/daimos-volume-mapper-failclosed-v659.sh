@@ -10,7 +10,7 @@ def check(predicate, message):
     if not predicate:
         raise SystemExit('v659: '+message)
 loop=s.split('blockset_direct_tail_loop:',1)[1].split('; Direct DEVICE path:',1)[0]
-check(re.search(r'skipn\s+blockset_direct_blocks\s*\n\s*jrst\s+device_range_translate',loop),
+check(re.search(r'skipn\s+volume_data_blocks\s*\n\s*jrst\s+device_range_translate',loop),
       'a direct DEVICE range must bypass the mapper')
 check(re.search(r'cain\s+4,fs_mres_no_service\s*\n\s*jrst\s+blockset_direct_tail_error',loop),
       'missing multi-member mapper must fail closed')
