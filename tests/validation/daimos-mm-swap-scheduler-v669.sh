@@ -1,7 +1,7 @@
 #!/bin/sh
 # v669 full-system scheduler-pressure diagnostic.  The old v298 tracing
 # assumes proc_swap_out lives in fixed KCORE; it now lives in swap MRES.
-# DAIMOS_SWAP_BOOT_V669 may reuse a previously built full boot fixture.
+# Reused media must attest to the exact pressure-test INIT installed on disk.
 # DAIMOS_SWAP_TRACE_V669=1 enables expensive breakpoint diagnostics.
 set -eu
 
@@ -50,6 +50,12 @@ grep -Eq '^_start[[:space:]]+000020$' "$user/init.map" || {
 if [ -n "${DAIMOS_SWAP_BOOT_V669:-}" ]; then
     boot=$DAIMOS_SWAP_BOOT_V669
     [ -f "$boot/kcore.map" ] && [ -f "$boot/swap-mres-v481.map" ] || { echo "v669 missing existing maps" >&2; exit 1; }
+    test_hash=$(sha256sum "$user/init.dxr" | awk '{print $1}')
+    installed_hash=$(cat "$boot/swap-pressure-init-v737.sha256" 2>/dev/null || true)
+    if [ "$test_hash" != "$installed_hash" ]; then
+        echo "$tag: reused D6FS fixture has no verified pressure-test INIT; rebuild using SYSTEM_INIT_DXR" >&2
+        exit 1
+    fi
 else
     PATH="$PDP10_PREFIX/bin:$PATH" make \
         -C "$DAIMOS_REPO/system/boot/pdp6" image \
@@ -60,6 +66,7 @@ else
         SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 
 boot="$build/system/boot/pdp6"
+sha256sum "$user/init.dxr" | awk '{print $1}' > "$boot/swap-pressure-init-v737.sha256"
 # A valid boot file is not sufficient: the selected D6FS root must also
 # contain a regular /SYSTEM/INIT, otherwise KINIT emits ?RT before tests.
 [ -f "$boot/boot.ini" ] || { echo "$tag: missing boot.ini" >&2; exit 1; }
