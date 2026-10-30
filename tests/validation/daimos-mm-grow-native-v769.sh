@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+: "${DAIMOS_REPO:?}"
+: "${PDP10_PREFIX:?}"
+export TMPDIR=${TMPDIR:-$HOME/tmp}
+self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+work=$(mktemp -d "$TMPDIR/daimos-mm-grow-v769.XXXXXX")
+trap 'rm -rf "$work"' EXIT HUP INT TERM
+src="$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s"
+{
+ echo '.text'
+ echo '.equ MM_TYPE_PROCESS,1'
+ echo '.equ MM_PIN_FIELD,03770000000'
+ echo '.equ MM_PIN_ONE,010000000'
+ echo '.globl mm_process_grow_pinned'
+ sed -n '/^mm_process_grow_pinned:$/,/^; AC1=base, AC2=+1\/-1/p' "$src" | sed '$d'
+} > "$work/transfer.s"
+"$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step \
+ --start 1000 --step-limit 200000 --timeout 20 --workdir "$work/run" \
+ --name daimos-mm-grow-v769 --expect __test_exit=0 \
+ "$self/daimos-test-crt0-v1.s" "$work/transfer.s" \
+ "$self/daimos-mm-grow-native-v769.s" > "$work/result.log" 2>&1 || {
+ tail -40 "$work/result.log" >&2; exit 1;
+ }
+echo 'v769: native PDP-6 pinned process grow PASS'
