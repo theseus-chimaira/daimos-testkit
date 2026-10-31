@@ -1,3 +1,14 @@
+## 2026-10-31 v875: session HUP failure leaves controlling TTY intact
+
+The native PDP-6 `daimos-session-hup-v875.sh` runs the real resident
+session teardown. A failed second member HUP preserves the original
+controlling-TTY state, and a successful retry commits the route-only
+TTY record. Nonleader and non-attached leader paths also PASS. The same
+test FAILs against pre-v875 source, demonstrating the early-detach
+regression. Lowmem KCORE link PASS at `021222` octal (+4 words).
+This native test does not establish full-system session teardown,
+nonreturning APR/EXEC resource recovery, or OOM kill acceptance.
+
 ## 2026-10-31 v874: DPY replacement rollback and negative control
 
 Native PDP-6 testkit `daimos-dpy-replace-v874.sh` executes the real
