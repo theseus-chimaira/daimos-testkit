@@ -9,6 +9,7 @@ export TMPDIR
 mkdir -p "$TMPDIR"
 tag=daimos-uarea-pin-integration-v882
 mode=${DAIMOS_UAREA_TEST_MODE:-current}
+fair=${DAIMOS_UAREA_TEST_FAIR_V884:-0}
 case "$mode" in
 current|noncurrent) ;;
 *) echo "$tag: invalid fault-injection mode $mode" >&2; exit 2 ;;
@@ -27,6 +28,18 @@ import os
 import sys
 p = Path(sys.argv[1])
 s = p.read_text()
+if os.environ.get('DAIMOS_UAREA_TEST_FAIR_V884', '0') == '1':
+    needle = """        pushj   17,proc_finish_service_v881
+        move    3,1"""
+    assert s.count(needle) == 1
+    s = s.replace(needle, """        ; v884 temporary witness: a user remains runnable while
+        ; the private slot-0 reaper is executing its release.
+        skipn   proc_runq_head
+        jrst    daimos_test_no_runnable_v884
+        aos     daimos_test_runnable_reaper_v884
+daimos_test_no_runnable_v884:
+        pushj   17,proc_finish_service_v881
+        move    3,1""")
 if os.environ.get('DAIMOS_UAREA_TEST_MODE', 'current') == 'noncurrent':
     needle = """proc_event_fatal_other:
         hlrz    1,(012)"""
@@ -90,6 +103,8 @@ s = s.replace(needle, """        pushj   17,mm_free
         jumpn   1,proc_uarea_release_fail""")
 s += """
         .bss
+        .globl daimos_test_runnable_reaper_v884
+daimos_test_runnable_reaper_v884: .block 1
         .globl daimos_test_noncurrent_seen_v883
 daimos_test_noncurrent_seen_v883: .block 1
         .globl daimos_test_exit_slot_v882
@@ -135,7 +150,8 @@ for d in boot core drivers fs ipc mm modules proc storage; do
 done
 # shellcheck disable=SC2086
 "$cc" -std=c99 -Os $inc -I"$DAIMOS_REPO/userland/libc" \
-    -S "$self/daimos-session-teardown-v1.c" -o "$work/user/init.s"
+    -S "${DAIMOS_UAREA_TEST_PROGRAM:-$self/daimos-session-teardown-v1.c}" \
+    -o "$work/user/init.s"
 "$das" -C -F -O "$work/user/init.dobj" "$work/user/init.s"
 libgcc=$("$cc" -print-libgcc-file-name)
 "$dlink" -b 020 -o "$work/user/init.dxr" -M "$work/user/init.map" \
@@ -155,7 +171,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     }
 
 map="$build/kcore.map"
-for sym in daimos_test_noncurrent_seen_v883 daimos_test_exit_slot_v882 daimos_test_target_v882 daimos_test_calls_v882 \
+for sym in daimos_test_runnable_reaper_v884 daimos_test_noncurrent_seen_v883 daimos_test_exit_slot_v882 daimos_test_target_v882 daimos_test_calls_v882 \
     daimos_test_pins_v882 daimos_test_unpins_v882 \
     daimos_test_busy_v882 daimos_test_error_v882; do
     address=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
@@ -191,6 +207,8 @@ lines = Path(sys.argv[1]).read_text().splitlines()
 output = Path(sys.argv[2]).read_text(errors='replace')
 if '<' not in output or '!' in output or 'HALT' not in output:
     raise SystemExit('v882: CTY/sentinel/final HALT failed: ' + output[-650:])
+if os.environ.get('DAIMOS_UAREA_TEST_FAIR_V884', '0') == '1' and 'B' not in output.split('<', 1)[1]:
+    raise SystemExit('v884: independent spinning user never ran')
 seen = {}
 for line in lines:
     name, address = line.split()
@@ -215,6 +233,8 @@ if seen['daimos_test_exit_slot_v882'] != seen['daimos_test_target_v882']:
     raise SystemExit('v882: unstable EXIT-owner selection')
 if os.environ.get('DAIMOS_UAREA_TEST_MODE', 'current') == 'noncurrent' and not seen['daimos_test_noncurrent_seen_v883']:
     raise SystemExit('v883: no non-current fatal delivery instrumented')
+if os.environ.get('DAIMOS_UAREA_TEST_FAIR_V884', '0') == '1' and seen['daimos_test_runnable_reaper_v884'] == 0:
+    raise SystemExit('v884: idle cleanup never ran while user remained runnable')
 for name, value in expect.items():
     if seen[name] != value:
         raise SystemExit('v882: FAIL: ' + name + ' (' + str(seen[name]) +

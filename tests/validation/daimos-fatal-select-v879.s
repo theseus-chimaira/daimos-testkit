@@ -88,6 +88,10 @@ done: movem 1,__test_exit
 kconst_7_7: .word 7,,7
 .globl proc_sched_deferred_ticks
 proc_sched_deferred_ticks: .word 0
+.globl proc_finish_last_tick_v881
+proc_finish_last_tick_v881: .word 0
+.globl proc_timer_clock
+proc_timer_clock: .word 0
 .globl proc_sched_age_phase
 proc_sched_age_phase: .word 0
 .globl proc_current_slot

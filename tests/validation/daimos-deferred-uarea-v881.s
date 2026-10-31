@@ -233,6 +233,8 @@ proc_table: .word __ptable
 proc_rt_owner: .word 2
 .globl proc_sched_kick
 proc_sched_kick: .word 0
+.globl proc_finish_last_tick_v881
+proc_finish_last_tick_v881: .word 0
 __ptable: .block 6
  .word __uarea,,0400407
  .word 04000,,020000

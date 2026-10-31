@@ -87,6 +87,10 @@ proc_runq_head: .word 2
 proc_sched_cursor: .word 0
 .globl proc_sched_deferred_ticks
 proc_sched_deferred_ticks: .word 0
+.globl proc_finish_last_tick_v881
+proc_finish_last_tick_v881: .word 0
+.globl proc_timer_clock
+proc_timer_clock: .word 0
 .globl proc_swap_pressure_ticks
 proc_swap_pressure_ticks: .word 0
 .globl proc_sched_age_phase

@@ -1,3 +1,33 @@
+## 2026-10-31 v884: deferred MM reaper runs despite a spinner
+
+`daimos-reaper-sched-v884.sh` executes the native production
+`proc_sched_tick_select`: ordinary dispatch before the throttle,
+one slot-0 maintenance turn after 020 octal ticks with pending
+cleanup, no maintenance when not pending, 17-bit clock wrap, and
+preservation of runnable RT and pending disk-swap priority PASS.
+An RT lease retained by a sleeping job does not block maintenance:
+PASS. Against pre-v884 code, the scheduler fixture FAILs as
+expected, proving it detects the original starvation.
+
+`daimos-reaper-fair-v884.sh` builds a disposable PDP-6 guest with
+the production MM operations. A second user process spins without
+sleeping while a different process is terminated by non-current
+HUP. A real MM pin causes two `MM_ERR_BUSY` frees before unpin.
+An idle-service test-only counter records reaper execution with a
+nonempty runnable queue: 2 observations. The guest completes HUP
+delivery, zombie WAIT, kills and waits for the spinner, and
+completes its TTY detach/reattach scenario and normal HALT: PASS.
+Three release attempts, one pin/unpin and zero test errors were
+recorded. All fault injection remains in the testkit-generated
+`$TMPDIR` kernel; no production instrumentation was committed.
+
+Previous native VM-less executive, v881 deferred u-area finalizer,
+v883 non-current HUP and other teardown regressions PASS. The
+production KCORE lowmem link PASS at `021657` octal (9,135 words),
+39 words above v883, with no new persistent data. Real-time
+indefinite running and permanent provider refusal still require
+explicit policy before OOM killing can be enabled.
+
 ## 2026-10-31 v883: non-current fatal HUP commit contract
 
 `daimos-noncurrent-fatal-v883.sh` extracts and executes production
