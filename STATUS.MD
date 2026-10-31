@@ -1,3 +1,29 @@
+## 2026-10-31 v881: post-VM u-area release retry
+
+`daimos-deferred-uarea-v881.sh` runs production PDP-6
+`proc_finish_slot` and the new idle finalizer service, rejecting two
+MM u-area releases before successful retry. It confirms intact
+TRANSITION/VM_NONE ownership, original exit status, unchanged session
+control, no repeated HUP/VM/TTY teardown, and exactly one final
+run-queue removal, child adoption and parent notification: PASS.
+Unrelated transitioning jobs are not accepted as pending.
+
+`daimos-exit-deferred-v881.sh` compiles the production KCC
+`proc_exit_finish` and executes its native PDP-6 leaf: deferred
+release returns to slot-0 idle, other errors remain failures, and
+successful EXIT preserves the existing live-user return: PASS.
+Older v869/v876 finalizer and v879/v880 fatal-close/VM tests PASS.
+The marker/status occupy preallocated u-area word 067; session ID
+bits remain intact. Only one new permanent retry-clock word is
+allocated. KCORE lowmem link PASS at `021567` octal (9,079 words;
++100 above v880).
+
+Still open: full-system failure injection with MM pinned u-area,
+PI6 fairness under sustained load, permanently failing MM providers
+and automatic OOM victim termination.
+The normal full-system session HUP/TTY regression also PASSes on
+v881; it is not an injected MM-busy finalizer test.
+
 ## 2026-10-31 v880: disk-swap detach retains ownership on failure
 
 The native PDP-6 `daimos-swap-detach-v880.sh` runs the production
