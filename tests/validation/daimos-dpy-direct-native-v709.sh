@@ -10,12 +10,12 @@ from pathlib import Path
 import re
 import sys
 s=Path(sys.argv[1]).read_text()
-out='.text\n.globl kret_neg1\n'
-for kind,op in [('dpy','close'),('dpy','write')]:
+out='.text\n.globl kret_neg1\n.globl kret_zero\n'
+for kind,op,target in [('dpy','close','kret_zero'),('dpy','write','kret_neg1')]:
     name=f'{kind}_{op}_words_call'
-    assert re.search(r'^'+name+r':\n\s*pushj\s+17,kret_neg1',s,re.M)
-    out+=f'.globl {name}\n{name}:\n pushj 17,kret_neg1\n popj 17,\n'
-out+='kret_neg1:\n seto 1,\n popj 17,\n'
+    assert re.search(r'^'+name+r':\n\s*pushj\s+17,'+target,s,re.M)
+    out+=f'.globl {name}\n{name}:\n pushj 17,{target}\n popj 17,\n'
+out+='kret_neg1:\n seto 1,\n popj 17,\nkret_zero:\n setz 1,\n popj 17,\n'
 Path(sys.argv[2]).write_text(out)
 PY
 cat > "$work/probe.s" <<'EOF'
@@ -25,6 +25,10 @@ cat > "$work/probe.s" <<'EOF'
 main:
     movei 1,3
     pushj 17,dpy_close_words_call
+    jumpe 1,close_missing_ok
+    jrst fail
+close_missing_ok:
+    pushj 17,dpy_write_words_call
     jumpl 1,missing_ok
     jrst fail
 missing_ok:
@@ -53,4 +57,4 @@ EOF
   --name daimos-file-direct-native-v709 --expect __test_exit=0 \
   "$self/daimos-test-crt0-v1.s" "$work/calls.s" "$work/probe.s" \
   > "$work/test.log" 2>&1 || { cat "$work/test.log"; exit 1; }
-echo 'v709: native PDP-6 absent and patched call-site behavior PASS'
+echo 'v709/v871: native PDP-6 absent close no-op, absent write error, patched call-site behavior PASS'

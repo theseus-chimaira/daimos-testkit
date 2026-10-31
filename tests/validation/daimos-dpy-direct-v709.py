@@ -8,8 +8,9 @@ root=Path(sys.argv[1])/'system/kernel'
 s=(root/'fs/file_runtime.s').read_text()
 m=(root/'modules/module_minit.c').read_text()
 r=(root/'modules/module_runtime_pdp6.s').read_text()
-for sym in ('dpy_close_words_call','dpy_write_words_call'):
-    assert re.search(r'^'+sym+r':\s*\n\s*pushj\s+17,kret_neg1',s,re.M),sym
+for sym,target in (('dpy_close_words_call','kret_zero'),
+                   ('dpy_write_words_call','kret_neg1')):
+    assert re.search(r'^'+sym+r':\s*\n\s*pushj\s+17,'+target,s,re.M),sym
     assert 'storage_patch_jump(&'+sym+', address);' in m,sym
     assert '.word   '+sym in r,sym
 assert 'dpy_write_words_jump:' not in s
