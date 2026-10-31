@@ -171,6 +171,7 @@ sync_ok:
 .data
 .globl file_table
 file_table: .word __caller
+__uarea_current: .block 026
 __caller: .word 020002000001
  .word 0
  .word 020002000002
@@ -184,6 +185,8 @@ proc_table: .word __ptable
 .globl proc_current_slot
 proc_current_slot: .word 3
 __ptable: .block 011
+ .word __uarea_current,,0400000
+ .block 2
 .bss
 __stack: .block 0400
 .globl __test_exit

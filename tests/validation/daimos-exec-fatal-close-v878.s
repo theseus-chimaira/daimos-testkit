@@ -22,8 +22,7 @@ check_exit_status:
  move 1,__exit_status
  caie 1,1
  jrst fail_4
- ; A failed close still reaches the nonreturning exit path, but the
- ; descriptor MUST remain live for its finalizer's ownership guard.
+ ; A failed close must retain its FILE until a timer yield and retry.
  movni 2,2
  movem 2,__exec_result
  movei 2,1
@@ -33,13 +32,19 @@ check_exit_status:
  movei 2,__launch
  pushj 17,native_sys_exec
  move 1,__close_calls
- caie 1,2
+ caie 1,3
  jrst fail_5
  move 1,__exit_calls
  caie 1,2
  jrst fail_6
- move 1,__fd
- caie 1,01234567
+ skipn __fd
+ jrst check_retry_sleep
+ jrst fail_7
+check_retry_sleep:
+ move 1,__sleep_calls
+ caie 1,1
+ jrst fail_7
+ skipn __retry_fd_held
  jrst fail_7
  ; A recoverable pre-commit error must not close or exit.
  setzm __fail_close
@@ -51,7 +56,7 @@ check_exit_status:
  jrst fail_8
 check_precommit:
  move 1,__close_calls
- caie 1,2
+ caie 1,3
  jrst fail_9
  move 1,__exit_calls
  caie 1,2
@@ -64,7 +69,7 @@ check_precommit:
  caie 1,1
  jrst fail_11
  move 1,__close_calls
- caie 1,2
+ caie 1,3
  jrst fail_12
  ; Bad initial mapping must not touch FILE resources either.
  movei 1,1
@@ -76,7 +81,7 @@ check_precommit:
  jrst fail_13
 check_bad_map:
  move 1,__close_calls
- caie 1,2
+ caie 1,3
  jrst fail_14
  move 1,__exit_calls
  caie 1,2
@@ -139,6 +144,20 @@ file_close_all:
  jrst close_success
  seto 1,
  popj 17,
+
+.globl proc_sleep_ticks
+proc_sleep_ticks:
+ aos __sleep_calls
+ move 2,__fd
+ caie 2,01234567
+ jrst sleep_bad
+ setom __retry_fd_held
+ setzm __fail_close
+ setz 1,
+ popj 17,
+sleep_bad:
+ seto 1,
+ popj 17,
 close_success:
  setzm __fd
  setz 1,
@@ -166,6 +185,8 @@ kret_neg1: seto 1,
 .data
 .globl file_table
 file_table: .word __uarea+026
+.globl proc_current_slot
+proc_current_slot: .word 2
 __uarea: .block 026
 __fd: .word 01234567
 .block 0410-027
@@ -177,6 +198,8 @@ __close_calls: .word 0
 __exit_calls: .word 0
 __exit_status: .word 0
 __enter_calls: .word 0
+__sleep_calls: .word 0
+__retry_fd_held: .word 0
 .bss
 __stack: .block 0400
 .globl __test_exit

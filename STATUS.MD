@@ -1,3 +1,38 @@
+## 2026-10-31 v879: process-owned APR/EXEC fatal FILE retry
+
+`daimos-fatal-close-retry-v879.sh` executes the real PDP-6
+owner-stack fatal-close continuation, injecting two rejected closes
+and verifying one-tick yields, retained FILE status and exit code,
+duplicate fatal-event exclusion, final successful closure and no
+unnecessary yield: PASS. `daimos-vmless-fatal-v879.sh` verifies that
+a tagged fatal-cleanup continuation without a user VM is schedulable,
+including RT ownership, while an ordinary VM-less job is not; its
+executive restore skips APR activation instead of loading
+VM_SPACE_NONE: PASS. The additional v879 native selector and
+restore fixtures cover VM_SPACE_NONE (-1), tagless refusal, RT and
+ready-once behavior, genuine zero-base swapped admission, and
+unchanged APR restoration: PASS.
+
+The new native direct swap-out guard tests tagged fatal-cleanup
+ownership, user-map hold, VM transition and ordinary admission:
+PASS. It FAILs against pre-v879 code as expected, demonstrating
+the absent exclusion. Both native swap-out and exchange admission
+now check the existing fatal-cleanup bit.
+
+The updated v878 EXEC test runs the real common retry routine and
+checks failed-release recovery. Updated v865/v867/v868 event fixtures,
+v863/v866 OOM selection (including rejecting an active cleanup
+owner), and v875/v876 teardown regressions PASS. Lowmem KCORE link
+PASS, exclusive end `021403` octal (8,963 words, +108 resident text
+words from v878 and no extra permanent data). Real full-system PI6/clock
+sleep and actual blocked provider-failure injection are not yet
+accepted. Persistent errors may cause indefinite repeated retries,
+so do not claim OOM victim termination safety.
+
+The final v879 ordinary full-system session-leader HUP/TTY regression
+`daimos-session-teardown-v1.sh` also PASSes in headless mode. It does
+not inject a failing FILE provider into the new private-stack retry.
+
 ## 2026-10-31 v878: post-commit fatal EXEC closes FILE descriptors
 
 Native PDP-6 `daimos-exec-fatal-close-v878.sh` extracts and executes

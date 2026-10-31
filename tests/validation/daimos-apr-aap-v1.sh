@@ -54,8 +54,8 @@ if [ "$rc" -ne 0 ]; then
         exit 1
 fi
 
-# The focused proc_exit_current stub stores 1 only after the production APR
-# handler has cleared the fault, dismissed PI6, and reached its exit trampoline.
+# The focused fatal-close continuation stub stores 1 after production APR
+# has cleared the fault, dismissed PI6, and reached the owner-stack trampoline.
 grep -Eq "^[>[:space:]]*0*$result: +0*1$" "$work/aap.out" || {
         cat "$work/aap.out" >&2
         echo "$tag: production APR handler did not deliver AAP user PDL fault" >&2

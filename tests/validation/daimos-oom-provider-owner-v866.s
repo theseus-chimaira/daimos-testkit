@@ -10,6 +10,18 @@ main:
  pushj 17,proc_oom_select_v863
  caie 1,3
  jrst fail_1
+ ; A fatal-close continuation cannot be killed while it owns a private
+ ; kernel stack, even if it would otherwise free the largest RAM span.
+ movei 1,4
+ iorm 1,__uarea+024
+ movei 1,010
+ setz 2,
+ pushj 17,proc_oom_select_v863
+ camn 1,[-1]
+ jrst owner_retry_done_v879
+ jrst fail_8
+owner_retry_done_v879:
+ setzm __uarea+024
  ; Slot 3 is now holding the serialized filesystem provider lease.
  ; The selector must not kill the process that could release this lock.
  move 1,[4,,0]
@@ -101,6 +113,8 @@ fail_5: movei 1,5
 fail_6: movei 1,6
  jrst done
 fail_7: movei 1,7
+ jrst done
+fail_8: movei 1,010
 done: movem 1,__test_exit
  jrst 4,0
 

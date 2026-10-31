@@ -13,8 +13,7 @@
         .globl  proc_sched_pi_resched
         .globl  proc_sched_kick
         .globl  storage_clock_tick
-        .globl  file_close_all
-        .globl  proc_exit_current
+        .globl  proc_fatal_close_current_v879
         .globl  __test_result
         .globl  clk_pi_service
 
@@ -66,11 +65,8 @@ proc_sched_pi_resched:
         popj    17,
 storage_clock_tick:
         popj    17,
-file_close_all:
-        popj    17,
-
-/* Reaching here proves the production handler dismissed PI6 before teardown. */
-proc_exit_current:
+/* Reaching the owned-stack fatal continuation proves APR dismissed PI6. */
+proc_fatal_close_current_v879:
         movei   1,1
         movem   1,__test_result
         halt    .

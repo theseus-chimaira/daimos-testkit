@@ -8,9 +8,11 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 work=$(mktemp -d "$TMPDIR/daimos-exec-fatal-close-v878.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
-    printf '.text\n.globl native_sys_exec\n'
+    printf '.text\n.globl native_sys_exec\n.globl proc_fatal_close_current_v879\n.equ PROC_FATAL_CLOSE_BIT,4\n'
     sed -n '/^native_sys_exec:$/,/^; Read one raw 128-word DECtape block/p' \
         "$DAIMOS_REPO/system/kernel/proc/syscall_dispatch_pdp6.s" | sed '$d'
+    sed -n '/^proc_fatal_close_current_v879:$/,/^\/\*\*$/p' \
+        "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 250000 --timeout 20 \
@@ -20,4 +22,4 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
         tail -50 "$work/log" >&2
         exit 1
     }
-echo 'v878: native post-commit EXEC fatal FILE-close and precommit behavior PASS'
+echo 'v878/v879: native fatal EXEC owner-stack close, retry and nonfatal EXEC behavior PASS'
