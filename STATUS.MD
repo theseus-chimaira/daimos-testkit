@@ -1,3 +1,31 @@
+## 2026-11-01 v889: true full-system APR fatal FILE recovery
+
+`daimos-fatal-file-integration-v889.sh` compiles a disposable
+kernel/image with temporary test hooks in CLK PI6, FILE, VFS
+and process sleep/EXIT code. Its user program genuinely faults
+by reading outside the APR-mapped virtual range. The real PI6
+APR-fault trampoline enters the normal private-stack fatal
+cleanup, rather than the test directly calling a standalone
+assembly leaf or manufacturing an EXEC fatal return.
+
+Only the faulting process's FD 0 receives two test-only VFS-sync
+returns of -5 before the real VFS entry proceeds normally.
+SIMH full-system PASS: owner slot 2, one APR fault, three VFS
+calls and two rejections, three fatal close passes, two timer
+sleeps of 1 and 2 ticks, FD 0 retained after both refusals,
+stage FILE and ERR 5 from production GETTEARDOWN, FD and
+word-067 witness cleared after provider success, exactly
+one process exit, matching parent WAIT fault status, CTY
+`<FH`, final HALT, and zero error counters.
+
+The KCORE production tree is untouched; test-specific data
+exists only under `$TMPDIR`. The native v888 actual FILE
+error/real MM error, v885 fatal-close backoff, v878/v879 fatal
+EXEC, and v887 teardown-detail regressions PASS. KCORE remains
+`022124` octal (9,300 words) with no added resident data.
+Unrecoverable providers and booted post-commit EXEC failures
+are separate future tests; automatic OOM killing remains off.
+
 ## 2026-11-01 v888: actual fatal FILE provider rejection
 
 `daimos-file-provider-error-v888.sh` directly executes current
