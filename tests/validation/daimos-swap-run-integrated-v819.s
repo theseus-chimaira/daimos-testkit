@@ -90,6 +90,22 @@ restore_a_span_v824:
  move 1,__disk
  caie 1,0400
  jrst fail_disk
+ ; v825: reject a start displaced by one word, even though its
+ ; truncated sector index would still match the declared zero offset.
+ move 4,__prepare
+ addi 4,1
+ movem 4,__transfer+1
+ movei 1,__run_req
+ pushj 17,proc_swap_exchange_run_v790
+ camn 1,[-1]
+ jrst restore_alignment_v825
+ jrst fail_entry
+restore_alignment_v825:
+ move 4,__prepare
+ movem 4,__transfer+1
+ move 1,__disk
+ caie 1,0400
+ jrst fail_disk
  movei 1,__run_req
  pushj 17,proc_swap_exchange_run_v790
  jumpn 1,fail_entry
