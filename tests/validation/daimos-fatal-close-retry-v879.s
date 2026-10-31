@@ -102,7 +102,7 @@ proc_sleep_ticks:
  move 1,__uarea+024
  trne 1,04
  setom __fatal_seen
- move 1,-1(17)
+ move 1,-2(17)                 ; v885 keeps retry delay above exit status
  caie 1,0400001
  jrst sleep_ret_bad
  setom __stack_preserved

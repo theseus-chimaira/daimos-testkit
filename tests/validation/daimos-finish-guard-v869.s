@@ -126,6 +126,8 @@ kconst_7_7: .word 7,,7
 proc_table: .word __ptable
 .globl proc_rt_owner
 proc_rt_owner: .word 2
+.globl proc_finish_last_tick_v881
+proc_finish_last_tick_v881: .word 0
 __ptable:
  .block 6
  .word __uarea,,0400400

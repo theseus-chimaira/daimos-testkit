@@ -8,7 +8,7 @@ main:
  caie 1,1
  jrst fail_1
  ; A pending reaper may not consume a user quantum before 020 ticks.
- move 1,[0400000,,010]
+ move 1,[0400020,,010]
  movem 1,proc_finish_last_tick_v881
  movei 1,017
  movem 1,proc_timer_clock
@@ -56,7 +56,7 @@ check_rt:
  caie 1,1
  jrst fail_7
  ; Tick wrap around the 17-bit timestamp must still dispatch idle.
- move 1,[0400000,,0177776]
+ move 1,[0400020,,0177776]
  movem 1,proc_finish_last_tick_v881
  movei 1,020
  movem 1,proc_timer_clock
@@ -77,15 +77,57 @@ check_dormant_rt:
  movem 1,__ptable+5
  movei 1,1
  movem 1,proc_rt_owner
- move 1,[0400000,,010]
+ move 1,[0400020,,010]
  movem 1,proc_finish_last_tick_v881
  movei 1,030
  movem 1,proc_timer_clock
  movei 1,4
  movem 1,proc_sched_deferred_ticks
  pushj 17,proc_sched_tick_select
- jumpe 1,pass
+ jumpe 1,check_backoff_v885
  jrst fail_9
+check_backoff_v885:
+ ; A permanently failing provider backs off its next attempt to
+ ; 040 ticks; it must not immediately regain a slot-0 quantum.
+ setzm proc_rt_owner
+ movei 1,1
+ movem 1,proc_current_slot
+ movem 1,proc_runq_head
+ move 1,[0400040,,010]
+ movem 1,proc_finish_last_tick_v881
+ movei 1,047
+ movem 1,proc_timer_clock
+ movei 1,4
+ movem 1,proc_sched_deferred_ticks
+ pushj 17,proc_sched_tick_select
+ caie 1,1
+ jrst fail_10
+ movei 1,050
+ movem 1,proc_timer_clock
+ movei 1,4
+ movem 1,proc_sched_deferred_ticks
+ pushj 17,proc_sched_tick_select
+ jumpe 1,check_backoff_max_v885
+ jrst fail_11
+check_backoff_max_v885:
+ ; Capped 01000-tick backoff must be checked against its full
+ ; 17-bit timestamp; a 020-tick constant would trigger too early.
+ move 1,[0401000,,010]
+ movem 1,proc_finish_last_tick_v881
+ movei 1,047
+ movem 1,proc_timer_clock
+ movei 1,4
+ movem 1,proc_sched_deferred_ticks
+ pushj 17,proc_sched_tick_select
+ caie 1,1
+ jrst fail_12
+ movei 1,01010
+ movem 1,proc_timer_clock
+ movei 1,4
+ movem 1,proc_sched_deferred_ticks
+ pushj 17,proc_sched_tick_select
+ jumpe 1,pass
+ jrst fail_13
 pass: setz 1,
  jrst done
 fail_1: movei 1,1
@@ -105,6 +147,14 @@ fail_7: movei 1,7
 fail_8: movei 1,010
  jrst done
 fail_9: movei 1,011
+ jrst done
+fail_10: movei 1,012
+ jrst done
+fail_11: movei 1,013
+ jrst done
+fail_12: movei 1,014
+ jrst done
+fail_13: movei 1,015
 done: movem 1,__test_exit
  jrst 4,0
 .data

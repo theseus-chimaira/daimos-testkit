@@ -1,3 +1,31 @@
+## 2026-10-31 v885: bounded retries under permanently failing providers
+
+`daimos-fatal-close-backoff-v885.sh` invokes the production PDP-6
+APR/EXEC fatal FILE cleanup with 14 rejected FILE provider calls,
+then a successful close. It checks the exact sleep sequence from
+1 to the 01000-octal-tick (512) cap, exit-status stack ownership,
+duplicate-fatal-event exclusion, and successful finalization: PASS.
+The pre-v885 constant-tick source FAILs the negative control.
+
+`daimos-reaper-backoff-v885.sh` executes the production compact
+shared MM interval updater and first-u-area-defer path, verifying
+repeated doubling to the 01000 cap, retention over permanent
+failure, clearing on successful release, resetting the delay for
+one newly pending owner, and retaining backoff for the same owner:
+PASS. The v884 scheduler's real 17-bit timer gate now uses this
+variable interval; prior runnable-user, RT, disk-swap, timeout,
+v879 fatal owner, v881 finalizer, v883 fatal HUP and v880 backing
+rollback tests PASS.
+
+The disposable full-system PDP-6 guest with a separate nonstop
+spinner and genuine pinned-u-area MM_BUSY twice still reaches
+normal HUP/TTY completion and HALT: PASS. All resource fault
+injection stays in testkit; production KCORE link ends at
+`021715` octal (9,165 resident words), +30 over v884 and no
+new permanent data. The bounded retry *interval* is not bounded
+resource reclamation: permanently rejecting providers continue
+to retain their descriptors. Automatic OOM termination stays off.
+
 ## 2026-10-31 v884: deferred MM reaper runs despite a spinner
 
 `daimos-reaper-sched-v884.sh` executes the native production
