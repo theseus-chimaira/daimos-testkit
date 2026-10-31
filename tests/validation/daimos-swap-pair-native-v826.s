@@ -37,9 +37,17 @@ lock_fail_checked:
  move 3,__b
  trnn 3,0200000
  jrst fail
- movei 3,0200000
- andcam 3,__a
- andcam 3,__b
+ movei 1,1
+ movei 2,2
+ movei 3,02000
+ pushj 17,proc_swap_exchange_abort_v830
+ jumpn 1,fail
+ move 3,__a
+ trne 3,0200000
+ jrst fail
+ move 3,__b
+ trne 3,0200000
+ jrst fail
  ; v828: never choose the currently executing process.
  movei 6,2
  movei 3,1
