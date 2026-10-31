@@ -40,6 +40,48 @@ lock_fail_checked:
  movei 1,1
  movei 2,2
  movei 3,02000
+ movei 4,__graph_v831
+ pushj 17,proc_swap_exchange_build_v831
+ jumpn 1,fail
+ move 3,__graph_v831
+ caie 3,__graph_v831+2
+ jrst fail
+ move 3,__graph_v831+1
+ caie 3,__graph_v831+4
+ jrst fail
+ move 3,__graph_v831+2
+ caie 3,__graph_v831+012
+ jrst fail
+ move 3,__graph_v831+3
+ caie 3,__graph_v831+023
+ jrst fail
+ move 3,__graph_v831+4
+ caie 3,__graph_v831+012
+ jrst fail
+ move 3,__graph_v831+5
+ caie 3,__graph_v831+037
+ jrst fail
+ move 3,__graph_v831+6
+ caie 3,__graph_v831+043
+ jrst fail
+ move 3,__graph_v831+7
+ caie 3,__graph_v831+053
+ jrst fail
+ move 3,__graph_v831+010
+ caie 3,__graph_v831+057
+ jrst fail
+ move 3,__graph_v831+017
+ caie 3,020
+ jrst fail
+ move 3,__graph_v831+020
+ caie 3,0320
+ jrst fail
+ movei 1,__graph_v831
+ pushj 17,proc_swap_exchange_preflight_v791
+ jumpn 1,fail_preflight_v831
+ movei 1,1
+ movei 2,2
+ movei 3,02000
  pushj 17,proc_swap_exchange_abort_v830
  jumpn 1,fail
  move 3,__a
@@ -129,7 +171,9 @@ restore_size:
  jrst fail
 pass: setz 1,
  jrst done
-fail: move 1,6
+fail: movei 1,1
+ jrst done
+fail_preflight_v831: movei 1,7
 done: movem 1,__test_exit
  jrst 4,0
 .data
@@ -150,6 +194,7 @@ __b: .word __uarea,,0400000
 proc_swap_records: .word __records
 __pin_fixture: .word 0
 __pin_error: .word 0
+__graph_v831: .block 064
 __records: .word 0
  .word 037
 __rec: .word 020,,0320
