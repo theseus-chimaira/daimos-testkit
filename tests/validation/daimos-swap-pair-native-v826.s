@@ -24,6 +24,21 @@ lock_fail_checked:
  move 3,__b
  trne 3,0200000
  jrst fail
+ ; v832: injected v790 pre-transfer failure must release both locks.
+ movei 1,1
+ movei 2,2
+ movei 3,__graph_v831
+ pushj 17,proc_swap_exchange_execute_v832
+ camn 1,[-1]
+ jrst execute_failed_v832
+ jrst fail
+execute_failed_v832:
+ move 3,__a
+ trne 3,0200000
+ jrst fail
+ move 3,__b
+ trne 3,0200000
+ jrst fail
  setzm __pin_error
  movei 1,1
  movei 2,2
@@ -230,3 +245,7 @@ mm_process_verify_pinned_v792:
 .globl proc_swap_storage_invariant_v30
 proc_swap_storage_invariant_v30:
  halt .
+.globl proc_swap_exchange_run_v790
+proc_swap_exchange_run_v790:
+ seto 1,
+ popj 17,

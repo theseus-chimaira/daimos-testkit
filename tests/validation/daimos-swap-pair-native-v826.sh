@@ -12,6 +12,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
   echo '.globl proc_swap_exchange_lock_v829'
   echo '.globl proc_swap_exchange_abort_v830'
   echo '.globl proc_swap_exchange_build_v831'
+  echo '.globl proc_swap_exchange_execute_v832'
   echo '.globl proc_swap_exchange_preflight_v791'
   echo '.equ PROC_TRANSITION_RH,0200000'
   echo '.equ PROC_UAREA_RH,0400000'
