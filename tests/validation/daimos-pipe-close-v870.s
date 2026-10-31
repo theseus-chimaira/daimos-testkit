@@ -162,6 +162,9 @@ file_node_from_fd:
 .globl kret_neg1
 kret_neg1: seto 1,
  popj 17,
+.globl kret_zero
+kret_zero: setz 1,
+ popj 17,
 .globl vfs_sync
 vfs_sync:
  seto 1,

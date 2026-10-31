@@ -1,3 +1,15 @@
+## 2026-10-31 v872: FILE/PIPE/DPY native regression linkage
+
+The v871 DPY-close default changed from `kret_neg1` to `kret_zero` for an
+absent display module. The v865, v867, v868 and v870 isolated native
+fixtures link the real FILE close leaf and must now define both return
+stubs. All four were corrected; v865, v867, v868, v870 and v871 native
+tests PASS together. The v709 DPY gateway tests and Type 340 PI policy
+also PASS. The v870 full-system opaque-word PIPE regression PASSES.
+The separate named-FIFO full-system test timed out after D6FS startup;
+its pre-v870 baseline comparison is outstanding and it is not counted
+as an accepted regression. No production kernel change in v872.
+
 ## 2026-10-12 P10FOLD I/O SKIP AND MULTI-TTY REGRESSION
 
 - `test-daimos-p10fold-io-skip-20261012-v1` protects the PDP-6 BLKI,
