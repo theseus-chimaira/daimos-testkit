@@ -1,3 +1,14 @@
+## 2026-10-31 v873: named-FIFO full-system baseline comparison
+
+The existing KCC `daimos-pipe-fifo-v2.sh` full-system test times out
+with exit 124 after D6FS startup on current v871. A controlled run
+against detached pre-v870 v869 commit `8b4e7d9` also reaches D6FS
+startup and times out without the final marker. This is not yet a
+diagnosed root cause or an accepted full-system test. The native v870
+failed-MM-free fixture FAILs on v869 as an expected negative control,
+and PASSes on v870/v871. No userland workload or kernel source was
+changed for this comparison.
+
 ## 2026-10-31 v872: FILE/PIPE/DPY native regression linkage
 
 The v871 DPY-close default changed from `kret_neg1` to `kret_zero` for an
