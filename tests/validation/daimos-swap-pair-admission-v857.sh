@@ -91,5 +91,17 @@ if [ -n "$trace" ]; then
     else
         echo 'v857 trampoline could not be confirmed' >&2
     fi
+    # Do not interpret breakpoint hit counts unless the alleged pair entry
+    # actually contains its linked first instruction. MRES overlays may
+    # reuse this physical address for unrelated resident code.
+    pair_relative=$(awk '$1=="proc_swap_exchange_pair_v826" {print $2;exit}' "$map")
+    if [ -n "$pair_relative" ]; then
+        pair_pc=$(printf '%06o' "$((027632 + 0$pair_relative))")
+        if grep -q "Breakpoint, PC: $pair_pc " "$trace" &&
+           ! grep -q "Breakpoint, PC: $pair_pc (JUMPE 1," "$trace"; then
+            echo 'v857: INVALID MRES BREAKPOINT ADDRESS; guest result is separate' >&2
+            exit 2
+        fi
+    fi
 fi
 exit "$rc"
