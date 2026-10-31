@@ -1,3 +1,14 @@
+## 2026-10-31 v877: full-system session teardown PASS on v876 kernel
+
+The post-v876 `daimos-session-teardown-v1.sh` headless guest PASSes:
+leader exit delivers HUP to running/stopped session members, detaches
+the TTY and permits reattachment. The isolated CTY guest disables
+unrelated WCNSLS/OCNSLS graphics, avoiding the prior pre-INIT SDL
+crash (exit 139). This is a valid ordinary session-lifecycle
+regression, not a full-system injected-MM-failure or OOM-kill test.
+Native failed-HUP/VM and RT owner tests PASS separately. The v877
+checkpoint changes only documentation.
+
 ## 2026-10-31 v876: RT ownership and finalizer transition safety
 
 Native PDP-6 `daimos-finish-rt-v876.sh` executes the real resident
@@ -11,8 +22,8 @@ expected negative control. KCORE link PASS at `021226` octal.
 The existing full-system session-teardown regression PASSed after
 isolating its CTY workload from unrelated SDL color-scope devices.
 The original environment run had exited 139 in SDL before INIT; it
-was not a session HUP result. A fresh post-v876 full-system rerun is
-tracked separately. No OOM kill has been enabled.
+was not a session HUP result. A post-v876 rerun also PASSed; see v877.
+No OOM kill has been enabled.
 
 ## 2026-10-31 v875: session HUP failure leaves controlling TTY intact
 
