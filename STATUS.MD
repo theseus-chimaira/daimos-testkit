@@ -1,3 +1,25 @@
+## 2026-10-31 v882: full-system real MM_BUSY and deferred release
+
+`daimos-uarea-pin-integration-v882.sh` creates a disposable,
+source-instrumented PDP-6 kernel from the production sources and
+boots the unchanged session teardown test userland. The temporary
+hooks select the first process entering its own `proc_exit_finish`,
+pin that stable kernel u-area through real `mm_pin`, observe two
+real `MM_ERR_BUSY` results from `mm_free`, and unpin before the
+third attempt. After the final normal guest HALT, SIMH inspects
+exported test-only counters. Observed: slot 1/2 across runs,
+3 attempts, 1 pin,
+2 busy, 1 unpin, 0 hook errors, full session HUP/TTY completion:
+PASS. All injected assembly and C code stays under `$TMPDIR`;
+the DAIMOS production kernel is not altered.
+
+First-encountered non-current victim slot 3 gave a different
+failure contract: its caller received a transient error before
+the expected synchronous session conclusion. This route remains
+unaccepted for full-system fault injection. Other open gates:
+sustained runnable-process progress, irrecoverable MM errors,
+and automatic OOM victim killing.
+
 ## 2026-10-31 v881: post-VM u-area release retry
 
 `daimos-deferred-uarea-v881.sh` runs production PDP-6
