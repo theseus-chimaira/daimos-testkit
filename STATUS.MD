@@ -1,3 +1,46 @@
+## 2026-11-01 v888: actual fatal FILE provider rejection
+
+`daimos-file-provider-error-v888.sh` directly executes current
+PDP-6 `file_close_all_at_v865` and
+`proc_control_getteardown_v886` with mocked provider outcomes.
+The first fatal pass fails two FILE entries; it records the
+first actual negative return -5 and its FD without clearing
+either rejected descriptor. A second pass replaces this with
+-2 and clears the other descriptor. The third pass completes
+and clears the word-067 witness and all descriptors. A later
+failure on FD 3 with -4 proves correct nonzero FD capture.
+A nonfatal bulk-close pass is not allowed to touch word 067.
+All cases PASS; pre-v888 code FAILs this negative control.
+The extended test also validates that FD 3, rather than FD 0,
+is recorded when it alone rejects close with -4.
+
+`daimos-mm-release-cause-v888.sh` executes real PDP-6
+`mm_free`, `mm_unpin` and the matching extent-detail reader.
+It verifies MM_ERR_BUSY (-5) on pinned u-area without loss of
+ownership; MM_ERR_INVAL (-4) on missing, wrong-type and
+wrong-owner extents; and successful release after a legitimate
+unpin. PASS.
+
+The full-system session teardown regression PASSes with the
+updated FILE runtime: leader exit, running/stopped job HUP,
+TTY detach and subsequent reattach. This is not a full-system
+test of an injected private-stack FILE provider rejection;
+that separate acceptance is still open.
+
+Existing v887/v886 detail and dispatcher, v885 fatal
+FILE backoff, v879 fatal close and v883 external HUP
+regressions PASS unchanged. The production `ps` now adds
+a numeric `ERR` column: 0 means no recorded rejection,
+1..5 map to actual -1..-5 provider returns, and 6 means
+other nonzero return. Original error and first FD reside
+only in the owned u-area word 067, never static storage.
+
+KCORE link PASS at `022124` octal, 9,300 resident words,
++26 over v887 and no new permanent data. This tests
+native provider-error attribution and nonfatal scanning,
+not guaranteed recovery from a permanently refusing provider.
+OOM victim termination remains disabled.
+
 ## 2026-11-01 v887: on-demand FILE and MM ownership snapshots
 
 `daimos-teardown-detail-v887.sh` invokes the production PDP-6
