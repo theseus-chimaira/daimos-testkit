@@ -43,7 +43,7 @@ done
 # POSIX shell arithmetic cannot express base-eight values with 8#.
 injection = injection.replace('8#27632 + 8#$relative', '027632 + 0$relative')
 source = source.replace(marker, injection + '\n' + marker, 1)
-resident = """for sym in proc_idle_loop proc_notify_parent proc_wait_child proc_runq_add; do
+resident = """for sym in proc_notify_parent proc_wait_child proc_runq_add; do
     pc=$(awk -v name="$sym" '$1==name {print $2;exit}' "$boot/kcore.map")
     [ -n "$pc" ] || exit 1
     printf 'break %s;examine %s;examine %s;examine 1;go\n' "$pc" "$slot_addr" "$sched_addr" >> "$simh_ini"
@@ -74,7 +74,7 @@ if [ -n "$trace" ]; then
         echo "v843 $sym breakpoint=$pc hits=$hits"
     done
     kmap=${trace%/simh.out}/build/system/boot/pdp6/kcore.map
-    for sym in proc_idle_loop proc_notify_parent proc_wait_child proc_runq_add; do
+    for sym in proc_notify_parent proc_wait_child proc_runq_add; do
         pc=$(awk -v name="$sym" '$1==name {print $2;exit}' "$kmap")
         [ -n "$pc" ] || continue
         hits=$(grep -c "Breakpoint, PC: $pc " "$trace" || true)
