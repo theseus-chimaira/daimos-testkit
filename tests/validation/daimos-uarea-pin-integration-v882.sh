@@ -8,6 +8,11 @@ KEEP_TEST=${KEEP_TEST:-0}
 export TMPDIR
 mkdir -p "$TMPDIR"
 tag=daimos-uarea-pin-integration-v882
+mode=${DAIMOS_UAREA_TEST_MODE:-current}
+case "$mode" in
+current|noncurrent) ;;
+*) echo "$tag: invalid fault-injection mode $mode" >&2; exit 2 ;;
+esac
 work=$(mktemp -d "$TMPDIR/$tag.XXXXXX")
 cleanup() { if [ "$KEEP_TEST" != 1 ]; then rm -rf "$work"; fi; }
 trap cleanup EXIT HUP INT TERM
@@ -18,9 +23,20 @@ cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
 python3 - "$work/source/system/kernel/proc/proc_pdp6.s" <<'PY'
 from pathlib import Path
+import os
 import sys
 p = Path(sys.argv[1])
 s = p.read_text()
+if os.environ.get('DAIMOS_UAREA_TEST_MODE', 'current') == 'noncurrent':
+    needle = """proc_event_fatal_other:
+        hlrz    1,(012)"""
+    assert s.count(needle) == 1
+    s = s.replace(needle, """proc_event_fatal_other:
+        ; v883 disposable test: select the first noncurrent fatal owner.
+        setom   daimos_test_noncurrent_seen_v883
+        skipn   daimos_test_exit_slot_v882
+        movem   010,daimos_test_exit_slot_v882
+        hlrz    1,(012)""")
 needle = """        push    17,10
         move    10,2
         addi    1,01000                ; PROC_UAREA_MM_OWNER_BASE"""
@@ -74,6 +90,8 @@ s = s.replace(needle, """        pushj   17,mm_free
         jumpn   1,proc_uarea_release_fail""")
 s += """
         .bss
+        .globl daimos_test_noncurrent_seen_v883
+daimos_test_noncurrent_seen_v883: .block 1
         .globl daimos_test_exit_slot_v882
 daimos_test_exit_slot_v882: .block 1
         .globl daimos_test_target_v882
@@ -137,7 +155,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     }
 
 map="$build/kcore.map"
-for sym in daimos_test_exit_slot_v882 daimos_test_target_v882 daimos_test_calls_v882 \
+for sym in daimos_test_noncurrent_seen_v883 daimos_test_exit_slot_v882 daimos_test_target_v882 daimos_test_calls_v882 \
     daimos_test_pins_v882 daimos_test_unpins_v882 \
     daimos_test_busy_v882 daimos_test_error_v882; do
     address=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
@@ -166,6 +184,7 @@ if [ "$rc" -ne 0 ]; then
 fi
 python3 - "$work/addresses" "$work/simh.out" <<'PY'
 import re
+import os
 import sys
 from pathlib import Path
 lines = Path(sys.argv[1]).read_text().splitlines()
@@ -194,9 +213,11 @@ if seen['daimos_test_target_v882'] < 1:
     raise SystemExit('v882: no u-area selected')
 if seen['daimos_test_exit_slot_v882'] != seen['daimos_test_target_v882']:
     raise SystemExit('v882: unstable EXIT-owner selection')
+if os.environ.get('DAIMOS_UAREA_TEST_MODE', 'current') == 'noncurrent' and not seen['daimos_test_noncurrent_seen_v883']:
+    raise SystemExit('v883: no non-current fatal delivery instrumented')
 for name, value in expect.items():
     if seen[name] != value:
         raise SystemExit('v882: FAIL: ' + name + ' (' + str(seen[name]) +
                          ', expected ' + str(value) + ')')
-print('v882: full-system real MM_BUSY, deferred tick retry, final free and session HUP/TTY PASS')
+print('full-system real MM_BUSY, deferred tick retry, final free and session HUP/TTY PASS')
 PY

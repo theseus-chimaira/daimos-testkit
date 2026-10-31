@@ -13,7 +13,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     sed -n '/^file_close_all:$/,/^; Shared bulk-word/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
-    printf '.globl proc_event_apply\n.equ PROC_FILE_TABLE_OFFSET,026\n.equ PROC_FDCTL_OFFSET,024\n.equ PROC_FATAL_CLOSE_BIT,4\n.equ PROC_TRANSITION_RH,0200000\n'
+    printf '.globl proc_event_apply\n.equ PROC_FILE_TABLE_OFFSET,026\n.equ PROC_FDCTL_OFFSET,024\n.equ PROC_FATAL_CLOSE_BIT,4\n.equ PROC_TRANSITION_RH,0200000\n.equ PROC_FINALIZE_OFFSET,067\n.equ PROC_FINALIZE_MARK_LH,0400000\n'
     sed -n '/^proc_event_apply:$/,/^proc_event_nonfatal:/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
 } > "$work/leaf.s"

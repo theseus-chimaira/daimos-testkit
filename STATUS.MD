@@ -1,3 +1,31 @@
+## 2026-10-31 v883: non-current fatal HUP commit contract
+
+`daimos-noncurrent-fatal-v883.sh` extracts and executes production
+PDP-6 `proc_event_apply`, `proc_finish_slot` and idle reaper code.
+The non-current target has no live FILE entries; its VM destruction
+succeeds and first/second u-area releases fail. Before that, the
+fixture injects a VM-destroy error and confirms it is reported as
+uncommitted, with TRANSITION rolled back and no u-area release.
+The subsequent HUP must
+return success (irreversible delivery committed), duplicate HUP must
+be refused, and later slot-0 finalization must preserve fatal status
+and publish ZOMB/notify parent exactly once. Native test PASS;
+unmodified pre-v883 source FAILs the new negative control.
+Older v865/v867/v868 FILE/EXIT, v869/v876 finalizer, v879 owner
+close and v880 backing-detach native tests PASS.
+
+The v882 full-system pinned-current-EXIT test remains accepted. The
+new `daimos-noncurrent-uarea-pin-v883.sh` full-system test PASSes
+independently: a non-current HUP target is pinned through real MM,
+two releases return MM_ERR_BUSY, the third succeeds after unpin,
+and the original session HUP/TTY completion reaches normal HALT.
+Guest counters: slot 2, 3 releases, 2 busy, 1 pin, 1 unpin, no
+instrumentation error. Re-running the v882 current-EXIT test on
+the new code also PASSes. Both temporary kernels are generated
+without production fault-injection hooks.
+KCORE link PASS at `021610` octal (9,096 resident words), +17
+text words above v882, no new permanent data. OOM remains disabled.
+
 ## 2026-10-31 v882: full-system real MM_BUSY and deferred release
 
 `daimos-uarea-pin-integration-v882.sh` creates a disposable,
