@@ -1,3 +1,19 @@
+## 2026-10-31 v876: RT ownership and finalizer transition safety
+
+Native PDP-6 `daimos-finish-rt-v876.sh` executes the real resident
+finalizer. A slot already TRANSITIONing is rejected. While HUP runs,
+the target is unschedulable and retains its RT lease; failed HUP and
+failed VM destroy restore scheduling eligibility without losing RT
+ownership. Successful VM destruction commits RT revocation and normal
+zombie publication. Native v876 PASS; pre-v876 source FAILs as an
+expected negative control. KCORE link PASS at `021226` octal.
+
+The existing full-system session-teardown regression PASSed after
+isolating its CTY workload from unrelated SDL color-scope devices.
+The original environment run had exited 139 in SDL before INIT; it
+was not a session HUP result. A fresh post-v876 full-system rerun is
+tracked separately. No OOM kill has been enabled.
+
 ## 2026-10-31 v875: session HUP failure leaves controlling TTY intact
 
 The native PDP-6 `daimos-session-hup-v875.sh` runs the real resident

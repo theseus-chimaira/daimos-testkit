@@ -50,8 +50,16 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$build/system/boot/pdp6" \
     PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
+    SIMH_DPY_MODE=HEADLESS \
     SYSTEM_INIT_DXR="$user/init.dxr" >/dev/null
 boot="$build/system/boot/pdp6"
+# This test exercises session/TTY semantics through CTY only.  The unrelated
+# color-scope graphical backends can crash SDL before INIT starts in headless
+# Termux sessions; exclude them rather than changing kernel/simulator logic.
+sed -i \
+    -e 's/^set wcnsls .*/set wcnsls disabled/' \
+    -e 's/^set ocnsls .*/set ocnsls disabled/' \
+    "$boot/boot.ini"
 out="$work/simh.out"
 set +e
 (
