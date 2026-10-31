@@ -1,3 +1,16 @@
+## 2026-10-31 v878: post-commit fatal EXEC closes FILE descriptors
+
+Native PDP-6 `daimos-exec-fatal-close-v878.sh` extracts and executes
+the production `native_sys_exec` entry. For `EXEC_REPLACE_FATAL` it
+checks `file_close_all` runs before the nonreturning exit, that
+successful close clears a live descriptor, and that a failed close
+retains it. Pre-commit error, successful replacement and mapping
+failure must not attempt the fatal cleanup: PASS. Pre-v878 code FAILs
+the new test at its missing-close check, as expected. Native v867,
+v868, v869, v875, v876 regressions PASS. Lowmem KCORE link PASS,
+exclusive end `021227` octal. Persistent provider failures and
+full-system EXEC-fatal injection remain unverified; no OOM kill.
+
 ## 2026-10-31 v877: full-system session teardown PASS on v876 kernel
 
 The post-v876 `daimos-session-teardown-v1.sh` headless guest PASSes:
