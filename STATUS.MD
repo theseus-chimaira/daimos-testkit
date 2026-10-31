@@ -1,3 +1,26 @@
+## 2026-10-31 v880: disk-swap detach retains ownership on failure
+
+The native PDP-6 `daimos-swap-detach-v880.sh` runs the production
+`vm_space_destroy` assembly, injecting a rejected backing detach.
+It verifies unchanged VM state and retained retry ownership, followed
+by successful detach and VM_SPACE_NONE publication: PASS. Its
+pre-v880 negative control FAILs as expected. The actual C
+`proc_swap_detach` is compiled and tested by
+`daimos-swap-detach-state-v880.sh`: incomplete bitmap, invalid
+range, count underflow and zero count must not clear the record or
+counters; a valid retry releases once and repeat detach is a no-op:
+PASS. Existing backstore verify and free regression tests PASS.
+
+The verifier is installed through the existing SWAP MRES at new
+export index 6; KCORE uses one patchable default-error entry. The
+actual SWAP MRES link PASSes and contains the verifier export.
+Lowmem KCORE link PASS at `021423` octal (8,979 words), +16
+resident words over v879; no new persistent table. Post-VM u-area
+MM-free rejection and full-system OOM acceptance remain open.
+The full-system normal session/HUP/TTY regression also PASSes with
+the v880 SWAP verifier export installed. This does not exercise
+live backing corruption or persistent cleanup failure.
+
 ## 2026-10-31 v879: process-owned APR/EXEC fatal FILE retry
 
 `daimos-fatal-close-retry-v879.sh` executes the real PDP-6
