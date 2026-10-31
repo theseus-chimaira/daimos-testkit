@@ -27,6 +27,14 @@ fail:   movei 1,1
 done:   movem 1,__test_exit
         jrst 4,0
         .globl proc_swap_exchange_stage_v784
+        .globl proc_swap_exchange_preflight_v791
+proc_swap_exchange_preflight_v791:
+        setz 1,
+        popj 17,
+        .globl proc_swap_exchange_live_v794
+proc_swap_exchange_live_v794:
+        setz 1,
+        popj 17,
 proc_swap_exchange_stage_v784:
         movei 4,1
         movem 4,__order
