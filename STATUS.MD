@@ -1,3 +1,34 @@
+## 2026-11-01 v890: real destructive EXEC failure in booted PDP-6
+
+`daimos-fatal-exec-integration-v890.c` performs a valid user-mode
+`dsys_exec`. Its companion
+`daimos-fatal-exec-integration-v890.sh` copies the production
+kernel, injects `EXEC_LOAD_NOMEM` only at the selected child's
+staged loader, then runs the real low-memory EXEC fallback,
+including real `vm_space_destroy`. The temporary kernel
+asserts `VM_SPACE_NONE` before injecting a failure of the
+replacement loader. Normal `EXEC_REPLACE_FATAL` dispatch
+enters the unchanged fatal FILE private-stack loop.
+
+The isolated test's VFS provider rejects FD 0 twice with -5
+and accepts the third close. Full-system PDP-6 SIMH PASS:
+one staged NOMEM, one actual old-VM destruction, one
+post-commit loader rejection, 3 VFS calls, 2 rejected closes,
+3 fatal FILE passes, 2 private timer sleeps (1, 2 ticks),
+2 retained-FD checks, observed `GETTEARDOWN` FILE stage/
+error class 5, one successful FD release, one cleared
+u-area word-067 witness, one process exit and parent
+`WAIT` status 1. The console prints `<EH`, reaches
+normal HALT and reports zero assertion errors.
+
+The native v878/v879 fatal EXEC, v885 FILE backoff, v888
+FILE and MM error paths, v887 descriptor diagnostic and
+v881 deferred MM release fixtures all PASS. Production
+KCORE is unchanged at `022124` octal = 9,300 words
+and adds no static RAM. The post-commit EXEC test is a
+transient-provider recovery demonstration, not proof of
+safe recovery from indefinite resource refusal.
+
 ## 2026-11-01 v889: true full-system APR fatal FILE recovery
 
 `daimos-fatal-file-integration-v889.sh` compiles a disposable
