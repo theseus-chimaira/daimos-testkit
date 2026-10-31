@@ -32,7 +32,7 @@ if [ "$service" != 002423 ]; then
     echo "v858: MRES layout changed; recalibrate runtime base: $service" >&2
     exit 1
 fi
-for sym in proc_swap_service_restore_done_v842 proc_swap_in_restore proc_swap_in_pressure proc_swap_in_fail proc_swap_service_pressure proc_swap_service_pop_clear proc_swap_service_failed proc_swap_service_cooldown_v833 proc_swap_service_candidate_v834 proc_swap_exchange_pair_v826 proc_swap_pair_admitted_v858 proc_swap_pair_done_v826 proc_swap_exchange_execute_v832 proc_swap_exchange_run_v790; do
+for sym in proc_swap_service_restore_done_v842 proc_swap_in_restore proc_swap_in_pressure proc_swap_in_fail proc_swap_service_pressure proc_swap_service_pop_clear proc_swap_service_failed proc_swap_service_cooldown_v833 proc_swap_service_candidate_v834 proc_swap_exchange_pair_v826 proc_swap_pair_admitted_v857 proc_swap_pair_done_v826 proc_swap_exchange_execute_v832 proc_swap_exchange_run_v790; do
     relative=$(awk -v name="$sym" '$1==name {print $2;exit}' "$boot/swap-mres-v481.map")
     [ -n "$relative" ] || exit 1
     pc=$(printf '%06o' "$((8#27632 + 8#$relative))")
@@ -72,7 +72,7 @@ trace=$(sed -n 's/^v858: current_trace=//p' "$work/runner.log" | tail -1)
 if [ -n "$trace" ]; then
     echo "v858 trace=$trace"
     map=${trace%/simh.out}/build/system/boot/pdp6/swap-mres-v481.map
-    for sym in proc_swap_service_restore_done_v842 proc_swap_in_restore proc_swap_in_pressure proc_swap_in_fail proc_swap_service_pressure proc_swap_service_pop_clear proc_swap_service_failed proc_swap_service_cooldown_v833 proc_swap_service_candidate_v834 proc_swap_exchange_pair_v826 proc_swap_pair_admitted_v858 proc_swap_pair_done_v826 proc_swap_exchange_execute_v832 proc_swap_exchange_run_v790; do
+    for sym in proc_swap_service_restore_done_v842 proc_swap_in_restore proc_swap_in_pressure proc_swap_in_fail proc_swap_service_pressure proc_swap_service_pop_clear proc_swap_service_failed proc_swap_service_cooldown_v833 proc_swap_service_candidate_v834 proc_swap_exchange_pair_v826 proc_swap_pair_admitted_v857 proc_swap_pair_done_v826 proc_swap_exchange_execute_v832 proc_swap_exchange_run_v790; do
         relative=$(awk -v name="$sym" '$1==name {print $2;exit}' "$map")
         [ -n "$relative" ] || continue
         pc=$(printf '%06o' "$((027661 + 0$relative))")
