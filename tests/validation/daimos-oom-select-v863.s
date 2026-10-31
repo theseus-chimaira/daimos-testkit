@@ -97,6 +97,8 @@ not_pinned:
 .data
 .globl kconst_7_7
 kconst_7_7: .word 7,,7
+.globl fs_provider_ready
+fs_provider_ready: .word 1
 .globl proc_table
 proc_table: .word __table
 .globl proc_high_slot

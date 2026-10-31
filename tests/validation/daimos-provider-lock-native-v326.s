@@ -6,6 +6,7 @@
         .globl proc_wait_event
         .globl proc_wakeup_event
         .globl fs_provider_ready
+.globl proc_current_slot
         .globl kconst_7_7
 main:
         movei 0,provider_oracle
@@ -84,6 +85,7 @@ fs_mres_no_service:
         .data
 kconst_7_7:
         .word 7,,7
+proc_current_slot: .word 2
         .bss
 fs_provider_ready:
         .block 1

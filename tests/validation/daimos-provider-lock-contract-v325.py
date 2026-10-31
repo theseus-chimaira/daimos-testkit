@@ -24,17 +24,18 @@ waiting = block('fs_provider_lock_wait', 'fs_provider_unlock')
 unlock = block('fs_provider_unlock', 'fs_memfs_service_jump')
 require(entry, r'^\s*subi\s+7,4\b', 'provider ID normalization missing')
 require(entry, r'^\s*jumpn\s+7,fs_provider_serialized\b', 'non-MEMFS dispatch missing')
-require(entry, r'^\s*jrst\s+\(7\)', 'direct MEMFS dispatch missing')
+require(entry, r'^\s*jrst\s+@fs_memfs_service_jump\(7\)', 'direct MEMFS dispatch missing')
 for pattern, message in (
     (r'^\s*add\s+17,kconst_7_7', 'private stack allocation'),
     (r'^\s*hrli\s+0,1\b', 'save source register'),
     (r'^\s*blt\s+0,\(17\)', 'save AC1..AC7'),
     (r'^\s*fs_provider_lock_retry:', 'retry loop'),
-    (r'^\s*setzm\s+fs_provider_ready', 'lock acquisition'),
+    (r'^\s*hrrz\s+0,fs_provider_ready', 'lock-state check'),
+    (r'^\s*hrlzm\s+0,fs_provider_ready', 'owner-encoded acquisition'),
     (r'^\s*hrli\s+0,-6\(17\)', 'restore source'),
     (r'^\s*blt\s+0,7\b', 'restore AC1..AC7'),
     (r'^\s*sub\s+17,kconst_7_7', 'private stack release'),
-    (r'^\s*pushj\s+17,\(7\)', 'provider call'),
+    (r'^\s*pushj\s+17,@fs_memfs_service_jump\(7\)', 'provider call'),
     (r'^\s*jrst\s+fs_provider_unlock', 'common unlock'),
 ):
     require(locked, pattern, message + ' missing')
