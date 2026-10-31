@@ -9,6 +9,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
   echo '.text'
   echo '.globl proc_swap_exchange_pair_v826'
+  echo '.globl proc_swap_exchange_lock_v829'
   echo '.equ PROC_TRANSITION_RH,0200000'
   echo '.equ PROC_UAREA_RH,0400000'
   echo '.equ PROC_SWAP_BACKING_OFFSET,0406'

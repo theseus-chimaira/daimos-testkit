@@ -8,6 +8,38 @@ main:
  movei 2,2
  pushj 17,proc_swap_exchange_pair_v826
  jumpn 1,fail
+ ; v829: rejected pin leaves neither process transition set.
+ movei 3,1
+ movem 3,__pin_error
+ movei 1,1
+ movei 2,2
+ pushj 17,proc_swap_exchange_lock_v829
+ camn 1,[-1]
+ jrst lock_fail_checked
+ jrst fail
+lock_fail_checked:
+ move 3,__a
+ trne 3,0200000
+ jrst fail
+ move 3,__b
+ trne 3,0200000
+ jrst fail
+ setzm __pin_error
+ movei 1,1
+ movei 2,2
+ pushj 17,proc_swap_exchange_lock_v829
+ jumpn 1,fail
+ caie 2,02000
+ jrst fail
+ move 3,__a
+ trnn 3,0200000
+ jrst fail
+ move 3,__b
+ trnn 3,0200000
+ jrst fail
+ movei 3,0200000
+ andcam 3,__a
+ andcam 3,__b
  ; v828: never choose the currently executing process.
  movei 6,2
  movei 3,1
@@ -109,6 +141,7 @@ __b: .word __uarea,,0400000
 .globl proc_swap_records
 proc_swap_records: .word __records
 __pin_fixture: .word 0
+__pin_error: .word 0
 __records: .word 0
  .word 037
 __rec: .word 020,,0320
@@ -124,3 +157,23 @@ __stack: .block 0400
 mm_is_pinned:
  move 1,__pin_fixture
  popj 17,
+.globl mm_pin
+mm_pin:
+ move 1,__pin_error
+ jumpe 1,pin_good
+ seto 1,
+ popj 17,
+pin_good:
+ setz 1,
+ popj 17,
+.globl mm_unpin
+mm_unpin:
+ setz 1,
+ popj 17,
+.globl mm_process_verify_pinned_v792
+mm_process_verify_pinned_v792:
+ setz 1,
+ popj 17,
+.globl proc_swap_storage_invariant_v30
+proc_swap_storage_invariant_v30:
+ halt .
