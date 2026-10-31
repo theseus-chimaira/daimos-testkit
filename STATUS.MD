@@ -1,3 +1,37 @@
+## 2026-10-31 v886: read-only process teardown diagnosis
+
+`daimos-teardown-query-v886.sh` executes the compiled production
+PDP-6 `proc_control_getteardown_v886` leaf, including invalid/0/
+FREE rejection, normal and zombie stage zero, fatal FILE stage
+one, and deferred MM stage two with actual shared 020- and
+01000-octal-tick retry values. A stale finalizer marker without
+VM_SPACE_NONE or TRANSITION is not misreported. Native test PASS.
+
+`daimos-teardown-query-full-v886.sh` uses the disposable
+full-system MM pin/unpin integration image to check the real
+`dsys_procctl(GETTEARDOWN,pid)` UUO route from user mode and
+read back the MM-pending stage and shared delay while the
+process remains quarantined. The test retains the continuously
+runnable companion, two real MM_ERR_BUSY responses and eventual
+ordinary session HUP/TTY finalization. All instrumentation stays
+under `$TMPDIR`, not in production KCORE.
+
+The operator-facing `ps` utility now exposes TD and RETRY
+columns and compiles with the target PDP-6 C compiler.
+KCORE link PASS at `021762` octal (9,202 words), +37 over
+v885 and no new permanent data. Automatic OOM killing stays off.
+The first full-system attempt exposed an important ABI collision:
+op 020 was already the PIPE extension. The corrected op 041 is
+forwarded to PROCCTL; the full dispatcher native fixture PASSes
+and the old reserved-op negative control FAILs as expected.
+The final rebuilt full-system v886 test PASSes. User-mode
+`dsys_procctl` returns stage NONE for an ordinary process and
+-1 for invalid PID, and temporary in-kernel witnesses read
+MM-pending stage 2 with 020-octal retry ticks while the extent
+is genuinely pinned. Two MM_ERR_BUSY results, one pin/unpin
+pair, two reaper passes with a nonempty run queue, normal
+PIPE/HUP/TTY processing and final HALT are all accepted.
+
 ## 2026-10-31 v885: bounded retries under permanently failing providers
 
 `daimos-fatal-close-backoff-v885.sh` invokes the production PDP-6
