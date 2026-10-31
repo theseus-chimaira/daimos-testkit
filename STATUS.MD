@@ -1,3 +1,15 @@
+## 2026-10-31 v874: DPY replacement rollback and negative control
+
+Native PDP-6 testkit `daimos-dpy-replace-v874.sh` executes the real
+Type 340 replacement service. Fault-injected old-extent MM free failure
+retains the old program/IOWD and releases the unpublished new extent;
+recovery, successful replacement, allocation failure, stop and initial
+install PASS. The same fixture FAILs against pre-v870 source, as
+expected. Updated v709 gateway checks, v871 final close, v870 PIPE and
+Type 340 PI policy also PASS. DPY MRES assembler/link and lowmem KCORE
+link PASS. No full-system post-failure replay PASS is claimed.
+The unrelated named-FIFO full-system timeout remains open from v873.
+
 ## 2026-10-31 v873: named-FIFO full-system baseline comparison
 
 The existing KCC `daimos-pipe-fifo-v2.sh` full-system test times out
