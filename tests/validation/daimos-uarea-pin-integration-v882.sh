@@ -52,6 +52,18 @@ if os.environ.get('DAIMOS_UAREA_TEST_QUERY_V886', '0') == '1':
         movem   1,daimos_test_diag_first_v886
         movem   1,daimos_test_diag_latest_v886
         jrst    proc_finish_fail""")
+if os.environ.get('DAIMOS_UAREA_TEST_DETAIL_V887', '0') == '1':
+    needle = """        movem   1,daimos_test_diag_latest_v886
+        jrst    proc_finish_fail"""
+    assert s.count(needle) == 1
+    s = s.replace(needle, """        movem   1,daimos_test_diag_latest_v886
+        ; v887 test-only: read the actual pinned MM extent, without
+        ; altering the pin or releasing the process.
+        move    2,10
+        iori    2,0400
+        pushj   17,proc_control_getteardown_v886
+        movem   1,daimos_test_detail_v887
+        jrst    proc_finish_fail""")
 if os.environ.get('DAIMOS_UAREA_TEST_MODE', 'current') == 'noncurrent':
     needle = """proc_event_fatal_other:
         hlrz    1,(012)"""
@@ -115,6 +127,8 @@ s = s.replace(needle, """        pushj   17,mm_free
         jumpn   1,proc_uarea_release_fail""")
 s += """
         .bss
+        .globl daimos_test_detail_v887
+daimos_test_detail_v887: .block 1
         .globl daimos_test_diag_first_v886
 daimos_test_diag_first_v886: .block 1
         .globl daimos_test_diag_latest_v886
@@ -187,7 +201,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" \
     }
 
 map="$build/kcore.map"
-for sym in daimos_test_diag_first_v886 daimos_test_diag_latest_v886 daimos_test_runnable_reaper_v884 daimos_test_noncurrent_seen_v883 daimos_test_exit_slot_v882 daimos_test_target_v882 daimos_test_calls_v882 \
+for sym in daimos_test_detail_v887 daimos_test_diag_first_v886 daimos_test_diag_latest_v886 daimos_test_runnable_reaper_v884 daimos_test_noncurrent_seen_v883 daimos_test_exit_slot_v882 daimos_test_target_v882 daimos_test_calls_v882 \
     daimos_test_pins_v882 daimos_test_unpins_v882 \
     daimos_test_busy_v882 daimos_test_error_v882; do
     address=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
@@ -258,6 +272,9 @@ if os.environ.get('DAIMOS_UAREA_TEST_QUERY_V886', '0') == '1':
     # service advances the shared backoff for the next timer turn.
     if seen['daimos_test_diag_latest_v886'] != 0o102:
         raise SystemExit('v886: MM stage/retry changed during one failed release')
+if os.environ.get('DAIMOS_UAREA_TEST_DETAIL_V887', '0') == '1':
+    if seen['daimos_test_detail_v887'] != 0o6:
+        raise SystemExit('v887: pending MM detail must report exact one live pin')
 for name, value in expect.items():
     if seen[name] != value:
         raise SystemExit('v882: FAIL: ' + name + ' (' + str(seen[name]) +

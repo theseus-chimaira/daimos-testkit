@@ -1,3 +1,31 @@
+## 2026-11-01 v887: on-demand FILE and MM ownership snapshots
+
+`daimos-teardown-detail-v887.sh` invokes the production PDP-6
+teardown query with PID detail bit 0400. It checks ordinary and
+invalid slots, FILE descriptor count and first remaining FD,
+PIPE and DPY provider classes, later first-FD selection following
+a successful close, plus the original non-detail FILE/zero-MM
+query contract. The native test also executes the real
+`mm_find_base` and `mm_uarea_probe_v887` assembler routines
+with an exact u-area extent: 2 physical pins, zero after an
+unpin, missing extent, wrong type and wrong owner. PASS.
+
+Existing v886 native leaf and dispatch tests PASS without
+changing their expected ABI. The disposable full-system
+`daimos-teardown-detail-full-v887.sh` compiles a user-mode
+query of an ordinary and invalid PID and injects a read-only
+detail snapshot into the real post-VM MM_BUSY path. A pin
+must still exist, and successful unpin/reaping/HUP must complete.
+The full-system PDP-6 guest PASSes: detail stage 2 reports
+exactly one live MM pin (octal 06), two actual MM_ERR_BUSY
+releases followed by successful unpin/reaping, two slot-0
+reaper passes with another process runnable, and normal
+PIPE/HUP/TTY shutdown. The pre-v887 source FAILs the native
+negative control as expected. The `ps` DETAIL column also
+compiles with the target PDP-6 C compiler.
+Production KCORE links at `022072` octal (9,274 words),
++72 versus v886, no new permanent data.
+
 ## 2026-10-31 v886: read-only process teardown diagnosis
 
 `daimos-teardown-query-v886.sh` executes the compiled production
