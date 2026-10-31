@@ -71,6 +71,25 @@ restore_backing:
 restore_bitmap:
  movei 1,0400
  iorm 1,__bitmap
+ ; v824: A writable span starts inside 04000 words but three sectors
+ ; would extend beyond it. This must fail before any disk write.
+ move 4,__prepare
+ addi 4,03700
+ movem 4,__transfer+1
+ movei 4,037
+ movem 4,__transfer+5
+ movei 1,__run_req
+ pushj 17,proc_swap_exchange_run_v790
+ camn 1,[-1]
+ jrst restore_a_span_v824
+ jrst fail_entry
+restore_a_span_v824:
+ move 4,__prepare
+ movem 4,__transfer+1
+ setzm __transfer+5
+ move 1,__disk
+ caie 1,0400
+ jrst fail_disk
  movei 1,__run_req
  pushj 17,proc_swap_exchange_run_v790
  jumpn 1,fail_entry
