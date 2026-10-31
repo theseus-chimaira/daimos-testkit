@@ -1,0 +1,95 @@
+#!/bin/sh
+# Build a clean pressure image, adding MRES entry breakpoints before boot.
+# Instrument a private copy of the v669 runner; do not modify other tests.
+set -eu
+: "${TMPDIR:=$HOME/tmp}"
+: "${DAIMOS_REPO:?}"
+: "${PDP10_PREFIX:?}"
+: "${DAS_REPO:?}"
+mkdir -p "$TMPDIR"
+self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+work=$(mktemp -d "$TMPDIR/daimos-swap-v851.XXXXXX")
+runner="$work/daimos-mm-swap-scheduler-v669.sh"
+trap ':' EXIT HUP INT TERM
+
+# The v669 runner needs its adjacent CRT and SIMH helper files. Preserve
+# the original directory for those references; change only trace setup.
+python3 - "$self/daimos-mm-swap-scheduler-v669.sh" "$runner" "$self" <<'PY'
+import pathlib
+import sys
+
+source = pathlib.Path(sys.argv[1]).read_text()
+source = source.replace('self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)',
+                        'self="' + sys.argv[3] + '"', 1)
+marker = "printf 'examine %s\\ngo 020\\nexit\\n' \"$capacity_addr\" >> \"$simh_ini\""
+assert source.count(marker) == 1
+injection = r'''# v851: trace pipe reader/writer wakeup and native swap returns; MRES base is checked using SWAP's installed trampoline.
+# The base used for breakpoints comes from the previously measured v837
+# image. If the image layout changes, fail rather than silently trusting
+# unrelated breakpoint addresses.
+service=$(awk '$1=="proc_swap_mres_service_v481" {print $2;exit}' "$boot/swap-mres-v481.map")
+if [ "$service" != 002423 ]; then
+    echo "v851: MRES layout changed; recalibrate runtime base: $service" >&2
+    exit 1
+fi
+for sym in proc_swap_service_restore_done_v842 proc_swap_in_restore proc_swap_in_pressure proc_swap_in_fail proc_swap_service_pressure proc_swap_service_pop_clear proc_swap_service_failed proc_swap_service_cooldown_v833 proc_swap_service_candidate_v834 proc_swap_exchange_pair_v826 proc_swap_exchange_execute_v832 proc_swap_exchange_run_v790; do
+    relative=$(awk -v name="$sym" '$1==name {print $2;exit}' "$boot/swap-mres-v481.map")
+    [ -n "$relative" ] || exit 1
+    pc=$(printf '%06o' "$((8#27632 + 8#$relative))")
+    printf 'break %s;examine 1;examine 2;examine 17;go\n' "$pc" >> "$simh_ini"
+    echo "v851: $sym at $pc" >&2
+done
+'''
+# POSIX shell arithmetic cannot express base-eight values with 8#.
+injection = injection.replace('8#27632 + 8#$relative', '027632 + 0$relative')
+source = source.replace(marker, injection + '\n' + marker, 1)
+# Test capacity hypothesis without changing the production image default.
+build_arg = 'DRUM_BACKSTORE_BLOCKS=010000 '
+needle = 'DAS_REPO="$DAS_REPO" '
+assert source.count(needle)==1
+source = source.replace(needle, build_arg + needle, 1)
+
+resident = """for sym in proc_run_block proc_run_bad proc_run_claimed_bad proc_run_mm_bad proc_run_exec_bad proc_run_startup_failed proc_run_slot_next; do
+    pc=$(awk -v name="$sym" '$1==name {print $2;exit}' "$boot/kcore.map")
+    [ -n "$pc" ] || exit 1
+    printf 'break %s;examine %s;examine %s;examine 1;go\n' "$pc" "$slot_addr" "$sched_addr" >> "$simh_ini"
+    echo "v851: $sym at $pc" >&2
+done
+"""
+source = source.replace(marker, resident + '\n' + marker, 1)
+source = source.replace(marker, 'echo "v851: current_trace=$out" >&2\n' + marker, 1)
+
+pathlib.Path(sys.argv[2]).write_text(source)
+PY
+export DAIMOS_MM_TRACE_KEEP=1 DAIMOS_SWAP_TRACE_V669=1
+set +e
+sh "$runner" > "$work/runner.log" 2>&1
+rc=$?
+set -e
+echo "v851 runner_exit=$rc work=$work"
+tail -22 "$work/runner.log"
+trace=$(sed -n 's/^v851: current_trace=//p' "$work/runner.log" | tail -1)
+if [ -n "$trace" ]; then
+    echo "v851 trace=$trace"
+    map=${trace%/simh.out}/build/system/boot/pdp6/swap-mres-v481.map
+    for sym in proc_swap_service_restore_done_v842 proc_swap_in_restore proc_swap_in_pressure proc_swap_in_fail proc_swap_service_pressure proc_swap_service_pop_clear proc_swap_service_failed proc_swap_service_cooldown_v833 proc_swap_service_candidate_v834 proc_swap_exchange_pair_v826 proc_swap_exchange_execute_v832 proc_swap_exchange_run_v790; do
+        relative=$(awk -v name="$sym" '$1==name {print $2;exit}' "$map")
+        [ -n "$relative" ] || continue
+        pc=$(printf '%06o' "$((027632 + 0$relative))")
+        hits=$(grep -c "Breakpoint, PC: $pc " "$trace" || true)
+        echo "v851 $sym breakpoint=$pc hits=$hits"
+    done
+    kmap=${trace%/simh.out}/build/system/boot/pdp6/kcore.map
+    for sym in proc_run_block proc_run_bad proc_run_claimed_bad proc_run_mm_bad proc_run_exec_bad proc_run_startup_failed proc_run_slot_next; do
+        pc=$(awk -v name="$sym" '$1==name {print $2;exit}' "$kmap")
+        [ -n "$pc" ] || continue
+        hits=$(grep -c "Breakpoint, PC: $pc " "$trace" || true)
+        echo "v851 $sym breakpoint=$pc hits=$hits"
+    done
+    if grep -q 'Breakpoint, PC: 020462 (JRST 0,32255)' "$trace"; then
+        echo 'v851 installed trampoline target 032255 confirmed'
+    else
+        echo 'v851 trampoline could not be confirmed' >&2
+    fi
+fi
+exit "$rc"
