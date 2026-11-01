@@ -104,12 +104,12 @@ main(int argc, kword_t **argv)
         }
         if (mode == 'D') {
                 (void)dsys_writechar(1, 'D');
-                if (dsys_sleep(0400U) != 0)
+                if (dsys_sleep(0100U) != 0)
                         fail('X');
                 /* Distinguish a timer wakeup from an EXIT/CHLD failure. */
                 (void)dsys_writechar(1, 'Z');
                 (void)dsys_exit(0);
-                for (;;) { }
+                fail('E');            /* EXIT must not return to user mode. */
         }
         if (mode == 'C') {
                 descendant = spawn_mode('D');
@@ -135,7 +135,7 @@ main(int argc, kword_t **argv)
                 fail('2');
         /* The test-only kernel arms injection on this first INIT sleep.
          * All three children are already fully created at that point. */
-        if (dsys_sleep(0200U) != 0)
+        if (dsys_sleep(040U) != 0)
                 fail('3');
         /* Remote TERM records deferred delivery without releasing any
          * suspended executive stack. The children remain blocked in this
@@ -150,7 +150,7 @@ main(int argc, kword_t **argv)
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
                 SYS_EVENT_ARG(child_parent, SYS_EVENT_TERM)) != 0)
                 fail('7');
-        if (dsys_sleep(0300U) != 0)
+        if (dsys_sleep(0100U) != 0)
                 fail('8');
         status = 0UL;
         if (dsys_wait((unsigned int)child_parent, &status, 0U) !=

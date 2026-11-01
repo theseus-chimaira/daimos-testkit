@@ -238,7 +238,7 @@ while read -r name addr; do
     printf 'examine %s\n' "$addr" >> "$build/boot.ini"
 done < "$work/addresses"
 printf 'exit\n' >> "$build/boot.ini"
-printf 'v927: diagnostic boot with CHLD wakeup and held FS provider\n'
+printf 'v929: CHLD and owner-return witnesses (no held FS provider)\n'
 set +e
 (cd "$build"; TERM=dumb timeout -k 2s 90s stdbuf -o0 -e0 \
     "$PDP10_PREFIX/bin/pdp6" boot.ini) >"$work/simh.out" 2>&1
