@@ -1,3 +1,32 @@
+## 2026-11-01 v891: persistent fatal FILE refusal containment
+
+`daimos-fatal-file-persistent-v891.sh` boots a copied PDP-6 kernel
+with a real user APR fault and an isolated VFS-sync hook that always
+returns -5 for the victim's FD 0. The victim's private executive
+continuation must retain its FILE ownership while retrying; no
+automatic OOM victim cleanup or forced provider release is enabled.
+
+The separate user-mode bystander prints `S` every 020 octal ticks;
+INIT sleeps 02400 octal ticks, then uses the production
+`GETTEARDOWN(pid|0400)` interface to verify live FILE stage, FD 0
+and actual error class 5. INIT's final exit is intercepted by a
+**test-only HALT** before it could terminate the live victim.
+
+Full-system PDP-6 SIMH PASS: owner 2, one real APR fault,
+11 consecutive failed VFS calls / 11 fatal FILE passes / 11 private
+timer sleeps, exponential delay through the 01000-octal-tick
+(512 decimal) cap, 11 retained FD checks, zero accidental FD or
+word-067 witness clears, zero victim exits, bystander progress,
+the final user diagnostic and zero assertion failures. The initial
+0300-octal-tick short test also PASSed with eight refusals; the
+longer 02400-tick end-to-end run replaces it as the acceptance gate.
+
+No production sources or permanent RAM were modified. This proves
+bounded retry frequency and non-destructive ownership preservation
+under an indefinitely rejecting FILE provider for the observed
+run, not eventual reclamation. Malformed MM ownership, provider
+repair and safe automatic OOM termination remain separate work.
+
 ## 2026-11-01 v890: real destructive EXEC failure in booted PDP-6
 
 `daimos-fatal-exec-integration-v890.c` performs a valid user-mode
