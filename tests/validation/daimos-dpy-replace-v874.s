@@ -209,6 +209,8 @@ mm_invalid:
 .data
 .globl kconst_1_1
 kconst_1_1: .word 1,,1
+.globl dpy_list_orphan_v912
+dpy_list_orphan_v912: .word 0
 .globl dpy_list_base
 dpy_list_base: .word __oldlist
 .globl dpy_list_iowd
