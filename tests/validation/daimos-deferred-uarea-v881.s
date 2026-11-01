@@ -221,6 +221,12 @@ proc_trim_high:
 proc_has_live_user:
  setz 1,
  popj 17,
+; Only v891 unpublished-RUN markers dispatch here. The v881 test
+; exercises normal EXIT markers, so any call is a regression.
+.globl proc_slot_discard
+proc_slot_discard:
+ movei 1,0777
+ popj 17,
 
 .data
 .globl kconst_7_7

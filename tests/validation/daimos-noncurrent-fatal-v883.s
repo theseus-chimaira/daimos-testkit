@@ -256,6 +256,11 @@ proc_has_live_user:
  setom __parent_ran
  movei 1,1
  popj 17,
+; An unpublished RUN may not appear in this committed HUP fixture.
+.globl proc_slot_discard
+proc_slot_discard:
+ movei 1,0777
+ popj 17,
 
 .data
 .globl kconst_7_7
