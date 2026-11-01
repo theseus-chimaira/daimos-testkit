@@ -14,6 +14,14 @@ main:
  jrst term_consumed_v926
  jrst fail_14
 term_consumed_v926:
+ ; The second helper call must preserve ordinary caller register values.
+ movei 2,012345
+ movei 3,054321
+ pushj 17,proc_deferred_term_check_v926
+ caie 2,012345
+ jrst fail_14
+ caie 3,054321
+ jrst fail_14
  move 1,__close_calls
  caie 1,3
  jrst fail_1

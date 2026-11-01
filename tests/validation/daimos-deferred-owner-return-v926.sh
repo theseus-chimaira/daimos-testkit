@@ -16,7 +16,7 @@ trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
     sed -n '/^proc_fatal_close_current_v879:$/,/^\/\*\*$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
     printf '.globl proc_deferred_term_check_v926\n'
-    sed -n '/^proc_deferred_term_check_v926:$/,/^        jrst proc_fatal_close_current_v879$/p' \
+    sed -n '/^proc_deferred_term_check_v926:$/,/^        popj 17,$/p' \
         "$DAIMOS_REPO/system/kernel/proc/mach_user_pdp6.s" > "$work/helper.s"
     printf '.globl proc_event_apply\n'
     sed -n '/^proc_event_apply:$/,/^proc_event_nonfatal:/p' \
