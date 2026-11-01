@@ -66,7 +66,13 @@ grep -Eq '^_start[[:space:]]+000020$' "$user/init.map" || {
 PATH="$PDP10_PREFIX/bin:$PATH" "${MAKE:-make}" \
     -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$boot" PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
-    SYSTEM_INIT_DXR="$user/init.dxr" $large_image_arg >/dev/null
+    SYSTEM_INIT_DXR="$user/init.dxr" SIMH_DPY_MODE=HEADLESS \
+    $large_image_arg >/dev/null
+
+# This test exercises process ownership, not graphical peripherals.
+# Disable SDL-backed console windows on headless build/test hosts.
+sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
+    -e 's/^set ocnsls .*/set ocnsls disabled/' "$boot/boot.ini"
 
 set +e
 (cd "$boot" && TERM=dumb timeout -k 2s 60s stdbuf -o0 -e0 \
