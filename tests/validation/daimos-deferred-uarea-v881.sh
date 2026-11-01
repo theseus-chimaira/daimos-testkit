@@ -10,6 +10,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
     printf '.text\n.globl proc_finish_slot\n.globl proc_finish_service_v881\n'
     printf '.equ PROC_WORDS,3\n.equ PROC_TRANSITION_RH,0200000\n'
+    printf '.equ PROC_STATE_LH_MASK,0700000\n'
     printf '.equ PROC_FILE_TABLE_OFFSET,026\n.equ PROC_FDCTL_OFFSET,024\n'
     printf '.equ PROC_FINALIZE_OFFSET,067\n.equ PROC_FINALIZE_MARK_LH,0400000\n'
     sed -n '/^proc_finish_slot:$/,/^proc_slot_discard:$/p' \
