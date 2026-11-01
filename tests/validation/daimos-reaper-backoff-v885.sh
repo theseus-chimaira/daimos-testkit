@@ -10,6 +10,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
     printf '.text\n.globl proc_finish_backoff_advance_v885\n.globl proc_finish_defer_uarea_v881\n'
     printf '.equ PROC_FINALIZE_OFFSET,067\n.equ PROC_FINALIZE_MARK_LH,0400000\n'
+    printf '.equ PROC_FATAL_CLOSE_BIT,4\n.equ PROC_FDCTL_OFFSET,024\n'
     sed -n '/^proc_finish_defer_uarea_v881:$/,/^proc_finish_fail:$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
     sed -n '/^proc_finish_backoff_advance_v885:$/,/^[[:space:]]*\.bss$/p' \
