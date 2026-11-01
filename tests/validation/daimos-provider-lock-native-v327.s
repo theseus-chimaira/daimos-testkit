@@ -144,6 +144,8 @@ kret_neg5:
         movni 1,5
         popj 17,
         .data
+        .globl fs_provider_wait_event_v917
+fs_provider_wait_event_v917: .word 1
 kconst_7_7:
         .word 7,,7
 proc_current_slot: .word 2
