@@ -271,3 +271,7 @@ __notify_calls: .word 0
 __stack: .block 0400
 .globl __test_exit
 __test_exit: .block 1
+
+; v924 fixture: a foreign process finalizer, not the running slot.
+.globl proc_current_slot
+proc_current_slot: .word 0

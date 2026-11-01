@@ -69,10 +69,19 @@ assert not re.search(r'\bpushj\s+17,proc_oom_select_v863\b',
                      text['mm']), 'MM pressure gained an OOM selector call'
 assert text['proc'].count('proc_oom_select_v863:') == 1
 
+# Every nonzero scheduler wait class denotes a live private executive
+# continuation, including WAIT_CHILD (which lacks WAIT_EVENT's low bit).
+for symbol, value in (('PROC_WAIT_EVENT_LH', '020000'),
+                      ('PROC_WAIT_CHILD_LH', '040000'),
+                      ('PROC_WAIT_INTR_LH', '060000'),
+                      ('PROC_WAIT_LH_MASK', '060000')):
+    assert re.search(r'^\s*\.equ\s+' + symbol + r',\s*' + value +
+                     r'\s*$', text['proc'], re.M), 'wait encoding changed: '+symbol
 for entry in ('proc_finish_new_v881', 'proc_event_fatal_other',
               'proc_oom_provider_clear_v866'):
     part = asm_body('proc', entry)
-    assert 'PROC_WAIT_EVENT_LH' in part, 'missing wait-state guard: ' + entry
+    assert 'tlne    1,PROC_WAIT_LH_MASK' in part, (
+        'incomplete private-stack wait guard: ' + entry)
 
 assert 'backstore_verify_allocated_v795(first, blocks)' in text['swap']
 assert 'backstore_free(first, blocks)' in text['swap']

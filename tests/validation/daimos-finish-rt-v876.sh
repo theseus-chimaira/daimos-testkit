@@ -12,6 +12,8 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
     printf '.equ PROC_WORDS,3\n.equ PROC_FDCTL_OFFSET,024\n'
     printf '.equ PROC_FILE_TABLE_OFFSET,026\n.equ PROC_TRANSITION_RH,0200000\n'
     printf '.equ PROC_FINALIZE_OFFSET,067\n.equ PROC_FINALIZE_MARK_LH,0400000\n'
+    printf '.equ PROC_FATAL_CLOSE_BIT,4\n'
+    printf '.equ PROC_WAIT_LH_MASK,060000\n'
     sed -n '/^proc_finish_slot:$/,/^proc_finish_service_v881:$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
 } > "$work/leaf.s"

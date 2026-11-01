@@ -9,6 +9,7 @@ work=$(mktemp -d "$TMPDIR/daimos-current-exit-v868.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
     printf '.text\n.globl file_close\n.globl file_close_all\n.globl file_close_all_at_v865\n'
+    printf '.equ PROC_WAIT_LH_MASK,060000\n'
     sed -n '/^file_close:$/,/^; int file_dup(int fd)/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     sed -n '/^file_close_all:$/,/^; Shared bulk-word/p' \
