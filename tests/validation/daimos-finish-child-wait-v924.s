@@ -11,17 +11,17 @@ main:
  movei 2,2
  pushj 17,proc_finish_slot
  camn 1,[-1]
- jrst v920_finish_refused
+ jrst v924_finish_refused
  jrst fail_26
-v920_finish_refused:
+v924_finish_refused:
  skipn __vm_calls
- jrst v920_finish_vm_intact
+ jrst v924_finish_vm_intact
  jrst fail_27
-v920_finish_vm_intact:
+v924_finish_vm_intact:
  skipn __release_calls
- jrst v920_finish_ua_intact
+ jrst v924_finish_ua_intact
  jrst fail_28
-v920_finish_ua_intact:
+v924_finish_ua_intact:
  move 1,[040000,,0]
  andcam 1,__ptable+010
  move 1,[060000,,0]

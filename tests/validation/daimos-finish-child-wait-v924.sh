@@ -29,4 +29,4 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
         tail -55 "$work/log" >&2
         exit 1
     }
-echo 'v924: direct noncurrent finish refuses WAIT_CHILD; subsequent fatal lifecycle PASS'
+echo 'v924: direct finish refuses CHILD/INTR waits; subsequent fatal lifecycle PASS'

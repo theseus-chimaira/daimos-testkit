@@ -24,4 +24,4 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
         tail -40 "$work/log" >&2
         exit 1
     }
-echo 'v924: native OOM private child-wait exclusion PASS (no termination)'
+echo 'v924: native OOM CHILD/INTR private wait-class exclusion PASS (no termination)'

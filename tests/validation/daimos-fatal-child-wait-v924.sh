@@ -28,4 +28,4 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
         tail -55 "$work/log" >&2
         exit 1
     }
-echo 'v924: foreign private WAIT_CHILD stack protected; normal fatal lifecycle PASS'
+echo 'v924: foreign CHILD/INTR stacks protected; normal fatal lifecycle PASS'

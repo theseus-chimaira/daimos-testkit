@@ -12,17 +12,17 @@ main:
  movei 2,2
  pushj 17,proc_event_apply
  camn 1,[-1]
- jrst v918_wait_refused
+ jrst v924_wait_refused
  jrst fail_26
-v918_wait_refused:
+v924_wait_refused:
  skipn __close_calls
- jrst v918_close_untouched
+ jrst v924_close_untouched
  jrst fail_27
-v918_close_untouched:
+v924_close_untouched:
  skipn __vm_calls
- jrst v918_vm_untouched
+ jrst v924_vm_untouched
  jrst fail_28
-v918_vm_untouched:
+v924_vm_untouched:
  move 1,[040000,,0]
  andcam 1,__ptable+010
  move 1,[060000,,0]

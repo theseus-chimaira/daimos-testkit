@@ -18,9 +18,9 @@ main:
  setz 2,
  pushj 17,proc_oom_select_v863
  camn 1,[-1]
- jrst v918_waiter_protected
+ jrst v924_waiter_protected
  jrst fail_8
-v918_waiter_protected:
+v924_waiter_protected:
  move 1,[040000,,0]
  andcam 1,__table+013
  move 1,[060000,,0]
