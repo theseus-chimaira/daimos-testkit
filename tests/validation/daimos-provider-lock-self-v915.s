@@ -26,7 +26,24 @@ main:
         movei 5,055
         movei 6,066
         movei 7,5
+        movem 17,__saved_sp_v915
         pushj 17,fs_provider_reg_call
+        camn 17,__saved_sp_v915
+        jrst self_sp_ok_v915
+        jrst fail
+self_sp_ok_v915:
+        caie 2,022
+        jrst fail
+        caie 3,033
+        jrst fail
+        caie 4,044
+        jrst fail
+        caie 5,055
+        jrst fail
+        caie 6,066
+        jrst fail
+        caie 7,1                  ; provider number adjusted to index
+        jrst fail
         camn 1,[-5]
         jrst self_refused_v915
         jrst fail
@@ -213,6 +230,7 @@ kconst_7_7:
         .word 7,,7
 proc_current_slot: .word 2
 __expected_owner_v915: .word 3
+__saved_sp_v915: .word 0
         .bss
 fs_provider_ready:
         .block 1
