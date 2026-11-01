@@ -10,6 +10,9 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
     printf '.text\n.globl proc_session_teardown\n'
     printf '.equ PROC_WORDS,3\n.equ PROC_FDCTL_OFFSET,024\n'
+    printf '.equ PROC_TRANSITION_RH,0200000\n'
+    printf '.equ PROC_FINALIZE_OFFSET,067\n'
+    printf '.equ PROC_FINALIZE_MARK_LH,0400000\n'
     sed -n '/^proc_session_teardown:$/,/^        \.globl  proc_event_send$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
