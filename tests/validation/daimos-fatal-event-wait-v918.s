@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]     ; v925 fixture: saved user return
+ movem 1,__victim+020
  ; v918: a foreign target sleeping inside the kernel event wait
  ; still owns its private executive continuation. A fatal signal must
  ; not close descriptors, free its VM, or discard the suspended stack.

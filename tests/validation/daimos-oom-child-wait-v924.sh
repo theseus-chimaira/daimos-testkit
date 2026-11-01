@@ -13,6 +13,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
     printf '.equ PROC_STATE_LH_MASK,0700000\n.equ PROC_STATE_RUN,0200000\n'
     printf '.equ PROC_STATE_SLEEP,0300000\n.equ PROC_STATE_STOP,0600000\n'
     printf '.equ PROC_FDCTL_OFFSET,024\n.equ PROC_USER_MAP_BIT,2\n.equ PROC_FATAL_CLOSE_BIT,4\n'
+    printf '.equ CTX_PC,020\n'
     sed -n '/^proc_oom_select_v863:$/,/^proc_swap_victim:$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
 } > "$work/leaf.s"

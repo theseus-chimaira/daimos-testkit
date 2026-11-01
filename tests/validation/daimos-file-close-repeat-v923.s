@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]      ; saved user-mode return for remote victim
+ movem 1,__uarea_other+020
  ; Failed SYNC is reported but the other descriptor is still closed.
  movei 1,__other
  pushj 17,file_close_all_at_v865

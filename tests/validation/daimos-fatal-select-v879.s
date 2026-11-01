@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]     ; v925 fixture: saved user return
+ movem 1,__uarea+020
  ; A process with no VM or swap record still has a live kernel stack.
  pushj 17,proc_sched_resched_select
  caie 1,1

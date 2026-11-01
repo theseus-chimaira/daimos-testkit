@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]     ; v925 fixture: saved user return
+ movem 1,__victim+020
  ; A VM-destroy failure is NOT a committed HUP. It must still be
  ; reported to the caller, leaving the victim retryable in user mode.
  setom __fail_vm

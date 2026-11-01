@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]       ; v925 saved user return
+ movem 1,__uarea+020
  ; Last (15th) descriptor must block teardown without side effects.
  movei 1,2
  movei 2,0123

@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]     ; v925 fixture: saved user return
+ movem 1,__uarea+020
  ; An already transitioning slot must be rejected before HUP begins.
  movei 3,0200000
  iorm 3,__ptable+6

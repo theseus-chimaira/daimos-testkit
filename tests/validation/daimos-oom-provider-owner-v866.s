@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]     ; v925 fixture: saved user return
+ movem 1,__uarea+020
  ; 010 is excluded; 2 is currently running; 4 is realtime protected;
  ; 7 has a pinned extent. The largest eligible resident is slot 3.
  movei 1,010

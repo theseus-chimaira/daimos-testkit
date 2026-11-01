@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]     ; v925 fixture: saved user return
+ movem 1,__uarea+020
  ; VM_SPACE_NONE is -1, not a zero RH base.
  movei 2,__uarea
  pushj 17,proc_restore_kernel_tail

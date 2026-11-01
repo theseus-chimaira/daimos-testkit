@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]       ; v925 saved user return
+ movem 1,__uarea+020
  ; Unpublished RUN child slot 2 has a real VM and a stable u-area.
  ; Two failed frees must retain its ownership through a deferred retry.
  movei 1,2

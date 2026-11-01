@@ -82,6 +82,10 @@ for entry in ('proc_finish_new_v881', 'proc_event_fatal_other',
     part = asm_body('proc', entry)
     assert 'tlne    1,PROC_WAIT_LH_MASK' in part, (
         'incomplete private-stack wait guard: ' + entry)
+    # Wakeup clears the wait marker before a resumed executive stack has
+    # returned to user mode. Saved CTX_PC is the second ownership test.
+    assert 'CTX_PC(' in part and '010000' in part, (
+        'missing saved executive-continuation guard: ' + entry)
 
 assert 'backstore_verify_allocated_v795(first, blocks)' in text['swap']
 assert 'backstore_free(first, blocks)' in text['swap']

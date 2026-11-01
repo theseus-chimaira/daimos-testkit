@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]     ; v925 fixture: saved user return
+ movem 1,__victim+020
  ; v920: direct noncurrent process finalization must refuse an
  ; active private kernel-event stack before closing/releasing any VM.
  move 1,[020000,,0]

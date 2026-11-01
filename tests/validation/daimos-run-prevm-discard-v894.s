@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ move 1,[010000,,0]       ; v925 saved user return
+ movem 1,__uarea+020
  ; PID 2 has a VM but no u-area. PID 3 has both. Each destructor
  ; rejects twice without dropping the owner, then succeeds.
  movei 1,2
