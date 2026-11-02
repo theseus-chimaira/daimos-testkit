@@ -9,7 +9,10 @@ syscall = (root / 'proc/syscall_dispatch_pdp6.s').read_text()
 brk = vm.split('vm_space_brk_current:', 1)[1].split('vm_space_destroy:', 1)[0]
 alloc = mm.split('mm_alloc_aligned:', 1)[1].split('mm_free:', 1)[0]
 assert 'vm_brk_fail:' in brk and 'seto    1,' in brk
-assert 'jumpn   1,vm_brk_fail' in brk
+assert 'jumpn   1,vm_brk_alloc_fail_v999' in brk
+assert 'move    2,1                     ; exact allocator failure cause' in brk
+assert 'movni   2,4                    ; local validation failure' in brk
+assert 'vm_brk_fail_return_v999:' in brk
 assert 'tlne    10,0777777' in brk
 assert 'camge   5,6' in brk
 assert 'mm_alloc_aligned' in brk
@@ -21,5 +24,5 @@ assert 'fs_memory_reclaim' in alloc
 assert 'proc_swap_reclaim' in alloc
 assert 'native_sys_brk:\n        move    1,2\n        jrst    vm_space_brk_current' in syscall
 assert 'proc_oom_select_v863:' not in (root / 'proc/proc_pdp6.s').read_text()
-print('v998: BRK returns ambiguous -1, normal reclaim precedes failure: PASS')
-print('v998: requester OOM killing remains OFF pending explicit cause classification')
+print('v999: BRK retains internal MM cause in AC2 while AC1 stays -1: PASS')
+print('v999: requester OOM killing remains OFF pending booted termination test')
