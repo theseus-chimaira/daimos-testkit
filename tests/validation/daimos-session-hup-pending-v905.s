@@ -199,3 +199,11 @@ __calls3: .word 0
 __stack: .block 0400
 .globl __test_exit
 __test_exit: .block 1
+
+; The v905 fixture has no allocated canonical TTY line. A successful
+; idempotent reset is the only legitimate result at commit.
+.text
+.globl proc_tty_line_try_reset_v897
+proc_tty_line_try_reset_v897:
+ setz 1,
+ popj 17,
