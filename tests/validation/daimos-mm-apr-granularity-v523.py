@@ -33,7 +33,7 @@ def main():
             "BRK extent rounding must retain APR-aligned mask")
     require(r"\.equ\s+VM_PDP6_ALIGN_WORDS,02000", swap_s,
             "swap/restoration must retain APR alignment")
-    require(r"mm_compact_find|mm_move_extent", mm,
+    require(r"movei\s+2,VM_EXTENT_ALIGN_WORDS\s+pushj\s+17,mm_move_extent", mm,
             "compaction must respect process APR alignment")
     print("PASS: MM exact-size allocation and native 1024-word APR contracts")
     print("NOTE: source guard only; native allocation/fragmentation tests remain required")
