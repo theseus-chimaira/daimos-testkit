@@ -196,3 +196,11 @@ __exit_status: .word 0
 __stack: .block 0400
 .globl __test_exit
 __test_exit: .block 1
+
+; Fatal owner v995 now preflights HUP before switching stacks. This
+; fixture only models a process without an attached session.
+.text
+.globl proc_session_teardown
+proc_session_teardown:
+ setz 1,
+ popj 17,
