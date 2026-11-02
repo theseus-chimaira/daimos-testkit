@@ -8,6 +8,8 @@
 
 static struct proc slots[3];
 static struct proc_swap_record records[3];
+static vnode_t mount_roots[26];
+vnode_t *vfs_mount_root_base = mount_roots;
 struct proc *proc_table = slots;
 struct proc_swap_record *proc_swap_records = records;
 kword_t vfs_mount_limit = 26UL;
@@ -33,6 +35,8 @@ int main(void)
                 provider = (mount & 1U) ? MEMFS_PROVIDER : D6FS_PROVIDER;
                 kind = 1U;
                 node = VFS_NODE(provider, VFS_MOUNT_KIND(mount, kind), 012345U);
+                mount_roots[mount - 1U] = VFS_NODE(provider,
+                    VFS_MOUNT_KIND(mount, kind), 1U);
                 records[1].state = 0UL;
                 slots[1].sched &= ~PROC_SWAP_STAGE_MOUNT_EXT_BIT;
                 check(proc_swap_attach(1, node, 0700UL, 1U) == 0,
