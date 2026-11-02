@@ -39,12 +39,13 @@ for src in stdlib string; do
 done
 "$das" -F -C -O "$obj/memcpy.dobj" "$DAIMOS_REPO/userland/libc/memcpy.s"
 "$das" -F -C -O "$obj/memmove.dobj" "$DAIMOS_REPO/userland/libc/memmove.s"
+"$das" -F -C -O "$obj/memset.dobj" "$DAIMOS_REPO/userland/libc/memset-v1.s"
 "$kcc" -Pgnu99 -O -x=pdp6 -m=gas $incs -S "$self/$tag.c" -o "$obj/test.s"
 "$das" -F -C -O "$obj/test.dobj" "$obj/test.s"
 "$dlink" --daimos-uuo-relax -b 020 -o "$obj/test.dxr" -M "$obj/test.map" \
         "$obj/crt0.dobj" "$obj/syscall-helpers.dobj" "$obj/syscall.dobj" \
         "$obj/stdlib.dobj" "$obj/string.dobj" "$obj/memcpy.dobj" \
-        "$obj/memmove.dobj" "$obj/test.dobj"
+        "$obj/memmove.dobj" "$obj/memset.dobj" "$obj/test.dobj"
 
 cc_host=${HOST_CC:-cc}
 "$cc_host" -std=c99 -O2 -Wall -Wextra -o "$pty" \
