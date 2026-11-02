@@ -49,8 +49,7 @@ v926_no_vm:
  movei 1,2
  movei 2,2
  pushj 17,proc_event_apply
- camn 1,[-1]
- jrst v925_wait_refused
+ jumpe 1,v925_wait_refused
  jrst fail_26
 v925_wait_refused:
  skipn __close_calls
@@ -71,8 +70,7 @@ v925_vm_untouched:
  movei 1,2
  movei 2,2
  pushj 17,proc_event_apply
- camn 1,[-1]
- jrst v925_handoff_safe
+ jumpe 1,v925_handoff_safe
  jrst fail_26
 v925_handoff_safe:
  skipn __close_calls
@@ -90,8 +88,7 @@ v925_no_vm:
  movei 1,2
  movei 2,2
  pushj 17,proc_event_apply
- camn 1,[-1]
- jrst v925_intr_safe
+ jumpe 1,v925_intr_safe
  jrst fail_26
 v925_intr_safe:
  skipn __vm_calls
@@ -104,6 +101,11 @@ v925_intr_vm_safe:
 v925_intr_file_safe:
  move 1,[060000,,0]
  andcam 1,__ptable+010
+ ; Reset deferred fatal state before the independent direct-HUP tests.
+ movsi 1,016
+ andcam 1,__victim+024
+ movei 1,1
+ andcam 1,__victim+024
  ; A VM-destroy failure is NOT a committed HUP. It must still be
  ; reported to the caller, leaving the victim retryable in user mode.
  setom __fail_vm

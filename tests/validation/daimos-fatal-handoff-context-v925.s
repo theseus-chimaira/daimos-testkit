@@ -11,9 +11,9 @@ main:
  movei 1,2
  movei 2,2
  pushj 17,proc_event_apply
- camn 1,[-1]
- jrst v925_wait_refused
- jrst fail_26
+ jumpe 1,v925_wait_refused
+ movei 1,060
+ jrst done
 v925_wait_refused:
  skipn __close_calls
  jrst v925_close_untouched
@@ -33,9 +33,9 @@ v925_vm_untouched:
  movei 1,2
  movei 2,2
  pushj 17,proc_event_apply
- camn 1,[-1]
- jrst v925_handoff_safe
- jrst fail_26
+ jumpe 1,v925_handoff_safe
+ movei 1,061
+ jrst done
 v925_handoff_safe:
  skipn __close_calls
  jrst v925_no_file
@@ -52,9 +52,9 @@ v925_no_vm:
  movei 1,2
  movei 2,2
  pushj 17,proc_event_apply
- camn 1,[-1]
- jrst v925_intr_safe
- jrst fail_26
+ jumpe 1,v925_intr_safe
+ movei 1,062
+ jrst done
 v925_intr_safe:
  skipn __vm_calls
  jrst v925_intr_vm_safe
@@ -66,6 +66,12 @@ v925_intr_vm_safe:
 v925_intr_file_safe:
  move 1,[060000,,0]
  andcam 1,__ptable+010
+ ; v970 accepts deferred HUP. Clear its pending marker only to
+ ; isolate the original v925 immediate-fatal failure/commit tests.
+ movsi 1,010
+ andcam 1,__victim+024
+ movei 1,1
+ andcam 1,__victim+024
  ; A VM-destroy failure is NOT a committed HUP. It must still be
  ; reported to the caller, leaving the victim retryable in user mode.
  setom __fail_vm
@@ -74,7 +80,8 @@ v925_intr_file_safe:
  pushj 17,proc_event_apply
  camn 1,[-1]
  jrst check_precommit
- jrst fail_26
+ movei 1,063
+ jrst done
 check_precommit:
  move 1,__ptable+6
  trne 1,0200000

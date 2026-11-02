@@ -61,6 +61,10 @@ v925_intr_vm_safe:
 v925_intr_uarea_safe:
  move 1,[060000,,0]
  andcam 1,__ptable+010
+ ; The historical fixture starts with PIPE pending. v970 correctly
+ ; defers other fatal events while it remains set; isolate legacy HUP.
+ movei 1,1
+ andcam 1,__victim+024
  ; A VM-destroy failure is NOT a committed HUP. It must still be
  ; reported to the caller, leaving the victim retryable in user mode.
  setom __fail_vm
