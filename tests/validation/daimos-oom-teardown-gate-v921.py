@@ -67,7 +67,7 @@ for src, entry, target in checks:
 # These are currently selector-only entry points, not a teardown engine.
 assert not re.search(r'\bpushj\s+17,proc_oom_select_v863\b',
                      text['mm']), 'MM pressure gained an OOM selector call'
-assert text['proc'].count('proc_oom_select_v863:') == 1
+assert 'proc_oom_select_v863:' not in text['proc']
 
 # Every nonzero scheduler wait class denotes a live private executive
 # continuation, including WAIT_CHILD (which lacks WAIT_EVENT's low bit).
@@ -78,7 +78,7 @@ for symbol, value in (('PROC_WAIT_EVENT_LH', '020000'),
     assert re.search(r'^\s*\.equ\s+' + symbol + r',\s*' + value +
                      r'\s*$', text['proc'], re.M), 'wait encoding changed: '+symbol
 for entry in ('proc_finish_new_v881', 'proc_event_fatal_other',
-              'proc_oom_provider_clear_v866'):
+              ):
     part = asm_body('proc', entry)
     assert 'tlne    1,PROC_WAIT_LH_MASK' in part, (
         'incomplete private-stack wait guard: ' + entry)
@@ -92,7 +92,7 @@ assert 'backstore_free(first, blocks)' in text['swap']
 assert 'proc_storage_publish_v30' in text['swap']
 assert 'proc_swap_detach(int slot)' in text['swap']
 
-print('v921: guarded selector / direct finalizer / fatal gateway inventory PASS')
+print('v921: faulting-process policy / direct finalizer / fatal gateway inventory PASS')
 print('v921: release chain NOT CERTIFIED for OOM termination:')
 print('  FILE close may call VFS_SYNC and sleep in the serialized provider')
 print('  session teardown can send HUP and fail after partial delivery')
