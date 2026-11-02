@@ -22,7 +22,11 @@ for code in ('MM_ERR_NOMEM,-1', 'MM_ERR_FRAGMENTED,-2',
 assert 'mm_alloc_aligned_noreclaim' in alloc
 assert 'fs_memory_reclaim' in alloc
 assert 'proc_swap_reclaim' in alloc
-assert 'native_sys_brk:\n        move    1,2\n        jrst    vm_space_brk_current' in syscall
+assert 'native_sys_brk:\n        move    1,2\n        pushj   17,vm_space_brk_current' in syscall
+assert '.equ    PROC_OOM_BRK_ENABLED_V1000,0' in syscall
+assert 'native_sys_brk_check_cause_v1000:' in syscall
+assert 'camn    2,[-1]' in syscall
+assert 'jrst    proc_fatal_close_current_v879' in syscall
 assert 'proc_oom_select_v863:' not in (root / 'proc/proc_pdp6.s').read_text()
 print('v999: BRK retains internal MM cause in AC2 while AC1 stays -1: PASS')
 print('v999: requester OOM killing remains OFF pending booted termination test')
