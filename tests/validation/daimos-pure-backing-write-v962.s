@@ -1,0 +1,84 @@
+.text
+.globl main
+main:
+ movei 17,__stack-1
+ hrli 17,-0400
+ ; Resident PURE process slot 1, public mount 3, text 0700.
+ movei 1,2
+ lsh 1,022
+ movei 2,0700
+ lsh 2,026
+ ior 1,2
+ iori 1,012345
+ movem 1,__record+1
+ pushj 17,load_node_v962
+ pushj 17,proc_swap_backing_busy
+ caie 1,1
+ jrst fail_1
+ pushj 17,load_node_v962
+ addi 1,1
+ pushj 17,proc_swap_backing_busy
+ jumpn 1,fail_2
+ ; Swapped PURE uses same record in stable u-area.
+ move 1,__record+1
+ movem 1,__uarea+0406
+ move 1,[04000,,0]
+ movem 1,__ptable+4
+ move 1,[010,,010]
+ movem 1,__record+1
+ pushj 17,load_node_v962
+ pushj 17,proc_swap_backing_busy
+ caie 1,1
+ jrst fail_3
+ ; Non-PURE resident process should not pin mount.
+ setzm __uarea+0406
+ move 1,[04000,,02000]
+ movem 1,__ptable+4
+ movei 1,2
+ lsh 1,022
+ iori 1,012345
+ movem 1,__record+1
+ pushj 17,load_node_v962
+ pushj 17,proc_swap_backing_busy
+ jumpn 1,fail_4
+ setz 1,
+ jrst done
+fail_1: movei 1,1
+ jrst done
+fail_2: movei 1,2
+ jrst done
+fail_3: movei 1,3
+ jrst done
+fail_4: movei 1,4
+load_node_v962:
+ movei 1,6
+ lsh 1,036
+ movei 2,3
+ lsh 2,030
+ ior 1,2
+ movei 2,1
+ lsh 2,022
+ ior 1,2
+ iori 1,012345
+ popj 17,
+done: movem 1,__test_exit
+ jrst 4,0
+.data
+.globl proc_table
+proc_table: .word __ptable
+.globl proc_high_slot
+proc_high_slot: .word 2
+.globl proc_swap_records
+proc_swap_records: .word __record
+__record: .word 0
+ .word 0
+__ptable:
+ .block 3
+ .word __uarea,,0400000
+ .word 04000,,02000
+ .word 0300000,,0
+__uarea: .block 0410
+.bss
+__stack: .block 0400
+.globl __test_exit
+__test_exit: .block 1
