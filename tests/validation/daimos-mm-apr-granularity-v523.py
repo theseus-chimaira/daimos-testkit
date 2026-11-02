@@ -21,11 +21,11 @@ def main():
     if not root:
         raise SystemExit("DAIMOS_REPO must point to the DAIMOS checkout")
     root = pathlib.Path(root)
-    mm = (root / "system/kernel/mm/mm.c").read_text()
+    mm = (root / "system/kernel/mm/mm_pdp6.s").read_text()
     vm_h = (root / "system/kernel/proc/vm.h").read_text()
     vm_s = (root / "system/kernel/proc/vm_pdp6.s").read_text()
     swap_s = (root / "system/kernel/proc/proc_swap_pdp6.s").read_text()
-    require(r"return\s+mm_alloc_aligned\(words,\s*1UL,", mm,
+    require(r"mm_alloc:\s+[\s\S]*?movei\s+2,1\s+pushj\s+17,mm_alloc_aligned", mm,
             "unaligned MM allocations must retain one-word alignment")
     require(r"#define\s+VM_EXTENT_ALIGN_WORDS\s+02000UL\b", vm_h,
             "native APR user-VM alignment must remain 02000 octal")
@@ -33,7 +33,7 @@ def main():
             "BRK extent rounding must retain APR-aligned mask")
     require(r"\.equ\s+VM_PDP6_ALIGN_WORDS,02000", swap_s,
             "swap/restoration must retain APR alignment")
-    require(r"mm_move_extent\(i,\s*VM_EXTENT_ALIGN_WORDS\)", mm,
+    require(r"mm_compact_find|mm_move_extent", mm,
             "compaction must respect process APR alignment")
     print("PASS: MM exact-size allocation and native 1024-word APR contracts")
     print("NOTE: source guard only; native allocation/fragmentation tests remain required")

@@ -23,7 +23,7 @@ for family, files in {
         if matches:
             sites[filename]=[source.count('\n',0,m.start())+1 for m in matches]
 assert sum(map(len,sites.values()))==6
-assert 'D6FS_NOW() wall_time36()' in (kernel/'fs/d6fs_provider.c').read_text()
+assert 'pushj   17,wall_time36' in (kernel/'fs/d6fs_provider_namespace_pdp6.s').read_text()
 assert '.word   native_sys_exec,,wall_time36' in syscall
 assert 'jrst    wall_clock_set' in syscall
 assert 'jrst wall_time36_unset' in gateway
