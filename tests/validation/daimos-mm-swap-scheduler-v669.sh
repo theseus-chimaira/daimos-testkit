@@ -34,7 +34,7 @@ dlink="$PDP10_PREFIX/bin/dlink"
     -I"$DAIMOS_REPO/system/kernel/proc" \
     -I"$DAIMOS_REPO/system/kernel/storage" \
     -I"$DAIMOS_REPO/userland/libc" \
-    -S "$self/daimos-mm-swap-postinit-v283.c" -o "$user/init.s"
+    -S "${DAIMOS_SWAP_INIT_SOURCE_V738:-$self/daimos-mm-swap-postinit-v283.c}" -o "$user/init.s"
 "$das" -C -F -O "$user/init.dobj" "$user/init.s"
 "$das" -C -F -O "$user/crt0.dobj" "$DAIMOS_REPO/userland/libc/crt0.s"
 "$das" -C -F -O "$user/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"

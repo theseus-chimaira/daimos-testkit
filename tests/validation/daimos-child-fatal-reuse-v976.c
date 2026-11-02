@@ -176,11 +176,14 @@ main(int argc, kword_t **argv)
         (void)dsys_writechar(1, 'R');
         /* New process must not inherit the previous slot's fatal event. */
         descendant = spawn_mode('D');
+        (void)dsys_writechar(1, 'U');
         if (descendant != child_parent)
                 fail('p');
+        (void)dsys_writechar(1, 'V');
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
                 SYS_EVENT_ARG(descendant, SYS_EVENT_TERM)) != 0)
                 fail('q');
+        (void)dsys_writechar(1, 'Y');
         status = 0UL;
         if (dsys_wait((unsigned int)descendant, &status, 0U) !=
             descendant || status != SYS_WAIT_STATUS(SYS_WAIT_EXITED,

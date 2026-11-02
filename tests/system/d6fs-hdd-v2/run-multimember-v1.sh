@@ -26,7 +26,9 @@ PASSWD_S6REC=$WORK/passwd.s6rec
 
 cleanup()
 {
-        rm -rf "$WORK"
+        if [ "${D6FS_MULTI_KEEP_WORK:-0}" != 1 ]; then
+                rm -rf "$WORK"
+        fi
 }
 trap cleanup 0 1 2 3 15
 mkdir -p "$WORK" "$REPORT_DIR" "$BUILD_ROOT/tools"
@@ -67,6 +69,9 @@ make_ini()
                             printf "attach -q dsk%d %s/dsk%d.dsk\n", i, diskdir, i
                     next
             }
+            # Do not replace freshly attached members 1..N with stale
+            # four-member boot-fixture media later in this SIMH file.
+            /^attach -q dsk[1-3] / { next }
             { print }
         ' "$KERNEL_BUILD/boot.ini" > "$ini"
 }
@@ -166,6 +171,7 @@ awk -v disk="$diskdir/dsk0.dsk" -v simhlog="$WORK/dsk2-missing.simh.log" \
     /^attach -q dcs0 / { print "attach -q dcs0 " dcs_port; next }
     /^attach -q ge0 / { next }
     /^attach -q dsk0 / { print "attach -q dsk0 " disk; next }
+    /^attach -q dsk[1-3] / { next }
     { print }
 ' "$KERNEL_BUILD/boot.ini" > "$WORK/dsk2-missing.ini"
 STDBUF=${STDBUF:-stdbuf} "$WATCH_OUTPUT" -f 6 -t 3 \

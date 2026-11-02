@@ -93,6 +93,7 @@ wait_exit(unsigned int pid)
 #include "daimos-run-vm-oom-v198.h"
 #endif
 
+
 int
 main(int argc, kword_t **argv)
 {
@@ -164,6 +165,7 @@ main(int argc, kword_t **argv)
                         fail('6');
         }
         (void)dsys_writechar(1, 'R');
+
 
 #ifdef TEST_VM_OOM_V198
         check_vm_oom_v198(&occupied);

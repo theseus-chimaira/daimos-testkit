@@ -12,9 +12,10 @@ set -eu
 make_cmd=${MAKE:-make}
 host_cc=${HOST_CC:-cc}
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
+. "$self/../lib/daimos-tsfs-tape-root-v117.sh"
 tag=daimos-tsfs-mount-v1
 work="$TMPDIR/$tag-$$"
-build="$work/build"
+build=${DAIMOS_TSFS_PREBUILT_BUILD:-$work/build}
 pty="$work/pty-run"
 tcp="$work/tcp-run"
 cty_in="$work/cty.in"
@@ -25,6 +26,8 @@ simh_pid=
 dcs_pid=
 dcs_port=$((20000 + ($$ % 10000)))
 ge_port=$((40000 + ($$ % 10000)))
+tsfs_wait_ticks=${DAIMOS_TSFS_WAIT_TICKS:-2400}
+tsfs_simh=${DAIMOS_TSFS_SIMH:-$PDP10_PREFIX/bin/pdp6}
 
 cleanup()
 {
@@ -35,7 +38,9 @@ cleanup()
                 fi
         done
         exec 3>&- 4>&- 2>/dev/null || true
-        rm -rf "$work"
+        if [ "${DAIMOS_TSFS_KEEP_WORK:-0}" != 1 ]; then
+                rm -rf "$work"
+        fi
 }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$work/media"
@@ -48,20 +53,21 @@ mkdir -p "$work/media"
 "$make_cmd" -C "$PDP10_TOOLS_REPO" build BUILD_ROOT="$build" >/dev/null
 "$build/tools/host/mktsfs" -n 3 -i 1:2345 -g 7 -o "$work/media/member" >/dev/null
 
-# Build a fresh D6FS image for this single boot.  D6FS marks a mounted root
-# DIRTY, so reusing a previous test image would turn a later boot failure into
-# a false TSFS regression.
-PATH="$PDP10_PREFIX/bin:$PATH" \
-        "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
-        BUILD="$build" USERLAND_BUILD_ROOT="$build" \
-        PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
-        DAS_REPO="$DAS_REPO" HOST_TOOLS="$build/tools/host" \
-        SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
-cp "$work/media/member0.dta" "$build/media/dtc0.tap"
-cp "$work/media/member1.dta" "$build/media/dtc1.tap"
-cp "$work/media/member2.dta" "$build/media/dtc2.tap"
+# A tape-root image contains the resident TSFS provider.  Disk-root images
+# intentionally omit it to conserve memory, so they cannot test MOUNT.TSFS.
+if [ -z "${DAIMOS_TSFS_PREBUILT_BUILD:-}" ]; then
+        PATH="$PDP10_PREFIX/bin:$PATH" \
+                "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
+                BUILD="$build" USERLAND_BUILD_ROOT="$build" \
+                ROOT=tape BOOT=ptr \
+                PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
+                DAS_REPO="$DAS_REPO" HOST_TOOLS="$build/tools/host" \
+                SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
+fi
+daimos_tsfs_prepare_secondary_v117 "$build" "$work" \
+        "$build/tools/host/mktsfs"
 
-"$self/../lib/daimos-simh-headless.sh" "$build/boot.ini" \
+"$self/../lib/daimos-simh-headless.sh" "$build/boot.tsfs-secondary.ini" \
         "$build/boot.headless.ini" "$dcs_port" "$ge_port"
 
 mkfifo "$cty_in" "$dcs_in"
@@ -69,7 +75,7 @@ exec 3<>"$cty_in"
 exec 4<>"$dcs_in"
 (
         cd "$build"
-        TERM=dumb exec "$pty" -r "$PDP10_PREFIX/bin/pdp6" boot.headless.ini \
+        TERM=dumb exec "$pty" -r "$tsfs_simh" boot.headless.ini \
                 <"$cty_in" >"$cty_out" 2>&1
 ) &
 simh_pid=$!
@@ -86,7 +92,7 @@ wait_new()
         file=$1
         pattern=$2
         start=$3
-        ticks=${4:-700}
+        ticks=${4:-$tsfs_wait_ticks}
         i=0
         while [ "$i" -lt "$ticks" ]; do
                 if tail -c "+$((start + 1))" "$file" 2>/dev/null | \
@@ -134,8 +140,9 @@ send_slow ROOT
 wait_new "$dcs_out" 'DSH V1' "$start" || fail_logs 'ROOT login did not enter DSH'
 
 start=`log_size "$dcs_out"`
-send_slow 'MOUNT.TSFS /DEV/DTC0 /MOUNT/DT0'
-wait_new "$dcs_out" '# ' "$start" 900 || fail_logs 'MOUNT.TSFS did not return to DSH'
+send_slow 'MOUNT.TSFS /DEV/DTC4 /MOUNT/DT0'
+wait_new "$dcs_out" '# ' "$start" "$tsfs_wait_ticks" || \
+        fail_logs 'MOUNT.TSFS did not return to DSH'
 
 start=`log_size "$dcs_out"`
 send_slow 'STAT /MOUNT/DT0'
