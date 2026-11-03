@@ -139,7 +139,10 @@ main(int argc, kword_t **argv)
 
         if (new_pipe(&rfd, &wfd) != 0)
                 fail('1', 011);
-        if (dsys_writechar(wfd, 'X') != -1 || dsys_readchar(rfd) != -1)
+        /* v1084 test correction: since v901, PIPE character I/O is
+         * an exact one-word transfer over the same FIFO. The former
+         * unsupported-operation expectation was obsolete. */
+        if (dsys_writechar(wfd, 'X') != 0 || dsys_readchar(rfd) != 'X')
                 fail('2', 012);
         if (dsys_write_words(wfd, first, FIRST_WORDS) != (int)FIRST_WORDS)
                 fail('3', 013);

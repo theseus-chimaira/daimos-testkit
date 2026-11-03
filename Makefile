@@ -538,6 +538,9 @@ test-daimos-pipe-wordfifo: check-prefix
 		tests/validation/daimos-pipe-wordfifo-v2.sh
 
 test-daimos-pipe-anon: test-daimos-pipe-wordfifo
+	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
+	 DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+	 tests/validation/daimos-pipe-anon-regression-v902.sh
 
 
 
@@ -1394,6 +1397,16 @@ test-daimos-fatal-release-scope-v1083: check-prefix
 	 sh tests/validation/daimos-dpy-double-free-v912.sh
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 sh tests/validation/daimos-vm-detach-order-v957.sh
+
+.PHONY: test-daimos-fifo-open-abort-mm-v1084
+test-daimos-fifo-open-abort-mm-v1084: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-fifo-open-abort-mm-v1084.sh
+	@DAIMOS_V1084_NEGATIVE=1 DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-fifo-open-abort-mm-v1084.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-fatal-release-scope-v1083.py
 
 test-daimos-provider-fatal-contention-v1078: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

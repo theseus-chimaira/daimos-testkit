@@ -110,13 +110,17 @@ assert 'pushj 17,mm_free' in dpy_stop
 assert 'movem 010,dpy_list_base' in dpy_stop
 assert 'pushj   17,mm_free' in tty_reset or 'mm_free(base,' in tty_reset
 
-# Detect the separate FIFO interrupted-open leak scenario; tracking
-# its presence is not claiming a fix. The callback has no FILE retry
-# owner on rejection and currently drops the return status.
+# An interrupted FIFO OPEN must not drop a failed final release:
+# FILE's preallocated descriptor is still available to publish when
+# MM will not release the tentative reference.
 open_abort = between(pipe, 'pipe_fifo_open_intr:', 'pipe_fifo_open_done:')
 assert 'pushj   17,pipe_close_ref' in open_abort
-assert 'jrst    pipe_fifo_open_bad' in open_abort
-assert 'jumpn   1,' not in open_abort
+assert 'jumpe   1,pipe_fifo_open_bad' in open_abort
+file_open_fifo = between(file_io, 'file_open_newfd:', 'file_open_fifo_fail:')
+assert 'pushj   17,file_new_fd' in file_open_fifo
+assert 'pushj   17,pipe_fifo_open' in file_open_fifo
+assert 'jumpe   1,file_open_fifo_fail' in file_open_fifo
+assert 'movem   1,(13)' in file_open_fifo
 
 print('v1083: direct fatal release leaves allocate no new MM/backing;')
-print('v1083: PIPE/DPY/TTY/VM/XIP release contracts and FIFO OPEN risk PASS')
+print('v1083/v1084: direct PIPE/DPY/TTY/VM/XIP and FIFO OPEN owner gate PASS')

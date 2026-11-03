@@ -1,3 +1,41 @@
+## 2026-11-03 v1084: FIFO OPEN rollback cannot abandon a pinned PIPE
+
+An interruptible named FIFO OPEN acquires a provisional FILE descriptor
+and a live PIPE reference before its reader/writer rendezvous. On
+interruption the former `pipe_fifo_open_intr` discarded the result of
+`pipe_close_ref` and returned failure unconditionally. A refused final
+MM free kept the PIPE object allocated and counted but `file_open`
+erased the only FD which could retry its release.
+
+v1084 replaces a single `JRST` with `JUMPE`: successful rollback still
+reports interrupted OPEN; failed rollback commits the already
+reserved descriptor, so the caller receives a usable FD and can
+close it after MM becomes releasable. This is failure-atomic ownership
+transfer without a new retry table or global collector. Matched KCC
+`__kcore_low_end` remains `023116` octal; no new BSS or MRES words.
+
+The native PDP-6 v1084 acceptance links actual FILE OPEN/NEWFD/CLOSE,
+PIPE FIFO find/open/close/unlink and real MM free/unpin. An injected
+physical pin prevents the first rollback; the returned FD, PIPE
+reference and MM owner remain intact. A second close also refuses;
+after physical unpin the same FD closes and the allocation disappears.
+An ordinary unpinned interrupt still returns failure and frees the
+object. The pre-v1084 negative control specifically confirms retained
+MM ownership with a cleared FILE descriptor. PASS.
+
+The full named-FIFO guest PASSes rendezvous, shared runtime, rename,
+unlink, mount-busy and D6FS persistence. The old wordfifo-v2 test's
+`!2` check was obsolete after v901 added PIPE character operations;
+the test now expects an exact `'X'` character round-trip before the
+original opaque-word FIFO tests. OOM termination remains disabled.
+The corrected full wordfifo-v2 guest PASSes, as does the v901 native
+character-stream test. The testkit Make target for anonymous PIPE now
+also executes its genuine v902 guest regression instead of only the
+wordfifo prerequisite. Full 256K physical-OOM guest v1077 PASSes two
+D6FS and one MM refusal, with owner retry and independent witness.
+The actual v902 anonymous PIPE guest PASSes create, character I/O,
+EOF, EPIPE, duplicate and RUN references, and blocking wakeup.
+
 ## 2026-11-03 v1083: direct fatal-release leaf audit (no kernel delta)
 
 The new executable source contract
