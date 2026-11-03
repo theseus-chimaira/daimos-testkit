@@ -1,3 +1,27 @@
+## 2026-11-03 v1080: DRM236 third concurrent request waits correctly
+
+The v1079 DRM watchdog introduced an accidental unconditional retry in
+`drm236_runtime_queue_full`: it masked the watchdog LH to get the
+active descriptor pointer but retained a bare JRST instead of the old
+conditional SKIPN. One active + one pending request could leave a
+third caller busy-spinning instead of sleeping on the active owner's
+private three-word completion descriptor.
+
+`test-daimos-drm236-queue-full-v1080` links the actual PDP-6 DRM
+runtime service. With both older descriptors owned, a third caller
+must enter `proc_wait_event` on the active request's completion word,
+then retry/claim the freed engine and wait for *its own* completion
+word. It checks the new 300-tick watchdog, two exact event addresses,
+successful return and cleared engine state. PASS. The unchanged v1079
+driver FAILS the same native test as a negative control. The corrected
+driver uses one JUMPE instead of JRST; **no added RAM words**.
+
+The v1079 watchdog sequence and real-SIMH DRM online read/write/queue
+tests still PASS. The full 256K v1077 requester-OOM guest remains PASS
+with two D6FS SYNC refusals and one MM_BUSY refusal, restored memory
+accounting and an independent witness. Clock-inhibited slot-0 device
+waits and generic provider cancellation remain open.
+
 ## 2026-11-03 v1079: real DRM236 in-flight timeout and KINIT hook
 
 `test-daimos-drm236-watchdog-v1079` source-checks the new 60-Hz
