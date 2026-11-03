@@ -1,3 +1,12 @@
+.PHONY: test-daimos-simh-ptr-tsfs-evidence-v1042
+test-daimos-simh-ptr-tsfs-evidence-v1042: check-prefix
+	@test -n '$(PTR_TSFS_BUILD)' && test -n '$(PTR_TSFS_LOG)' || { \
+	    echo 'Set PTR_TSFS_BUILD and PTR_TSFS_LOG from a completed real SIMH PTR/TSFS boot' >&2; exit 2; }
+	@PATH='$(PDP10_PREFIX)/bin':$$PATH python3 \
+	    tests/validation/daimos-simh-ptr-tsfs-evidence-v1042.py \
+	    --repo '$(abspath $(DAIMOS_REPO))' \
+	    --build '$(abspath $(PTR_TSFS_BUILD))' --log '$(abspath $(PTR_TSFS_LOG))'
+
 .PHONY: test-daimos-vfs-parent-ac3-v1037
 test-daimos-vfs-parent-ac3-v1037: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
