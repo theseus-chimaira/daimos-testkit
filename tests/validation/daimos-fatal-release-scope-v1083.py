@@ -63,13 +63,17 @@ dpy_stop = between(dpy, 'dpy_list_stop:',
                    '* @brief Update the retained Type-342')
 tty_reset = between(tty_c, 'proc_tty_line_reset(unsigned int tty)',
                     '/**\n * Attempt to retire a canonical input buffer')
+tty_checked = between(tty_c,
+                      'proc_tty_line_try_reset_v897(unsigned int tty)',
+                      '/** Change TTY input mode')
 
 for name, part in (('FILE', file_close), ('PIPE', pipe_close),
                    ('TTY', tty_release), ('UAREA', uarea_release),
                    ('VM', vm_release), ('SWAP', swap_detach),
                    ('XIP', xip_release), ('XIP_UNPIN', xip_unpin),
                    ('XIP_OWNS', xip_owns), ('DPY_STOP', dpy_stop),
-                   ('TTY_MM', tty_reset)):
+                   ('TTY_MM', tty_reset),
+                   ('TTY_CHECKED_MM', tty_checked)):
     never_alloc(name, part)
 
 assert 'pushj   17,pipe_close_ref' in file_close
@@ -108,7 +112,11 @@ assert dpy_write.index('jumpe 011,dpy_list_stop') < dpy_write.index(
     'pushj 17,mm_alloc')
 assert 'pushj 17,mm_free' in dpy_stop
 assert 'movem 010,dpy_list_base' in dpy_stop
-assert 'pushj   17,mm_free' in tty_reset or 'mm_free(base,' in tty_reset
+assert 'proc_tty_line_try_reset_v897(tty)' in tty_reset
+assert 'mm_free(base, MM_TYPE_KERNEL_DYNAMIC,' in tty_checked
+assert tty_checked.index('mm_free(base,') < tty_checked.index(
+    'if (rc != MM_OK)') < tty_checked.index(
+    'proc_tty_line_base_set(tty, 0UL)')
 
 # An interrupted FIFO OPEN must not drop a failed final release:
 # FILE's preallocated descriptor is still available to publish when
