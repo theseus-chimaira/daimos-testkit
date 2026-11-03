@@ -22,3 +22,18 @@ To recover an experimental source or test, use `git show` on either
 preserved parent commit. Any future reintroduction must reconcile
 current code interfaces and run its own acceptance tests. The archive
 is retained only to avoid losing potentially useful historical work.
+
+## v1053: nested-UUO stress history
+
+The historical `testkit-dsh-nested-uuo-stress-20261022-v54` commits
+are now ancestors of this archive. Their unreconciled nested-process,
+angle-parameter lexer and EDCORE experiments remain historical only.
+The branch's separate worktree held twelve untracked diagnostic probes
+and one modified runtime report. Exact copies and their verified hashes
+are now in testkit main under `tests/archive/dsh-nested-uuo-v1053/`.
+
+The current media-isolation regression passed while reviewing the v54
+branch. The old v54 test sources are not a basis for claiming those
+nested-UUO bugs are fixed; they need independent guest reproduction.
+The v1053 ancestry merge does not alter current active regression
+targets or DAIMOS production sources.
