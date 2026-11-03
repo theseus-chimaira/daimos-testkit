@@ -1325,6 +1325,12 @@ test-daimos-libc-memcpy-20261008-v1:
 	 "$(abspath $(DAIMOS_REPO))/userland/libc/string.c"
 	"$${TMPDIR:-$$HOME/tmp}/daimos-libc-memcpy-20261008-v1"
 
+.PHONY: test-daimos-brk-double-mm-rollback-v1074
+test-daimos-brk-double-mm-rollback-v1074: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-brk-double-mm-rollback-v1074.sh
+
 .PHONY: test-daimos-provider-lock-contract-v325
 test-daimos-provider-lock-contract-v325:
 	@python3 tests/validation/daimos-provider-lock-contract-v325.py \
