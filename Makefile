@@ -1386,6 +1386,12 @@ test-daimos-xip-release-stage-v1094: check-prefix
 
 .PHONY: test-daimos-p0d-release-matrix-v1096
 .PHONY: test-daimos-pipe-typed-close-v1099
+.PHONY: test-daimos-dpy-typed-replace-v1100
+test-daimos-dpy-typed-replace-v1100: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-dpy-typed-replace-v1100.sh
+
 test-daimos-pipe-typed-close-v1099: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

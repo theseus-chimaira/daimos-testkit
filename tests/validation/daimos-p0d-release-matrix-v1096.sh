@@ -11,6 +11,7 @@ for name in \
     daimos-pipe-close-v870 \
     daimos-pipe-typed-close-v1099 \
     daimos-dpy-replace-v874 \
+    daimos-dpy-typed-replace-v1100 \
     daimos-swap-detach-v880 \
     daimos-swap-detach-state-v880 \
     daimos-session-hup-pending-v905 \

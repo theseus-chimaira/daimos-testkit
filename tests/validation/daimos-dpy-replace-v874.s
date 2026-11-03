@@ -7,7 +7,7 @@ main:
  movei 1,__input
  movei 2,3
  pushj 17,dpy_write_words
- camn 1,[-1]
+ camn 1,[-5]
  jrst rollback_result
  jrst fail_1
 rollback_result:
