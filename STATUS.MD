@@ -1,3 +1,32 @@
+## 2026-11-03 v1070: compiler and assembler closeout regressions
+
+The full ~/git branch consolidation integrated the KCC compiler
+fixes from its former 15-commit development branch, and the DAS DXR2
+ST2 validation from its historical metadata branch. Their former
+branch tips are ancestors of current main in their respective repos;
+obsolete remote references have been deleted.
+
+Testkit now provides two host-side reproducible checks:
+
+* `test-dxr2-st2-v1070`: compiles the current DAS checker with warnings
+  as errors, and validates seven hand-constructed 36-bit DXR2 headers.
+  ST2 minimum and maximum stack reservations pass; out-of-range and
+  PURE ST2 headers are rejected; TX2 remains accepted with an in-range
+  text prefix and rejects an overlong text prefix. All seven passed.
+* `test-kcc-excluded-long-directive-v1070`: runs the built host KCC on
+  a program containing a long unknown directive in an excluded
+  conditional. It must generate the retained function without an
+  internal compiler failure. The v1070 test passed against the merged
+  15-commit KCC compiler. KCC still emits an ordinary warning for the
+  unrecognized directive; this is not an internal compiler error.
+
+The current GCC stack-byte boundary regression also compiles with
+the expected 9-bit word-aligned LDB address. The new SIMH DCS readiness
+source builds with -Werror and passes GO/PC plus console smoke tests,
+but a live network-backed DCS queue saturation test was not run.
+The repaired pdp10-tools runner passes the native PDP-6 FILE target.
+These validations are not 32K boot or KCORE optimization tests.
+
 ## 2026-11-03 v1064: classify last startup-snapshot test branch
 
 All independent testkit changes on the historical v72 startup branch

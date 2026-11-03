@@ -1,3 +1,12 @@
+.PHONY: test-dxr2-st2-v1070 test-kcc-excluded-long-directive-v1070
+test-dxr2-st2-v1070:
+	@DAS_REPO='$(DAS_REPO)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/dxr2-st2-v1070.sh
+
+test-kcc-excluded-long-directive-v1070:
+	@KCC_CC='$(KCC_CC)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/kcc-excluded-long-directive-v1070.sh
+
 .PHONY: test-daimos-kcore-swap-input-deps-v1063
 test-daimos-kcore-swap-input-deps-v1063:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
