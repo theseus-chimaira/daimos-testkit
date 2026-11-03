@@ -1,3 +1,8 @@
+.PHONY: test-simh-pdp6-go-pc-v155
+test-simh-pdp6-go-pc-v155: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/check-simh-pdp6-go-pc-v155.sh
+
 .PHONY: test-daimos-dsh-uppercase-literals-v1016
 test-daimos-dsh-uppercase-literals-v1016:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
