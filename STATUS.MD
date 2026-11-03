@@ -1,3 +1,22 @@
+## 2026-11-03 v1081: final-member TTY MM owner is not orphaned
+
+Source-linked PDP-6 finalizer test v1081 verifies that a TTY release
+refusal leaves VM and u-area intact under the existing PREVM marker,
+that the idle stack retries TTY then VM in order, and that post-VM
+MM_BUSY retries do not repeat TTY or VM release. Existing native
+v967/v968 real MM pinned/wrong-owner cases and v881 deferred-uarea
+case pass. Source-contract gate checks the production checked-return
+TTY API and no new provider cancellation. The full 256K v1077
+requester-OOM D6FS/MM faulted guest passes. The older v969 full-guest
+fixture originally injected a pin into a TTY whose session owner
+was already zero. v1081's fixture now explicitly sets a genuine
+session owner before arming that test case.
+The corrected v969 booted guest passes with retained/retried witnesses
+equal to one and error witness zero. Against the original pre-v1081
+finalizer, the new source-linked v1081 test correctly fails before
+VM ownership can be established. Comparable noninstrumented KCORE
+low-end grows two words (octal 023110 -> 023112), with no new BSS.
+
 ## 2026-11-03 v1080: DRM236 third concurrent request waits correctly
 
 The v1079 DRM watchdog introduced an accidental unconditional retry in

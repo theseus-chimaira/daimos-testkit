@@ -117,6 +117,7 @@ import re
 import sys
 
 out = Path(sys.argv[2]).read_text(errors='replace')
+bad = []
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
     m = re.findall(r'(?m)^\s*0*' + re.escape(addr.lstrip('0')) +
@@ -125,6 +126,8 @@ for line in Path(sys.argv[1]).read_text().splitlines():
     if not m or (name not in ('matched', 'entry', 'armed') and int(m[-1], 8) !=
                  (0 if name == 'error_word' else 1)) or \
             (name == 'matched' and int(m[-1], 8) < 1):
-        raise SystemExit('v969: unexpected ' + name + ': ' + repr(m))
+        bad.append((name, m))
+if bad:
+    raise SystemExit('v969: unexpected witnesses: ' + repr(bad))
 print('v969: booted final-session pinned TTY retains, unpins, retries PASS')
 PY

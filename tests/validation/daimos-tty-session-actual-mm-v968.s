@@ -10,6 +10,10 @@ main:
  movei 1,5
  movei 2,1
  pushj 17,proc_tty_release_session
+ camn 1,[-1]
+ jrst pinned_retained_v1081
+ jrst fail_1
+pinned_retained_v1081:
  move 1,proc_tty_records
  andi 1,0377
  caie 1,5
@@ -36,6 +40,9 @@ main:
  movei 1,5
  movei 2,1
  pushj 17,proc_tty_release_session
+ jumpe 1,freed_after_unpin_v1081
+ jrst fail_6
+freed_after_unpin_v1081:
  move 1,proc_tty_records
  andi 1,0377
  jumpn 1,fail_6
@@ -59,6 +66,10 @@ check_base:
  movei 1,5
  movei 2,1
  pushj 17,proc_tty_release_session
+ camn 1,[-1]
+ jrst wrong_owner_retained_v1081
+ jrst fail_9
+wrong_owner_retained_v1081:
  move 1,proc_tty_records
  andi 1,0377
  caie 1,5
@@ -71,6 +82,9 @@ check_base:
  movei 1,5
  movei 2,1
  pushj 17,proc_tty_release_session
+ jumpe 1,freed_after_owner_fix_v1081
+ jrst fail_11
+freed_after_owner_fix_v1081:
  move 1,proc_tty_records
  andi 1,0377
  jumpn 1,fail_11

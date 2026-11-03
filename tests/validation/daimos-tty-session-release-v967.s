@@ -6,6 +6,10 @@ main:
  movei 1,5
  movei 2,1
  pushj 17,proc_tty_release_session
+ camn 1,[-1]
+ jrst tty_refused_v1081
+ jrst failed
+tty_refused_v1081:
  move 1,proc_tty_records
  andi 1,0377
  caie 1,5
@@ -17,6 +21,9 @@ main:
  movei 1,5
  movei 2,1
  pushj 17,proc_tty_release_session
+ jumpe 1,tty_released_v1081
+ jrst failed
+tty_released_v1081:
  move 1,proc_tty_records
  andi 1,0377
  jumpn 1,failed
@@ -37,6 +44,16 @@ proc_tty_line_reset:
  aos __reset_calls
  skipn __refuse
  setzm __base
+ popj 17,
+.globl proc_tty_line_try_reset_v897
+proc_tty_line_try_reset_v897:
+ pushj 17,proc_tty_line_reset
+ skipn __base
+ jrst tty_reset_ok_v1081
+ seto 1,
+ popj 17,
+tty_reset_ok_v1081:
+ setz 1,
  popj 17,
 .globl proc_tty_line_base_get
 proc_tty_line_base_get:

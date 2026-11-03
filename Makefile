@@ -1363,6 +1363,17 @@ test-daimos-drm236-queue-full-v1080: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 sh tests/validation/daimos-drm236-queue-full-v1080.sh
 
+.PHONY: test-daimos-tty-finalize-gate-v1081
+test-daimos-tty-finalize-gate-v1081: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-tty-finalize-gate-v1081.py
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-tty-prevm-finalize-v1081.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-tty-session-release-v967.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-tty-session-actual-mm-v968.sh
+
 test-daimos-provider-fatal-contention-v1078: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

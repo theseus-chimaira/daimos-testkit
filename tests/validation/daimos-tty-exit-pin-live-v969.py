@@ -20,6 +20,15 @@ patch('''proc_session_teardown_commit_v875:
         jrst    daimos_test_pin_skip_v969
         setzm   daimos_test_pin_armed_v969
         aos     daimos_test_pin_matched_v969
+        ; The prior session teardown may already have detached TTY0.
+        ; Restore a genuine test-owned session before allocating its
+        ; pinned line: a detached TTY is not an owner-retention case.
+        move    4,proc_tty_records(013)
+        andcmi  4,0377
+        move    5,010
+        andi    5,0377
+        ior     4,5
+        movem   4,proc_tty_records(013)
         move    1,013
         pushj   17,proc_tty_line_ensure
         jumpe   1,daimos_test_pin_error_v969
