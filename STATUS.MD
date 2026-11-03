@@ -1,3 +1,37 @@
+## 2026-11-03 v1085: SIDL RUN rollback TTY gate before VM teardown
+
+The unpublished RUN discard can remain SIDL/TRANSITION after an
+unsuccessful VM rollback, allowing the parent to leave the inherited
+session while the child still owns a potential last-member TTY line.
+Old `proc_slot_discard` destroyed the VM, then dropped the return from
+`proc_tty_release_session`. A refused TTY/MM free could retain the
+canonical line record after the final retry process and u-area were
+gone. The full process was incorrectly reported as discarded.
+
+v1085 performs checked TTY retirement before VM destruction and
+routes refusal through the existing SIDL VM retry marker and shared
+slot-0 backoff. No additional retry table, allocator, kernel ABI or
+permanent data is needed. Source-linked native PDP-6 positive test
+checks TTY refusal, retained VM/U-area, SIDL reaper mark, successful
+retry, exact-once VM/U-area destruction, and no EXIT/HUP/WAIT paths.
+The pre-v1085 source negative control specifically confirms the old
+successful-discard-with-unreleased-TTY ownership failure. Both PASS.
+
+Previously stale v892/v894 extracted-fixture constants now include
+`PROC_FINALIZE_PREVM_LH`; the v894 TTY callback returns the checked
+zero-success ABI, and its expected call count reflects v1085's TTY
+preflight on each pre-VM retry. Native v892, v894 and v1081 PASS.
+The full 256K physical-OOM v1077 D6FS/MM fault guest and v969 actual
+MM-pinned TTY exit/unpin/retry guest PASS as well. Matched KCC KCORE
+low end rises one word (`023116` -> `023117` octal), zero new BSS.
+
+OOM activation still requires a complete transitive teardown and
+provider-ownership proof, safe behavior for nonreturning in-flight
+callbacks, a slot-0 PI6-mask reachability proof and cross-product
+full-system regressions. Physical failure of the APR line clock is
+not an OOM recovery requirement; software-induced blocked PI6 is.
+`PROC_OOM_BRK_ENABLED_V1000` remains disabled in production.
+
 ## 2026-11-03 v1084: FIFO OPEN rollback cannot abandon a pinned PIPE
 
 An interruptible named FIFO OPEN acquires a provisional FILE descriptor

@@ -1408,6 +1408,18 @@ test-daimos-fifo-open-abort-mm-v1084: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	 python3 tests/validation/daimos-fatal-release-scope-v1083.py
 
+.PHONY: test-daimos-discard-tty-prevm-v1085
+test-daimos-discard-tty-prevm-v1085: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-discard-tty-prevm-v1085.sh
+	@DAIMOS_V1085_NEGATIVE=1 DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-discard-tty-prevm-v1085.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-run-discard-reaper-v892.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-run-prevm-discard-v894.sh
+
 test-daimos-provider-fatal-contention-v1078: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

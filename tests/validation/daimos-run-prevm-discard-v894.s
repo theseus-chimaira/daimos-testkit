@@ -98,7 +98,9 @@ check_count:
  caie 1,2
  jrst fail_24
  move 1,__tty_calls
- caie 1,1
+ ; v1085 checks checked TTY release on every pre-VM retry. The
+ ; session scanner makes subsequent checks harmless once detached.
+ caie 1,3
  jrst fail_25
  move 1,__runq_calls
  caie 1,2
@@ -221,6 +223,9 @@ proc_tty_release_session:
  jumpe 1,tty_done
  aos __tty_calls
 tty_done:
+ ; Checked TTY release returns 0 on success (since v1081).
+ ; The original fixture returned the session ID in AC1 instead.
+ setz 1,
  popj 17,
 .globl proc_uarea_release
 proc_uarea_release:
