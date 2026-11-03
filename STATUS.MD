@@ -1,3 +1,23 @@
+## 2026-11-03 v1054: native MAKE recursion scratch 256K guest check
+
+DAIMOS native MAKE now caches its implicit-rule scratch record lazily
+for each recursion depth reached instead of allocating all 33 records
+after parsing. The v1054 probe file exercises a six-level dependency
+chain and a dependency cycle in a real isolated full-profile 256K
+SIMH PDP-6 guest. Both tests passed on the modified KCC MAKE image,
+and on an unmodified MAKE control image.
+
+The opt-in testkit target `test-daimos-make-lazy-depth-v1054` requires
+`DAIMOS_MAKE_BOOT_INI` pointing to an independently built 256K image
+using explicit disk-root selection. It verifies the matching lazy
+source-code contract, so an unmodified bulk-allocator binary source
+cannot give a false positive. The target passed against the modified
+DAIMOS worktree and rejected the unchanged baseline source.
+
+This is a behavior-and-source regression, not a measured process
+peak-memory test. No native `MAKE ALL` self-hosting run or 32K test
+was performed. Further KCORE optimization remains deferred.
+
 ## 2026-11-03 v1050: historical DSH/INIT test archive consolidation
 
 The obsolete source-dependent test histories

@@ -1,0 +1,27 @@
+# Native MAKE recursion-scratch acceptance on a full-profile 256K PDP-6.
+# Each fixture is created on the isolated guest /TEMP filesystem.
+probe make-lazy-dependency-chain-v1054
+setup ECHO .PHONY: TOP N1 N2 N3 N4 N5 > /TEMP/MAKEV1054
+setup ECHO TOP: N1 >> /TEMP/MAKEV1054
+setup ECHO N1: N2 >> /TEMP/MAKEV1054
+setup ECHO N2: N3 >> /TEMP/MAKEV1054
+setup ECHO N3: N4 >> /TEMP/MAKEV1054
+setup ECHO N4: N5 >> /TEMP/MAKEV1054
+setup ECHO N5: >> /TEMP/MAKEV1054
+setup ECHO "> ECHO LAZYDEPTHOK" >> /TEMP/MAKEV1054
+command MAKE -N -F /TEMP/MAKEV1054 TOP; ECHO MAKERC:$?
+contains MAKERC:0
+not_contains IMPLICIT SCRATCH EXHAUSTED
+not_contains DEPENDENCY CYCLE
+timeout 40
+end
+
+probe make-lazy-dependency-cycle-v1054
+setup ECHO .PHONY: C1 C2 > /TEMP/MCYCV1054
+setup ECHO C1: C2 >> /TEMP/MCYCV1054
+setup ECHO C2: C1 >> /TEMP/MCYCV1054
+command MAKE -N -F /TEMP/MCYCV1054 C1; ECHO CYCLERC:$?
+contains DEPENDENCY CYCLE
+contains CYCLERC:1
+timeout 40
+end

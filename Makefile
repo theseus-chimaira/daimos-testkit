@@ -1,3 +1,10 @@
+.PHONY: test-daimos-make-lazy-depth-v1054
+test-daimos-make-lazy-depth-v1054: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    DAIMOS_MAKE_BOOT_INI='$(DAIMOS_MAKE_BOOT_INI)' \
+	    PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/daimos-make-lazy-depth-v1054.sh
+
 .PHONY: test-daimos-simh-console-pc-v1048
 test-daimos-simh-console-pc-v1048: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
