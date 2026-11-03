@@ -1,3 +1,27 @@
+## 2026-11-03 v1050: historical DSH/INIT test archive consolidation
+
+The obsolete source-dependent test histories
+`dsh-phase0-history-repair-tests-20261012-v7` and
+`supervisor-idle-tty-activate-testkit-20261013-v5` are preserved by
+`archive/legacy-dsh-supervisor-tests-v1049-20261103`. Their old
+local/remote branch names were removed after verifying both original
+commits as archive ancestors. These experimental tests depend on
+the discontinued standalone INIT/SUPERVISOR design or DSH lock-based
+history repair, and are not presented as current main acceptance.
+
+The historical host-only D6FS bounded-undo model was recompiled and
+passed 5,805 append/replay interruption cuts. It assumes per-block
+write persistence and is not production journal or disk format code.
+The matching source implementations remain in the DAIMOS archive
+`archive/legacy-dsh-init-experiments-v1050-20261103`.
+
+The restored standalone SIMH interactive PC regression v1048 and the
+existing v155 GO-PC regression both pass. The original v115 local
+branch remains attached to a separate dirty DevSpace2 worktree, with
+three untracked DTFS diagnostics; no removal of that local worktree
+or its untracked files was attempted. No 32K tests ran, and KCORE
+optimization remains deferred.
+
 ## 2026-11-03 v1048: historical PDP-6 console-PC regression restored
 
 The independent `pdp6-simh-console-pc-20261021-v115` branch retained a
