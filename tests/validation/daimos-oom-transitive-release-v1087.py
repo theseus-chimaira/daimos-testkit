@@ -222,7 +222,15 @@ assert hup.index('pushj   17,proc_event_apply') < hup.index(
 
 event = section(proc, 'proc_event_apply:', 'proc_event_nonfatal:')
 closed('fatal event (self/foreign)', event,
-       ('file_close_all', 'file_close_all_at_v865', 'proc_finish_slot'))
+       ('file_close_all', 'file_close_all_at_v865', 'proc_finish_slot',
+        'proc_runq_add'))
+runq = section(proc, 'proc_runq_add:', 'proc_runq_remove:')
+closed('targeted fatal FS waiter queue', runq, ())
+assert 'evt_def_fs_check_v1090:' in event
+assert 'caie    6,fs_provider_wait_event_v917' in event
+assert 'caie    6,PROC_STATE_SLEEP' in event
+assert event.index('caie    6,fs_provider_wait_event_v917') < event.index(
+    'pushj   17,proc_runq_add')
 assert 'jrst    proc_fatal_close_current_v879' in event
 assert 'jumpn   1,proc_event_fatal_other_close_fail_v867' in event
 assert event.index('pushj   17,file_close_all_at_v865') < event.index(

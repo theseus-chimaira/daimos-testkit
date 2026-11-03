@@ -1355,6 +1355,18 @@ test-daimos-oom-requester-provider-mm-v1077: check-prefix
 .PHONY: test-daimos-provider-lock-contract-v325
 .PHONY: test-daimos-provider-fatal-contention-v1078
 .PHONY: test-daimos-provider-inflight-owner-v1088
+.PHONY: test-daimos-provider-pending-fatal-v1090
+test-daimos-provider-pending-fatal-v1090: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-provider-pending-fatal-v1090.sh
+
+.PHONY: test-daimos-provider-pending-live-v1091
+test-daimos-provider-pending-live-v1091: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-provider-pending-live-v1091.sh
+
 test-daimos-provider-inflight-owner-v1088: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
