@@ -1,0 +1,4 @@
+e3c420c02aacc24a230c870e2dca8c7a78182f697581846233ffee9d4aa3d025  probes/daimos-dtfs-taperoot-a-v199.txt
+633c81cbe3be3f57f59d6860e9af0444e12ee35a56a2c64f4e911a9f3e570a01  probes/daimos-dtfs-taperoot-a-v200.txt
+450f440fa99d054d87f925a82edbedee26aa311bb7eee461dcd4ad9eddf24c99  validation/daimos-dtfs-fsck-status-v199.sh
+2fd8dd541a31c4152fc023dccaabac36e87539f01d856230f33f38949622b2f9  validation/daimos-dtfs-taperoot-longmount-v200.sh

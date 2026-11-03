@@ -1,0 +1,10 @@
+probe mount-dtc3-long-v200
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME
+not_contains MOUNT.DTFS:
+timeout 900
+end
+probe postmount-echo-v200
+command ECHO POST_MOUNT_V200
+line ^POST_MOUNT_V200$
+timeout 360
+end
