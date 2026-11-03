@@ -1,3 +1,9 @@
+.PHONY: test-daimos-vfs-parent-ac3-v1037
+test-daimos-vfs-parent-ac3-v1037: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/daimos-vfs-parent-ac3-v1037.sh
+
 .PHONY: test-daimos-monitorfs-compiler-v1033
 test-daimos-monitorfs-compiler-v1033: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
