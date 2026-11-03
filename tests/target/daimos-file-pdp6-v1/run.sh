@@ -15,7 +15,7 @@ kernel="$DAIMOS_REPO/system/kernel"
 inc="$kernel/fs"
 storage="$kernel/storage"
 
-"$cc" -std=c99 -Os -I"$PDP10_PREFIX/include" -I"$inc" -I"$storage" -I"$kernel/core" -S "$here/test.c" -o "$work/test.s"
+"$cc" -std=c99 -Os -I"$inc" -I"$storage" -I"$kernel/core" -S "$here/test.c" -o "$work/test.s"
 PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
     --machine pdp6 --mode deposit --exec-mode go --timeout 10 \
     --workdir "$work/run" --name daimos-file-pdp6-v1 \

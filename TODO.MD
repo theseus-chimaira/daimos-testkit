@@ -1,3 +1,15 @@
+### v1064: final startup-snapshot branch reconciliation
+
+- [x] Restore useful v101 dependency test and native FILE fixture
+  extension storage fix, and validate both against current source.
+- [x] Re-run current VFS parent-AC3 and MonitorFS compiler-selection
+  regressions without changing or optimizing KCORE.
+- [x] Preserve obsolete v72 test fixtures by ancestry, not by adding
+  incompatible targets to current regression suites.
+- [ ] Reconsider the v72 startup snapshot, optional SYSINFO tests, and
+  48K MonitorFS live stress only if their interfaces are reintroduced
+  and independently validated; KCORE and 32K work remains deferred.
+
 ### v1063: swap build dependencies
 
 - [x] Recover the testkit source-graph test from the historical

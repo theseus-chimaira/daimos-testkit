@@ -54,7 +54,12 @@ daimos_file_pdp6_test(void)
                 TEST_SIX6('Y',' ',' ',' ',' ',' ')
         };
         struct vfs_name name;
-        struct file table[FILE_NFILE];
+        /* Native FILE stores its mount-extension metadata at
+         * file_table+041 (octal), beyond the 16 two-word descriptors.
+         * Reserve two additional records so the target fixture does not
+         * write outside a stack-local table during FILE operations.
+         */
+        struct file table[FILE_NFILE + 2U];
         unsigned int pos;
         unsigned int i;
         vnode_t vnode;
@@ -113,7 +118,7 @@ daimos_file_pdp6_test(void)
         if (file_component(p1, &pos, 0) != -1)
                 return 11;
 
-        for (i = 0U; i != FILE_NFILE; ++i) {
+        for (i = 0U; i != FILE_NFILE + 2U; ++i) {
                 table[i].node_meta = 0UL;
                 table[i].offset = 0UL;
         }

@@ -1,3 +1,21 @@
+## 2026-11-03 v1064: classify last startup-snapshot test branch
+
+All independent testkit changes on the historical v72 startup branch
+were checked before folding its original commits into main ancestry.
+The v101 swap-dependency check was recovered as a passing v1063 target
+and revealed four missing outer boot Makefile prerequisites, now fixed.
+The old FILE test's extra mount-extension storage was also needed by
+the modern native runtime: v1064 reserves and initializes those words.
+The native FILE target passes without warnings.
+
+Other v72 tests depend on removed startup snapshot or optional SYSINFO
+MRES APIs, an obsolete FILE service-jump ABI, or old 48K media layouts;
+they are preserved as historical commits, not activated. The current
+native PDP-6 VFS parent-AC3 v1037 regression passes; MonitorFS GCC
+reader v1033 selection passes with KCC and GCC kernel configurations.
+`tests/archive/startup-snapshot-history-v1064/README-v1064.md` records
+the boundaries and original tip SHA. No 32K-specific tests were run.
+
 ## 2026-11-03 v1063: recover swap composition build-graph check
 
 The October v101 startup-snapshot branch included a host-only check
