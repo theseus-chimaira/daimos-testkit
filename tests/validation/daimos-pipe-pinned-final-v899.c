@@ -45,8 +45,9 @@ main(int argc, kword_t **argv)
         if (dsys_close(wr) != 0)
                 fail('3');
         /* The copied-kernel hook pins the exact final object before
-         * the production mm_free. PIPE must not drop the FD or refs. */
-        if (dsys_close(rd) != -1)
+         * the production mm_free. v1099 returns typed MM_BUSY (-5),
+         * retaining the FD and pipe reader reference for retry. */
+        if (dsys_close(rd) != -5)
                 fail('4');
         /* A PIPE is a word stream. Verify that the retained read end
          * remains usable, now reporting EOF after the writer closed.

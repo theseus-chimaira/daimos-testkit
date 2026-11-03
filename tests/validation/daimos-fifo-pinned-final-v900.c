@@ -54,9 +54,9 @@ main(int argc, kword_t **argv)
             recv_word(fd, 0123456000001UL) != 0)
                 fail('3');
         /* The test kernel pins the FIFO's actual MM extent at the first
-         * last-reference free. The descriptor must remain live and the
-         * original named stream must be put back on the active list. */
-        if (dsys_close(fd) != -1)
+         * last-reference free. v1099 returns typed MM_BUSY (-5) while
+         * preserving FD, reference counts and named-list membership. */
+        if (dsys_close(fd) != -5)
                 fail('4');
         fd2 = dsys_open(fifo_path, SYS_O_RDWR);
         if (fd2 < 0 || fd2 == fd ||
