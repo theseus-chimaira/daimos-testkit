@@ -1,3 +1,9 @@
+.PHONY: test-daimos-mm-descriptor-capacity-v1030
+test-daimos-mm-descriptor-capacity-v1030: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    sh tests/native-kernel/mm/capacity-v125/run-v125.sh
+
 .PHONY: test-simh-pdp6-go-pc-v155
 test-simh-pdp6-go-pc-v155: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
