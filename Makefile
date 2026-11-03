@@ -1367,6 +1367,29 @@ test-daimos-provider-pending-live-v1091: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-provider-pending-live-v1091.sh
 
+.PHONY: test-daimos-provider-quarantine-v1092
+test-daimos-provider-quarantine-v1092: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-provider-quarantine-v1092.py
+
+.PHONY: test-daimos-provider-permanent-v891
+test-daimos-provider-permanent-v891: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-file-persistent-v891.sh
+
+.PHONY: test-daimos-provider-invalid-v914
+test-daimos-provider-invalid-v914: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-file-invalid-v914.sh
+
+.PHONY: test-daimos-provider-revival-v953
+test-daimos-provider-revival-v953: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-provider-revival-v953.sh
+
 test-daimos-provider-inflight-owner-v1088: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
