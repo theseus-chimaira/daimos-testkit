@@ -1,3 +1,31 @@
+## 2026-11-03 v1083: direct fatal-release leaf audit (no kernel delta)
+
+The new executable source contract
+`test-daimos-fatal-release-scope-v1083` checks the precise production
+PDP-6 destructor bodies for newly introduced MM/backing allocation:
+FILE close, PIPE/FIFO close, TTY canonical line and session release,
+U-area free, VM destroy, C swap detach, MEMFS XIP ownership/unpin and
+the zero-word DPY STOP path. It also asserts the important failure
+branches and ownership-preserving ordering, including the guarded
+zero-word DPY branch before the positive-length `mm_alloc` path.
+
+Existing native acceptance PASS: v870 last PIPE/FIFO release with
+real faulted MM and retry; v904 DPY pinned/wrong-owner STOP and retry;
+v912 double-faulted DPY replacement and recovery; and v957 actual C
+resident/disk swap-detach and backing verifier semantics. No kernel,
+resident KCORE, persistent-data or ABI changes were required.
+
+These are DIRECT leaf guarantees only. Session HUP cascades, foreign
+in-flight provider ownership and retry liveness do not become proven
+by the source contract. The interrupted FIFO OPEN cleanup is a
+separate ownership gap: if the last transient `pipe_close_ref` refuses
+MM free, `pipe_fifo_open_intr` discards its error while `file_open`
+discards the provisional descriptor. Ordinary close has an FD retry
+owner, this abort path does not. A legitimate physical pin on that
+not-yet-published pipe is not established; the failure-injection case
+still needs explicit design/testing rather than a forced MM free.
+Production OOM termination remains disabled.
+
 ## 2026-11-03 v1082: NEWSESSION TTY release is transactional
 
 The former PROCCTL_NEWSESSION path rewrote the caller's group, session

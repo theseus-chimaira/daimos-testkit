@@ -1382,6 +1382,19 @@ test-daimos-newsession-tty-rollback-v1082: check-prefix
 	 PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 sh tests/validation/daimos-newsession-tty-rollback-v1082.sh
 
+.PHONY: test-daimos-fatal-release-scope-v1083
+test-daimos-fatal-release-scope-v1083: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-fatal-release-scope-v1083.py
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-pipe-close-v870.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-dpy-actual-mm-v904.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-dpy-double-free-v912.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-vm-detach-order-v957.sh
+
 test-daimos-provider-fatal-contention-v1078: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
