@@ -1372,6 +1372,12 @@ test-daimos-provider-quarantine-v1092: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	 python3 tests/validation/daimos-provider-quarantine-v1092.py
 
+.PHONY: test-daimos-xip-release-stage-v1094
+test-daimos-xip-release-stage-v1094: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-xip-release-stage-v1094.sh
+
 .PHONY: test-daimos-provider-permanent-v891
 test-daimos-provider-permanent-v891: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
