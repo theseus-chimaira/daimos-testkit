@@ -1,3 +1,13 @@
+### v1062: preserve historical test archives while pruning refs
+
+- [x] Move grouped D6CODEC and legacy DSH/SUPERVISOR archive
+  descriptions into main and retain original commits through Git
+  ancestry before removing obsolete archive labels.
+- [x] Restore native PURE swap target result-sentinel integrity and
+  real backing-owner lifetime checks; pass native mount IDs 1 and 26.
+- [ ] Leave KCORE startup-snapshot acceptance deferred until its source
+  optimization is resumed explicitly; do not infer 32K acceptance.
+
 # DAIMOS TESTKIT TODO
 
 DATE: 2026-09-30

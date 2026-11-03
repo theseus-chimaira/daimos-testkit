@@ -1,3 +1,20 @@
+## 2026-11-03 v1062: integrate historical test archives into main ancestry
+
+The previous grouped-D6CODEC and legacy DSH/SUPERVISOR test archives
+have no uncommitted work. Their original branch tips are now retained
+as ancestors of testkit main using history-only `ours` merges, and
+their two archive descriptions have been added to the main tree:
+
+- `tests/validation/D6CODEC-GROUPED-ARCHIVE-v1027.md`
+- `tests/validation/LEGACY-DSH-SUPERVISOR-ARCHIVE-V1049.md`
+
+Original archived tips before ancestry merges: `e1bdb96` (D6CODEC)
+and `d924203` (DSH/SUPERVISOR). Their unaccepted experimental code
+and historical test results are preserved through Git ancestry only,
+not introduced to current active test targets. The independent
+`test-daimos-startup-snapshot-v72-20261020` branch remains deferred
+with the corresponding KCORE startup work. No 32K tests were run.
+
 ## 2026-11-03 v1060: restore native PURE swap test integrity
 
 The original `swap-pure-target-completion-v156-20261015` branch
