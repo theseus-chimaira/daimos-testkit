@@ -1368,6 +1368,12 @@ test-daimos-provider-pending-live-v1091: check-prefix
 	 sh tests/validation/daimos-provider-pending-live-v1091.sh
 
 .PHONY: test-daimos-provider-quarantine-v1092
+.PHONY: test-daimos-tty-mm-error-stage-v1093
+test-daimos-tty-mm-error-stage-v1093: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-tty-mm-error-stage-v1093.sh
+
 test-daimos-provider-quarantine-v1092: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	 python3 tests/validation/daimos-provider-quarantine-v1092.py

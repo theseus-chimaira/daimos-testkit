@@ -9,12 +9,28 @@ work=$(mktemp -d "$TMPDIR/daimos-tty-actual-mm-v897.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 python3 - "$DAIMOS_REPO/system/kernel/proc/proc.c" "$work/tty.c" <<'PY'
 from pathlib import Path
+import os
 import sys
 s=Path(sys.argv[1]).read_text()
 start=s.index('void\nproc_tty_line_reset(')
 end=s.index('/** Change TTY input mode',start)
 frag=s[start:end]
 assert 'proc_tty_line_try_reset_v897' in frag
+negative=os.environ.get('DAIMOS_V1093_NEGATIVE','')
+if negative == 'collapse':
+    assert frag.count('return rc;') == 1
+    frag=frag.replace('return rc;', 'return -1;', 1)
+elif negative == 'premature':
+    old='''        if (rc != MM_OK)
+                return rc;
+        proc_tty_line_base_set(tty, 0UL);'''
+    new='''        proc_tty_line_base_set(tty, 0UL);
+        if (rc != MM_OK)
+                return rc;'''
+    assert frag.count(old) == 1
+    frag=frag.replace(old, new, 1)
+else:
+    assert not negative, 'unsupported v1093 negative mutation'
 Path(sys.argv[2]).write_text('''#include "proc.h"
 #include "mm.h"
 #define PROC_TTY_LINE_MM_OWNER_BASE 02000U
@@ -52,4 +68,4 @@ done
         tail -70 "$work/log" >&2
         exit 1
     }
-echo 'v897: real C TTY reset + actual MM pinned/owner/missing rejection, then exact free PASS'
+echo 'v1093/v897: real C TTY reset distinguishes MM_BUSY -5 from owner/missing MM_INVAL -4; exact retry/free PASS'

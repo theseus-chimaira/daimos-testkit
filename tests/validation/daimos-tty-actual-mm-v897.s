@@ -9,7 +9,7 @@ main:
  pushj 17,proc_tty_line_base_set
  movei 1,0
  pushj 17,proc_tty_line_try_reset_v897
- camn 1,[-1]
+ camn 1,[-5]                  ; pinned MM extent is retryable BUSY
  jrst check_pin_retained
  jrst fail_1
 check_pin_retained:
@@ -59,7 +59,7 @@ owner_free_rejected:
  pushj 17,proc_tty_line_base_set
  movei 1,0
  pushj 17,proc_tty_line_try_reset_v897
- camn 1,[-1]
+ camn 1,[-4]                  ; owner mismatch is INVALID, not BUSY
  jrst check_owner_retained
  jrst fail_8
 check_owner_retained:
@@ -84,7 +84,7 @@ check_missing:
  pushj 17,proc_tty_line_base_set
  movei 1,0
  pushj 17,proc_tty_line_try_reset_v897
- camn 1,[-1]
+ camn 1,[-4]                  ; missing MM extent is INVALID
  jrst check_missing_base
  jrst fail_12
 check_missing_base:

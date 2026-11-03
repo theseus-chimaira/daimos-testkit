@@ -16,9 +16,9 @@ python3 - "$work/source/system/kernel/proc/proc.c" <<'PY'
 from pathlib import Path
 import sys
 p=Path(sys.argv[1]);s=p.read_text()
-needle='''        proc_tty_line_reset(tty);
-        return proc_tty_line_base_get(tty) == 0UL ? 0 : -1;
-}'''
+needle='''        base = proc_tty_line_base_get(tty);
+        if (base == 0UL)
+                return MM_OK;'''
 assert s.count(needle)==1
 replacement='''        if (tty == 0U) {
                 ++daimos_test_calls_v898;
@@ -45,12 +45,9 @@ replacement='''        if (tty == 0U) {
                                 ++daimos_test_unpins_v898;
                 }
         }
-        proc_tty_line_reset(tty);
-        if (tty == 0U && daimos_test_calls_v898 == 2UL &&
-            proc_tty_line_base_get(tty) != 0UL)
-                ++daimos_test_busy_v898;
-        return proc_tty_line_base_get(tty) == 0UL ? 0 : -1;
-}'''
+        base = proc_tty_line_base_get(tty);
+        if (base == 0UL)
+                return MM_OK;'''
 assert s.count(needle)==1
 insert='''kword_t daimos_test_calls_v898;
 kword_t daimos_test_base_v898;
@@ -66,6 +63,16 @@ proc_tty_line_try_reset_v897(unsigned int tty)
 assert s.count(needle2)==1
 s=s.replace(needle2,insert+needle2)
 s=s.replace(needle,replacement)
+original='''        if (rc != MM_OK)
+                return rc;'''
+replacement='''        if (rc != MM_OK) {
+                if (tty == 0U && daimos_test_calls_v898 == 2UL &&
+                    proc_tty_line_base_get(tty) != 0UL)
+                        ++daimos_test_busy_v898;
+                return rc;
+        }'''
+assert s.count(original)==1
+s=s.replace(original,replacement,1)
 p.write_text(s)
 PY
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
@@ -130,7 +137,10 @@ for line in Path(sys.argv[1]).read_text().splitlines():
     if not values:
         raise SystemExit('v898: missing '+name+'\n'+out[-1300:])
     seen[name]=int(values[-1],8)
-for name,value in dict(calls=4,pins=1,unpins=1,busy=1,errors=0).items():
+# v1093: unchecked TTY line reset now shares the checked free helper.
+# Its fifth invocation performs no extra pin/unpin; owned resource
+# transitions and the exact MM_BUSY refusal remain independently checked.
+for name,value in dict(calls=5,pins=1,unpins=1,busy=1,errors=0).items():
     if seen[name]!=value:
         raise SystemExit('v898: '+name+' '+str(seen[name])+
                          ' expected '+str(value)+'\n'+out[-1400:])
