@@ -1,3 +1,21 @@
+## 2026-11-03 v1048: historical PDP-6 console-PC regression restored
+
+The independent `pdp6-simh-console-pc-20261021-v115` branch retained a
+standalone SIMH regression missing from main. It checks that typing an
+interactive command does not modify the simulated PDP-6 PC (which can
+collide with a host terminal library's `PC` symbol), then executes a
+breakpoint and single-step sequence with separate PC oracles. The
+restored `test-daimos-simh-console-pc-v1048` passes against the
+installed PDP-6 simulator. The existing v155 `GO address` PC-first
+regression also passes. Neither result involves a DAIMOS guest boot.
+
+The historical v115 branch additionally records several failed or
+inconclusive TSFS-root DTFS FSCK/mount diagnostic experiments. Their
+probe files are historical evidence, not current accepted test cases;
+do not replay those old fixtures into main or imply that DTFS writable
+root acceptance was achieved. The v115 history may be retained through
+an ancestry-only merge, after extracting the independent PC test.
+
 ## 2026-11-03 v1043: recovered standalone compiler and DSH provenance checks
 
 The historical v155 test branch supplied a genuine GCC PDP-6 packed

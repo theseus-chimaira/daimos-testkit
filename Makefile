@@ -1,3 +1,8 @@
+.PHONY: test-daimos-simh-console-pc-v1048
+test-daimos-simh-console-pc-v1048: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/daimos-simh-console-pc-v115.sh
+
 .PHONY: test-daimos-gcc-packed-heading-v1043
 test-daimos-gcc-packed-heading-v1043: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
