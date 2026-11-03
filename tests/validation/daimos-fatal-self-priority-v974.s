@@ -175,6 +175,10 @@ proc_exit_current:
  aos __exit_calls
  movem 1,__exit_status
  popj 17,
+.globl proc_session_teardown
+proc_session_teardown:
+ setz 1,
+ popj 17,
 .globl kret_neg1
 kret_neg1: seto 1,
  popj 17,

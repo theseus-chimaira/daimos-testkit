@@ -1420,6 +1420,25 @@ test-daimos-discard-tty-prevm-v1085: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 sh tests/validation/daimos-run-prevm-discard-v894.sh
 
+.PHONY: test-daimos-slot0-pi6-v1086
+test-daimos-slot0-pi6-v1086: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-slot0-pi6-contract-v1086.py
+	@for mode in exit gateway xip idle self tty swap; do \
+	 if DAIMOS_V1086_NEGATIVE=$$mode DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-slot0-pi6-contract-v1086.py >/dev/null 2>&1; then \
+	 echo "v1086: unsafe mutation $$mode unexpectedly passed" >&2; exit 1; fi; \
+	 echo "v1086: $$mode mutation rejected PASS"; done
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-slot0-memfs-pi6-v1086.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-slot0-exit-premark-v1086.sh
+	@DAIMOS_V1086_NEGATIVE=1 DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-slot0-exit-premark-v1086.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-slot0-finish-hup-v1086.sh
+
 test-daimos-provider-fatal-contention-v1078: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

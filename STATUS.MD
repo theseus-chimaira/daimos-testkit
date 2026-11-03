@@ -1,3 +1,45 @@
+## 2026-11-03 v1086: P0-C PI6-masked slot-0 teardown CLOSED
+
+The source audit found a real second session HUP when `proc_exit_current`
+switched onto the idle stack with scheduler PI6 inhibited. The ordinary
+EXIT and APR/EXEC fatal owner paths already preflighted HUP on the
+private stack, but the unmarked `proc_finish_slot_owner_v932` could
+perform HUP again on the idle stack, potentially sleeping during PI6
+masking. The direct self-fatal event path lacked private preflight.
+
+v1086's production fix publishes existing FINALIZE+PREVM and
+TRANSITION state under disabled global PI before switching stacks;
+the permanent idle finalizer therefore skips HUP. Immediate self-
+fatal delivery now uses the existing private FILE/HUP retry.
+
+New acceptance target: `test-daimos-slot0-pi6-v1086` (source-linked
+contract, seven negative source mutations, real MEMFS XIP provider
+dispatch with a foreign-held serialized lease, real MM unpin, actual
+EXIT-stack transition with pre-v1086 negative control, and marked
+finalizer whose HUP stub refuses if called). Every v1086 test PASSes.
+Older v974 self-fatal priority and v926 owner-return fixtures gained
+their missing v995-era session-HUP success stubs; both PASS with the
+new self-fatal route. Existing v970/v995 private HUP retry and v993
+EXIT preflight native tests PASS as well.
+
+Full 256K v1077 physical-OOM provider/MM test PASS: two D6FS SYNC
+refusals, one MM_BUSY, exactly one requesting victim, independent
+witness progress. Full session-teardown guest PASS (running/stopped
+jobs HUP, TTY detach/reattach); full process-events guest PASS
+(PID/PGRP signaling, TSTP/CONT, CHLD, fatal WAIT and ALRM).
+Matched KCC KCORE low end rises by seven octal-address words
+(`023117` -> `023126` octal), no new permanent state or MRES vectors.
+
+Note: the historical v918 noncurrent-fatal standalone fixture still
+encodes an obsolete pre-v926 assertion that a fatal signal to a
+WAIT_EVENT owner is immediately rejected. Current code defers it for
+owner delivery. It was not used as v1086 acceptance; the full
+process-events guest and current native fatal-owner tests PASS.
+
+P0-C is closed specifically for the OOM slot-0 finalizer entry graph.
+P0-A/B/D/E/F remain open. No hardware APR clock failover is required;
+automatic OOM killing remains disabled in production.
+
 ## 2026-11-03 v1085: SIDL RUN rollback TTY gate before VM teardown
 
 The unpublished RUN discard can remain SIDL/TRANSITION after an
