@@ -172,7 +172,8 @@ test-daimos-dsh-pipeline-failed-launch-reap-v1019: check-prefix $(PTY_RUN) image
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
 		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
-		--probes probes/daimos-dsh-pipeline-failed-launch-reap-v1019.txt
+		--probes probes/daimos-dsh-pipeline-failed-launch-reap-v1019.txt \
+		--markdown-report '$(abspath $(BUILD_ROOT))/reports/dsh-pipeline-reap-v1019.md'
 
 .PHONY: test-daimos-simh-isolate-media-v1
 test-daimos-simh-isolate-media-v1:
