@@ -1439,6 +1439,29 @@ test-daimos-slot0-pi6-v1086: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 sh tests/validation/daimos-slot0-finish-hup-v1086.sh
 
+.PHONY: test-daimos-oom-transitive-release-v1087
+test-daimos-oom-transitive-release-v1087: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-oom-transitive-release-v1087.py
+	@for mode in file hup foreign vfs sync pipe tty vm owner discard dpystop; do \
+	 if DAIMOS_V1087_NEGATIVE=$$mode DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-oom-transitive-release-v1087.py >/dev/null 2>&1; then \
+	 echo "v1087: unsafe transitive mutation $$mode unexpectedly passed" >&2; exit 1; fi; \
+	 echo "v1087: $$mode mutation rejected PASS"; done
+	@for test in \
+	 daimos-pipe-close-v870 \
+	 daimos-dpy-actual-mm-v904 \
+	 daimos-dpy-double-free-v912 \
+	 daimos-vm-detach-order-v957 \
+	 daimos-session-hup-pending-v905 \
+	 daimos-session-hup-repeated-failure-v922 \
+	 daimos-fatal-owner-hup-retry-v995 \
+	 daimos-provider-fatal-contention-v1078 \
+	 daimos-tty-prevm-finalize-v1081 \
+	 daimos-discard-tty-prevm-v1085; do \
+	 DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/$$test.sh || exit 1; done
+
 test-daimos-provider-fatal-contention-v1078: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

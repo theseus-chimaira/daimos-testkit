@@ -1,3 +1,29 @@
+## 2026-11-03 v1087: transitive fatal-release P0-A CLOSED
+
+The new source-linked `daimos-oom-transitive-release-v1087.py` follows
+current BRK/APR/EXEC fatal entry, ordinary EXIT, private and foreign
+FILE close/VFS SYNC (DTFS validation and D6FS no-op), HUP with partial
+member retirement, TTY canonical release, PIPE/FIFO, DPY STOP,
+VM/MEMFS-XIP, MM/backstore bitmap, U-area and parent notification.
+All direct callbacks and ownership/error ordering are asserted.
+No new MM or backstore allocation occurs in the bounded current graph.
+Eleven deliberately unsafe source mutations are rejected. The
+dedicated `test-daimos-oom-transitive-release-v1087` Make target
+executes that contract and native PDP-6 v870 PIPE, v904/v912 DPY,
+v957 actual C disk/resident detach, v905/v922 partial HUP, v995
+private fatal owner FILE/HUP retry, v1078 foreign lease contention,
+v1081 last TTY PREVM and v1085 unpublished RUN rollback. All PASS.
+The historical v922 fixture needed the checked v897 TTY release
+success stub, matching v905's existing no-canonical-line fixture.
+
+The full 256K v1077 physical requester OOM/D6FS/MM guest PASSes
+with two D6FS refusal attempts, one actual MM_BUSY and a surviving
+independent witness. Production code is unchanged: zero KCORE/MRES
+code/data growth, end `023126` octal. The production OOM gate remains
+disabled. P0-A is closed for the current graph, not for a permanently
+nonreturning already-active foreign provider; that is P0-B. P0-D/E/F
+still require error-stage, mixed guest and enable regression coverage.
+
 ## 2026-11-03 v1086: P0-C PI6-masked slot-0 teardown CLOSED
 
 The source audit found a real second session HUP when `proc_exit_current`

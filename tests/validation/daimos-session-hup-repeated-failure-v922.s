@@ -246,3 +246,11 @@ __calls3: .word 0
 __stack: .block 0400
 .globl __test_exit
 __test_exit: .block 1
+
+; Like v905, this fixture models no allocated TTY canonical line.
+; A checked release must therefore succeed before session detachment.
+.text
+.globl proc_tty_line_try_reset_v897
+proc_tty_line_try_reset_v897:
+ setz 1,
+ popj 17,
