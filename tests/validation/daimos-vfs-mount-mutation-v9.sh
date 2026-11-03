@@ -13,9 +13,15 @@ mkdir -p "$work"
 
 {
         echo '.text'
+        echo '.globl vfs_readonly'
         echo '.globl vfs_storage_release'
         echo '.globl vfs_mount'
         echo '.globl vfs_unmount'
+        # The active mutation code now calls the authoritative read-only
+        # predicate, which precedes vfs_storage_release in source order.
+        # Include its real implementation, not a permissive test stub.
+        sed -n '/^vfs_readonly:/,/^; int vfs_storage_release/p' \
+            "$source_file" | sed '$d'
         sed -n '/^vfs_storage_release:/,/^        \.data$/p' "$source_file" | sed '$d'
 } > "$work/vfs-mutation.s"
 
