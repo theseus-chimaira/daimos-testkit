@@ -18,7 +18,7 @@ The matching source implementations remain in the DAIMOS archive
 The restored standalone SIMH interactive PC regression v1048 and the
 existing v155 GO-PC regression both pass. The original v115 local
 branch remains attached to a separate dirty DevSpace2 worktree, with
-three untracked DTFS diagnostics; no removal of that local worktree
+untracked DTFS diagnostics; no removal of that local worktree
 or its untracked files was attempted. No 32K tests ran, and KCORE
 optimization remains deferred.
 
