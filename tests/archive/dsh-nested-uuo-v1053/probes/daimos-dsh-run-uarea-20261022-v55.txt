@@ -1,0 +1,9 @@
+# Diagnostic-only: RUN prints slot, VM base, and stable u-area on CTY.
+probe dsh-run-two-stage-uarea-v55
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
+probe dsh-run-followup-uarea-v55
+command ECHO SECOND
+line ^SECOND$
+end

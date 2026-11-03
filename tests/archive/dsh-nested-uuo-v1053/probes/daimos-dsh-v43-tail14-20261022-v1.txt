@@ -1,0 +1,73 @@
+probe man-long-das
+command MAN DAS
+contains SOURCE FORM
+contains CONDITIONAL ASSEMBLY
+end
+
+probe apropos-summary-das
+command APROPOS ASSEMBLER
+contains DAS - DAIMOS PDP-6 AND PDP-10 ASSEMBLER
+end
+
+probe help-not-available
+command HELP NOSUCHHELP
+contains HELP NOT AVAILABLE
+end
+
+probe manual-not-available
+command MAN NOSUCHHELP
+contains MANUAL NOT AVAILABLE
+end
+
+probe dsh-status-not-found-127
+command NOSUCHCOMMAND; ECHO STATUS:$?
+contains DSH: NOT FOUND: NOSUCHCOMMAND
+contains STATUS:127
+end
+
+probe dsh-status-not-executable-create
+command ECHO NOTEXEC > /CONFIG/DSHNOEXEC
+not_contains ECHO:
+end
+
+probe dsh-status-not-executable-126
+command /CONFIG/DSHNOEXEC; ECHO STATUS:$?
+contains STATUS:126
+not_contains DSH: NOT FOUND
+end
+
+probe dsh-status-not-executable-cleanup
+command RM /CONFIG/DSHNOEXEC
+not_contains RM:
+end
+
+probe dsh-status-pipeline-builtin-126
+command CD / ! CAT; ECHO STATUS:$?
+contains STATUS:126
+end
+
+probe dsh-redir-create
+command ECHO REDIR1 > /CONFIG/DSHREDIR
+not_contains ECHO:
+end
+
+probe dsh-redir-append
+command ECHO REDIR2 >> /CONFIG/DSHREDIR
+not_contains ECHO:
+end
+
+probe dsh-redir-input
+command CAT < /CONFIG/DSHREDIR
+contains REDIR1
+contains REDIR2
+end
+
+probe dsh-redir-failure-status
+command ECHO BAD > /NO/SUCH/PATH; ECHO STATUS:$?
+contains STATUS:1
+end
+
+probe dsh-pipeline-data
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
