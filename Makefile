@@ -1,3 +1,8 @@
+.PHONY: test-daimos-dsh-uppercase-literals-v1016
+test-daimos-dsh-uppercase-literals-v1016:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    sh tests/host/daimos-dsh-literal-contract-v1016.sh
+
 .PHONY: test-daimos-tsfs-auxstore-swap-v494
 test-daimos-tsfs-auxstore-swap-v494: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
