@@ -1,3 +1,30 @@
+## 2026-11-03 v1079: real DRM236 in-flight timeout and KINIT hook
+
+`test-daimos-drm236-watchdog-v1079` source-checks the new 60-Hz
+storage clock chain (DSK direct call followed by DRM tail call) and
+runs real PDP-6 DRM236 MRES/clock assembly for two hardware-stalled
+runtime descriptors. The first times out after three simulated ticks
+with its remaining count preset to 3. The pending second request is
+promoted with a *fresh* 300-tick deadline, times out once after exactly
+300 clock ticks, and leaves both stack-owned events at `-1`. The
+owner-wakeup and existing DRM storage error counters each advance
+twice, with no early or duplicate completion: PASS.
+
+A deliberately disabled DRM watchdog fails the same native test as
+expected. The Type-167/236 real-SIMH `daimos-drm236-online-v1` read/
+write/queued-runtime suite also PASSes after correcting an obsolete
+test-only `drm236_read_jump` symbol to `drm236_read_call`.
+
+The complete 256K physical-OOM v1077 guest still PASSes on the new
+clock/DRM code (D6FS FILE 3/2, u-area MM 2/1, `<KWP`, unrelated
+PIPE witness survives). Independently, direct `ROOT=drum` Stage1
+boot with DSK0 unattached reaches DRM236 OK, D6FS LOADED, INIT and
+LOGIN: PASS. The linked KCORE low end rises one word (`023157` to
+`023160` octal), DRM MRES residency rises 17 words (124 to 141);
+zero added persistent data words. General provider cancellation,
+clock-inhibited callers and transitive no-allocation teardown are
+not proved; production OOM termination remains OFF.
+
 ## 2026-11-03 v1078: fatal FILE owner does not wait on a foreign provider
 
 `test-daimos-provider-fatal-contention-v1078` extracts the real PDP-6

@@ -4,7 +4,7 @@
         .globl __test_exit
         .globl drm236_read_block
         .globl drm236_write_block
-        .globl drm236_read_jump
+        .globl drm236_read_call
         .globl drm236_write_jump
         .globl drm236_read_block_service
         .globl drm236_write_block_service
@@ -19,7 +19,7 @@
 main:
         setzm fail_id
         movei 1,drm236_read_block_service
-        hrrm 1,drm236_read_jump
+        hrrm 1,drm236_read_call
         movei 1,drm236_write_block_service
         hrrm 1,drm236_write_jump
 
