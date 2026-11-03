@@ -5,7 +5,8 @@ PDP10_PREFIX=${PDP10_PREFIX:-/usr/local}
 TMPDIR=${TMPDIR:-$HOME/tmp}
 export PDP10_PREFIX TMPDIR
 mkdir -p "$TMPDIR/d6codec-kcore-abi-v055"
-fixture="$DAIMOS_REPO/../daimos-testkit/tests/validation/d6codec-native-v051/test_darc_v051.s"
+testkit=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd -P)
+fixture="$testkit/tests/validation/d6codec-native-v051/test_darc_v051.s"
 # Reuse the independently recorded v051 golden darc corpus, unchanged.
 python3 - "$fixture" "$TMPDIR/d6codec-kcore-abi-v055/test_v055.s" <<'PYGEN'
 import sys
@@ -23,7 +24,7 @@ PYGEN
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode go \
   --start 1000 --timeout 30 --workdir "$TMPDIR/d6codec-kcore-abi-v055/run" \
   --name d6codec-kcore-abi-v055 --expect __test_exit=0 \
-  "$DAIMOS_REPO/../daimos-testkit/tests/validation/d6codec-native-v051/crt_stack_v051.s" \
+  "$testkit/tests/validation/d6codec-native-v051/crt_stack_v051.s" \
   "$TMPDIR/d6codec-kcore-abi-v055/test_v055.s" \
   "$DAIMOS_REPO/system/kernel/core/d6codec_kcore_abi_v055.s" \
   "$DAIMOS_REPO/system/kernel/core/d6codec_encode_v053.s" \
