@@ -1,3 +1,19 @@
+## 2026-11-03 v1077: full-guest OOM with D6FS and MM fault injection
+
+`test-daimos-oom-requester-provider-mm-v1077` builds a disposable 256K
+PDP-6 image with the existing BRK OOM branch test-enabled. The requester
+holds an actual D6FS `/SYSTEM/INIT` descriptor across physical OOM.
+Test-only faults reject two real D6FS SYNC requests; the FILE/VFS
+boundary counts 3 close attempts and 2 refusals. The u-area release
+then returns MM_BUSY once; the existing idle finalizer succeeds on its
+second MM free attempt. Actual counters: 3/2 and 2/1.
+
+The parent verifies the requester-only OOM exit status, unblocks and
+reaps a separate PIPE child and confirms restored process-memory
+accounting. Guest `<KWP`, controlled HALT: **PASS**. No production code
+or resident RAM changed. Indefinite provider refusal and full
+allocation-free fatal cleanup remain open.
+
 ## 2026-11-03 v1075: full-guest physical OOM requester and negative control
 
 New native 256K PDP-6 fixture `daimos-oom-requester-live-v1075.sh`
