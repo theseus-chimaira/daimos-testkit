@@ -191,7 +191,15 @@ assert 'jumpn   011,pipe_close_publish_v870' in pipe_close
 assert pipe_close.index('pushj   17,mm_free') < pipe_close.index(
     'pipe_close_publish_v870:')
 assert 'movem   010,pipe_fifo_head' in pipe_close
-assert 'jrst    pipe_close_bad' in pipe_close
+# Final MM failures return their true -4/-5 status through FILE.
+# No refcount is published, and FIFO reinsertion uses AC3 so AC1
+# still carries the allocator error into teardown diagnostics.
+assert ('skipn   1(010)\n        jrst    pipe_close_done') in pipe_close
+assert ('move    3,pipe_fifo_head\n'
+        '        movem   3,(010)\n'
+        '        movem   010,pipe_fifo_head\n'
+        '        jrst    pipe_close_done') in pipe_close
+assert 'pipe_close_bad:\n        seto    1,' in pipe_close
 pipe_unlink = section(pipe, 'pipe_fifo_unlink_object:',
                       '; kword_t pipe_create(void)')
 closed('FIFO unlink', pipe_unlink, ())

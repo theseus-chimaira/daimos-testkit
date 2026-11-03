@@ -9,6 +9,7 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 
 for name in \
     daimos-pipe-close-v870 \
+    daimos-pipe-typed-close-v1099 \
     daimos-dpy-replace-v874 \
     daimos-swap-detach-v880 \
     daimos-swap-detach-state-v880 \
