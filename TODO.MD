@@ -1,3 +1,11 @@
+### v1063: swap build dependencies
+
+- [x] Recover the testkit source-graph test from the historical
+  startup-snapshot branch and register its opt-in v1063 target.
+- [x] Verify it passes on corrected DAIMOS and fails on older source.
+- [ ] Preserve unmerged historical KCORE startup and optional-MRES
+  test sources in Git history while their optimization is deferred.
+
 ### v1062: preserve historical test archives while pruning refs
 
 - [x] Move grouped D6CODEC and legacy DSH/SUPERVISOR archive

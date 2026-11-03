@@ -1,3 +1,19 @@
+## 2026-11-03 v1063: recover swap composition build-graph check
+
+The October v101 startup-snapshot branch included a host-only check
+that compared `proc_swap.s` direct source prerequisites in the inner
+kernel Makefile against the outer boot Makefile's `KERNEL_INPUTS`.
+The recovered check still applied to current code. Before the fix it
+identified four missing outer inputs: the PURE backing assembly,
+storage-runtime assembly, PURE attach C source, and storage-map header.
+
+DAIMOS main now tracks all four in its outer Makefile. Testkit target
+`test-daimos-kcore-swap-input-deps-v1063` passes against the repaired
+source with five composite `proc/` prerequisites; the same test
+correctly fails against the original unfixed main source with the four
+specific missing filenames. The test uses Python's standard library
+and has no PDP-6 boot, KCORE sizing, or 32K requirements.
+
 ## 2026-11-03 v1062: integrate historical test archives into main ancestry
 
 The previous grouped-D6CODEC and legacy DSH/SUPERVISOR test archives

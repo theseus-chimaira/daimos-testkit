@@ -1,3 +1,8 @@
+.PHONY: test-daimos-kcore-swap-input-deps-v1063
+test-daimos-kcore-swap-input-deps-v1063:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    sh tests/validation/daimos-kcore-swap-input-deps-v1063.sh
+
 .PHONY: test-daimos-make-lazy-depth-v1054
 test-daimos-make-lazy-depth-v1054: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
