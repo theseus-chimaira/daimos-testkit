@@ -72,6 +72,14 @@ AAP_PDP6_REPO ?= ../pdp6
 SIMH_PDP6 ?= $(PDP10_PREFIX)/bin/pdp6
 SIMS_REPO ?= ../sims
 PDP10_TOOLS_REPO = $(DAIMOS_REPO)/tools/host
+# Use PDP10_TOOLS_REPO=... to test an independently maintained source tree
+# rather than the default in-tree DAIMOS host utilities.
+.PHONY: test-d6fsck-source-owner-width-v1040
+test-d6fsck-source-owner-width-v1040: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    PDP10_TOOLS_REPO='$(abspath $(PDP10_TOOLS_REPO))' \
+	    sh tests/validation/check-d6fsck-fcb-owners-v1040.sh
+
 # Termux workspaces may contain binaries copied from a Linux host.  Keep
 # Android host helpers in an architecture-specific directory so Make cannot
 # mistake a foreign ELF executable for an up-to-date local test helper.
