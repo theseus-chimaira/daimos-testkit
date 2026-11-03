@@ -1,3 +1,21 @@
+## 2026-11-03 v1075: full-guest physical OOM requester and negative control
+
+New native 256K PDP-6 fixture `daimos-oom-requester-live-v1075.sh`
+enables the existing BRK OOM branch only inside a disposable kernel
+source copy. It validates a real memory shortage with an exit-status-1
+requester, a separately PIPE-blocked child that survives, resumes and
+exits, and process memory accounting restored to its baseline.
+Full-guest output `<KWP` with HALT: PASS. A separate disposable build
+with production's default-OFF branch returns from BRK instead and
+reports the expected negative markers `D!S`: PASS. Test targets are
+`test-daimos-oom-requester-live-v1075` and
+`test-daimos-oom-requester-disabled-v1075`.
+
+This closes the successful physical-OOM requester/other-process-safety
+test only. No production kernel code, OOM default or permanent RAM was
+changed. Stalled providers, fatal FILE/HUP/MM refusal and transitive
+allocation-freedom remain unaccepted for production OOM termination.
+
 ## 2026-11-03 v1070: compiler and assembler closeout regressions
 
 The full ~/git branch consolidation integrated the KCC compiler
