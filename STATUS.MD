@@ -1,3 +1,30 @@
+## 2026-11-03 v1078: fatal FILE owner does not wait on a foreign provider
+
+`test-daimos-provider-fatal-contention-v1078` extracts the real PDP-6
+serialized provider gateway and verifies an owner in fatal FILE cleanup
+returns `-5` *without waiting, dispatching or releasing a foreign-held
+lease*. Ordinary foreign callers still wait and retry; a free provider
+still executes even for a fatal caller, and self-recursion refuses.
+The test checks the 7-AC private frame/stack restoration and negative
+provider/result witnesses. **PASS**. The original v1077 gateway fails
+the same test as a deliberate negative control.
+
+The newly used resident `file_table` symbol is provided as a null
+fixture by earlier isolated gateway tests. Missing historical current
+slot/event/refusal stubs in the v428 interleave and v466 rename
+fixtures have been supplied only in the testkit. Native target suites
+v326, v327, v866, v915, v916, v917, v428, v681 and v466 all PASS;
+static source/ownership guards v325, v954, v986 and v987 PASS.
+
+The full 256K PDP-6 physical-OOM v1077 combined D6FS/MM regression
+also PASSes on the updated kernel, counting exactly 3/2 FILE
+attempts/refusals and 2/1 u-area MM releases/refusals; the requester
+alone exits, the independent PIPE witness resumes and MM accounting
+recovers (`<KWP`, controlled HALT). KCORE low end advances six code
+words (`023151` to `023157` octal), without new resident data or ABI.
+Actual active-provider cancellation and transitive no-allocation
+proof remain unresolved. Production OOM termination remains disabled.
+
 ## 2026-11-03 v1077: full-guest OOM with D6FS and MM fault injection
 
 `test-daimos-oom-requester-provider-mm-v1077` builds a disposable 256K

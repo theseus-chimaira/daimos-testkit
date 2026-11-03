@@ -13,5 +13,6 @@ sed -n '/^fs_provider_reg_call:/,/^; KCORE memory-pressure bridge/p' "$DAIMOS_RE
  --start 1000 --step-limit 300000 --timeout 15 --workdir "$work/run" \
  --name daimos-provider-lock-native-v866 --expect __test_exit=0 \
  "$self/daimos-test-crt0-v1.s" "$self/daimos-provider-lock-owner-v866.s" \
+ "$self/daimos-provider-file-table-null-v1078.s" \
  "$work/gateway.s" > "$work/log" || { cat "$work/log"; exit 1; }
 echo 'daimos-provider-lock-native-v866: PASS (provider owner encoded in existing lock word)'

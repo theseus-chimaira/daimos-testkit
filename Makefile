@@ -1350,6 +1350,12 @@ test-daimos-oom-requester-provider-mm-v1077: check-prefix
 	 sh tests/validation/daimos-oom-requester-provider-mm-v1077.sh
 
 .PHONY: test-daimos-provider-lock-contract-v325
+.PHONY: test-daimos-provider-fatal-contention-v1078
+test-daimos-provider-fatal-contention-v1078: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-provider-fatal-contention-v1078.sh
+
 test-daimos-provider-lock-contract-v325:
 	@python3 tests/validation/daimos-provider-lock-contract-v325.py \
 	    "$(abspath $(DAIMOS_REPO))/system/kernel/fs/fs_mres.s"

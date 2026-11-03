@@ -90,8 +90,18 @@ proc_wakeup_event:
 fs_mres_no_service:
         seto 1,
         popj 17,
+        .globl kret_neg5
+kret_neg5:
+        movni 1,5
+        popj 17,
         .data
 kconst_7_7: .word 7,,7
+; The current serialized gateway also publishes its current slot and
+; sleeps on a separate event word (not on the owner-encoded lock).
+        .globl proc_current_slot
+proc_current_slot: .word 2
+        .globl fs_provider_wait_event_v917
+fs_provider_wait_event_v917: .word 1
         .bss
 fs_provider_ready: .block 1
 fs_block_workspace: .block 0200

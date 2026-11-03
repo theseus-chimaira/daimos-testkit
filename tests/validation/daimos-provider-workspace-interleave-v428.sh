@@ -21,5 +21,6 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
     --expect __test_exit=0 \
     "$self/daimos-test-crt0-v1.s" \
     "$self/daimos-provider-workspace-interleave-v428.s" \
+    "$self/daimos-provider-file-table-null-v1078.s" \
     "$work/gateway.s" > "$work/log" || { cat "$work/log"; exit 1; }
 echo 'provider-workspace-interleave-v428: PASS (waiter clobber, shared lease, delayed dispatch)'

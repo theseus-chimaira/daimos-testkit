@@ -28,6 +28,12 @@ mkdir -p "$work"
   sed -n '/^fs_provider_reg_call:/,/^; KCORE memory-pressure bridge/p' \
     "$DAIMOS_REPO/system/kernel/fs/fs_mres.s" | sed '$d'
 } > "$work/gateway.s"
+# The isolated native test has a FILE table but no scheduler process
+# slot. Supply a stable, nonzero current slot for the gateway contract.
+printf '%s\n' '.data' '.globl proc_current_slot' \
+  'proc_current_slot: .word 2' \
+  '.globl fs_provider_wait_event_v917' \
+  'fs_provider_wait_event_v917: .word 1' >> "$work/gateway.s"
 sed -n '/^[[:space:]]*\.globl mfsdev_lookup/,$p' \
   "$self/daimos-vfs-stat-frame-stubs-v1.s" > "$work/dependencies.s"
 PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \

@@ -35,5 +35,6 @@ PY
   --start 1000 --step-limit 300000 --timeout 20 --workdir "$work/run" \
   --name daimos-fs-mres-indirect-native-v681 --expect __test_exit=0 \
   "$self/daimos-test-crt0-v1.s" "$self/daimos-provider-lock-native-v327.s" \
+  "$self/daimos-provider-file-table-null-v1078.s" \
   "$work/gateway.s" > "$work/log" 2>&1 || { tail -60 "$work/log"; exit 1; }
 echo 'v681: PDP-6 indirect dispatch, lock wait/retry, missing provider PASS'
