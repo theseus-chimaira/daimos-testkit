@@ -1,3 +1,22 @@
+## 2026-11-03 v1043: recovered standalone compiler and DSH provenance checks
+
+The historical v155 test branch supplied a genuine GCC PDP-6 packed
+`char[256]` indexing regression. It builds and executes an independently
+initialized local character array at `-O0`, `-O1`, `-O2` and `-Os`.
+All four native PDP-6 configurations pass on the installed GCC toolchain.
+The historical DTC test changes are already superseded by the current
+stronger second-boot native FSCK check; only opt-in artifact retention
+(`DTC_TEST_KEEP_LOGS=1`) was recovered, with shell syntax validated but
+no new DECtape boot acceptance.
+
+The historical DSH nested-UUO stress branch supplied a useful image
+provenance checker. The opt-in helper compares exact DXR image bytes
+before attributing any simulator outcome to a DSH build. Its v1043 host
+self-test passes for matching, modified and missing image files. This
+does not claim a booted nested-process regression or that an installed
+DSH image has been independently verified in this pass. The old nested
+stress branch and its unaccepted feature tests remain under review.
+
 ## 2026-11-01 v891: persistent fatal FILE refusal containment
 
 `daimos-fatal-file-persistent-v891.sh` boots a copied PDP-6 kernel

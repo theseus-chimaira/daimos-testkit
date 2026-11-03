@@ -38,7 +38,11 @@ cleanup()
         if [ "$dcs_fd_open" -ne 0 ]; then
                 exec 3>&- 2>/dev/null || true
         fi
-        rm -rf "$work"
+        if [ "${DTC_TEST_KEEP_LOGS:-0}" != 1 ]; then
+                rm -rf "$work"
+        else
+                printf 'DTC diagnostic artifacts retained in %s\n' "$work" >&2
+        fi
 }
 trap cleanup EXIT HUP INT TERM
 

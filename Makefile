@@ -1,3 +1,12 @@
+.PHONY: test-daimos-gcc-packed-heading-v1043
+test-daimos-gcc-packed-heading-v1043: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    sh tests/target/daimos-gcc-help-heading-v154/run.sh
+
+.PHONY: test-daimos-dsh-image-provenance-v1043
+test-daimos-dsh-image-provenance-v1043:
+	@TMPDIR='$(TMPDIR)' sh tests/validation/check-dsh-image-provenance-v1043.sh
+
 .PHONY: test-daimos-simh-ptr-tsfs-evidence-v1042
 test-daimos-simh-ptr-tsfs-evidence-v1042: check-prefix
 	@test -n '$(PTR_TSFS_BUILD)' && test -n '$(PTR_TSFS_LOG)' || { \
