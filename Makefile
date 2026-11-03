@@ -166,6 +166,18 @@ test-daimos-dsh-pipeline: check-prefix $(PTY_RUN) image
 		--pty-run '$(abspath $(PTY_RUN))' --login ROOT \
 		--probes probes/daimos-dsh-pipeline-regression-20261010-v1.txt
 
+.PHONY: test-daimos-dsh-pipeline-failed-launch-reap-v1019
+test-daimos-dsh-pipeline-failed-launch-reap-v1019: check-prefix $(PTY_RUN) image
+	@$(PROBE_CHECK) probes/daimos-dsh-pipeline-failed-launch-reap-v1019.txt
+	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \
+		--daimos-repo '$(DAIMOS_REPO)' --dofile '$(abspath $(KERNEL_DOS))' \
+		--pty-run '$(abspath $(PTY_RUN))' --login ROOT --isolate-media \
+		--probes probes/daimos-dsh-pipeline-failed-launch-reap-v1019.txt
+
+.PHONY: test-daimos-simh-isolate-media-v1
+test-daimos-simh-isolate-media-v1:
+	@TMPDIR='$(TMPDIR)' sh tests/validation/daimos-simh-isolate-media-20261021-v1.sh
+
 test-daimos-dsh-source: check-prefix $(PTY_RUN) image
 	@$(PROBE_CHECK) probes/daimos-dsh-source-nested-regression-20261010-v1.txt
 	@env -u MAKEFLAGS -u MFLAGS PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' $(HARNESS) \

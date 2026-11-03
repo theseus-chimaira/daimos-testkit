@@ -16,6 +16,7 @@ usage: daimos-simh-harness-v4.sh --daimos-repo DIR --dofile FILE [options]
   --dcs-port PORT          drive login/probes through DCS0 on PORT
   --probes FILE            line-oriented probe file (default: inventory)
   --work-dir DIR           work directory
+  --isolate-media          clone attached media for this invocation
   --boot-timeout SEC       boot timeout, default 60
   --timeout SEC            command timeout, default 15
   --login USER             log in through INIT/LOGIN before waiting for DSH
@@ -36,6 +37,7 @@ pty_run=${DAIMOS_PTY_RUN:-}
 tcp_run=${DAIMOS_TCP_RUN:-}
 dcs_port=
 login_user=
+isolate_media=no
 
 while [ $# -gt 0 ]; do
         case "$1" in
@@ -50,6 +52,7 @@ while [ $# -gt 0 ]; do
         --boot-timeout) [ $# -ge 2 ] || usage; boot_timeout=$2; shift 2 ;;
         --timeout) [ $# -ge 2 ] || usage; default_timeout=$2; shift 2 ;;
         --login) [ $# -ge 2 ] || usage; login_user=$2; shift 2 ;;
+        --isolate-media) isolate_media=yes; shift ;;
         --markdown-report) [ $# -ge 2 ] || usage; markdown_report=$2; shift 2 ;;
         *) usage ;;
         esac
@@ -99,6 +102,16 @@ dcs_fifo=$work/dcs0.in
 results=$work/results.tsv
 : > "$results"
 mkfifo "$fifo"
+
+# Guests can leave their D6FS root DIRTY if SIMH is terminated without
+# a guest clean unmount. Keep each opt-in regression on private writable
+# media rather than modifying the shared source fixture.
+if [ "$isolate_media" = yes ]; then
+        isolated_dofile=$work/isolated-boot.ini
+        sh "$(dirname "$0")/daimos-simh-isolate-media-20261021-v1.sh" \
+            "$dofile" "$isolated_dofile" "$work/media"
+        dofile=$isolated_dofile
+fi
 
 child=
 dcs_child=

@@ -1,0 +1,15 @@
+# A later-stage launch failure must terminate AND reap preceding stages.
+# A leftover state-4 ZOMB consumes a process slot after TERM.
+probe dsh-pipeline-failed-launch-v1019
+command ECHO SHOULDNOTBLOCK ! /NO/SUCH/PROGRAM; ECHO RC:$?
+contains RC:127
+end
+probe dsh-pipeline-failed-launch-ps-v1019
+command PS
+contains PID PPID S WORDS
+not_line ^[0-9]+[[:space:]]+[0-9]+[[:space:]]+4[[:space:]]
+end
+probe dsh-pipeline-failed-launch-next-v1019
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
