@@ -1,0 +1,14 @@
+# Reproducer: a rejected builtin in a pipeline must release every pipe,
+# process reference and descriptor, so the next real pipeline can run.
+probe rejected-builtin-pipeline-v1
+command CD / ! CAT; ECHO STATUS:$?
+contains STATUS:126
+end
+probe pipeline-after-rejected-builtin-v1
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
+probe second-pipeline-after-rejected-builtin-v1
+command ECHO PIPE2 ! CAT
+line ^PIPE2$
+end

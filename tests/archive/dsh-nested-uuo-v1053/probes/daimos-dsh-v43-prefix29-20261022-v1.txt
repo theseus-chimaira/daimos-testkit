@@ -1,0 +1,193 @@
+probe dsh-comment-in-word
+command ECHO A#B
+line ^A#B$
+end
+
+probe dsh-empty-argument
+command ECHO A "" B
+line ^A  B$
+end
+
+probe dsh-quoted-keyword
+command ECHO "IF"
+line ^IF$
+end
+
+probe dsh-single-quote-backslash
+command ECHO 'A\B'
+line ^A\\B$
+end
+
+probe dsh-case-wildcard
+command CASE FOO IN WHEN B* DO ECHO BAD WHEN F?O DO ECHO CASEOK ESAC
+line ^CASEOK$
+not_contains BAD
+end
+
+probe dsh-case-quoted-wildcard
+command CASE FOO IN WHEN "F?O" DO ECHO BAD WHEN F* DO ECHO CASEQUOTEOK ESAC
+line ^CASEQUOTEOK$
+not_contains BAD
+end
+
+probe dsh-glob-create
+setup ECHO ONE > /SYSTEM/DSHG1
+setup ECHO TWO > /SYSTEM/DSHG2
+command ECHO /SYSTEM/DSHG*
+contains /SYSTEM/DSHG1
+contains /SYSTEM/DSHG2
+end
+
+probe dsh-glob-quoted
+command ECHO "/SYSTEM/DSHG*"
+line ^/SYSTEM/DSHG\*$
+end
+
+probe dsh-glob-unmatched
+command ECHO /SYSTEM/NOMATCH*
+line ^/SYSTEM/NOMATCH\*$
+end
+
+probe dsh-glob-variable-unquoted
+setup SET P "/SYSTEM/DSHG*"
+command ECHO $P
+contains /SYSTEM/DSHG1
+contains /SYSTEM/DSHG2
+end
+
+probe dsh-glob-variable-quoted
+setup SET P "/SYSTEM/DSHG*"
+command ECHO "$P"
+line ^/SYSTEM/DSHG\*$
+end
+
+probe dsh-glob-cleanup-one
+command RM /SYSTEM/DSHG1
+not_contains RM:
+end
+
+probe dsh-glob-cleanup-two
+command RM /SYSTEM/DSHG2
+not_contains RM:
+end
+
+probe dsh-variable-basic
+command SET DSHV VALUE; ECHO $DSHV
+line ^VALUE$
+end
+
+probe dsh-variable-bracketed
+command SET DSHV VALUE; ECHO $[DSHV]X
+line ^VALUEX$
+end
+
+probe dsh-variable-over-sixteen
+setup SET V01 01
+setup SET V02 02
+setup SET V03 03
+setup SET V04 04
+setup SET V05 05
+setup SET V06 06
+setup SET V07 07
+setup SET V08 08
+setup SET V09 09
+setup SET V10 10
+setup SET V11 11
+setup SET V12 12
+setup SET V13 13
+setup SET V14 14
+setup SET V15 15
+setup SET V16 16
+setup SET V17 17
+setup SET V18 18
+setup SET V19 19
+setup SET V20 20
+command ECHO $V01:$V16:$V20
+line ^01:16:20$
+end
+
+probe dsh-variable-resize-unset
+setup SET KEEP STABLE
+setup SET GROW A
+setup SET GROW ABCDEFGHIJKLMNOPQRSTUVWXYZ
+setup UNSET V10
+setup SET AFTER REUSED
+command ECHO $KEEP; ECHO $GROW; ECHO $AFTER; ECHO X$V10
+contains STABLE
+contains ABCDEFGHIJKLMNOPQRSTUVWXYZ
+contains REUSED
+line ^X$
+end
+
+probe dsh-status-failure
+command FALSE; ECHO $?
+line ^1$
+end
+
+probe dsh-status-success
+command TRUE; ECHO $?
+line ^0$
+end
+
+probe help-compact-echo
+command HELP ECHO
+contains ECHO - PRINT ARGUMENTS
+contains [ARG ...]
+not_contains EXIT STATUS
+end
+
+probe help-compact-das
+command HELP DAS
+contains DAS - DAIMOS PDP-6 AND PDP-10 ASSEMBLER
+contains -O FILE
+contains SOURCE
+not_contains SOURCE FORM
+end
+
+probe man-long-das
+command MAN DAS
+contains SOURCE FORM
+contains CONDITIONAL ASSEMBLY
+end
+
+probe apropos-summary-das
+command APROPOS ASSEMBLER
+contains DAS - DAIMOS PDP-6 AND PDP-10 ASSEMBLER
+end
+
+probe help-not-available
+command HELP NOSUCHHELP
+contains HELP NOT AVAILABLE
+end
+
+probe manual-not-available
+command MAN NOSUCHHELP
+contains MANUAL NOT AVAILABLE
+end
+
+probe dsh-status-not-found-127
+command NOSUCHCOMMAND; ECHO STATUS:$?
+contains DSH: NOT FOUND: NOSUCHCOMMAND
+contains STATUS:127
+end
+
+probe dsh-status-not-executable-create
+command ECHO NOTEXEC > /CONFIG/DSHNOEXEC
+not_contains ECHO:
+end
+
+probe dsh-status-not-executable-126
+command /CONFIG/DSHNOEXEC; ECHO STATUS:$?
+contains STATUS:126
+not_contains DSH: NOT FOUND
+end
+
+probe dsh-status-not-executable-cleanup
+command RM /CONFIG/DSHNOEXEC
+not_contains RM:
+end
+
+probe dsh-pipeline-data
+command ECHO PIPEOK ! CAT
+line ^PIPEOK$
+end
