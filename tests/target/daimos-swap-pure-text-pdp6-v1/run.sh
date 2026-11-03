@@ -31,7 +31,6 @@ compile_test()
     mode=$1
     extra=$2
     "$cc" -std=c99 -Os ${EXTRA_TEST_FLAGS:-} $extra \
-        -I"$PDP10_PREFIX/include" \
         -I"$kernel/core" -I"$kernel/fs" -I"$kernel/mm" \
         -I"$kernel/proc" -I"$kernel/storage" \
         -S "$here/test.c" -o "$work/test-$mode.s"
@@ -44,19 +43,32 @@ compile_swap()
     "$cc" -std=c99 -Os -DPROC_SWAP_TRANSACTIONS_PDP6_ASM=1 \
         -DPROC_SWAP_SERVICE_PDP6_ASM=1 -DPROC_SWAP_RECLAIM_PDP6_ASM=1 \
         -DPROC_SWAP_VERIFY_PURE="$verify" \
-        -I"$PDP10_PREFIX/include" \
         -I"$kernel/core" -I"$kernel/drivers" -I"$kernel/fs" -I"$kernel/mm" \
         -I"$kernel/modules" -I"$kernel/proc" -I"$kernel/storage" \
         -S "$kernel/proc/vm_pdp6_swap.c" -o "$work/swap-c-$mode.s"
     {
         cat "$work/swap-c-$mode.s"
         echo ".equ PROC_SWAP_VERIFY_PURE,$verify"
-        # Match the production proc_swap.s bundle: the PURE backing and
-        # storage-state leaves are native assembly, not C fallbacks.
-        cat "$kernel/proc/proc_swap_pdp6.s" \
-            "$kernel/proc/proc_swap_entry_v481.s" \
+        # Match the production swap transaction implementation exactly.
+        # Modern proc_swap_pdp6.s also contains separate two-process
+        # exchange orchestration, which needs unrelated MM service leaves.
+        # This target tests actual PURE swap out/in, not exchange. Retain
+        # the production constants and native transaction bodies, without
+        # adding unused exchange dependencies or fake successful stubs.
+        # Export only transaction entries: the original file declares
+        # MRES service globals that are not linked in this target fixture.
+        printf '.text\n.globl proc_swap_out\n.globl proc_swap_in\n'
+        sed -n '/^[[:space:]]*\.equ[[:space:]]/p' \
+            "$kernel/proc/proc_swap_pdp6.s"
+        sed -n '/^proc_swap_skip_words:$/,/^proc_swap_mres_service_v481:$/p' \
+            "$kernel/proc/proc_swap_pdp6.s" | sed '$d'
+        cat "$kernel/proc/proc_swap_entry_v481.s" \
             "$kernel/proc/proc_pure_backing_pdp6.s" \
             "$kernel/proc/proc_storage_runtime_v30.s"
+        # Keep the real read-only verifier used by the C detach path.
+        printf '.text\n.globl backstore_verify_allocated_v795\n'
+        sed -n '/^backstore_verify_allocated_v795:$/,/^; int backstore_extend(first,old_blocks,new_blocks)/p' \
+            "$kernel/storage/backstore.s" | sed '$d'
     } >"$work/swap-$mode.s"
 }
 

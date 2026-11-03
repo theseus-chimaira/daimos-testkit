@@ -38,12 +38,23 @@ struct proc *proc_table = processes;
 unsigned int proc_slots = 2U;
 unsigned int proc_high_slot = 2U;
 kword_t proc_sched_cursor;
+/* The production kernel owns this word in kcore_pi_pdp6.s.  This
+ * standalone target fixture executes in slot zero and swaps slot one;
+ * supply the same shared data symbol without linking the full PI core.
+ */
+kword_t proc_current_slot = 0UL;
 kword_t backstore_blocks = TEST_BLOCKS;
 kword_t backstore_blocks_used;
 unsigned int backstore_enabled = 1U;
 kword_t *backstore_bitmap;
 kword_t fs_block_workspace[DSK_WORDS_PER_SECTOR];
-kword_t daimos_swap_pure_text_pdp6_result;
+/* The harness expects zero for a completed successful test.  Initialize
+ * this word to a nonzero sentinel in the load image: an interrupted or
+ * timed-out run must not pass simply because BSS began at zero.  _start
+ * overwrites it only after the target test function actually returns.
+ * This safeguard was first identified in historical v156 test work.
+ */
+kword_t daimos_swap_pure_text_pdp6_result = 0777777777777UL;
 
 static void
 copy_words(kword_t *dst, const kword_t *src, unsigned int words)
@@ -309,9 +320,13 @@ daimos_swap_pure_text_pdp6_test(void)
                 return 034;
         if (proc_swap_in(1) != 0)
                 return 4;
-        if (proc_swap_backing_busy(TEST_NODE) != 0)
+        /* A restored resident PURE process retains its executable backing
+         * in the per-process swap record until detach, so another mount
+         * owner must still see the node and mount as busy.
+         */
+        if (proc_swap_backing_busy(TEST_NODE) == 0)
                 return 036;
-        if (proc_swap_mount_busy(TEST_MOUNT_ID) != 0)
+        if (proc_swap_mount_busy(TEST_MOUNT_ID) == 0)
                 return 042;
         if (VM_PDP6_BASE(&processes[1]) !=
             (kword_t)(unsigned long)restored)
@@ -321,6 +336,13 @@ daimos_swap_pure_text_pdp6_test(void)
             restored[01020U] != 0500000000000UL + 01020UL ||
             allocated_blocks != 0UL || proc_swap_blocks_used != 0UL)
                 return 6;
+        /* Releasing the resident PURE attachment must clear the remaining
+         * source and mount ownership without freeing disk swap twice.
+         */
+        if (proc_swap_detach(1) != 0 ||
+            proc_swap_backing_busy(TEST_NODE) != 0 ||
+            proc_swap_mount_busy(TEST_MOUNT_ID) != 0)
+                return 043;
 
         /* A non-PURE image never acquires executable-backed text semantics
          * and therefore uses the historical whole-image swap transaction. */

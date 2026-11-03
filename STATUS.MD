@@ -1,3 +1,35 @@
+## 2026-11-03 v1060: restore native PURE swap test integrity
+
+The original `swap-pure-target-completion-v156-20261015` branch
+identified a serious target-test false-positive risk: an uninitialized
+result word was zero in BSS and could satisfy `--expect ...=0` without
+the test function reaching its final return. The current target now
+initializes the result to a nonzero all-ones sentinel; `_start` stores
+zero only after the target function successfully completes.
+
+The production swap assembly has since acquired additional exchange
+services. The target now links the unmodified production PURE swap
+out/in transaction bodies and the real backing-store bitmap verifier,
+without pulling unrelated two-process exchange code into the fixture.
+It supplies `proc_current_slot=0` (the standalone test's slot-zero
+executive) while swapping slot one. No production kernel code changed.
+
+The test also follows current PURE ownership semantics: a resident
+restored process retains executable backing until `proc_swap_detach`;
+after detach the backing and mount are no longer busy. It verifies
+this transition instead of expecting backing to disappear at swap-in.
+
+`make target-swap-pure-text-pdp6` now passes both real native PDP-6
+cases: normal raw/compressed PURE suffix swapping and the deliberate
+PURE integrity assertion. Both also pass with
+`EXTRA_TEST_FLAGS=-DTEST_MOUNT_ID=26U` (the fifth mount-slot bit).
+The builds complete without warnings after removing a redundant
+target system include path. This is a standalone PDP-6 target
+regression, not a 32K boot or KCORE optimization.
+
+The historical v156 and v157 branch reports describe earlier test
+configurations and must not be replayed over newer fixture APIs.
+
 ## 2026-11-03 v1056: retired Type-340 C fixture
 
 The original migrated C-based Type-340 terminal test no longer built
