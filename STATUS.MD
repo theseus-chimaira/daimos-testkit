@@ -1,3 +1,28 @@
+## 2026-11-03 v1082: NEWSESSION TTY release is transactional
+
+The former PROCCTL_NEWSESSION path rewrote the caller's group, session
+and TTY state before calling the last-member TTY release. A pinned
+canonical input allocation could therefore retain the old TTY session
+after its only process abandoned that identity, and the syscall still
+reported success.
+
+The new path calls the existing checked TTY/MM release before publishing
+the new identity; refusal leaves the caller in the old session and
+returns -1, preserving a natural owner for retry. The session scan
+already excludes the leaving slot, so other old-session members keep
+their TTY without attempting a release. The production PDP-6 native
+fixture passes refusal, unpin/retry and peer-member cases. The
+pre-v1082 code fails the corresponding negative control as intended.
+The earlier v1081 owner-finalizer/MM regressions also pass. A complete
+process/TTY simulator guest passes with the current kernel. The
+noninstrumented KCC KCORE low end increases 4 words
+(`023112` -> `023116` octal); no new BSS. Production OOM killing is
+still disabled pending transitive provider teardown audits.
+Additional full simulator regressions PASS: session leader HUP and
+TTY reattach, TTY detach/reattach state of every live member, and the
+256K physical-OOM requester-only test with two D6FS SYNC refusals and
+one MM_BUSY refusal (owner and independent witness recover).
+
 ## 2026-11-03 v1081: final-member TTY MM owner is not orphaned
 
 Source-linked PDP-6 finalizer test v1081 verifies that a TTY release

@@ -1374,6 +1374,14 @@ test-daimos-tty-finalize-gate-v1081: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 sh tests/validation/daimos-tty-session-actual-mm-v968.sh
 
+.PHONY: test-daimos-newsession-tty-rollback-v1082
+test-daimos-newsession-tty-rollback-v1082: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-newsession-tty-rollback-v1082.sh
+	@DAIMOS_V1082_NEGATIVE=1 DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-newsession-tty-rollback-v1082.sh
+
 test-daimos-provider-fatal-contention-v1078: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
