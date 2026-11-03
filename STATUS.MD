@@ -1,3 +1,14 @@
+## 2026-11-03 v1056: retired Type-340 C fixture
+
+The original migrated C-based Type-340 terminal test no longer built
+because current DAIMOS implements the retained Type-342 terminal
+in native assembler and no longer contains `dpy_text.c`. The two
+historical files were retained unchanged in
+`tests/archive/type340-c-obsolete-v1056/`; no default test depends
+on them. Current detached-TTY, native-block Type-340, and DPY
+interrupt-policy tests pass. This fixes the obsolete test inventory;
+it is not a new production display-code change or guest acceptance.
+
 ## 2026-11-03 v1055: complete historical v115/v54 artifact recovery
 
 The old SIMH v115 worktree's four otherwise untracked DTFS probes and
