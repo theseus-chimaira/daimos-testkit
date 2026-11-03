@@ -1,3 +1,9 @@
+.PHONY: test-daimos-monitorfs-compiler-v1032
+test-daimos-monitorfs-compiler-v1032: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	    PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	    sh tests/validation/daimos-monitorfs-compiler-v1032.sh
+
 .PHONY: test-daimos-mm-descriptor-capacity-v1030
 test-daimos-mm-descriptor-capacity-v1030: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
