@@ -6,8 +6,9 @@ source copy. It validates a real memory shortage with an exit-status-1
 requester, a separately PIPE-blocked child that survives, resumes and
 exits, and process memory accounting restored to its baseline.
 Full-guest output `<KWP` with HALT: PASS. A separate disposable build
-with production's default-OFF branch returns from BRK instead and
-reports the expected negative markers `D!S`: PASS. Test targets are
+with production's default-OFF branch returns from BRK instead,
+then exits normally. The parent reaps it, releases the PIPE witness
+and verifies restored process accounting (`<DNWP`): PASS. Targets are
 `test-daimos-oom-requester-live-v1075` and
 `test-daimos-oom-requester-disabled-v1075`.
 
