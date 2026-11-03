@@ -130,7 +130,7 @@ v956_recreate:
  movei 1,1
  movei 2,__ptable+3
  pushj 17,proc_uarea_release
- camn 1,[-1]
+ camn 1,[-4]
  jrst v956_wrong_owner
  jrst fail_13
 v956_wrong_owner:
@@ -147,19 +147,37 @@ v956_wrong_type:
  movei 1,1
  movei 2,__ptable+3
  pushj 17,proc_uarea_release
- camn 1,[-1]
+ camn 1,[-4]
  jrst v956_type_preserved
  jrst fail_13
 v956_type_preserved:
  move 1,__ptable+3
  came 1,__owner_before
  jrst fail_13
+ ; A corrupted descriptor with its live-uarea flag but zero base is
+ ; invalid (-4), not a successful no-op or a retryable pin (-5).
+ move 1,[0600000]
+ movem 1,__ptable+3
+ movei 1,1
+ movei 2,__ptable+3
+ pushj 17,proc_uarea_release
+ camn 1,[-4]
+ jrst v1097_invalid_base_preserved
+ jrst fail_13
+v1097_invalid_base_preserved:
+ move 1,__ptable+3
+ camn 1,[0600000]
+ jrst v1097_restore_descriptor
+ jrst fail_13
+v1097_restore_descriptor:
+ move 1,__owner_before
+ movem 1,__ptable+3
  move 1,[013,,01001]
  movem 1,mm_extents+1
  movei 1,1
  movei 2,__ptable+3
  pushj 17,proc_uarea_release
- camn 1,[-1]
+ camn 1,[-5]
  jrst v956_pin_preserved
  jrst fail_13
 v956_pin_preserved:

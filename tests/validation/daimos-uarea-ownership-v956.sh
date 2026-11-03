@@ -29,6 +29,37 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
     sed -n '/^proc_control_getteardown_v886:$/,/^proc_control_getpgrp:$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
+if [ -n "${DAIMOS_V1097_MUTANT:-}" ]; then
+    python3 - "$work/leaf.s" "$DAIMOS_V1097_MUTANT" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+mode = sys.argv[2]
+before = path.read_text()
+options = {
+    'collapse': (
+        'proc_uarea_release_fail:\n        pop     17,10\n'
+        '        ; Preserve the real MM_ERR_INVAL (-4) or MM_ERR_BUSY (-5).\n'
+        '        ; Both keep descriptor base/flag and exact retry owner untouched.\n'
+        '        popj    17,',
+        'proc_uarea_release_fail:\n        pop     17,10\n'
+        '        ; Preserve the real MM_ERR_INVAL (-4) or MM_ERR_BUSY (-5).\n'
+        '        ; Both keep descriptor base/flag and exact retry owner untouched.\n'
+        '        jrst    kret_neg1'),
+    'early': (
+        '        jumpn   1,proc_uarea_release_fail',
+        '        jumpe   1,proc_uarea_release_fail'),
+    'base': (
+        'proc_uarea_release_invalid_v1097:\n        movni   1,4',
+        'proc_uarea_release_invalid_v1097:\n        seto    1,'),
+}
+assert mode in options, 'unknown negative test mode'
+old, new = options[mode]
+assert before.count(old) == 1, 'source anchor drift: ' + mode
+path.write_text(before.replace(old, new, 1))
+PY
+fi
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 220000 --timeout 25 \
     --workdir "$work/run" --name uarea-ownership-v956 --expect __test_exit=0 \

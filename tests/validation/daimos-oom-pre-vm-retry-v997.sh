@@ -1,8 +1,10 @@
-# Native booted 256K regression: reject first VM destroy, retry from slot zero.
+# Booted 256K regression: reject first VM destroy, retry from slot zero.
 # The second injection rejects the first u-area MM free; no production hooks.
-# Diagnostic regression (currently failing): full-system PDP-6 deferred TERM
-# followed by descendant EXIT/CHLD WITHOUT an artificially stalled provider.
-# Preserve work with KEEP_TEST=1 for failure analysis.
+# v1098 fixed an actual unarmed retry-clock bug exposed by this diagnostic:
+# EXIT prepublished FINALIZE+PREVM without yet arming proc_finish_last_tick.
+# The repaired full-system guest now verifies VM and u-area recovery,
+# deferred TERM, descendant EXIT/CHLD, live provider lease and bystander.
+# KEEP_TEST=1 preserves the disposable image and counters for diagnosis.
 # All fault hooks and witnesses are confined to a disposable kernel copy.
 set -eu
 : "${DAIMOS_REPO:?}" "${PDP10_PREFIX:?}"

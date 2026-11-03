@@ -1384,6 +1384,24 @@ test-daimos-xip-release-stage-v1094: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-xip-release-stage-v1094.sh
 
+.PHONY: test-daimos-p0d-release-matrix-v1096
+.PHONY: test-daimos-uarea-typed-release-v1097
+.PHONY: test-daimos-prevm-retry-clock-v1098
+test-daimos-prevm-retry-clock-v1098: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-prevm-retry-clock-v1098.sh
+
+test-daimos-uarea-typed-release-v1097: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-uarea-typed-release-v1097.sh
+
+test-daimos-p0d-release-matrix-v1096: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-p0d-release-matrix-v1096.sh
+
 .PHONY: test-daimos-provider-permanent-v891
 test-daimos-provider-permanent-v891: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
