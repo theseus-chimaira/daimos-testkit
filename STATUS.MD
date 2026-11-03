@@ -1,3 +1,24 @@
+## 2026-11-03 v1055: complete historical v115/v54 artifact recovery
+
+The old SIMH v115 worktree's four otherwise untracked DTFS probes and
+scripts are now preserved in `tests/archive/dtfs-v199-v200-unaccepted-v1052/`
+with verified SHA-256 hashes. Their scripts contain incomplete single-
+phase experiments, not the two-boot persistence acceptance they claim.
+The obsolete local v115 branch was deleted after detaching and cleaning
+the old worktree; its tracked commits were already reachable from main.
+
+The historical nested-UUO v54 worktree's twelve untracked probes and
+modified runtime report are now preserved in the versioned v1053
+testkit archive, with verified hashes. Its commits are ancestors of the
+retained legacy DSH/SUPERVISOR archive. The obsolete local v54 branch
+was deleted after cleaning and detaching its worktree. The existing
+media-isolation regression passes, but historical nested-UUO failures
+are not claimed fixed by that test.
+
+The native MAKE v1054 lazy scratch source and 256K runtime tests are
+accepted separately; peak process RAM and full MAKE ALL self-hosting
+remain unmeasured. No 32K-specific test or KCORE optimization ran.
+
 ## 2026-11-03 v1054: native MAKE recursion scratch 256K guest check
 
 DAIMOS native MAKE now caches its implicit-rule scratch record lazily
