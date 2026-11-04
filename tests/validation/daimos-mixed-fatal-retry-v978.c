@@ -12,6 +12,10 @@
 #define RUN_MAP_OFF (RUN_ARG1_OFF + RUN_ARG_WORDS)
 #define RUN_BLOCK_WORDS (RUN_MAP_OFF + 3U)
 
+#ifdef DAIMOS_V1117_WAIT_CHURN
+#define V1117_WAIT_CYCLES 48U
+#endif
+
 static kword_t init_path[] = {
         12UL,
         TEST_SIX6('/', 'S', 'Y', 'S', 'T', 'E'),
@@ -186,6 +190,40 @@ main(int argc, kword_t **argv)
                 (void)dsys_writechar(1, ']');
                 fail('A');
         }
+#ifdef DAIMOS_V1117_WAIT_CHURN
+        {
+                struct sys_meminfo baseline;
+                struct sys_meminfo current;
+                unsigned int cycle;
+
+                /* The provider lease, blocked siblings and independent
+                 * spinner remain in place throughout. New RUN requests
+                 * would legitimately block on the held provider lease;
+                 * instead repeatedly validate that the already reaped
+                 * child has no stale WAIT or event target. */
+                if (dsys_meminfo(&baseline) != 0)
+                        fail('b');
+                (void)dsys_writechar(1, 'B');
+                for (cycle = 0U; cycle < V1117_WAIT_CYCLES; ++cycle) {
+                        status = 0UL;
+                        if (dsys_wait((unsigned int)child_parent,
+                                      &status, 0U) != -1)
+                                fail('w');
+                        if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
+                                SYS_EVENT_ARG(child_parent,
+                                              SYS_EVENT_TERM)) != -1)
+                                fail('p');
+                        if (dsys_meminfo(&current) != 0 ||
+                            current.process_slots_used >
+                                baseline.process_slots_used ||
+                            current.process_words > baseline.process_words)
+                                fail('m');
+                        if ((cycle & 7U) == 7U)
+                                (void)dsys_writechar(1, '.');
+                }
+                (void)dsys_writechar(1, 'R');
+        }
+#endif
         if (dsys_writechar(1, 'P') != 0)
                 fail('4');
         /* Test-only kernel halts here, before INIT can tear down children. */

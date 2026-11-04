@@ -16,6 +16,12 @@ integrated=${DAIMOS_V1103_MULTISTAGE:-0}
 case "$integrated" in 0|1) ;; *) echo 'v1103: invalid stage selector' >&2; exit 2 ;; esac
 physical_vm=${DAIMOS_V1106_PHYSICAL_VM:-0}
 case "$physical_vm" in 0|1) ;; *) echo 'v1106: invalid VM selector' >&2; exit 2 ;; esac
+wait_churn=${DAIMOS_V1117_WAIT_CHURN:-0}
+case "$wait_churn" in 0|1) ;; *) echo 'v1117: invalid WAIT churn selector' >&2; exit 2 ;; esac
+if [ "$wait_churn" = 1 ] && [ "$integrated" != 1 ]; then
+    echo 'v1117: WAIT churn requires the combined v1103 fault stages' >&2
+    exit 2
+fi
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 printf 'v924: isolated work %s\n' "$work"
 mkdir -p "$work/source/system" "$work/user"
@@ -546,6 +552,9 @@ extra_cflags=''
 if [ "$integrated" = 1 ]; then
     extra_cflags=-DDAIMOS_V1103_MULTISTAGE=1
 fi
+if [ "$wait_churn" = 1 ]; then
+    extra_cflags="$extra_cflags -DDAIMOS_V1117_WAIT_CHURN=1"
+fi
 # shellcheck disable=SC2086
 "$cc" -std=c89 -Os $extra_cflags $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-mixed-fatal-retry-v978.c" -o "$work/user/init.s"
@@ -614,8 +623,12 @@ while read -r name addr; do
 done < "$work/addresses"
 printf 'exit\n' >> "$build/boot.ini"
 printf 'v997: injected VM and u-area release retries with held provider\n'
+run_timeout=90
+if [ "$wait_churn" = 1 ]; then
+    run_timeout=150
+fi
 set +e
-(cd "$build"; TERM=dumb timeout -k 2s 90s stdbuf -o0 -e0 \
+(cd "$build"; TERM=dumb timeout -k 2s "${run_timeout}s" stdbuf -o0 -e0 \
     "$PDP10_PREFIX/bin/pdp6" boot.ini) >"$work/simh.out" 2>&1
 rc=$?
 set -e
@@ -624,13 +637,14 @@ if [ "$rc" -ne 0 ]; then
     echo "v924: simulator failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$integrated" "$physical_vm" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$integrated" "$physical_vm" "$wait_churn" <<'PY'
 from pathlib import Path
 import re
 import sys
 out = Path(sys.argv[2]).read_text(errors='replace')
 integrated = sys.argv[3] == '1'
 physical_vm = sys.argv[4] == '1'
+wait_churn = sys.argv[5] == '1'
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
@@ -676,5 +690,11 @@ if physical_vm:
     print('v1106: physical VM pin/MM_BUSY, actual MM release and '
           'one swap detach, uarea retry, foreign provider, CHLD, '
           'bystander PASS:', seen)
+if wait_churn:
+    # The independent spinner may interleave S at any progress mark.
+    if re.search(r'B(?:S*\.){6}S*R', out) is None or '!' in out:
+        raise SystemExit('v1117: repeated RUN/WAIT child cycles not observed')
+    print('v1117: 48 repeated stale WAIT/PID/event refusals, '
+          'process-MM/slot non-growth, bystander and mixed teardown PASS')
 print('v997: pre-VM refusal then post-VM u-area retry PASS:', seen)
 PY

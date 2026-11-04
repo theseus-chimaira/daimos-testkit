@@ -1,3 +1,28 @@
+## 2026-11-04 v1117: mixed-fault stale WAIT/PID and bystander liveness
+
+The opt-in full 256K PDP-6 `daimos-oom-wait-churn-v1117` extends
+the booted v1103 PIPE/FILE/HUP-stage/VM/u-area fatal-release case.
+After the parent reaps its fatally retired child, it repeats 48
+stale-PID WAIT requests and PID-directed TERM requests, requiring
+ordinary -1 rejection every time. After every pair it verifies that
+process slots and process-MM words do not grow. The foreign FS lease
+remains held, and the unrelated spinner continues runnable throughout.
+The original v1103 test still reports exactly 2 PIPE physical frees
+with 1 refusal, 3 FILE close attempts with 2 refusals, 2 HUP-stage
+calls with 1 refusal, 2 VM calls and 2 u-area calls with 1 refusal,
+one EXIT/CHLD/finalization, no ownership/provider errors, and 36
+observed bystander cycles. v1117 PASSes as one disposable boot.
+
+An initial version attempted new RUNs after the provider lease was
+deliberately held. It could not complete because the executable
+loading path legitimately blocks on that lease; this was an invalid
+test assumption, not evidence of a kernel RUN deadlock. The final
+test instead probes stale WAIT/PID/event behavior, independent of
+new executable loads. It does not prove numeric PID reuse or
+general multi-provider liveness. The optional P0D_FULL matrix now
+includes this booted regression. Production code/BSS/MRES and OOM
+policy are unchanged; P0-D/E/F remain open.
+
 ## 2026-11-04 v1116: booted exact RUN MM descriptor failure cause
 
 Two separately built and booted 256K PDP-6 disposable images PASS
