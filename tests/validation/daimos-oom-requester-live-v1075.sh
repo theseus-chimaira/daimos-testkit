@@ -11,6 +11,7 @@ enable=${V1075_TEST_OOM_ENABLED:-1}
 negatives=${V1110_TEST_NEGATIVES:-0}
 bad_run=${V1112_TEST_FAILED_RUN:-0}
 mm_slots=${V1114_TEST_MM_SLOTS:-0}
+mm_fragment=${V1115_TEST_MM_FRAGMENT:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -27,6 +28,14 @@ case "$mm_slots" in
     0|1) ;;
     *) echo 'v1114: invalid MM descriptor mode' >&2; exit 2 ;;
 esac
+case "$mm_fragment" in
+    0|1) ;;
+    *) echo 'v1115: invalid MM fragmentation mode' >&2; exit 2 ;;
+esac
+if [ "$mm_slots" = 1 ] && [ "$mm_fragment" = 1 ]; then
+    echo 'v1115: only one MM fault mode per disposable kernel' >&2
+    exit 2
+fi
 work=$(mktemp -d "$TMPDIR/daimos-oom-requester-live-v1075.XXXXXX")
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; else echo "v1075 work: $work"; fi' EXIT HUP INT TERM
 mkdir -p "$work/source/system" "$work/user"
@@ -59,6 +68,38 @@ assert source.count(anchor) == 1, 'v1114: syscall entry changed'
 p.write_text(source.replace(anchor, anchor + before, 1) + '\n' + after)
 PY
 fi
+if [ "$mm_fragment" = 1 ]; then
+    python3 - "$work/source/system/kernel/proc/syscall_dispatch_pdp6.s" \
+        "$work/source/system/kernel/mm/mm_pdp6.s" \
+        "$self/daimos-oom-mm-fragment-v1115.s" <<'PY'
+from pathlib import Path
+import sys
+
+p = Path(sys.argv[1])
+mm = Path(sys.argv[2])
+snippet = Path(sys.argv[3]).read_text()
+before, after = snippet.split(
+    '; Immediately after the production VM BRK call, before policy checking:', 1)
+note, definitions = after.split(
+    '; Definitions appended after the original syscall assembly file.', 1)
+assert 'movem   2,v1115_last_cause' in note
+source = p.read_text()
+entry = 'native_sys_brk:\n'
+call = '        pushj   17,vm_space_brk_current\n'
+assert source.count(entry) == 1 and source.count(call) == 1
+source = source.replace(entry, entry + before, 1)
+source = source.replace(call, call +
+                        '        movem   2,v1115_last_cause\n', 1)
+p.write_text(source + '\n' + definitions)
+# mm_find_fit is deliberately private in production. Export it only
+# in this disposable test copy to observe genuine fragmented gaps.
+mm_source = mm.read_text()
+mm_anchor = '        .globl  mm_alloc_aligned_noreclaim\n'
+assert mm_source.count(mm_anchor) == 1
+mm.write_text(mm_source.replace(mm_anchor,
+                               mm_anchor + '        .globl  mm_find_fit\n', 1))
+PY
+fi
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
@@ -74,6 +115,7 @@ done
     -DV1110_TEST_NEGATIVES="$negatives" \
     -DV1112_TEST_FAILED_RUN="$bad_run" \
     -DV1114_TEST_MM_SLOTS="$mm_slots" \
+    -DV1115_TEST_MM_FRAGMENT="$mm_fragment" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -116,6 +158,7 @@ if [ "$rc" -ne 0 ]; then
 fi
 text=$(tr -d '\r\n' < "$work/simh.out")
 prefix=
+if [ "$mm_fragment" = 1 ]; then prefix=F; fi
 if [ "$mm_slots" = 1 ]; then prefix=M; fi
 if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
@@ -156,4 +199,7 @@ if [ "$bad_run" = 1 ]; then
 fi
 if [ "$mm_slots" = 1 ]; then
     echo "v1114: real MM descriptor capacity filled, child RUN refused, original MM released (OOM enabled=$enable) PASS"
+fi
+if [ "$mm_fragment" = 1 ]; then
+    echo "v1115: real physical MM fragmentation, BRK -1 with cause -2, no fatal requester, exact cleanup (OOM enabled=$enable) PASS"
 fi

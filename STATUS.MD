@@ -1,3 +1,37 @@
+## 2026-11-04 v1115: booted real MM fragmentation with exact BRK cause
+
+The opt-in full 256K PDP-6 v1115 guest links an isolated test-only
+BRK sentinel extension into a disposable syscall kernel copy. It uses
+the production `mm_alloc_aligned_noreclaim` and `mm_free` to construct
+physical fragmentation from real 040000-word (16K) kernel-dynamic
+extents, freeing alternate blocks while retaining every remaining
+physical base. A test-only export of production-private `mm_find_fit`
+verifies that at least 0200000 (64K) words remain free in aggregate,
+yet no contiguous 64K extent exists. The parent requests a 64K BRK;
+real `vm_space_brk_current` returns -1 and exposes the exact internal
+-2 fragmentation cause through the test-only syscall observer. The
+original logical break, requester and its MM process words survive.
+All recorded temporary extents are freed using exact base/type/owner.
+
+An earlier 40K test correctly observed a failed full-image fit, but
+BRK was able to grow in place using only its smaller delta. The 64K
+request also excludes that adjacent-gap path. The initial cleanup
+fixture incorrectly required the global extent count to remain
+identical after ordinary VM/FS reclamation: a boot showed one fewer
+descriptor, while every tracked temporary free succeeded. The final
+fixture rejects an increased descriptor count and confirms all exact
+test-owned frees and unchanged parent process-MM accounting.
+
+Both separate full-system boots PASS: default-disabled OOM prints
+`<FRILDNWP`, and disposable enabled-policy OOM prints `<FRILKWP`.
+The fragmented requester survives even with OOM enabled; a later
+genuine physical exhaustion still retires only its requester under
+that test policy. Subsequent failed-RUN, invalid-BRK, WAIT and blocked
+witness cases pass with final process-MM accounting restored.
+The test instrumentation and data are absent from production kernel
+code and BSS. P0-F still needs direct RUN -3 cause tracing, and P0-D/E
+integration remains open; production OOM stays disabled.
+
 ## 2026-11-04 v1114: booted real MM descriptor pressure with child RUN
 
 The opt-in full 256K PDP-6 guest v1114 adds a test-only extension to

@@ -21,6 +21,10 @@
 #define V1114_TEST_MM_SLOTS 0
 #endif
 
+#ifndef V1115_TEST_MM_FRAGMENT
+#define V1115_TEST_MM_FRAGMENT 0
+#endif
+
 #define V1075_PATH_WORDS 3U
 #define V1075_PATH_OFF SYS_RUN_V2_FIXED_WORDS
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
@@ -167,6 +171,36 @@ main(int argc, kword_t **argv)
             before.total_words <= V1075_BRK_REQUEST)
                 fail('0');
     (void)dsys_writechar(1, '<');
+
+#if V1115_TEST_MM_FRAGMENT
+    {
+        kword_t original;
+
+        original = dsys_brk(0UL);
+        if (original == (kword_t)-1L || original >= 0200000UL)
+                fail('f');
+        /* The test-only sentinel allocates actual MM extents, then
+         * frees alternate extents. Its real MM fit check requires
+         * at least 64K total free but no 64K contiguous extent. */
+        if (dsys_brk(0777773UL) != 1UL)
+                fail('g');
+        if (dsys_brk(0200000UL) != (kword_t)-1L)
+                fail('h');
+        /* Read the actual VM helper's AC2 from the preceding BRK.
+         * A false -1 physical OOM must not retire this requester. */
+        if (dsys_brk(0777771UL) != (kword_t)-2L)
+                fail('j');
+        if (dsys_brk(0UL) != original)
+                fail('k');
+        if (dsys_brk(0777772UL) != 0UL)
+                fail('l');
+        if (dsys_meminfo(&occupied) != 0 ||
+            occupied.process_slots_used != before.process_slots_used ||
+            occupied.process_words != before.process_words)
+                fail('n');
+        (void)dsys_writechar(1, 'F');
+    }
+#endif
 
 #if V1114_TEST_MM_SLOTS
     /* The disposable kernel fills actual MM slots with private dynamic
