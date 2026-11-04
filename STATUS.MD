@@ -1,3 +1,45 @@
+## 2026-11-04 v1123: executable OOM scope and checklist audit
+
+The active DAIMOS `TODO.MD` now has a fine-grained OOM activation
+checklist, with fixed IDs S01-S08, A01-A04, B01-B07, C01-C04,
+D01-D16, E01-E13, F01-F13 and optional X01-X08. The initial
+checked baseline is **32/65 mandatory and 2/8 optional XIP**;
+33 mandatory requirements remain OPEN (31 pre-enable blockers;
+F12/F13 are necessarily performed after signoff). The canonical explanation
+and release conditions are in
+`pdp10-doc/KERNEL/OOM-ENABLEMENT-CHECKLIST-V1123.MD`.
+
+The new `daimos-oom-scope-v1123.py` is a source-only guard proving
+that production OOM is still default-OFF and ordinary RUN/EXEC
+call `vm_space_startup`, which writes user memory even with argc=0;
+neither loader uses the private MEMFS op 027 XIP admission. Six
+deliberately unsafe mutations fail the guard. This permits the
+*disabled* root-only XIP process-creation feature to remain outside
+the current ordinary-process OOM activation scope. It does not
+prove real scheduled XIP lifetime safety and must be extended if
+XIP process admission is actually enabled later.
+
+`daimos-oom-readiness-v1123.py` validates every checklist ID/status,
+rejects five malformed/premature-enable mutations and reports the
+open IDs. `make test-daimos-oom-scope-v1123` PASSes inventory and
+scope while explicitly reporting `OOM ACTIVATION BLOCKED`.
+`make check-daimos-oom-ready-v1123` correctly fails (exit 2)
+on 31 unfinished pre-enable tasks; the two post-signoff actions do
+not create a circular prerequisite. It never alters production code.
+
+The entire current source-linked v1096 P0-D release-stage matrix
+PASSes, including XIP release/VM ownership v1108/v1109, TTY,
+PIPE, DPY, VM and SWAP, plus v1087 fatal graph audit. This is
+native/component coverage: `P0D_FULL=1` disposable 256K guest
+requalification and the other open P0-E/F gates are not completed.
+Production OOM remains disabled with no KCORE/MRES/data/ABI delta.
+The source-linked v981 requester-only policy, v998/v999 BRK cause,
+v1113 real MM -2/-3 via BRK (three mutants rejected), v1092 provider
+quarantine (14 mutants rejected), and v1086 slot-0 PI6 callback
+closure all independently rerun PASS. v1123 audit counts 33 open
+mandatory items, distinguishing **31 pre-enable blockers** from
+F12/F13 post-signoff release actions.
+
 ## 2026-11-04 v1122: two real failures, PIPE MM_BUSY then DISK bitmap
 
 `daimos-session-hup-pipe-swap-v1122` PASSes a full 256K PDP-6 guest

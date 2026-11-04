@@ -1348,6 +1348,20 @@ test-daimos-oom-requester-disabled-v1075: check-prefix
 
 .PHONY: test-daimos-oom-brk-negatives-v1110
 .PHONY: test-daimos-oom-pid-reuse-v1120
+.PHONY: test-daimos-oom-scope-v1123
+test-daimos-oom-scope-v1123: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-oom-scope-v1123.py
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-oom-readiness-v1123.py --audit
+
+.PHONY: check-daimos-oom-ready-v1123
+check-daimos-oom-ready-v1123: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-oom-scope-v1123.py
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 python3 tests/validation/daimos-oom-readiness-v1123.py --require-ready
+
 .PHONY: test-daimos-oom-pid-reuse-enabled-v1120
 test-daimos-oom-pid-reuse-v1120: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
