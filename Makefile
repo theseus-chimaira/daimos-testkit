@@ -1386,6 +1386,12 @@ test-daimos-xip-release-stage-v1094: check-prefix
 
 .PHONY: test-daimos-p0d-release-matrix-v1096
 .PHONY: test-daimos-oom-multistage-v1103
+.PHONY: test-daimos-session-hup-pipe-mm-v1104
+test-daimos-session-hup-pipe-mm-v1104: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-session-hup-pipe-mm-v1104.sh
+
 test-daimos-oom-multistage-v1103: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

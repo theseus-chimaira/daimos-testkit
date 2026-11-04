@@ -165,6 +165,15 @@ main(int argc, kword_t **argv)
         mode = startup_mode(argc, argv);
 
         if (mode == JOB_MODE) {
+#ifdef DAIMOS_V1104_PIPE_HUP
+                /* Keep a genuine private PIPE until the parent's remote HUP.
+                 * FILE close must not lose its final reference on MM_BUSY. */
+                kword_t pipe_pair;
+
+                pipe_pair = dsys_pipe();
+                if (pipe_pair == ~0UL)
+                        (void)dsys_exit(0104);
+#endif
                 if (dsys_procctl(SYS_PROCCTL_GETTTY, 0U) !=
                     (int)SYS_TTY_ATTACHED(0U))
                         (void)dsys_exit(0103);
@@ -197,6 +206,19 @@ main(int argc, kword_t **argv)
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
             SYS_EVENT_ARG((unsigned int)leader, SYS_EVENT_HUP)) != -1)
                 fail('6', 0206);
+#ifdef DAIMOS_V1104_PIPE_HUP
+        {
+                kword_t pending_status;
+
+                /* INIT directly parents the session leader, not job2.
+                 * A rejected member PIPE close must prevent the leader
+                 * from becoming waitable before HUP actually commits. */
+                pending_status = 0UL;
+                if (dsys_wait((unsigned int)leader, &pending_status,
+                    SYS_WAIT_NOHANG) != 0)
+                        fail('q', 0210);
+        }
+#endif
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
             SYS_EVENT_ARG((unsigned int)leader, SYS_EVENT_HUP)) != 0)
                 fail('7', 0207);
