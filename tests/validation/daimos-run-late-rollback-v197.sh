@@ -22,6 +22,16 @@ case "${DAIMOS_RUN_VM_CREATE_OOM_V199:-0}" in
        extra_cflags=-DTEST_VM_CREATE_OOM_V199=1 ;;
     *) echo 'invalid DAIMOS_RUN_VM_CREATE_OOM_V199' >&2; exit 2 ;;
 esac
+case "${DAIMOS_RUN_PGRP_NEW_V1130:-0}" in
+    0) ;;
+    1) if [ -n "$extra_cflags" ]; then
+           echo 'v1130: process-group test excludes OOM variants' >&2
+           exit 2
+       fi
+       tag=daimos-run-pgrp-new-v1130
+       extra_cflags=-DTEST_PGRP_NEW_V1130=1 ;;
+    *) echo 'v1130: invalid process-group selector' >&2; exit 2 ;;
+esac
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 work="$TMPDIR/$tag-$$"
 user="$work/user"
@@ -91,7 +101,8 @@ case "$text" in
                         echo "$tag: unexpected v199 marker" >&2; exit 1
                       fi ;;
     *'<RMCP'*'HALT'*) ;;
-    *'<RCP'*'HALT'*) if [ -n "$extra_cflags" ]; then
+    *'<RCP'*'HALT'*) if [ -n "$extra_cflags" ] &&
+                           [ "$extra_cflags" != -DTEST_PGRP_NEW_V1130=1 ]; then
                        cat "$out" >&2
                        echo "$tag: missing OOM marker" >&2
                        exit 1
@@ -104,6 +115,10 @@ esac
 if [ "$extra_cflags" = -DTEST_VM_CREATE_OOM_V199=1 ]; then
     echo "$tag: PASS (4 valid RUN loader VM allocation failures, preserved caller, full recovery)"
 elif [ -n "$extra_cflags" ]; then
+    if [ "$extra_cflags" = -DTEST_PGRP_NEW_V1130=1 ]; then
+        echo "$tag: PASS (16 post-VM RUN fdmap failures, NEW process groups, stable MM and recovery)"
+        exit 0
+    fi
     echo "$tag: PASS (4 physical MM OOM break requests, preserved caller VM and RUN rollback/recovery)"
 else
     echo "$tag: PASS (16 post-VM RUN fdmap failures under three live children; stable process accounting and recovery)"

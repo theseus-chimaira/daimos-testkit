@@ -21,6 +21,10 @@
 #define FAILED_RUNS        16U
 #define CHILD_EXIT_STATUS  051U
 
+#ifndef TEST_PGRP_NEW_V1130
+#define TEST_PGRP_NEW_V1130 0
+#endif
+
 /* Every parent variant uses the same known-bootable image footprint. The
  * dedicated v199 child has a larger BSS image, independently installed. */
 static volatile kword_t vm_pressure[040000];
@@ -51,7 +55,11 @@ run_self(unsigned int mode, int input_fd, int reject_fdmap)
         for (i = 0U; i < RUN_BLOCK_WORDS; ++i)
                 block[i] = 0UL;
         req = (struct sys_run_v2 *)block;
+#if TEST_PGRP_NEW_V1130
+        req->flags = SYS_RUN_PGRP_NEW;
+#else
         req->flags = SYS_RUN_PGRP_INHERIT;
+#endif
         req->argc = 2UL;
         for (i = 0U; i < RUN_PATH_WORDS; ++i) {
                 block[RUN_PATH_OFF + i] = init_path[i];
