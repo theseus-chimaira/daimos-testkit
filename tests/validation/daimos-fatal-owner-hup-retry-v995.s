@@ -14,6 +14,10 @@ main:
  jrst term_consumed_v926
  jrst fail_14
 term_consumed_v926:
+ skipn __unexpected_runq_v1145
+ jrst term_no_gateway_wake_v1145
+ jrst fail_14
+term_no_gateway_wake_v1145:
  ; The second helper call must preserve ordinary caller register values.
  movei 2,012345
  movei 3,054321
@@ -158,6 +162,13 @@ proc_finish_slot:
 proc_event_nonfatal:
  seto 1,
  popj 17,
+.globl proc_runq_add
+proc_runq_add:
+ ; The owner-private TERM fixture must never wake the unrelated
+ ; provider-wait queue. Reject an unexpected edge, not a fake success.
+ setom __unexpected_runq_v1145
+ seto 1,
+ popj 17,
 .globl proc_exit_current
 proc_exit_current:
  aos __exit_calls
@@ -183,6 +194,11 @@ __fd: .word 0777
  .block 0410-027
 .globl file_table
 file_table: .word __fd
+; The extracted process event branch compares the provider-wait event
+; address, even though this fixture never owns that provider lease.
+.globl fs_provider_wait_event_v917
+fs_provider_wait_event_v917: .word 0
+__unexpected_runq_v1145: .word 0
 __fail_remaining: .word 2
 __close_calls: .word 0
 __sleep_calls: .word 0

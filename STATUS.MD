@@ -1,3 +1,27 @@
+## 2026-11-05 v1146: exact-once release matrix staged, not accepted
+
+The versioned `test-daimos-oom-exact-once-matrix-v1146` target is a
+sequential D16 gate. It retains per-case logs and stops on failure.
+Its cases cover the transitive release graph, combined physical
+PIPE/DPY/VM/u-area and provider lock, pinned TTY, PIPE/DPY HUP, DPY
+swap replay, PIPE and bitmap swap refusal, unpublished RUN discard,
+and OOM-related PID/slot recycling. Shell syntax and Make dispatch
+validate. The *full* multi-guest matrix has not yet been run or
+accepted, so D16 remains open and the production OOM switch is OFF.
+
+## 2026-11-05 v1145: native fatal-release fixture maintenance
+
+The v1087 transitive-release suite PASSes with all its negative
+mutations and native checks after updating two historical fixtures.
+The v912 DPY replacement test previously expected generic -1 when
+the actual owned rollback correctly preserves MM_BUSY (-5); its two
+expectations now match the production return contract, with the
+unrelated allocation-failure -1 assertion unchanged. The v995
+fatal-owner FILE/HUP test now supplies the production WAIT/STATE
+constants and filesystem-provider wait-event address, and rejects
+an unexpected runnable-queue wake. Both targeted tests PASS.
+These are test-only changes; no kernel code or OOM policy was altered.
+
 ## 2026-11-04 v1144: full physical PIPE/DPY/VM/u-area D14 PASS
 
 New `test-daimos-oom-pipe-dpy-vm-provider-v1144` reuses the v1118

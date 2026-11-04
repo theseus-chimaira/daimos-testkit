@@ -45,7 +45,9 @@ v912_still_owned:
  movei 1,__input
  movei 2,3
  pushj 17,dpy_write_words
- camn 1,[-1]
+ ; Orphan cleanup succeeds; the still-pinned old list returns MM_BUSY.
+ ; The release path preserves the real -5 rather than collapsing to -1.
+ camn 1,[-5]
  jrst v912_orphan_drained
  jrst fail_34
 v912_orphan_drained:
@@ -65,7 +67,8 @@ v912_clean:
  movei 1,__input
  movei 2,3
  pushj 17,dpy_write_words
- camn 1,[-1]
+ ; With only the old list pinned, rollback succeeds and returns -5.
+ camn 1,[-5]
  jrst rollback_result
  jrst fail_1
 rollback_result:

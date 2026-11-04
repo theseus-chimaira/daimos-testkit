@@ -1,3 +1,9 @@
+.PHONY: test-daimos-oom-exact-once-matrix-v1146
+test-daimos-oom-exact-once-matrix-v1146: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-exact-once-matrix-v1146.sh
+
 .PHONY: test-dxr2-st2-v1070 test-kcc-excluded-long-directive-v1070
 test-dxr2-st2-v1070:
 	@DAS_REPO='$(DAS_REPO)' TMPDIR='$(TMPDIR)' \
