@@ -1,3 +1,19 @@
+## 2026-11-04 v1110: booted invalid BRK versus real physical OOM
+
+The opt-in `daimos-oom-brk-negatives-v1110` full 256K PDP-6 guest
+extends the established v1075 requester/witness test with two child
+BRK validation failures: below image floor and overflowing the 18-bit
+APR limit after rounding. Both return -1 without changing break,
+terminate normally and leave child WAIT/slot/MM accounting correct.
+
+The test PASSes in two separate disposable image boots. Default-off:
+`<ILDNWP`, with physical exhaustion returning -1 and no fatal requester.
+Test-only enabled OOM: `<ILKWP`, with only the exhausted requester
+fatally retired. The independent witness survives both tests and final
+MM accounting matches the baseline. Legacy v1075 is unchanged unless
+the versioned test option is set. Production OOM remains OFF; no kernel
+code or resident data is added. Other P0-F and P0-D/E gates remain open.
+
 ## 2026-11-04 v1108: real MM refusal and repair of MEMFS-owned XIP
 
 `daimos-xip-physical-retry-v1108` reuses the real v1086 source-linked

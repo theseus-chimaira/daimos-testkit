@@ -9,6 +9,10 @@
 #define V1075_TEST_OOM_ENABLED 1
 #endif
 
+#ifndef V1110_TEST_NEGATIVES
+#define V1110_TEST_NEGATIVES 0
+#endif
+
 #define V1075_PATH_WORDS 3U
 #define V1075_PATH_OFF SYS_RUN_V2_FIXED_WORDS
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
@@ -111,6 +115,32 @@ main(int argc, kword_t **argv)
                         (void)dsys_writechar(1, 'D');
                         (void)dsys_exit(070);
                 }
+#if V1110_TEST_NEGATIVES
+                if (argv[1][1] ==
+                    TEST_SIX6('I', ' ', ' ', ' ', ' ', ' ')) {
+                        kword_t original;
+
+                        original = dsys_brk(0UL);
+                        if (original == (kword_t)-1L ||
+                            dsys_brk(1UL) != (kword_t)-1L ||
+                            dsys_brk(0UL) != original)
+                                (void)dsys_exit(075);
+                        (void)dsys_writechar(1, 'I');
+                        (void)dsys_exit(060);
+                }
+                if (argv[1][1] ==
+                    TEST_SIX6('L', ' ', ' ', ' ', ' ', ' ')) {
+                        kword_t original;
+
+                        original = dsys_brk(0UL);
+                        if (original == (kword_t)-1L ||
+                            dsys_brk(0777777UL) != (kword_t)-1L ||
+                            dsys_brk(0UL) != original)
+                                (void)dsys_exit(076);
+                        (void)dsys_writechar(1, 'L');
+                        (void)dsys_exit(061);
+                }
+#endif
                 (void)dsys_exit(054);
         }
 
@@ -119,6 +149,23 @@ main(int argc, kword_t **argv)
             before.total_words <= V1075_BRK_REQUEST)
                 fail('0');
         (void)dsys_writechar(1, '<');
+
+#if V1110_TEST_NEGATIVES
+        /* These are validation failures, not physical OOM. Even the
+         * opt-in fatal policy must let both children return normally. */
+        requester = run_child('I', 0);
+        if (requester <= 1)
+                fail('I');
+        wait_status((unsigned int)requester, 060U);
+        requester = run_child('L', 0);
+        if (requester <= 1)
+                fail('L');
+        wait_status((unsigned int)requester, 061U);
+        if (dsys_meminfo(&occupied) != 0 ||
+            occupied.process_slots_used != before.process_slots_used ||
+            occupied.process_words != before.process_words)
+                fail('V');
+#endif
 
         pair = dsys_pipe();
         if (pair == ~0UL)
