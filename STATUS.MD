@@ -1,5 +1,21 @@
 ## 2026-11-04 v1126: D13 integrated APR/EXEC/RUN reproducer (OPEN)
 
+**v1126r1 exact-v890 baseline check:** In a clean TMPDIR fixture,
+restore the *previously committed*, unmodified v890 test .c/.sh
+from Git and build a completely new 256K PDP-6 image against current
+production DAIMOS. With the historical 65-second simulator limit,
+the original test prints `<E` and times out (exit 124). A second
+fresh image from the same original files, changing **only** the
+host-shell timeout to 180 seconds, likewise prints `<E` and times
+out (exit 124; last reported PC 016424 octal). Neither image uses
+the new v1126 APR/RUN/file-stage or timer test instrumentation.
+Therefore the v1126 modifications alone cannot explain the
+noncompletion, and simply increasing the host timeout did not
+restore this baseline. The exact production vs emulator/PI6 cause
+remains unproven. Investigate the original unmodified fatal EXEC
+handoff first; D13 remains OPEN and the v1126 combined guest is
+still NOT an accepted test. No production OOM enablement.
+
 The opt-in `daimos-fatal-exec-apr-run-v1126.sh` extends the v890
 post-commit EXEC fatal-FILE guest without changing production KCORE.
 It exercises an EXEC owner whose old process VM has genuinely been
