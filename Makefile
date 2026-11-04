@@ -1348,6 +1348,12 @@ test-daimos-oom-requester-disabled-v1075: check-prefix
 
 .PHONY: test-daimos-oom-brk-negatives-v1110
 .PHONY: test-daimos-oom-pid-reuse-v1120
+.PHONY: test-daimos-vm-none-idempotent-v1129
+test-daimos-vm-none-idempotent-v1129: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-vm-none-idempotent-v1129.sh
+
 .PHONY: test-daimos-oom-scope-v1123
 test-daimos-oom-scope-v1123: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
