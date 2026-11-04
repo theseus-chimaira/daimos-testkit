@@ -184,6 +184,20 @@ main(int argc, kword_t **argv)
          * that has just detached it cannot report success through fd 1;
          * detach/reattach propagation was already verified above. */
         (void)dsys_writechar(1, 'H');
+#if defined(DAIMOS_V1124_TTY_VM_UAREA) || \
+    defined(DAIMOS_V969_TTY_HUP)
+        /* First real EXIT must return a failed HUP/TTY MM_BUSY while
+         * the original TTY remains attached. The second user EXIT
+         * proceeds only after the test-only owner hook unpins the
+         * exact canonical input extent, then finalizes on slot zero. */
+        if (dsys_exit(0) != -1 ||
+            dsys_procctl(SYS_PROCCTL_GETTTY, 0U) !=
+                (int)SYS_TTY_ATTACHED(0U))
+                fail('T', 0216);
         (void)dsys_exit(0);
+        fail('U', 0217);
+#else
+        (void)dsys_exit(0);
+#endif
         return 0;
 }

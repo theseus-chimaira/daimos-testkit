@@ -7,6 +7,14 @@ set -eu
 
 make_cmd=${MAKE:-make}
 tag=daimos-tty-exit-pin-live-v969
+physical_chain=${DAIMOS_V1124_TTY_VM_UAREA:-0}
+case "$physical_chain" in
+    0|1) ;;
+    *) echo 'v1124: invalid physical TTY/VM/u-area mode' >&2; exit 2 ;;
+esac
+if [ "$physical_chain" = 1 ]; then
+        tag=daimos-tty-vm-uarea-v1124
+fi
 work="$TMPDIR/$tag-$$"
 build="$work/build"
 user="$work/user"
@@ -22,7 +30,7 @@ cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
 python3 "$self/daimos-tty-exit-pin-live-v969.py" \
-    "$work/source/system/kernel/proc/proc_pdp6.s"
+    "$work/source/system/kernel/proc/proc_pdp6.s" "$physical_chain"
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
@@ -30,7 +38,12 @@ dlink="$PDP10_PREFIX/bin/dlink"
 
 "$das" -C -F -O "$user/crt0.dobj" "$DAIMOS_REPO/userland/libc/crt0.s"
 "$das" -C -F -O "$user/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"
-"$cc" -std=c99 -Os \
+if [ "$physical_chain" = 1 ]; then
+        cflags='-DDAIMOS_V1124_TTY_VM_UAREA=1'
+else
+        cflags='-DDAIMOS_V969_TTY_HUP=1'
+fi
+"$cc" -std=c89 -Os "$cflags" \
     -I"$DAIMOS_REPO/system/kernel/boot" \
     -I"$DAIMOS_REPO/system/kernel/core" \
     -I"$DAIMOS_REPO/system/kernel/drivers" \
@@ -67,6 +80,16 @@ for name in attempt matched entry armed retained retried error_word; do
     test -n "$addr" || { echo "$tag: missing $sym" >&2; exit 1; }
     printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
 done
+if [ "$physical_chain" = 1 ]; then
+    for name in tty_busy vm_busy vm_base vm_pin vm_retained vm_unpin \
+                vm_destroyed uarea_base uarea_busy uarea_pin \
+                uarea_retained_count uarea_unpin final; do
+        sym="daimos_test_${name}_v1124"
+        addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$boot/kcore.map")
+        test -n "$addr" || { echo "v1124: missing $sym" >&2; exit 1; }
+        printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 sed -i '/^exit$/d' "$boot/boot.ini"
 while read -r name addr; do
     printf 'examine %s\n' "$addr" >> "$boot/boot.ini"
@@ -111,23 +134,34 @@ case "$text" in
         ;;
 esac
 
-python3 - "$work/addresses" "$out" <<'PY'
+python3 - "$work/addresses" "$out" "$physical_chain" <<'PY'
 from pathlib import Path
 import re
 import sys
 
 out = Path(sys.argv[2]).read_text(errors='replace')
 bad = []
+seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
     m = re.findall(r'(?m)^\s*0*' + re.escape(addr.lstrip('0')) +
                    r'\s*:\s*([0-7]+)', out)
     print('v969 witness', name, m[-1] if m else 'MISSING')
+    seen[name] = int(m[-1], 8) if m else None
     if not m or (name not in ('matched', 'entry', 'armed') and int(m[-1], 8) !=
-                 (0 if name == 'error_word' else 1)) or \
+                 (0 if name == 'error_word' or name.endswith('_base') else 1)
+                 and (not name.endswith('_base') or int(m[-1], 8) == 0)) or \
             (name == 'matched' and int(m[-1], 8) < 1):
         bad.append((name, m))
+if sys.argv[3] == '1':
+    for name in ('vm_base', 'uarea_base'):
+        if seen[name] is None or seen[name] == 0:
+            bad.append((name, seen[name]))
 if bad:
     raise SystemExit('v969: unexpected witnesses: ' + repr(bad))
-print('v969: booted final-session pinned TTY retains, unpins, retries PASS')
+if sys.argv[3] == '1':
+    print('v1124: physical TTY/VM/u-area MM_BUSY, preserved session '
+          'and exact three-stage finalization PASS:', seen)
+else:
+    print('v969: booted final-session pinned TTY retains, unpins, retries PASS')
 PY

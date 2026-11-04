@@ -1,3 +1,41 @@
+## 2026-11-04 v1124: physical TTY/HUP, VM and post-VM u-area refusal
+
+The new `daimos-tty-vm-uarea-v1124.sh` full 256K PDP-6 regression
+PASSes three actual physically pinned MM release refusals in one
+INIT process lifetime, not synthetic error returns. On the first
+real user EXIT the owner-side session-HUP preflight encounters a
+physically pinned canonical TTY line; the syscall returns -1 and
+retains the original session/TTY owner. On the second user EXIT the
+real TTY line is unpinned and released, allowing the ordinary exit
+to publish PREVM. Its process VM is pinned and produces a genuine
+MM_BUSY; the real clock-driven slot-0 reaper sees VM retained and
+unpins it, pins the still-owned u-area and allows VM destroy to
+commit. The next original u-area free produces its own MM_BUSY;
+the following reaper cycle verifies VM_NONE with exact retained
+u-area, unpins and releases the original owner once.
+
+PASS counters: TTY MM_BUSY=1, VM MM_BUSY=1, u-area MM_BUSY=1;
+each pin/unpin=1, TTY retention/retry=1, VM retained/destroyed=1,
+u-area retained=1, final owner release=1, test errors=0. The test
+checks both the stable process slot and final released TTY/line
+resource. A failed first design was arming the obsolete v969 hook
+after owner HUP; a second invalid synchronous cleanup attempt left
+the VM physically pinned and timed out in the real reaper. Both
+test-design errors were corrected, and the accepted fixture passes
+using real owner-side HUP and asynchronous slot-0 cleanup only.
+The cleaned generator was rebuilt/rebooted independently with the
+same exact counts. The old v969 TTY-only fixture was updated to arm
+at the current owner-side HUP entry rather than proc_exit_current;
+its own independent full 256K PDP-6 guest PASSes with one physical
+TTY pin, preserved owner, successful retry and zero errors.
+
+New Make target `test-daimos-tty-vm-uarea-v1124` and optional
+`P0D_FULL` row added; D11 marked complete. OOM readiness is now
+33/65 mandatory checked; 30 preenable blockers remain, plus
+F12/F13 post-signoff actions. D12-D16 and P0-E/F remain OPEN.
+All hooks are confined to isolated test images, with zero change
+to production KCORE code, MRES, RAM, ABI or disabled OOM policy.
+
 ## 2026-11-04 v1123: executable OOM scope and checklist audit
 
 The active DAIMOS `TODO.MD` now has a fine-grained OOM activation

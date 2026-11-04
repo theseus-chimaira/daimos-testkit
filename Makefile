@@ -1483,6 +1483,12 @@ test-daimos-xip-release-stage-v1094: check-prefix
 	 sh tests/validation/daimos-xip-release-stage-v1094.sh
 
 .PHONY: test-daimos-p0d-release-matrix-v1096
+.PHONY: test-daimos-tty-vm-uarea-v1124
+test-daimos-tty-vm-uarea-v1124: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-tty-vm-uarea-v1124.sh
+
 .PHONY: test-daimos-xip-vm-retry-v1109
 test-daimos-xip-vm-retry-v1109: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
