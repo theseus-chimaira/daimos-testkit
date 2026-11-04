@@ -1,3 +1,13 @@
+## 2026-11-05 v1146r2: fresh physical PIPE plus swap-bitmap evidence
+
+The unchanged-production 256K PDP-6 v1122 full guest PASSes on the
+corrected host tools: first session member physical PIPE MM pin,
+MM_BUSY, unpin and single release; second member real DISK swap
+bitmap refusal, checked restoration and single detach. Terminal
+WAIT/TTY ownership and all injected error counters remain correct.
+This is a fresh component of D16, NOT a full v1146 matrix PASS.
+Production requester OOM remains disabled.
+
 ## 2026-11-05 v1146: exact-once release matrix staged, not accepted
 
 The versioned `test-daimos-oom-exact-once-matrix-v1146` target is a
