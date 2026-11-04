@@ -130,5 +130,5 @@ if [ "$negatives" = 1 ]; then
     echo "v1110: invalid-floor and address-limit BRK return -1, preserve BRK and process MM (OOM enabled=$enable) PASS"
 fi
 if [ "$bad_run" = 1 ]; then
-    echo "v1112: invalid child RUN rejected; PID and MM unchanged, requester/witness survive (OOM enabled=$enable) PASS"
+    echo "v1112: invalid child RUN rejected; no retained child slot or process-MM words, requester/witness survive (OOM enabled=$enable) PASS"
 fi
