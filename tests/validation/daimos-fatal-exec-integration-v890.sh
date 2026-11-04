@@ -8,15 +8,28 @@ mkdir -p "$TMPDIR"
 work=$(mktemp -d "$TMPDIR/daimos-fatal-exec-integration-v890.XXXXXX")
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+nested=${DAIMOS_V1126_NESTED:-0}
+case "$nested" in 0|1) ;; *) echo 'v1126: invalid nested mode' >&2; exit 2 ;; esac
+diagnostic=${DAIMOS_V1126_DIAG:-0}
+case "$diagnostic" in 0|1) ;; *) echo 'v1126: invalid diagnostic mode' >&2; exit 2 ;; esac
+dual_timer=${DAIMOS_V1127_DUAL_TIMER:-0}
+case "$dual_timer" in 0|1) ;; *) echo 'v1127: invalid timer diagnostic' >&2; exit 2 ;; esac
+if [ "$dual_timer" = 1 ] && [ "$diagnostic" != 1 ]; then
+    echo 'v1127: dual timer samples require diagnostic mode' >&2
+    exit 2
+fi
 mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" <<'PY'
+python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" <<'PY'
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
+nested = sys.argv[2] == '1'
+diagnostic = sys.argv[3] == '1'
+dual_timer = sys.argv[4] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -113,6 +126,94 @@ daimos_test_vfs_reject_v890:
 daimos_test_vfs_normal_v890:
         ldb     7,[POINT 6,1,5]''')
 
+if nested:
+    # Allow the original EXEC fatal FILE retry to proceed only after
+    # the unrelated APR fault and the fully constructed, unpublished
+    # RUN's real post-VM fdmap rejection. This is a test-only handshake.
+    patch('fs/vfs.s',
+          '''        caig    4,2
+        jrst    daimos_test_vfs_reject_v890
+        jrst    daimos_test_vfs_normal_v890''',
+          '''        caig    4,2
+        jrst    daimos_test_vfs_reject_v890
+        skipn   daimos_test_late_run_v1126
+        jrst    daimos_test_vfs_reject_v890
+        jrst    daimos_test_vfs_normal_v890''')
+    patch('proc/proc_run.s',
+          '''proc_run_fdmap_bad:
+        jrst    proc_run_claimed_bad''',
+          '''proc_run_fdmap_bad:
+        move    5,proc_current_slot
+        caie    5,1                   ; only INIT's late failed RUN
+        jrst    daimos_test_run_normal_v1126
+        aos     daimos_test_late_run_v1126
+        skipn   daimos_test_fd_held_v890
+        setom   daimos_test_run_error_v1126
+        skipn   daimos_test_vfs_rejects_v890
+        setom   daimos_test_run_error_v1126
+        skipn   daimos_test_exits_v890
+        jrst    daimos_test_run_normal_v1126
+        setom   daimos_test_run_error_v1126
+daimos_test_run_normal_v1126:
+        jrst    proc_run_claimed_bad''')
+    p = root / 'proc/proc_run.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_late_run_v1126
+daimos_test_late_run_v1126: .block 1
+        .globl daimos_test_run_error_v1126
+daimos_test_run_error_v1126: .block 1
+''')
+
+    # Trace the real slot-2 EXIT handoff. The first integrated guest
+    # reached EXEC FILE close success but its parent continued to see
+    # a live child; find whether owner finalization fails, defers its
+    # u-area, or actually publishes ZOMB before changing any policy.
+    patch('proc/proc_pdp6.s',
+          'proc_finish_slot_owner_v932:\n        movei   5,1',
+          '''proc_finish_slot_owner_v932:
+        caie    1,2
+        jrst    v1126_finish_other
+        aos     daimos_test_finish_owner_v1126
+v1126_finish_other:
+        movei   5,1''')
+    patch('proc/proc_pdp6.s',
+          'proc_finish_fail:\n        seto    1,',
+          '''proc_finish_fail:
+        caie    10,2
+        jrst    v1126_fail_other
+        aos     daimos_test_finish_fail_v1126
+v1126_fail_other:
+        seto    1,''')
+    patch('proc/proc_pdp6.s',
+          'proc_finish_defer_uarea_v881:\n',
+          '''proc_finish_defer_uarea_v881:
+        caie    10,2
+        jrst    v1126_defer_other
+        aos     daimos_test_finish_defer_v1126
+v1126_defer_other:
+''')
+    patch('proc/proc_pdp6.s',
+          'proc_finish_zombie:\n        move    1,14',
+          '''proc_finish_zombie:
+        caie    10,2
+        jrst    v1126_zombie_other
+        aos     daimos_test_finish_zombie_v1126
+v1126_zombie_other:
+        move    1,14''')
+    p = root / 'proc/proc_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_finish_owner_v1126
+daimos_test_finish_owner_v1126: .block 1
+        .globl daimos_test_finish_fail_v1126
+daimos_test_finish_fail_v1126: .block 1
+        .globl daimos_test_finish_defer_v1126
+daimos_test_finish_defer_v1126: .block 1
+        .globl daimos_test_finish_zombie_v1126
+daimos_test_finish_zombie_v1126: .block 1
+''')
+
 # Record real FILE close passes, owned descriptor preservation, and
 # read the production GETTEARDOWN diagnostic while the owner is alive.
 patch('fs/file_runtime.s',
@@ -190,6 +291,109 @@ patch('proc/proc_pdp6.s',
 daimos_test_exit_other_v890:
         move    3,1''')
 
+if diagnostic:
+    # An obsolete test must not hide a repeated FILE refusal behind a
+    # host timeout. Stop only this copied kernel after six actual owner
+    # close passes and sample the same existing test counters.
+    patch('proc/proc_pdp6.s',
+          'proc_fatal_close_retry_v879:\n        pushj   17,file_close_all',
+          '''proc_fatal_close_retry_v879:
+        move    4,proc_current_slot
+        came    4,daimos_test_owner_v890
+        jrst    daimos_test_retry_continue_v1126
+        move    4,daimos_test_passes_v890
+        caige   4,6
+        jrst    daimos_test_retry_continue_v1126
+        halt                          ; diagnostic snapshot, never production
+daimos_test_retry_continue_v1126:
+        pushj   17,file_close_all''')
+    # Also detect a stranded owner that never reaches six retries.
+    # Bound idle iterations independently of the clock: if PI6 stops,
+    # the test still HALTs and exposes timer frontier/clock registers.
+    patch('proc/proc_pdp6.s',
+          '''proc_idle_loop:
+        ; Both timer-driven admission''',
+          '''proc_idle_loop:
+        skipn   daimos_test_staged_v890
+        jrst    daimos_test_idle_regular_v1126
+        aos     4,daimos_test_idle_loops_v1126
+        camge   4,[0200000]
+        jrst    daimos_test_idle_regular_v1126
+        halt
+daimos_test_idle_regular_v1126:
+        ; Both timer-driven admission''')
+    if dual_timer:
+        patch('proc/proc_pdp6.s',
+              '''        aos     4,daimos_test_idle_loops_v1126
+        camge   4,[0200000]
+        jrst    daimos_test_idle_regular_v1126
+        halt''',
+              '''        aos     4,daimos_test_idle_loops_v1126
+        caie    4,0200000
+        jrst    daimos_test_idle_second_v1127
+        move    5,proc_timer_clock
+        movem   5,daimos_test_clock_first_v1127
+        move    5,proc_timer_next
+        movem   5,daimos_test_frontier_first_v1127
+        coni    0004,5
+        movem   5,daimos_test_pi_first_v1127
+daimos_test_idle_second_v1127:
+        camge   4,[02000000]
+        jrst    daimos_test_idle_regular_v1126
+        coni    0004,5
+        movem   5,daimos_test_pi_last_v1127
+        move    5,proc_finish_last_tick_v881
+        movem   5,daimos_test_finish_pending_v1127
+        move    6,proc_table
+        move    5,3(6)                ; PID 1 descriptor metadata
+        movem   5,daimos_test_parent_meta_v1127
+        move    5,5(6)                ; PID 1 scheduler/wait status
+        movem   5,daimos_test_parent_sched_v1127
+        move    5,6(6)                ; PID 2 descriptor metadata
+        movem   5,daimos_test_child_meta_v1127
+        hlrz    7,5                   ; stable child u-area
+        jumpe   7,daimos_test_no_child_uarea_v1127
+        move    5,067(7)              ; stored FILE/finalization witness
+        movem   5,daimos_test_child_finalize_v1127
+daimos_test_no_child_uarea_v1127:
+        move    5,7(6)                ; PID 2 VM state
+        movem   5,daimos_test_child_vm_v1127
+        move    5,010(6)              ; PID 2 scheduler/WAIT state
+        movem   5,daimos_test_child_sched_v1127
+        halt''')
+    p = root / 'proc/proc_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_idle_loops_v1126
+daimos_test_idle_loops_v1126: .block 1
+''')
+    if dual_timer:
+        p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_clock_first_v1127
+daimos_test_clock_first_v1127: .block 1
+        .globl daimos_test_frontier_first_v1127
+daimos_test_frontier_first_v1127: .block 1
+        .globl daimos_test_pi_first_v1127
+daimos_test_pi_first_v1127: .block 1
+        .globl daimos_test_pi_last_v1127
+daimos_test_pi_last_v1127: .block 1
+        .globl daimos_test_finish_pending_v1127
+daimos_test_finish_pending_v1127: .block 1
+        .globl daimos_test_parent_meta_v1127
+daimos_test_parent_meta_v1127: .block 1
+        .globl daimos_test_parent_sched_v1127
+daimos_test_parent_sched_v1127: .block 1
+        .globl daimos_test_child_meta_v1127
+daimos_test_child_meta_v1127: .block 1
+        .globl daimos_test_child_finalize_v1127
+daimos_test_child_finalize_v1127: .block 1
+        .globl daimos_test_child_vm_v1127
+daimos_test_child_vm_v1127: .block 1
+        .globl daimos_test_child_sched_v1127
+daimos_test_child_sched_v1127: .block 1
+''')
+
 stats = [
     'owner', 'staged', 'commits', 'vm_destroy', 'load_fail',
     'vfs_fd0', 'vfs_calls', 'vfs_rejects',
@@ -213,7 +417,8 @@ for d in boot core drivers fs ipc mm modules proc storage; do
     inc="$inc -I$DAIMOS_REPO/system/kernel/$d"
 done
 # shellcheck disable=SC2086
-"$cc" -std=c99 -Os $inc -I"$DAIMOS_REPO/userland/libc" \
+"$cc" -std=c89 -Os -DDAIMOS_V1126_NESTED="$nested" \
+    $inc -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-fatal-exec-integration-v890.c" -o "$work/user/init.s"
 "$das" -C -F -O "$work/user/init.dobj" "$work/user/init.s"
 libgcc=$("$cc" -print-libgcc-file-name)
@@ -239,6 +444,33 @@ for name in owner staged commits vm_destroy load_fail vfs_calls vfs_rejects pass
     test -n "$addr" || { echo "v890: no $symbol" >&2; exit 1; }
     printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
 done
+if [ "$nested" = 1 ]; then
+    for name in late_run run_error finish_owner finish_fail \
+                finish_defer finish_zombie; do
+        symbol="daimos_test_${name}_v1126"
+        addr=$(awk -v s="$symbol" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1126: no $symbol" >&2; exit 1; }
+        printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
+if [ "$diagnostic" = 1 ]; then
+    for name in proc_timer_clock proc_timer_next proc_sched_cursor \
+                proc_current_slot daimos_test_idle_loops_v1126; do
+        addr=$(awk -v s="$name" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1126: missing $name" >&2; exit 1; }
+        printf '%s %s\n' "diag_$name" "$addr" >> "$work/addresses"
+    done
+fi
+if [ "$dual_timer" = 1 ]; then
+    for name in clock_first frontier_first pi_first pi_last \
+                finish_pending parent_meta parent_sched child_meta \
+                child_finalize child_vm child_sched; do
+        sym="daimos_test_${name}_v1127"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1127: no $sym" >&2; exit 1; }
+        printf '%s %s\n' "dual_$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
@@ -246,8 +478,13 @@ while read -r name addr; do
     printf 'examine %s\n' "$addr" >> "$boot"
 done < "$work/addresses"
 printf 'exit\n' >> "$boot"
+if [ "$nested" = 1 ]; then
+    sim_limit=180s
+else
+    sim_limit=65s
+fi
 set +e
-(cd "$build"; TERM=dumb timeout -k 2s 65s stdbuf -o0 -e0 \
+(cd "$build"; TERM=dumb timeout -k 2s "$sim_limit" stdbuf -o0 -e0 \
     "$PDP10_PREFIX/bin/pdp6" boot.ini) > "$work/simh.out" 2>&1
 rc=$?
 set -e
@@ -256,12 +493,14 @@ if [ "$rc" -ne 0 ]; then
     echo "v890: SIMH failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" <<'PY'
 from pathlib import Path
 import re
 import sys
 names = Path(sys.argv[1]).read_text().splitlines()
 output = Path(sys.argv[2]).read_text(errors='replace')
+nested = sys.argv[3] == '1'
+diagnostic = sys.argv[4] == '1'
 counts = {}
 for line in names:
     name, address = line.split()
@@ -273,10 +512,30 @@ for line in names:
                          ': ' + output[-1600:])
     counts[name] = int(matches[-1], 8)
 print('v890 real EXEC post-VM/FILE fault counters:', counts)
+if diagnostic:
+    if 'HALT' not in output or '<E' not in output:
+        raise SystemExit('v1126: diagnostic did not reach EXEC owner')
+    print('v1126: diagnostic-only FILE retry snapshot; NOT acceptance')
+    raise SystemExit(0)
 expected = dict(staged=1, commits=1, vm_destroy=1, load_fail=1,
                 vfs_calls=3, vfs_rejects=2,
                 passes=3, sleeps=2, fd_held=2, fd_clear=1,
                 witness_clear=1, exits=1, error=0)
+if nested:
+    for name in ('vfs_calls', 'vfs_rejects', 'passes', 'sleeps', 'fd_held'):
+        del expected[name]
+    if not (3 <= counts['vfs_calls'] <= 50 and
+            counts['vfs_rejects'] == counts['vfs_calls'] - 1 and
+            counts['fd_held'] == counts['vfs_rejects'] and
+            counts['passes'] == counts['vfs_calls'] and
+            counts['sleeps'] == counts['vfs_rejects'] and
+            counts['late_run'] == 1 and counts['run_error'] == 0 and
+            counts['finish_owner'] == 1 and
+            counts['finish_fail'] == 0 and
+            counts['finish_defer'] == 0 and
+            counts['finish_zombie'] == 1):
+        raise SystemExit('v1126: post-VM RUN / FILE retry counters: ' +
+                         str(counts))
 for name, value in expected.items():
     if counts[name] != value:
         raise SystemExit('v890: ' + name + ': ' + str(counts[name]) +
@@ -290,4 +549,10 @@ if 'HALT' not in output or '<E' not in output or \
                      output[-900:])
 print('v890: real EXEC destroys VM, replacement loader fails, '
       'VFS refusal twice, retry, FILE ownership, WAIT PASS')
+if nested:
+    if '<EA' not in output or 'R' not in output:
+        raise SystemExit('v1126: missing APR and late-RUN markers: ' +
+                         output[-1000:])
+    print('v1126: real APR fatal during post-commit EXEC FILE retry; '
+          'unpublished post-VM RUN rollback, retained owner and WAIT PASS')
 PY

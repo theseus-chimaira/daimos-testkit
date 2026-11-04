@@ -2,6 +2,10 @@
 #include "dsys.h"
 #include "../test_sixbit.h"
 
+#ifndef DAIMOS_V1126_NESTED
+#define DAIMOS_V1126_NESTED 0
+#endif
+
 #define EXEC_BLOCK_WORDS   (SYS_EXEC_V1_FIXED_WORDS + RUN_PATH_WORDS)
 #define RUN_PATH_WORDS     3U
 #define RUN_ARG_WORDS      2U
@@ -22,6 +26,11 @@ fail(int ch)
 {
         (void)dsys_writechar(1, '!');
         (void)dsys_writechar(1, ch);
+#if DAIMOS_V1126_NESTED
+        /* Preserve diagnostic counters if another process owns an
+         * unresolved fatal FILE retry. Exiting would wait for it. */
+        (void)dsys_halt();
+#endif
         (void)dsys_exit(0200);
 }
 
@@ -45,9 +54,9 @@ exec_self_v890(void)
 }
 
 static int
-spawn_exec(void)
+spawn_exec(int invalid_fd, int apr_child)
 {
-        kword_t block[RUN_BLOCK_WORDS];
+        kword_t block[RUN_BLOCK_WORDS + 1U];
         struct sys_run_v2 *run;
         unsigned int i;
 
@@ -63,11 +72,16 @@ spawn_exec(void)
         }
         block[RUN_ARG1_OFF] = 1UL;
         block[RUN_ARG1_OFF + 1U] =
-            TEST_SIX6('E', ' ', ' ', ' ', ' ', ' ');
+            apr_child ? TEST_SIX6('A', ' ', ' ', ' ', ' ', ' ') :
+                        TEST_SIX6('E', ' ', ' ', ' ', ' ', ' ');
         for (i = 0U; i < 3U; ++i)
                 block[RUN_MAP_OFF + i] = SYS_RUN_FD_MAP(i, i);
+        if (invalid_fd)
+                block[RUN_MAP_OFF + 3U] = SYS_RUN_FD_MAP(3U, 15U);
+        run->fdmap_count = invalid_fd ? 4UL : 3UL;
         run->version_words =
-            SYS_RUN_HEADER(SYS_RUN_VERSION_2, RUN_BLOCK_WORDS);
+            SYS_RUN_HEADER(SYS_RUN_VERSION_2,
+                RUN_BLOCK_WORDS + (invalid_fd ? 1U : 0U));
         return dsys_run(run);
 }
 
@@ -77,6 +91,13 @@ main(int argc, kword_t **argv)
         kword_t status;
         int child;
         unsigned int mode;
+#if DAIMOS_V1126_NESTED
+        struct sys_meminfo before;
+        struct sys_meminfo after;
+        int apr;
+        int rejected;
+        unsigned int i;
+#endif
 
         mode = 0U;
         if (argc == 2 && argv != 0 && argv[1] != 0 &&
@@ -93,16 +114,90 @@ main(int argc, kword_t **argv)
                 (void)dsys_exit(0277);
                 return 0;
         }
+#if DAIMOS_V1126_NESTED
+        if (mode == 'A') {
+                volatile kword_t *bad;
+                (void)dsys_writechar(1, 'A');
+                bad = (volatile kword_t *)0777777UL;
+                (void)*bad;           /* actual APR protection fault */
+                fail('A');            /* unreachable */
+                return 0;
+        }
+#endif
         if (argc != 1 || dsys_getpid() != 1)
                 fail('0');
         if (dsys_writechar(1, '<') != 0)
                 fail('1');
-        child = spawn_exec();
+        child = spawn_exec(0, 0);
         if (child <= 1)
                 fail('2');
+#if DAIMOS_V1126_NESTED
+        /* The EXEC owner must have destroyed its VM and retained FILE
+         * ownership before a separate APR-fatal child and failed RUN.
+         * The isolated VFS refusal remains armed until the late RUN. */
+        for (i = 0U; i < 40U; ++i) {
+                unsigned int detail;
+                detail = (unsigned int)dsys_procctl(
+                    SYS_PROCCTL_GETTEARDOWN, (unsigned int)child);
+                if (SYS_TEARDOWN_STAGE(detail) == SYS_TEARDOWN_FILE)
+                        break;
+                if (dsys_sleep(010U) != 0)
+                        fail('T');
+        }
+        if (i == 40U)
+                fail('t');
+        apr = spawn_exec(0, 1);
+        if (apr <= child)
+                fail('a');
         status = 0UL;
+        if (dsys_wait((unsigned int)apr, &status, 0U) != apr ||
+            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+            SYS_WAIT_STATUS_VALUE(status) !=
+                (SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM))
+                fail('b');
+        if (dsys_meminfo(&before) != 0)
+                fail('c');
+        rejected = spawn_exec(1, 0);
+        if (rejected != -1)
+                fail('d');
+        if (dsys_meminfo(&after) != 0 ||
+            after.process_slots_used != before.process_slots_used ||
+            after.process_words != before.process_words)
+                fail('e');
+        if (dsys_wait((unsigned int)apr, &status,
+            SYS_WAIT_NOHANG) != -1)
+                fail('f');
+        (void)dsys_writechar(1, 'R');
+#endif
+        status = 0UL;
+#if DAIMOS_V1126_NESTED
+        /* A failed publication cannot strand the real EXEC fatal owner.
+         * Bound the observation so we can inspect actual FILE counters
+         * instead of losing all samples to a host simulator timeout. */
+        /* Allow more than two complete 01000-tick fatal FILE retry
+         * intervals, not merely 256 ticks before calling it stuck. */
+        for (i = 0U; i < 64U; ++i) {
+                int waited;
+                waited = dsys_wait((unsigned int)child, &status,
+                                  SYS_WAIT_NOHANG);
+                if (waited == child)
+                        break;
+                if (waited != 0)
+                        fail('w');
+                if (dsys_sleep(040U) != 0)
+                        fail('s');
+        }
+        if (i == 64U) {
+                unsigned int detail;
+                detail = (unsigned int)dsys_procctl(
+                    SYS_PROCCTL_GETTEARDOWN, (unsigned int)child);
+                (void)dsys_writechar(1, '0' + SYS_TEARDOWN_STAGE(detail));
+                fail('t');
+        }
+#else
         if (dsys_wait((unsigned int)child, &status, 0U) != child)
                 fail('3');
+#endif
         if (SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
             SYS_WAIT_STATUS_VALUE(status) != 1U)
                 fail('4');

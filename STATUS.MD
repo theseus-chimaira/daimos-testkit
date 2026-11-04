@@ -1,3 +1,36 @@
+## 2026-11-04 v1126: D13 integrated APR/EXEC/RUN reproducer (OPEN)
+
+The opt-in `daimos-fatal-exec-apr-run-v1126.sh` extends the v890
+post-commit EXEC fatal-FILE guest without changing production KCORE.
+It exercises an EXEC owner whose old process VM has genuinely been
+destroyed, test-injected VFS -5 FILE-close refusals on its retained
+private stack, a separate child with a real APR protection fault,
+and an unpublished child RUN rejected by the real fd-map validator.
+The APR child's expected WAIT status is the existing flagged TERM
+event (`SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM`), not plain status 1;
+the first guest caught and corrected that test expectation error.
+
+The extended guest next reached `<EAR` and the parent's immediate
+post-failed-RUN MM slot/word accounting check. The EXEC owner then
+completed its VFS retry with 5 VFS calls, 4 injected refusals and
+one successful close (FD0 and private FILE witness cleared, one
+`proc_exit_current`, zero test-ownership errors). Nevertheless the
+parent's bounded NOHANG WAIT did not observe the EXEC child as
+reaped: `<EAR1!t` followed by the guest's controlled HALT. A later
+test-only finalizer trace did not establish the cause; it encountered
+an additional simulator UUO after `<EA` and host timeout. The
+diagnostic-only v1126 variants are **not acceptance** and must not
+be mistaken for a passing child WAIT/VM cleanup test.
+
+The experiment verifies that the APR and failed RUN can be reached
+during an earlier EXEC FILE retry and that a late real VFS success
+is possible. It does **not** prove the combined terminal owner/WAIT
+handoff; it also does not yet inject physical MM_BUSY into this
+guest's unpublished RUN rollback. Existing independent booted
+v893/v895 prove real physical RUN u-area/VM rollback retries, but
+are not a substitute for the combined scenario. **D13 stays OPEN.**
+No change to production source, OOM activation or RAM allocation.
+
 ## 2026-11-04 v1125: booted physical MM wrong owner plus held FS lease
 
 New `daimos-fatal-mm-provider-v1125.sh` runs the established v909/
