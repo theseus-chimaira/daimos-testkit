@@ -1568,6 +1568,12 @@ test-daimos-oom-multistage-v1103: check-prefix
 	 sh tests/validation/daimos-oom-multistage-v1103.sh
 
 .PHONY: test-daimos-fatal-mm-wrong-owner-v1101
+.PHONY: test-daimos-fatal-mm-provider-v1125
+test-daimos-fatal-mm-provider-v1125: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-mm-provider-v1125.sh
+
 .PHONY: test-daimos-reaper-backoff-v1102
 test-daimos-reaper-backoff-v1102: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

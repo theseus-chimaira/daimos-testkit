@@ -35,6 +35,8 @@ python3 "$self/daimos-fatal-release-scope-v1083.py"
 python3 "$self/daimos-oom-transitive-release-v1087.py"
 
 if [ "${P0D_FULL:-0}" = 1 ]; then
+    echo 'v1125: physical MM wrong owner plus held foreign FS provider'
+    sh "$self/daimos-fatal-mm-provider-v1125.sh"
     echo 'v1124: booted physical TTY/HUP, VM and post-VM u-area MM_BUSY'
     sh "$self/daimos-tty-vm-uarea-v1124.sh"
     echo 'v1096: booted pre-VM owner retry and committed finalization'

@@ -10,6 +10,15 @@ if [ "${DAIMOS_V1101_MM_MODE:-pin}" = wrong-owner ]; then
 else
     test_name=daimos-fatal-mm-persistent-v909
 fi
+foreign=${DAIMOS_V1125_FOREIGN:-0}
+case "$foreign" in 0|1) ;; *) echo 'v1125: invalid foreign-provider selector' >&2; exit 2 ;; esac
+if [ "$foreign" = 1 ]; then
+    if [ "${DAIMOS_V1101_MM_MODE:-pin}" != wrong-owner ]; then
+        echo 'v1125: foreign-provider test requires wrong-owner MM' >&2
+        exit 2
+    fi
+    test_name=daimos-fatal-mm-provider-v1125
+fi
 work=$(mktemp -d "$TMPDIR/$test_name.XXXXXX")
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
@@ -17,11 +26,12 @@ mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" "${DAIMOS_V1101_MM_MODE:-pin}" <<'PY'
+python3 - "$work/source/system/kernel" "${DAIMOS_V1101_MM_MODE:-pin}" "$foreign" <<'PY'
 from pathlib import Path
 import sys
 root = Path(sys.argv[1])
 mode = sys.argv[2]
+foreign = sys.argv[3] == '1'
 if mode not in ('pin', 'wrong-owner'):
     raise SystemExit('v909/v1101: unsupported MM mode ' + mode)
 
@@ -129,6 +139,68 @@ patch('drivers/clk_io.s',
       '''clk_pi_user_fault_exit:
         aos     daimos_test_faults_v909
         movei 1,SYS_WAIT_EVENT_TERM''')
+if foreign:
+    # Snapshot the real provider owner from the genuine MM free path,
+    # not merely after the guest eventually halts.
+    patch('mm/mm_pdp6.s',
+          '''        aos     daimos_test_calls_v909
+        move    4,daimos_test_calls_v909''',
+          '''        aos     daimos_test_calls_v909
+        move    4,fs_provider_ready
+        movem   4,daimos_test_mm_lease_v1125
+        camn    4,[5,,0]             ; slot 4 owns real FS lease
+        jrst    v1125_mm_lease_ok
+        setom   daimos_test_errors_v1125
+v1125_mm_lease_ok:
+        move    4,daimos_test_calls_v909''')
+    p = root / 'mm/mm_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .globl fs_provider_ready
+        .globl daimos_test_errors_v1125
+        .bss
+        .globl daimos_test_mm_lease_v1125
+daimos_test_mm_lease_v1125: .block 1
+''')
+    # Hold an actual provider lease on slot 4's original private stack.
+    # No synthetic lock ownership and no fake FS completion. The real
+    # fs_provider_unlock entry is reached after real serialized dispatch.
+    patch('fs/fs_mres.s',
+          'fs_provider_unlock:\n        push    17,1',
+          '''fs_provider_unlock:
+        move    4,proc_current_slot
+        caie    4,4                  ; independent child H, not victim F
+        jrst    v1125_normal_unlock
+        aos     daimos_test_owner_v1125
+        move    4,fs_provider_ready
+        movem   4,daimos_test_lease_v1125
+        hlrz    4,fs_provider_ready
+        caie    4,5                  ; genuine slot 4 + 1 owner
+        setom   daimos_test_errors_v1125
+        hrrz    4,fs_provider_ready
+        jumpn   4,v1125_bad_ready
+v1125_sleep_forever:
+        aos     daimos_test_sleeps_v1125
+        movei   1,020
+        pushj   17,proc_sleep_ticks
+        jumpn   1,v1125_bad_ready
+        jrst    v1125_sleep_forever
+v1125_bad_ready:
+        setom   daimos_test_errors_v1125
+        jrst    v1125_sleep_forever
+v1125_normal_unlock:
+        push    17,1''')
+    p = root / 'fs/fs_mres.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_owner_v1125
+daimos_test_owner_v1125: .block 1
+        .globl daimos_test_lease_v1125
+daimos_test_lease_v1125: .block 1
+        .globl daimos_test_sleeps_v1125
+daimos_test_sleeps_v1125: .block 1
+        .globl daimos_test_errors_v1125
+daimos_test_errors_v1125: .block 1
+''')
 # Instrument actual maintenance work, not clock interrupts.
 patch('proc/proc_pdp6.s',
       'proc_finish_service_v881:\n        push    17,10',
@@ -145,6 +217,37 @@ patch('proc/proc_pdp6.s',
         jrst    .-1
 daimos_test_exit_other_v909:
         move    3,1''')
+if foreign:
+    # At the terminal inspection, independently verify the other
+    # process still owns the real FS gateway and the APR victim still
+    # owns its original stable u-area (rather than a recycled PID).
+    patch('proc/proc_pdp6.s',
+          '''        halt                           ; only after PID 1's validation
+        jrst    .-1
+daimos_test_exit_other_v909:''',
+          '''        move    4,fs_provider_ready
+        movem   4,daimos_test_final_lease_v1125
+        move    4,proc_table
+        move    5,6(4)                ; real faulting slot 2 descriptor
+        trnn    5,PROC_TRANSITION_RH
+        setom   daimos_test_errors_v1125
+        trnn    5,0400000            ; original u-area flag still set
+        setom   daimos_test_errors_v1125
+        hlrz    5,6(4)
+        movem   5,daimos_test_final_uarea_v1125
+        halt                           ; only after PID 1's validation
+        jrst    .-1
+daimos_test_exit_other_v909:''')
+    p = root / 'proc/proc_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .globl fs_provider_ready
+        .globl daimos_test_errors_v1125
+        .bss
+        .globl daimos_test_final_lease_v1125
+daimos_test_final_lease_v1125: .block 1
+        .globl daimos_test_final_uarea_v1125
+daimos_test_final_uarea_v1125: .block 1
+''')
 p=root/'proc/proc_pdp6.s'
 p.write_text(p.read_text()+'''
         .bss
@@ -171,7 +274,8 @@ else
     expected_detail=''
 fi
 # shellcheck disable=SC2086
-"$cc" -std=c89 -Os $inc $expected_detail -I"$DAIMOS_REPO/userland/libc" \
+"$cc" -std=c89 -Os $inc $expected_detail -DDAIMOS_V1125_FOREIGN="$foreign" \
+    -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-fatal-mm-persistent-v909.c" -o "$work/user/init.s"
 "$das" -C -F -O "$work/user/init.dobj" "$work/user/init.s"
 libgcc=$("$cc" -print-libgcc-file-name)
@@ -204,6 +308,14 @@ if [ "${DAIMOS_V1101_MM_MODE:-pin}" = wrong-owner ]; then
         printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$foreign" = 1 ]; then
+    for name in owner lease sleeps errors mm_lease final_lease final_uarea; do
+        sym="daimos_test_${name}_v1125"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1125: missing $sym" >&2; exit 1; }
+        printf '%s %s\n' "v1125_$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
@@ -221,12 +333,13 @@ if [ "$rc" -ne 0 ]; then
     echo "v909: SIMH failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "${DAIMOS_V1101_MM_MODE:-pin}" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "${DAIMOS_V1101_MM_MODE:-pin}" "$foreign" <<'PY'
 from pathlib import Path
 import re
 import sys
 out=Path(sys.argv[2]).read_text(errors='replace')
 mode=sys.argv[3]
+foreign=sys.argv[4]=='1'
 seen={}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name,addr=line.split()
@@ -246,8 +359,16 @@ else:
     if seen['pins'] != 0 or seen['busy'] != 0 or \
        seen['poison'] != 1 or seen['invalid'] != seen['calls']:
         raise SystemExit('v1101: wrong-owner invalid MM counts: '+str(seen))
+if foreign:
+    if seen['v1125_owner'] != 1 or seen['v1125_sleeps'] < 2 or \
+       seen['v1125_errors'] != 0 or seen['v1125_lease'] != (5 << 18) or \
+       seen['v1125_mm_lease'] != (5 << 18) or \
+       seen['v1125_final_lease'] != (5 << 18) or \
+       seen['v1125_final_uarea'] != seen['target']:
+        raise SystemExit('v1125: foreign lease ownership/progress: '+str(seen))
+pattern = r'<S{3,}FS{3,}P' if foreign else r'<FS{3,}P'
 if '<' not in out or 'F' not in out or 'P' not in out or \
-   re.search(r'<FS{3,}P',out) is None or 'HALT' not in out or '!' in out:
+   re.search(pattern,out) is None or 'HALT' not in out or '!' in out:
     raise SystemExit('v909: spinner/diagnostic/guest failed\n'+out[-1300:])
 if mode == 'pin':
     print('v909: permanent actual-MM pin, capped idle-reaper, retained owner, '
@@ -255,4 +376,7 @@ if mode == 'pin':
 else:
     print('v1101: permanent MM wrong owner (-4), retained failed owner, '
           'capped idle-reaper, unreaped WAIT, runnable bystander PASS')
+if foreign:
+    print('v1125: real wrong-owner MM -4 and distinct held FS lease, '
+          'unreaped victim, foreign owner and bystander progress PASS')
 PY
