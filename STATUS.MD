@@ -1,3 +1,36 @@
+## 2026-11-04 v1120: full guest numeric PID reuse after real physical OOM
+
+Two independent disposable 256K PDP-6 images PASS the new
+`daimos-oom-pid-reuse-v1120` regression, once with production-default
+requester OOM disabled and once with the OOM policy enabled only in
+the isolated kernel image. The original v1075 real physical-memory
+exhaustion and independent blocked witness run first. The disabled
+guest returns the normal BRK -1; the enabled guest fatally retires
+only the exhausted child. The witness survives both modes and all
+process-MM accounting returns to baseline before PID reuse begins.
+
+The same parent then RUNs, waits for and fully reaps 24 consecutive
+children whose distinct alternating statuses are 062 and 063 octal.
+All 23 consecutive adjacent pairs reuse the exact same numeric PID;
+the current process-slot model has no PID generation number. After
+each reap and before the next RUN, a second WAIT and a directed TERM
+against the now-unallocated number must both return -1. After each
+cycle SYS_MEMINFO process slots and process words equal their original
+post-OOM baseline. Any mismatched WAIT, stale event acceptance,
+unexpected number allocation, failed RUN, extra slot or MM leak is
+a guest-fatal assertion. The disabled transcript ends `<DNWQP`, the
+test-only enabled transcript `<KWQP`, both with a clean simulator HALT.
+
+Native source-linked `daimos-xip-vm-retry-v1109` and the v1087 fatal
+release graph audit also PASS after this work. New guest code is C89,
+uses the original syscall ABI and adds no production PID generation,
+MM/FILE bookkeeping, kernel code or resident RAM. This closes the
+sequential numeric PID-reuse-after-OOM P0-E subset, not the required
+concurrent HUP/PIPE/DPY/XIP/swap provider cross-products, stale PID
+after reuse (which legitimately names the new owner), or full P0-E/F.
+Production OOM remains disabled. Two dedicated Make targets and the
+optional full P0-D acceptance matrix invoke the test modes.
+
 ## 2026-11-04 v1119: physical PIPE and DPY faults during the same session HUP
 
 `daimos-session-hup-pipe-dpy-v1119` now boots one disposable 256K

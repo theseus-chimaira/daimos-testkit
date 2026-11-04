@@ -29,6 +29,12 @@
 #define V1116_TEST_RUN_CAUSE 0
 #endif
 
+#ifndef V1120_TEST_PID_REUSE
+#define V1120_TEST_PID_REUSE 0
+#endif
+
+#define V1120_PID_CYCLES 24U
+
 #define V1075_PATH_WORDS 3U
 #define V1075_PATH_OFF SYS_RUN_V2_FIXED_WORDS
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
@@ -141,6 +147,14 @@ main(int argc, kword_t **argv)
                         (void)dsys_writechar(1, 'D');
                         (void)dsys_exit(070);
                 }
+#if V1120_TEST_PID_REUSE
+                if (argv[1][1] ==
+                    TEST_SIX6('A', ' ', ' ', ' ', ' ', ' '))
+                        (void)dsys_exit(062);
+                if (argv[1][1] ==
+                    TEST_SIX6('B', ' ', ' ', ' ', ' ', ' '))
+                        (void)dsys_exit(063);
+#endif
 #if V1110_TEST_NEGATIVES
                 if (argv[1][1] ==
                     TEST_SIX6('I', ' ', ' ', ' ', ' ', ' ')) {
@@ -303,6 +317,52 @@ main(int argc, kword_t **argv)
             after.process_words != before.process_words ||
             v1075_pressure[037777] != 01234567UL)
                 fail('7');
+
+#if V1120_TEST_PID_REUSE
+        {
+                struct sys_meminfo steady;
+                unsigned int cycle;
+                unsigned int reuse_count;
+                int old_pid;
+                int new_pid;
+
+                /* The parent's WAIT has reaped the fatal requester and
+                 * the independent witness.  Reuse is permitted only
+                 * after the old slot, session/group and TTY owners are
+                 * actually gone; PID is a slot number, not a generation.
+                 * Never address an old PID while it names a new child. */
+                steady = after;
+                reuse_count = 0U;
+                old_pid = -1;
+                for (cycle = 0U; cycle < V1120_PID_CYCLES; ++cycle) {
+                        new_pid = run_child((cycle & 1U) ? 'B' : 'A', 0);
+                        if (new_pid <= 1)
+                                fail('a');
+                        if (new_pid == old_pid)
+                                ++reuse_count;
+                        wait_status((unsigned int)new_pid,
+                            (cycle & 1U) ? 063U : 062U);
+                        /* This exact numeric PID is now invalid until
+                         * another live process claims the slot. */
+                        word = 0UL;
+                        if (dsys_wait((unsigned int)new_pid, &word,
+                                SYS_WAIT_NOHANG) != -1 ||
+                            dsys_procctl(SYS_PROCCTL_EVENT_PID,
+                                SYS_EVENT_ARG((unsigned int)new_pid,
+                                    SYS_EVENT_TERM)) != -1)
+                                fail('b');
+                        if (dsys_meminfo(&after) != 0 ||
+                            after.process_slots_used !=
+                                steady.process_slots_used ||
+                            after.process_words != steady.process_words)
+                                fail('c');
+                        old_pid = new_pid;
+                }
+                if (reuse_count != V1120_PID_CYCLES - 1U)
+                        fail('d');
+                (void)dsys_writechar(1, 'Q');
+        }
+#endif
 
         (void)dsys_writechar(1, 'P');
         (void)dsys_halt();

@@ -13,6 +13,7 @@ bad_run=${V1112_TEST_FAILED_RUN:-0}
 mm_slots=${V1114_TEST_MM_SLOTS:-0}
 mm_fragment=${V1115_TEST_MM_FRAGMENT:-0}
 run_cause=${V1116_TEST_RUN_CAUSE:-0}
+pid_reuse=${V1120_TEST_PID_REUSE:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -36,6 +37,10 @@ esac
 case "$run_cause" in
     0|1) ;;
     *) echo 'v1116: invalid RUN cause mode' >&2; exit 2 ;;
+esac
+case "$pid_reuse" in
+    0|1) ;;
+    *) echo 'v1120: invalid PID-reuse mode' >&2; exit 2 ;;
 esac
 if [ "$run_cause" = 1 ] && [ "$mm_slots" != 1 ]; then
     echo 'v1116: RUN cause requires MM descriptor pressure' >&2
@@ -161,6 +166,7 @@ done
     -DV1114_TEST_MM_SLOTS="$mm_slots" \
     -DV1115_TEST_MM_FRAGMENT="$mm_fragment" \
     -DV1116_TEST_RUN_CAUSE="$run_cause" \
+    -DV1120_TEST_PID_REUSE="$pid_reuse" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -208,6 +214,8 @@ if [ "$mm_slots" = 1 ]; then prefix=M; fi
 if [ "$run_cause" = 1 ]; then prefix=${prefix}C; fi
 if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
+tail_marker=P
+if [ "$pid_reuse" = 1 ]; then tail_marker=QP; fi
 if [ "$negatives" = 1 ]; then
     case "$text" in
         *"<$prefix"*'HALT'*) : ;;
@@ -218,7 +226,7 @@ if [ "$negatives" = 1 ]; then
 fi
 if [ "$enable" = 1 ]; then
     case "$text" in
-        *"<${prefix}KWP"*'HALT'*) : ;;
+        *"<${prefix}KW${tail_marker}"*'HALT'*) : ;;
         *) tail -70 "$work/simh.out" >&2
            echo 'v1075: missing requester-reclaimed / witness-survived markers' >&2
            exit 1 ;;
@@ -230,7 +238,7 @@ if [ "$enable" = 1 ]; then
     echo 'v1075: physical OOM kills requester only; blocked witness runs; MM accounting recovers PASS'
 else
     case "$text" in
-        *"<${prefix}DNWP"*'HALT'*) : ;;
+        *"<${prefix}DNW${tail_marker}"*'HALT'*) : ;;
         *) tail -70 "$work/simh.out" >&2
            echo 'v1075: default-off negative control failed' >&2
            exit 1 ;;
@@ -251,4 +259,7 @@ if [ "$mm_fragment" = 1 ]; then
 fi
 if [ "$run_cause" = 1 ]; then
     echo "v1116: real descriptor-saturated RUN returned -1 with original VM/MM cause -3, no retained child (OOM enabled=$enable) PASS"
+fi
+if [ "$pid_reuse" = 1 ]; then
+    echo "v1120: 24 numeric PID reuse cycles, alternating exit statuses, stale WAIT/TERM rejection and exact MM/slot cleanup (OOM enabled=$enable) PASS"
 fi

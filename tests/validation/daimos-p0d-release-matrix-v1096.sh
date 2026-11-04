@@ -49,6 +49,10 @@ if [ "${P0D_FULL:-0}" = 1 ]; then
     sh "$self/daimos-session-hup-dpy-mm-v1105.sh"
     echo 'v1119: booted physical PIPE plus Type-340 DPY final HUP close'
     sh "$self/daimos-session-hup-pipe-dpy-v1119.sh"
+    echo 'v1120: booted actual numeric PID reuse after physical OOM, disabled'
+    V1120_OOM_ENABLED=0 sh "$self/daimos-oom-pid-reuse-v1120.sh"
+    echo 'v1120: booted actual numeric PID reuse after physical OOM, enabled'
+    V1120_OOM_ENABLED=1 sh "$self/daimos-oom-pid-reuse-v1120.sh"
     echo 'v1106: booted real process-VM MM_BUSY plus FILE, uarea and FS lease'
     sh "$self/daimos-oom-physical-vm-v1106.sh"
     echo 'v1107: booted real DISK swap bitmap rejection and deferred release'

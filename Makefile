@@ -1347,6 +1347,18 @@ test-daimos-oom-requester-disabled-v1075: check-prefix
 	 sh tests/validation/daimos-oom-requester-live-v1075.sh
 
 .PHONY: test-daimos-oom-brk-negatives-v1110
+.PHONY: test-daimos-oom-pid-reuse-v1120
+.PHONY: test-daimos-oom-pid-reuse-enabled-v1120
+test-daimos-oom-pid-reuse-v1120: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-pid-reuse-v1120.sh
+
+test-daimos-oom-pid-reuse-enabled-v1120: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1120_OOM_ENABLED=1 \
+	 sh tests/validation/daimos-oom-pid-reuse-v1120.sh
+
 .PHONY: test-daimos-oom-failed-run-v1112
 test-daimos-oom-failed-run-v1112: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
