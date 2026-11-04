@@ -17,6 +17,7 @@ for name in \
     daimos-session-hup-pending-v905 \
     daimos-uarea-typed-release-v1097 \
     daimos-prevm-retry-clock-v1098 \
+    daimos-reaper-backoff-v1102 \
     daimos-tty-prevm-finalize-v1081 \
     daimos-discard-tty-prevm-v1085 \
     daimos-tty-mm-error-stage-v1093 \
@@ -35,6 +36,8 @@ if [ "${P0D_FULL:-0}" = 1 ]; then
     sh "$self/daimos-oom-pre-vm-retry-v997.sh"
     echo 'v1096: booted real OOM with D6FS SYNC and MM_BUSY refusals'
     sh "$self/daimos-oom-requester-provider-mm-v1077.sh"
+    echo 'v1101: booted permanent MM wrong-owner quarantine and bystander'
+    sh "$self/daimos-fatal-mm-wrong-owner-v1101.sh"
 else
     echo 'v1096: disposable full guest matrix skipped (set P0D_FULL=1)'
 fi

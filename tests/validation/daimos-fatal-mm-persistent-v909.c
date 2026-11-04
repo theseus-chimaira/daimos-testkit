@@ -4,6 +4,11 @@
 #include "dsys.h"
 #include "../test_sixbit.h"
 
+/* v1101 also runs this guest with a genuine wrong-owner MM extent. */
+#ifndef DAIMOS_MM_EXPECT_VALUE
+#define DAIMOS_MM_EXPECT_VALUE 1U
+#endif
+
 #define RUN_PATH_WORDS 3U
 #define RUN_ARG_WORDS 2U
 #define RUN_PATH_OFF SYS_RUN_V2_FIXED_WORDS
@@ -101,7 +106,7 @@ main(int argc, kword_t **argv)
         detail = (unsigned int)dsys_procctl(SYS_PROCCTL_GETTEARDOWN,
             SYS_TEARDOWN_DETAIL_ARG(fault_child));
         if (SYS_TEARDOWN_STAGE(detail) != SYS_TEARDOWN_MM ||
-            SYS_TEARDOWN_MM_PINS(detail) != 1U)
+            SYS_TEARDOWN_MM_PINS(detail) != DAIMOS_MM_EXPECT_VALUE)
                 fail('7');
         {
                 kword_t status;
