@@ -1347,6 +1347,12 @@ test-daimos-oom-requester-disabled-v1075: check-prefix
 	 sh tests/validation/daimos-oom-requester-live-v1075.sh
 
 .PHONY: test-daimos-oom-brk-negatives-v1110
+.PHONY: test-daimos-mm-exhaustion-class-v1111
+test-daimos-mm-exhaustion-class-v1111: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-mm-exhaustion-class-v1111.sh
+
 test-daimos-oom-brk-negatives-v1110: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

@@ -1,3 +1,17 @@
+## 2026-11-04 v1111: real PDP-6 MM error classification
+
+`daimos-mm-exhaustion-class-v1111` links the unchanged production
+`mm_find_fit`, `mm_extent_insert` and `mm_alloc_aligned_noreclaim`
+assembly. With two live extents in one 010000-word arena, it verifies
+real insufficient-total-RAM (-1), fragmented-but-sufficient-total
+free words (-2), and full descriptor capacity despite a fitting gap
+(-3). Failed allocations preserve both existing extent descriptors
+and their count. Increasing the descriptor capacity allows the same
+small allocation to succeed, inserting the new middle extent in sorted
+order. Both unsafe error-collapse mutations are rejected. This is a
+native allocator leaf test, not a booted BRK/OOM integration test.
+Production memory and OOM defaults are unchanged; P0-F remains OPEN.
+
 ## 2026-11-04 v1110: booted invalid BRK versus real physical OOM
 
 The opt-in `daimos-oom-brk-negatives-v1110` full 256K PDP-6 guest
