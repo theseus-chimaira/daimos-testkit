@@ -38,6 +38,8 @@ if [ "${P0D_FULL:-0}" = 1 ]; then
     sh "$self/daimos-oom-multistage-v1103.sh"
     echo 'v1104: booted physical member HUP and pinned PIPE final close'
     sh "$self/daimos-session-hup-pipe-mm-v1104.sh"
+    echo 'v1105: booted physical member HUP and pinned DPY raw-list close'
+    sh "$self/daimos-session-hup-dpy-mm-v1105.sh"
     echo 'v1096: booted real OOM with D6FS SYNC and MM_BUSY refusals'
     sh "$self/daimos-oom-requester-provider-mm-v1077.sh"
     echo 'v1101: booted permanent MM wrong-owner quarantine and bystander'

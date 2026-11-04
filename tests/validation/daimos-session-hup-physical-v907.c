@@ -14,6 +14,16 @@
 
 static volatile kword_t spin_word;
 
+#ifdef DAIMOS_V1105_DPY_HUP
+#define V1105_DPY_WORDS 32U
+static kword_t v1105_dpy_path[] = {
+        9UL,
+        TEST_SIX6('/', 'D', 'E', 'V', '/', 'D'),
+        TEST_SIX6('P', 'Y', '0', ' ', ' ', ' ')
+};
+static kword_t v1105_dpy_frame[V1105_DPY_WORDS];
+#endif
+
 static kword_t init_path[] = {
         12UL,
         TEST_SIX6('/', 'S', 'Y', 'S', 'T', 'E'),
@@ -165,6 +175,22 @@ main(int argc, kword_t **argv)
         mode = startup_mode(argc, argv);
 
         if (mode == JOB_MODE) {
+#ifdef DAIMOS_V1105_DPY_HUP
+                if (dsys_getpid() == 4) {
+                        unsigned int word;
+                        int dpy_fd;
+
+                        for (word = 0U; word < V1105_DPY_WORDS; ++word)
+                                v1105_dpy_frame[word] = 0353535353535UL;
+                        dpy_fd = dsys_open(v1105_dpy_path, SYS_O_WRONLY);
+                        if (dpy_fd < 0 ||
+                            dsys_write_words(dpy_fd, v1105_dpy_frame,
+                                V1105_DPY_WORDS) != (int)V1105_DPY_WORDS)
+                                (void)dsys_exit(0105);
+                        /* The published list must remain live until
+                         * the remote HUP retires this exact descriptor. */
+                }
+#endif
 #ifdef DAIMOS_V1104_PIPE_HUP
                 /* Keep a genuine private PIPE until the parent's remote HUP.
                  * FILE close must not lose its final reference on MM_BUSY. */
@@ -202,22 +228,34 @@ main(int argc, kword_t **argv)
         if (job1 <= 1 || job2 <= 1 || job1 == job2 ||
             dsys_close(report_r) != 0)
                 fail('3', 0203);
+#ifdef DAIMOS_V1105_DPY_HUP
+        /* Ensure job2 has installed its hardware display program before
+         * INIT requests the first fatal session HUP. */
+        if (dsys_sleep(020U) != 0)
+                fail('d', 0211);
+#endif
         /* First HUP fails after a committed child, second retries it. */
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
             SYS_EVENT_ARG((unsigned int)leader, SYS_EVENT_HUP)) != -1)
                 fail('6', 0206);
-#ifdef DAIMOS_V1104_PIPE_HUP
+#if defined(DAIMOS_V1104_PIPE_HUP) || defined(DAIMOS_V1105_DPY_HUP)
         {
                 kword_t pending_status;
 
                 /* INIT directly parents the session leader, not job2.
-                 * A rejected member PIPE close must prevent the leader
+                 * A rejected member PIPE/DPY close must prevent the leader
                  * from becoming waitable before HUP actually commits. */
                 pending_status = 0UL;
                 if (dsys_wait((unsigned int)leader, &pending_status,
                     SYS_WAIT_NOHANG) != 0)
                         fail('q', 0210);
         }
+#endif
+#ifdef DAIMOS_V1105_DPY_HUP
+        /* PI6/PI7 must be able to replay the original DPY list even
+         * after the first physical MM_BUSY. */
+        if (dsys_sleep(020U) != 0)
+                fail('r', 0212);
 #endif
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
             SYS_EVENT_ARG((unsigned int)leader, SYS_EVENT_HUP)) != 0)

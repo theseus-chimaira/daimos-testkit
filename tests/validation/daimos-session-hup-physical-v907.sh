@@ -7,8 +7,14 @@ export TMPDIR=${TMPDIR:-$HOME/tmp}
 mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 pipe_hup=${DAIMOS_V1104_PIPE_HUP:-0}
-case "$pipe_hup" in 0|1) ;; *) echo 'v1104: invalid PIPE/HUP mode' >&2; exit 2 ;; esac
-if [ "$pipe_hup" = 1 ]; then
+dpy_hup=${DAIMOS_V1105_DPY_HUP:-0}
+case "$pipe_hup:$dpy_hup" in
+    0:0|1:0|0:1) ;;
+    *) echo 'v1105: select only one physical HUP provider' >&2; exit 2 ;;
+esac
+if [ "$dpy_hup" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-session-hup-dpy-mm-v1105.XXXXXX")
+elif [ "$pipe_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-pipe-mm-v1104.XXXXXX")
 else
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-physical-v907.XXXXXX")
@@ -19,7 +25,7 @@ cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
 python3 - "$work/source/system/kernel/proc/proc_pdp6.s" \
-    "${DAIMOS_V907_NEGATIVE:-0}" "$pipe_hup" <<'PY'
+    "${DAIMOS_V907_NEGATIVE:-0}" "$pipe_hup" "$dpy_hup" <<'PY'
 from pathlib import Path
 import sys
 path=Path(sys.argv[1]); source=path.read_text()
@@ -30,7 +36,8 @@ def patch(old,new):
     source=source.replace(old,new)
 # The first child to receive HUP is really pinned in the kernel MM table.
 # The second child first rejects HUP (synthetic v907, physical PIPE MM
-# refusal v1104). Retry must skip the finalized first child and deliver
+# refusal v1104, or physical DPY MM refusal v1105). Retry must skip
+# the finalized first child and deliver
 # only the previously refused member HUP.
 patch('''        move    1,011
         movei   2,2                    ; default-fatal HUP
@@ -113,6 +120,17 @@ if sys.argv[3] == '1':
           '''daimos_test_fail_second_v907:
         aos     daimos_test_failures_v907
         setom   daimos_test_pipe_armed_v1104
+        jrst    daimos_test_deliver_v907''')
+if sys.argv[4] == '1':
+    # Unlike v907's synthetic refusal, the second HUP really closes
+    # the published Type-340 raw list. An MM pin will reject its first
+    # release while the previously finalized first member remains held.
+    patch('''daimos_test_fail_second_v907:
+        aos     daimos_test_failures_v907
+        jrst    proc_session_teardown_fail''',
+          '''daimos_test_fail_second_v907:
+        aos     daimos_test_failures_v907
+        setom   daimos_test_dpy_armed_v1105
         jrst    daimos_test_deliver_v907''')
 # Negative control restores pre-v905 handling in this isolated image.
 if sys.argv[2]=='1':
@@ -253,6 +271,129 @@ daimos_test_pipe_errors_v1104: .block 1
 path.write_text(source)
 PY
 fi
+if [ "$dpy_hup" = 1 ]; then
+    python3 - "$work/source/system/kernel/mm/mm_pdp6.s" \
+        "$work/source/system/kernel/drivers/dpy_io.s" <<'PY'
+from pathlib import Path
+import sys
+
+mm = Path(sys.argv[1])
+dp = Path(sys.argv[2])
+source = mm.read_text()
+
+def patch(old, new):
+    global source
+    if source.count(old) != 1:
+        raise SystemExit('v1105: nonunique MM anchor: ' + repr(old))
+    source = source.replace(old, new, 1)
+
+patch('''mm_free:
+        move    5,1
+        move    6,2
+        move    7,3''', '''mm_free:
+        caie    2,3                    ; MM_TYPE_KERNEL_DYNAMIC
+        jrst    mm_free_original_v1105
+        caie    3,014                  ; DPY raw-list MM owner
+        jrst    mm_free_original_v1105
+        skipn   daimos_test_dpy_armed_v1105
+        jrst    mm_free_original_v1105
+        skipn   daimos_test_dpy_target_v1105
+        movem   1,daimos_test_dpy_target_v1105
+        move    4,daimos_test_dpy_target_v1105
+        came    1,4
+        jrst    mm_free_original_v1105
+        aos     daimos_test_dpy_calls_v1105
+        move    4,daimos_test_dpy_calls_v1105
+        caie    4,1
+        jrst    daimos_test_dpy_unpin_v1105
+        push    17,1
+        push    17,2
+        push    17,3
+        pushj   17,mm_pin
+        jumpe   1,daimos_test_dpy_pin_ok_v1105
+        aos     daimos_test_dpy_errors_v1105
+        jrst    daimos_test_dpy_restore_v1105
+daimos_test_dpy_pin_ok_v1105:
+        aos     daimos_test_dpy_pins_v1105
+        jrst    daimos_test_dpy_restore_v1105
+daimos_test_dpy_unpin_v1105:
+        push    17,1
+        push    17,2
+        push    17,3
+        pushj   17,mm_unpin
+        jumpe   1,daimos_test_dpy_unpin_ok_v1105
+        aos     daimos_test_dpy_errors_v1105
+        jrst    daimos_test_dpy_restore_v1105
+daimos_test_dpy_unpin_ok_v1105:
+        aos     daimos_test_dpy_unpins_v1105
+daimos_test_dpy_restore_v1105:
+        pop     17,3
+        pop     17,2
+        pop     17,1
+mm_free_original_v1105:
+        move    5,1
+        move    6,2
+        move    7,3''')
+patch('''mm_free_busy:
+        movni   1,5''', '''mm_free_busy:
+        move    4,daimos_test_dpy_target_v1105
+        camn    4,5
+        aos     daimos_test_dpy_busy_v1105
+        movni   1,5''')
+patch('''        pushj   17,mm_delete
+        setz    1,
+        popj    17,
+mm_free_inval:''', '''        move    4,daimos_test_dpy_target_v1105
+        camn    4,5
+        aos     daimos_test_dpy_frees_v1105
+        pushj   17,mm_delete
+        setz    1,
+        popj    17,
+mm_free_inval:''')
+source += '''
+        .bss
+        .globl daimos_test_dpy_armed_v1105
+daimos_test_dpy_armed_v1105: .block 1
+        .globl daimos_test_dpy_target_v1105
+daimos_test_dpy_target_v1105: .block 1
+        .globl daimos_test_dpy_calls_v1105
+daimos_test_dpy_calls_v1105: .block 1
+        .globl daimos_test_dpy_pins_v1105
+daimos_test_dpy_pins_v1105: .block 1
+        .globl daimos_test_dpy_unpins_v1105
+daimos_test_dpy_unpins_v1105: .block 1
+        .globl daimos_test_dpy_busy_v1105
+daimos_test_dpy_busy_v1105: .block 1
+        .globl daimos_test_dpy_frees_v1105
+daimos_test_dpy_frees_v1105: .block 1
+        .globl daimos_test_dpy_errors_v1105
+daimos_test_dpy_errors_v1105: .block 1
+        .globl daimos_test_dpy_refresh_v1105
+daimos_test_dpy_refresh_v1105: .block 1
+        .globl daimos_test_dpy_after_busy_v1105
+daimos_test_dpy_after_busy_v1105: .block 1
+'''
+mm.write_text(source)
+
+source = dp.read_text()
+old = '''        skipn dpy_list_base
+        jrst dpy_refresh_retained
+        move 1,dpy_list_iowd'''
+new = '''        skipn dpy_list_base
+        jrst dpy_refresh_retained
+        aos daimos_test_dpy_refresh_v1105
+        skipn daimos_test_dpy_busy_v1105
+        jrst daimos_test_dpy_refresh_next_v1105
+        skipe daimos_test_dpy_unpins_v1105
+        jrst daimos_test_dpy_refresh_next_v1105
+        aos daimos_test_dpy_after_busy_v1105
+daimos_test_dpy_refresh_next_v1105:
+        move 1,dpy_list_iowd'''
+if source.count(old) != 1:
+    raise SystemExit('v1105: nonunique DPY PI6 refresh anchor')
+dp.write_text(source.replace(old, new, 1))
+PY
+fi
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
 dlink="$PDP10_PREFIX/bin/dlink"
@@ -265,6 +406,8 @@ done
 # shellcheck disable=SC2086
 if [ "$pipe_hup" = 1 ]; then
     cflags='-DDAIMOS_V1104_PIPE_HUP=1'
+elif [ "$dpy_hup" = 1 ]; then
+    cflags='-DDAIMOS_V1105_DPY_HUP=1'
 else
     cflags=''
 fi
@@ -302,6 +445,14 @@ if [ "$pipe_hup" = 1 ]; then
         printf 'pipe_%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$dpy_hup" = 1 ]; then
+    for name in armed target calls pins unpins busy frees errors refresh after_busy; do
+        sym="daimos_test_dpy_${name}_v1105"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1105: missing $sym" >&2; exit 1; }
+        printf 'dpy_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
@@ -319,7 +470,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v907: simulator exited $rc" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$pipe_hup" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$pipe_hup" "$dpy_hup" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -347,11 +498,25 @@ if sys.argv[3] == '1':
                              ' expected '+str(value)+'\n'+output[-1800:])
     if not seen['pipe_target']:
         raise SystemExit('v1104: no private PIPE owner recorded')
+if sys.argv[4] == '1':
+    for name, value in dict(dpy_armed=(1 << 36)-1,
+                            dpy_calls=2,dpy_pins=1,dpy_unpins=1,
+                            dpy_busy=1,dpy_frees=1,dpy_errors=0).items():
+        if seen[name] != value:
+            raise SystemExit('v1105: '+name+'='+str(seen[name])+
+                             ' expected '+str(value)+'\n'+output[-1800:])
+    if not seen['dpy_target'] or seen['dpy_refresh'] < 3 or \
+            seen['dpy_after_busy'] < 1:
+        raise SystemExit('v1105: DPY raw PI6 replay/owner failed: '+
+                         str(seen)+'\n'+output[-1800:])
 if seen['first']<=2 or seen['leader']<=1 or not seen['base'] or \
         '<' not in output or \
         'H' not in output or 'HALT' not in output or '!' in output:
     raise SystemExit('v907: guest failed\n'+output[-2000:])
-if sys.argv[3] == '1':
+if sys.argv[4] == '1':
+    print('v1105: booted physical HUP + pinned DPY PI6 replay/real '
+          'MM_BUSY retry + deferred u-area/WAIT PASS:',seen)
+elif sys.argv[3] == '1':
     print('v1104: booted physical HUP plus PIPE MM_BUSY and pinned '
           'member u-area, exact retries/TTY handoff PASS:',seen)
 else:
