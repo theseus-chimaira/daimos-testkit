@@ -6,7 +6,11 @@ Its cases cover the transitive release graph, combined physical
 PIPE/DPY/VM/u-area and provider lock, pinned TTY, PIPE/DPY HUP, DPY
 swap replay, PIPE and bitmap swap refusal, unpublished RUN discard,
 and OOM-related PID/slot recycling. Shell syntax and Make dispatch
-validate. The *full* multi-guest matrix has not yet been run or
+validate. The v1146r1 guard records the DAIMOS/testkit Git revisions
+and installed fold/link/assembler/simulator checksums, refuses an
+uncommitted kernel or fixture, and checks revision stability before
+and after each guest. Its dirty-source negative control PASSes.
+The *full* multi-guest matrix has not yet been run or
 accepted, so D16 remains open and the production OOM switch is OFF.
 
 ## 2026-11-05 v1145: native fatal-release fixture maintenance
