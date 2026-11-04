@@ -1,3 +1,32 @@
+## 2026-11-04 v1118: booted physical PIPE plus process-VM mixed teardown
+
+The independent `daimos-oom-physical-mixed-v1118` full 256K PDP-6
+guest PASSes. Previously separate v1103 PIPE/HUP and v1106 real VM
+pin/MM_BUSY hooks are now composed at the same `mm_free` entry in one
+disposable kernel, without skipping either production owner/type path.
+The initial combined run stopped before build because both private
+injections required a different exact `mm_free` insertion anchor;
+the v997 test generator now preserves both hook chains. No production
+kernel source was changed.
+
+Observed in the single completed boot: exactly two final PIPE frees
+with one -5 refusal and no PIPE ownership errors, two actual process-VM
+MM frees with one -5 from a physical VM pin, one physical VM unpin,
+one successful deletion and one swap detach, two HUP-stage calls with
+one deliberately injected refusal, three FILE closes with two
+refusals, and two final u-area frees with one MM refusal. Exactly one
+EXIT/CHLD/finalization, zero provider errors, intact foreign FS lease,
+and 37 observed unrelated spinner cycles all PASS. The v1117 sequence
+of 48 post-reap stale WAIT and PID-directed TERM refusals also PASSes,
+with no growing process slot or MM-word accounting. This versioned
+full guest is included in optional P0D_FULL and has its own Make target.
+
+This closes a *specific combined physical PIPE+VM* release-and-liveness
+subset. Session HUP rejection here is a stage injection, not a physical
+DPY/HUP fault. No live MEMFS XIP lease, simultaneously failing swap
+bitmap and full numeric PID-reuse stress are covered by this boot.
+P0-D/E/F remain OPEN and production OOM remains disabled.
+
 ## 2026-11-04 v1117: mixed-fault stale WAIT/PID and bystander liveness
 
 The opt-in full 256K PDP-6 `daimos-oom-wait-churn-v1117` extends

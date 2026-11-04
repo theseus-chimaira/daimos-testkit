@@ -1483,6 +1483,12 @@ test-daimos-session-hup-swap-v1107: check-prefix
 
 .PHONY: test-daimos-oom-multistage-v1103
 .PHONY: test-daimos-oom-wait-churn-v1117
+.PHONY: test-daimos-oom-physical-mixed-v1118
+test-daimos-oom-physical-mixed-v1118: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-physical-mixed-v1118.sh
+
 test-daimos-oom-wait-churn-v1117: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

@@ -41,6 +41,8 @@ if [ "${P0D_FULL:-0}" = 1 ]; then
     sh "$self/daimos-oom-multistage-v1103.sh"
     echo 'v1117: mixed fatal stages plus stale WAIT/PID/event and bystander'
     sh "$self/daimos-oom-wait-churn-v1117.sh"
+    echo 'v1118: real PIPE and VM MM_BUSY in one faulted process plus WAIT/PID'
+    sh "$self/daimos-oom-physical-mixed-v1118.sh"
     echo 'v1104: booted physical member HUP and pinned PIPE final close'
     sh "$self/daimos-session-hup-pipe-mm-v1104.sh"
     echo 'v1105: booted physical member HUP and pinned DPY raw-list close'

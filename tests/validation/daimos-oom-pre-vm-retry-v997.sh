@@ -403,9 +403,14 @@ if integrated:
     # The final C-child PIPE read descriptor owns an MM dynamic extent
     # with the normal PIPE owner 5. Only the first physical free is
     # rejected. All later requests execute the unmodified mm_free.
+    # When the physical VM hook is also present, insert PIPE accounting
+    # ahead of its entry test and preserve that test after PIPE fallthrough.
+    # Both hooks must observe the original arguments and neither may skip
+    # the other hook's legitimate MM_TYPE_PROCESS/MM_TYPE_KERNEL_DYNAMIC
+    # path. This combines the existing stages without changing production.
+    next_gate = '        caie    2,1' if physical_vm else '        caie    2,3'
     patch('mm/mm_pdp6.s',
-          '''mm_free:
-        caie    2,3''',
+          'mm_free:\n' + next_gate,
           '''mm_free:
         caie    2,3
         jrst    daimos_test_pipe_other_v1103
@@ -432,7 +437,7 @@ daimos_test_pipe_refs_ok_v1103:
         movni   1,5
         popj    17,
 daimos_test_pipe_other_v1103:
-        caie    2,3''')
+''' + next_gate)
     p = root / 'mm/mm_pdp6.s'
     p.write_text(p.read_text() + '''
         .bss
