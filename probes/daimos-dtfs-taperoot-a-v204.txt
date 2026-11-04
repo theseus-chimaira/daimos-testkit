@@ -1,0 +1,63 @@
+# Isolate command availability from writable-DTFS pathname creation.
+# Every failure must remain visible, including failed external launch.
+probe pre-mount-echo-v204
+command ECHO PRE_MOUNT_V204
+line ^PRE_MOUNT_V204$
+not_contains DSH:
+timeout 360
+end
+probe mount-dtc3-v204
+command MOUNT.DTFS -O RW,NATIVE /DEV/DTC3 /HOME
+not_contains MOUNT.DTFS:
+not_contains DSH:
+timeout 1800
+end
+probe post-mount-echo-v204
+command ECHO POST_MOUNT_V204
+line ^POST_MOUNT_V204$
+not_contains DSH:
+timeout 360
+end
+probe redirect-temp-v204
+command ECHO TEMP_WRITE_V204 > /TEMP/VT204
+not_contains DSH:
+not_contains ECHO:
+timeout 600
+end
+probe read-temp-v204
+command CAT /TEMP/VT204
+line ^TEMP_WRITE_V204$
+not_contains DSH:
+not_contains CAT:
+timeout 600
+end
+probe redirect-home-v204
+command ECHO HOME_WRITE_V204 > /HOME/VH204
+not_contains DSH:
+not_contains ECHO:
+timeout 900
+end
+probe post-create-echo-v204
+command ECHO AFTER_CREATE_V204
+line ^AFTER_CREATE_V204$
+not_contains DSH:
+timeout 360
+end
+probe absolute-echo-v204
+command /SYSTEM/EXEC/ECHO ABSOLUTE_ECHO_V204
+line ^ABSOLUTE_ECHO_V204$
+not_contains DSH:
+timeout 360
+end
+probe which-echo-v204
+command WHICH ECHO
+contains /SYSTEM/EXEC/ECHO
+not_contains DSH:
+timeout 360
+end
+probe read-home-v204
+command CAT /HOME/VH204
+line ^HOME_WRITE_V204$
+not_contains DSH:
+timeout 900
+end
