@@ -1,3 +1,21 @@
+## 2026-11-04 v1143: D13 independent rerun, D15 XIP scope closure
+
+Independently rebuilt full 256K PDP-6 v1142 guest PASSes the combined
+APR/EXEC/failed-RUN physical-u-area test: two actual `mm_free` calls,
+one real pin, one MM_BUSY (-5), one successful unpin, zero errors,
+parent continuation and exact terminal WAIT. Native v893 (actual
+pinned u-area with two refusals and deferred release) and v894
+(pre-VM and u-area retry/exact release) also PASS.
+
+The current source-linked v1108 MEMFS XIP/MM and v1109 XIP VM retry
+tests PASS and reject their unsafe mutants. v1123 scope audit PASSes
+all six unsafe variants and confirms ordinary production RUN/EXEC use
+writable startup, not XIP process admission. D15 is complete by
+explicitly excluding scheduled XIP processes from the current BRK
+requester OOM scope. The separate trusted XIP launch work X03-X08
+remains open. Checklist after D15: 36/65 mandatory checked, 27
+pre-activation blockers, production OOM disabled. D14/D16 remain.
+
 ## 2026-11-04 v1143: historical RUN rollback controls restored
 
 The v893 256K PDP-6 full guest passes against the current source
