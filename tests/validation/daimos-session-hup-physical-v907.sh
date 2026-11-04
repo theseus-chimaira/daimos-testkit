@@ -10,10 +10,12 @@ pipe_hup=${DAIMOS_V1104_PIPE_HUP:-0}
 dpy_hup=${DAIMOS_V1105_DPY_HUP:-0}
 swap_hup=${DAIMOS_V1107_SWAP_HUP:-0}
 case "$pipe_hup:$dpy_hup:$swap_hup" in
-    0:0:0|1:0:0|0:1:0|0:0:1) ;;
-    *) echo 'v1105: select only one physical HUP provider' >&2; exit 2 ;;
+    0:0:0|1:0:0|0:1:0|0:0:1|1:1:0) ;;
+    *) echo 'v1119: unsupported physical HUP provider combination' >&2; exit 2 ;;
 esac
-if [ "$swap_hup" = 1 ]; then
+if [ "$pipe_hup" = 1 ] && [ "$dpy_hup" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-session-hup-pipe-dpy-v1119.XXXXXX")
+elif [ "$swap_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-swap-v1107.XXXXXX")
 elif [ "$dpy_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-dpy-mm-v1105.XXXXXX")
@@ -128,10 +130,19 @@ if sys.argv[4] == '1':
     # Unlike v907's synthetic refusal, the second HUP really closes
     # the published Type-340 raw list. An MM pin will reject its first
     # release while the previously finalized first member remains held.
-    patch('''daimos_test_fail_second_v907:
+    if sys.argv[3] == '1':
+        # Both private MM owners are live at the same session-member HUP.
+        # Arm the separate hooks before the original event dispatcher.
+        patch('''        setom   daimos_test_pipe_armed_v1104
+        jrst    daimos_test_deliver_v907''',
+              '''        setom   daimos_test_pipe_armed_v1104
+        setom   daimos_test_dpy_armed_v1105
+        jrst    daimos_test_deliver_v907''')
+    else:
+        patch('''daimos_test_fail_second_v907:
         aos     daimos_test_failures_v907
         jrst    proc_session_teardown_fail''',
-          '''daimos_test_fail_second_v907:
+              '''daimos_test_fail_second_v907:
         aos     daimos_test_failures_v907
         setom   daimos_test_dpy_armed_v1105
         jrst    daimos_test_deliver_v907''')
@@ -543,13 +554,15 @@ PY
 fi
 if [ "$dpy_hup" = 1 ]; then
     python3 - "$work/source/system/kernel/mm/mm_pdp6.s" \
-        "$work/source/system/kernel/drivers/dpy_io.s" <<'PY'
+        "$work/source/system/kernel/drivers/dpy_io.s" "$pipe_hup" <<'PY'
 from pathlib import Path
 import sys
 
 mm = Path(sys.argv[1])
 dp = Path(sys.argv[2])
 source = mm.read_text()
+entry_label = ('mm_free_original_v1104:' if sys.argv[3] == '1'
+               else 'mm_free:')
 
 def patch(old, new):
     global source
@@ -557,10 +570,10 @@ def patch(old, new):
         raise SystemExit('v1105: nonunique MM anchor: ' + repr(old))
     source = source.replace(old, new, 1)
 
-patch('''mm_free:
+patch(entry_label + '''
         move    5,1
         move    6,2
-        move    7,3''', '''mm_free:
+        move    7,3''', entry_label + '''
         caie    2,3                    ; MM_TYPE_KERNEL_DYNAMIC
         jrst    mm_free_original_v1105
         caie    3,014                  ; DPY raw-list MM owner
@@ -604,19 +617,25 @@ mm_free_original_v1105:
         move    5,1
         move    6,2
         move    7,3''')
-patch('''mm_free_busy:
-        movni   1,5''', '''mm_free_busy:
+busy_next = ('        move    4,daimos_test_pipe_target_v1104'
+             if sys.argv[3] == '1' else '        movni   1,5')
+patch('mm_free_busy:\n' + busy_next, '''mm_free_busy:
         move    4,daimos_test_dpy_target_v1105
         camn    4,5
         aos     daimos_test_dpy_busy_v1105
-        movni   1,5''')
-patch('''        pushj   17,mm_delete
+''' + busy_next)
+free_next = ('''        move    4,daimos_test_pipe_target_v1104
+        camn    4,5
+        aos     daimos_test_pipe_frees_v1104
+        pushj   17,mm_delete''' if sys.argv[3] == '1'
+             else '        pushj   17,mm_delete')
+patch(free_next + '''
         setz    1,
         popj    17,
 mm_free_inval:''', '''        move    4,daimos_test_dpy_target_v1105
         camn    4,5
         aos     daimos_test_dpy_frees_v1105
-        pushj   17,mm_delete
+''' + free_next + '''
         setz    1,
         popj    17,
 mm_free_inval:''')
@@ -676,6 +695,9 @@ done
 # shellcheck disable=SC2086
 if [ "$pipe_hup" = 1 ]; then
     cflags='-DDAIMOS_V1104_PIPE_HUP=1'
+    if [ "$dpy_hup" = 1 ]; then
+        cflags="$cflags -DDAIMOS_V1105_DPY_HUP=1"
+    fi
 elif [ "$dpy_hup" = 1 ]; then
     cflags='-DDAIMOS_V1105_DPY_HUP=1'
 elif [ "$swap_hup" = 1 ]; then
@@ -818,6 +840,9 @@ if seen['first']<=2 or seen['leader']<=1 or not seen['base'] or \
 if sys.argv[5] == '1':
     print('v1107: real swap-out, physical bitmap verifier refusal, '
           'record/WAIT retention and exact repair/free HUP PASS:',seen)
+elif sys.argv[3] == '1' and sys.argv[4] == '1':
+    print('v1119: combined physical PIPE/DPY HUP MM release retry, '
+          'display PI6 and final WAIT/TTY ownership PASS:',seen)
 elif sys.argv[4] == '1':
     print('v1105: booted physical HUP + pinned DPY PI6 replay/real '
           'MM_BUSY retry + deferred u-area/WAIT PASS:',seen)

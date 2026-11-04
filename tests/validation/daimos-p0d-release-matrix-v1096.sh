@@ -47,6 +47,8 @@ if [ "${P0D_FULL:-0}" = 1 ]; then
     sh "$self/daimos-session-hup-pipe-mm-v1104.sh"
     echo 'v1105: booted physical member HUP and pinned DPY raw-list close'
     sh "$self/daimos-session-hup-dpy-mm-v1105.sh"
+    echo 'v1119: booted physical PIPE plus Type-340 DPY final HUP close'
+    sh "$self/daimos-session-hup-pipe-dpy-v1119.sh"
     echo 'v1106: booted real process-VM MM_BUSY plus FILE, uarea and FS lease'
     sh "$self/daimos-oom-physical-vm-v1106.sh"
     echo 'v1107: booted real DISK swap bitmap rejection and deferred release'

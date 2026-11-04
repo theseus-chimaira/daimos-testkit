@@ -180,6 +180,10 @@ main(int argc, kword_t **argv)
         mode = startup_mode(argc, argv);
 
         if (mode == JOB_MODE) {
+#ifdef DAIMOS_V1104_PIPE_HUP
+                /* C89 declarations precede the optional DPY setup. */
+                kword_t pipe_pair;
+#endif
 #ifdef DAIMOS_V1105_DPY_HUP
                 if (dsys_getpid() == 4) {
                         unsigned int word;
@@ -199,8 +203,6 @@ main(int argc, kword_t **argv)
 #ifdef DAIMOS_V1104_PIPE_HUP
                 /* Keep a genuine private PIPE until the parent's remote HUP.
                  * FILE close must not lose its final reference on MM_BUSY. */
-                kword_t pipe_pair;
-
                 pipe_pair = dsys_pipe();
                 if (pipe_pair == ~0UL)
                         (void)dsys_exit(0104);

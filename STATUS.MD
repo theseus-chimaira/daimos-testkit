@@ -1,3 +1,33 @@
+## 2026-11-04 v1119: physical PIPE and DPY faults during the same session HUP
+
+`daimos-session-hup-pipe-dpy-v1119` now boots one disposable 256K
+PDP-6 guest whose second session member owns both a real PIPE and a
+published Type-340 DPY display list. The existing v1104 and v1105
+fault hooks are composed at `mm_free` and at its busy/delete paths,
+preserving each type/owner guard. Both hooks arm at the original
+session-HUP delivery point; v907's first member remains physically
+pinned during the partially committed HUP. The source fixes a C89
+declaration-order problem exposed by activating both test modes.
+
+Two independent fresh-image full-system boots PASS, including the
+final `make test-daimos-session-hup-pipe-dpy-v1119` run. Each resource
+has a distinct nonzero MM base, two release attempts, exactly one
+real physical pin, one MM_BUSY (-5), one unpin and one successful
+physical free. No PIPE or DPY owner error is reported. The DPY raw
+list stays published while its first release is refused, with 14
+actual PI6 refreshes and 8 refreshes after MM_BUSY but before unpin.
+The first session member retains its original pinned u-area, HUP
+commit/retry happens once, no duplicate first-member HUP occurs, and
+the expected leader/member WAITs and TTY ownership handoff PASS.
+
+All hooks and counted state are test-only; production DAIMOS code,
+fixed KCore/MRES RAM, ABI and OOM activation are untouched. This
+proves one combined physical PIPE+DPY session fault/retry scenario,
+not a simultaneous VM/XIP or DISK bitmap fault, permanent refusal,
+actual PID-number reuse, or complete P0-D/E/F acceptance. Production
+requester OOM remains disabled. The new scenario is registered in
+optional `P0D_FULL` and as a standalone Make target.
+
 ## 2026-11-04 v1118: booted physical PIPE plus process-VM mixed teardown
 
 The independent `daimos-oom-physical-mixed-v1118` full 256K PDP-6
