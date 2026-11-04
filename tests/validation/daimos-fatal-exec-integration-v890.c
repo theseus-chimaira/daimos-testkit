@@ -160,10 +160,27 @@ main(int argc, kword_t **argv)
         rejected = spawn_exec(1, 0);
         if (rejected != -1)
                 fail('d');
-        if (dsys_meminfo(&after) != 0 ||
-            after.process_slots_used != before.process_slots_used ||
+        if (dsys_meminfo(&after) != 0)
+                fail('e');
+#if DAIMOS_V1142_PHYSICAL_UAREA
+        /* A genuine pinned child u-area cannot disappear at the return
+         * from RUN. Wait for the scheduler's normal deferred finalizer.
+         * Concurrent EXEC termination may also reduce live usage, so
+         * compare upper bounds rather than requiring a stale equality. */
+        for (i = 0U; i < 64U &&
+             (after.process_slots_used > before.process_slots_used ||
+              after.process_words > before.process_words); ++i) {
+                if (dsys_sleep(010U) != 0 || dsys_meminfo(&after) != 0)
+                        fail('m');
+        }
+        if (after.process_slots_used > before.process_slots_used ||
+            after.process_words > before.process_words)
+                fail('n');
+#else
+        if (after.process_slots_used != before.process_slots_used ||
             after.process_words != before.process_words)
                 fail('e');
+#endif
         if (dsys_wait((unsigned int)apr, &status,
             SYS_WAIT_NOHANG) != -1)
                 fail('f');

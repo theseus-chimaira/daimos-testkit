@@ -27,7 +27,7 @@ def patch(old, new):
 
 # Pin the first unpublished child after REAL VM destruction, so only the
 # subsequent real mm_free fails. All other process owners are untouched.
-patch('proc_discard_vm_done:\n        camn    11,proc_rt_owner',
+patch('proc_discard_vm_done:\n        movei   4,02',
       '''proc_discard_vm_done:
         skipn   daimos_test_target_v893
         jrst    daimos_test_pin_candidate_v893
@@ -47,7 +47,7 @@ daimos_test_pin_success_v893:
         aos     daimos_test_pins_v893
         movem   11,daimos_test_target_v893
 daimos_test_pin_done_v893:
-        camn    11,proc_rt_owner''')
+        movei   4,02''')
 
 # Observe the real allocator. Unpin only before its third attempt:
 # first caller plus two asynchronous slot-zero cleanup attempts.

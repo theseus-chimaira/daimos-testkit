@@ -1380,6 +1380,12 @@ test-daimos-fatal-exec-run-boundary-v1133: check-prefix
 .PHONY: test-daimos-fatal-exec-discard-breaks-v1138
 .PHONY: test-daimos-fatal-exec-release-breaks-v1139
 .PHONY: test-daimos-p10fold-local-section-v1141
+.PHONY: test-daimos-fatal-exec-physical-uarea-v1142
+test-daimos-fatal-exec-physical-uarea-v1142: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-physical-uarea-v1142.sh
+
 test-daimos-p10fold-local-section-v1141: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 P10FOLD="$${P10FOLD:-$(PDP10_PREFIX)/bin/p10fold}" \

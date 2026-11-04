@@ -1,3 +1,35 @@
+## 2026-11-04 v1143: historical RUN rollback controls restored
+
+The v893 256K PDP-6 full guest passes against the current source
+after its test-only injection anchor was moved to the current
+`proc_discard_vm_done` entry. It observes one real pin, two busy MM
+refusals, one unpin, three release calls, two deferred reaper passes,
+and no test errors, with normal parent/bystander progress. The v894
+native standalone fixture now supplies the existing scheduler timer
+word required by `proc_finish_mark_pending_v892`; its staged VM and
+u-area retry assertions PASS. Neither repair changes production code.
+
+## 2026-11-04 v1142: physical unpublished RUN u-area MM_BUSY
+
+The full 256K PDP-6 APR/EXEC/late failed-RUN guest now also includes
+an opt-in, test-only physical u-area fault. The first actual MM free
+of the unpublished slot-3 child is preceded by `mm_pin` on its real
+allocated base and returns MM_BUSY (-5). The original discard code
+retains the slot; the test unpins the same exact base only after
+observing that refusal, allowing the normal deferred finalizer to
+retry the real MM free. No production release or allocator routine
+is replaced with a fake result.
+
+`test-daimos-fatal-exec-physical-uarea-v1142` PASS on two fresh,
+independently built full guests, with identical witnesses: two target
+MM-free calls, one pin, one MM_BUSY, one unpin, no hook errors,
+parent recovery and final EXEC child WAIT/ZOMB; APR fault and FILE
+refusal/retry remain part of the same guest. The parent polls its
+normal process-word/slot accounting until the deferred release
+finishes. This supplies the remaining physical-u-area component of
+D13 but not D14-D16 or the overall OOM activation. Production
+`PROC_OOM_BRK_ENABLED_V1000` stays OFF.
+
 ## 2026-11-04 v1141: cross-object local relocation fold fix
 
 The corrected installed PDP10-TOOLS `p10fold` and `dlink` prevent an

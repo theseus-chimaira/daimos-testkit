@@ -10,6 +10,12 @@ trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 nested=${DAIMOS_V1126_NESTED:-0}
 case "$nested" in 0|1) ;; *) echo 'v1126: invalid nested mode' >&2; exit 2 ;; esac
+physical_uarea=${DAIMOS_V1142_PHYSICAL_UAREA:-0}
+case "$physical_uarea" in 0|1) ;; *) echo 'v1142: invalid u-area fault mode' >&2; exit 2 ;; esac
+if [ "$physical_uarea" = 1 ] && [ "$nested" != 1 ]; then
+    echo 'v1142: physical u-area fault requires nested APR/EXEC/RUN' >&2
+    exit 2
+fi
 diagnostic=${DAIMOS_V1126_DIAG:-0}
 case "$diagnostic" in 0|1) ;; *) echo 'v1126: invalid diagnostic mode' >&2; exit 2 ;; esac
 dual_timer=${DAIMOS_V1127_DUAL_TIMER:-0}
@@ -88,7 +94,7 @@ mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" "$stage_probe" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" <<'PY'
+python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" "$stage_probe" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$physical_uarea" <<'PY'
 from pathlib import Path
 import sys
 
@@ -101,6 +107,7 @@ discard_probe = sys.argv[6] == '1'
 layout_probe = sys.argv[7] == '1'
 run_probe = sys.argv[8] == '1'
 text_pad = sys.argv[9] == '1'
+physical_uarea = sys.argv[10] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -610,6 +617,66 @@ if text_pad:
          '        .word   0\n' * 0o43 +
          'proc_run_claimed_bad:\n'), 1))
 
+if physical_uarea:
+    # Pin the actual allocated u-area for the *late* unpublished child,
+    # never a synthetic descriptor. The first real mm_free must return
+    # MM_ERR_BUSY; the original discard code must defer the slot. Drop
+    # the physical pin only after observing that refusal, so the usual
+    # slot-zero finalizer performs the second successful MM release.
+    patch('mm/mm_pdp6.s',
+          'mm_free:\n        move    5,1',
+          '''mm_free:
+        caie    2,3                 ; kernel-dynamic u-area
+        jrst    daimos_mm_original_v1142
+        caie    3,01003             ; exact unpublished slot 3 owner
+        jrst    daimos_mm_original_v1142
+        skipn   daimos_test_late_run_v1126
+        jrst    daimos_mm_original_v1142
+        aos     daimos_mm_calls_v1142
+        move    0,daimos_mm_calls_v1142
+        caie    0,1
+        jrst    daimos_mm_original_v1142
+        push    17,1
+        push    17,2
+        push    17,3
+        movem   1,daimos_mm_base_v1142
+        pushj   17,mm_pin
+        jumpe   1,daimos_mm_pin_good_v1142
+        aos     daimos_mm_errors_v1142
+        jrst    daimos_mm_pin_restore_v1142
+daimos_mm_pin_good_v1142:
+        aos     daimos_mm_pins_v1142
+daimos_mm_pin_restore_v1142:
+        pop     17,3
+        pop     17,2
+        pop     17,1
+daimos_mm_original_v1142:
+        move    5,1''')
+    patch('proc/proc_pdp6.s',
+          '''proc_discard_defer_uarea_v892:
+        ; The u-area still belongs''',
+          '''proc_discard_defer_uarea_v892:
+        caie    11,3
+        jrst    daimos_discard_original_v1142
+        came    1,[-5]              ; verify real MM_ERR_BUSY
+        jrst    daimos_discard_wrong_v1142
+        aos     daimos_mm_busy_v1142
+        move    1,daimos_mm_base_v1142
+        pushj   17,mm_unpin
+        jumpn   1,daimos_discard_wrong_v1142
+        aos     daimos_mm_unpins_v1142
+        jrst    daimos_discard_original_v1142
+daimos_discard_wrong_v1142:
+        aos     daimos_mm_errors_v1142
+daimos_discard_original_v1142:
+        ; The u-area still belongs''')
+    p = root / 'mm/mm_pdp6.s'
+    labels = ('calls', 'base', 'pins', 'busy', 'unpins', 'errors')
+    p.write_text(p.read_text() + '\n        .bss\n' +
+                 ''.join('        .globl daimos_mm_%s_v1142\n'
+                         'daimos_mm_%s_v1142: .block 1\n' % (n, n)
+                         for n in labels))
+
 stats = [
     'owner', 'staged', 'commits', 'vm_destroy', 'load_fail',
     'vfs_fd0', 'vfs_calls', 'vfs_rejects',
@@ -634,6 +701,7 @@ for d in boot core drivers fs ipc mm modules proc storage; do
 done
 # shellcheck disable=SC2086
 "$cc" -std=c89 -Os -DDAIMOS_V1126_NESTED="$nested" \
+    -DDAIMOS_V1142_PHYSICAL_UAREA="$physical_uarea" \
     $inc -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-fatal-exec-integration-v890.c" -o "$work/user/init.s"
 "$das" -C -F -O "$work/user/init.dobj" "$work/user/init.s"
@@ -711,6 +779,14 @@ if [ "$run_probe" = 1 ]; then
         addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
         test -n "$addr" || { echo "v1133: no $sym" >&2; exit 1; }
         printf '%s %s\n' "runprobe_$name" "$addr" >> "$work/addresses"
+    done
+fi
+if [ "$physical_uarea" = 1 ]; then
+    for name in calls base pins busy unpins errors; do
+        sym="daimos_mm_${name}_v1142"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1142: no $sym" >&2; exit 1; }
+        printf '%s %s\n' "physical_$name" "$addr" >> "$work/addresses"
     done
 fi
 if [ "$return_snapshot" = 1 ]; then
@@ -876,7 +952,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v890: SIMH failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$return_snapshot" "$break_trace" "$sequential_trace" "${claimed:-}" "${return_pc:-}" "$discard_breaks" "$work/trace-labels-v1138" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$return_snapshot" "$break_trace" "$sequential_trace" "${claimed:-}" "${return_pc:-}" "$discard_breaks" "$work/trace-labels-v1138" "$physical_uarea" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -892,6 +968,7 @@ return_snapshot = sys.argv[9] == '1'
 break_trace = sys.argv[10] == '1'
 sequential_trace = sys.argv[11] == '1'
 discard_breaks = sys.argv[14] == '1'
+physical_uarea = sys.argv[16] == '1'
 counts = {}
 for line in names:
     name, address = line.split()
@@ -903,6 +980,21 @@ for line in names:
                          ': ' + output[-1600:])
     counts[name] = int(matches[-1], 8)
 print('v890 real EXEC post-VM/FILE fault counters:', counts)
+if physical_uarea:
+    observed = {n: counts['physical_' + n] for n in
+                ('calls', 'base', 'pins', 'busy', 'unpins', 'errors')}
+    print('v1142: real unpublished RUN u-area MM counters:', observed)
+    if (observed['calls'] != 2 or observed['base'] == 0 or
+        observed['pins'] != 1 or observed['busy'] != 1 or
+        observed['unpins'] != 1 or observed['errors'] != 0 or
+        counts['late_run'] != 1 or counts['run_error'] != 0 or
+        counts['finish_zombie'] != 1 or counts['error'] != 0 or
+        '<EARH' not in output or 'UUO 000000000014' in output or
+        'HALT' not in output):
+        raise SystemExit('v1142: real-MM_BUSY nested rollback failed')
+    print('v1142: actual MM pin/BUSY/unpin/deferred RUN discard, '
+          'parent return and EXEC WAIT PASS; D13 subcase only')
+    raise SystemExit(0)
 if break_trace:
     captures = [line for line in output.splitlines() if line.startswith('PC:')]
     print('v1136: simulator breakpoint PC captures: ' + repr(captures))
