@@ -1360,6 +1360,12 @@ test-daimos-oom-failed-run-enabled-v1112: check-prefix
 	 sh tests/validation/daimos-oom-failed-run-v1112.sh
 
 .PHONY: test-daimos-mm-exhaustion-class-v1111
+.PHONY: test-daimos-oom-brk-real-mm-v1113
+test-daimos-oom-brk-real-mm-v1113: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-brk-real-mm-v1113.sh
+
 test-daimos-mm-exhaustion-class-v1111: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

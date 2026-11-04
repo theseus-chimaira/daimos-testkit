@@ -1,3 +1,27 @@
+## 2026-11-04 v1113: MM failure causes through actual VM BRK and syscall
+
+The native PDP-6 `daimos-oom-brk-real-mm-v1113` regression combines
+unchanged production `mm_find_fit`, `mm_extent_insert`,
+`mm_alloc_aligned_noreclaim`, `mm_alloc_aligned`, `mm_compact`,
+`vm_space_brk_current`, and OOM-enabled `native_sys_brk`. Its physical
+arena includes an actual current process extent, neighboring extents,
+and disjoint gaps. The current image cannot grow in place; the VM
+fallback enters actual MM allocation. In the fragmented case no gap
+fits the requested 04000-word image although 06000 words are free:
+the allocator returns -2 through VM and syscall. In the descriptor
+case a fitting gap exists but both descriptor slots are occupied:
+the allocator returns -3 through the same path. Both preserve the
+exact original process VM, logical BRK and MM count, with no fatal
+requester selected. Three unsafe source mutations (lost VM cause,
+collapsed fragmented cause, collapsed descriptor cause) are rejected.
+
+This is a source-linked native PDP-6 test, not a full-system boot.
+The native harness provides no-progress FS/swap reclamation, a
+refused MM move, and a fatal-call witness. These are test-only stubs,
+not new production behavior. Real booted resource-pressure BRK/RUN
+and PID/WAIT acceptance remain open under P0-F; production OOM stays
+disabled and KCore/MRES occupy no additional words.
+
 ## 2026-11-04 v1112: failed RUN remains nonfatal in booted OOM matrix
 
 The optional v1112 extension of the real 256K PDP-6 v1075 guest
