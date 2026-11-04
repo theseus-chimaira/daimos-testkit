@@ -170,7 +170,8 @@ daimos_test_swap_success_v1107:
         hrrz    5,4
         jumpn   5,daimos_test_swap_arm_v1107
 daimos_test_swap_record_bad_v1107:
-        aos     daimos_test_swap_errors_v1107
+        movei   7,1                   ; missing record/block count
+        iorm    7,daimos_test_swap_errors_v1107
 daimos_test_swap_arm_v1107:
         setom   daimos_test_swap_armed_v1107
         jrst    daimos_test_deliver_v907''')
@@ -355,7 +356,8 @@ new = '''backstore_verify_allocated_v795:
         lsh     6,0(5)
         tdne    6,(4)                  ; skip live branch if bit is clear
         jrst    daimos_test_swap_bit_live_v1107
-        aos     daimos_test_swap_errors_v1107
+        movei   7,2                   ; unexpectedly clear allocation bit
+        iorm    7,daimos_test_swap_errors_v1107
 daimos_test_swap_bit_live_v1107:
         movem   4,daimos_test_swap_bitmap_addr_v1107
         move    7,(4)
@@ -371,11 +373,21 @@ daimos_test_swap_restore_v1107:
         ; original DISK record or reduced its block accounting.
         move    4,proc_swap_records
         move    4,4(4)
-        camn    4,daimos_test_swap_record_v1107
-        aos     daimos_test_swap_errors_v1107
+        came    4,daimos_test_swap_record_v1107
+        jrst    daimos_test_swap_record_bad_retry_v1107
+        jrst    daimos_test_swap_record_ok_v1107
+daimos_test_swap_record_bad_retry_v1107:
+        movei   7,4                   ; record changed across refusal
+        iorm    7,daimos_test_swap_errors_v1107
+daimos_test_swap_record_ok_v1107:
         move    4,proc_swap_blocks_used
         camg    4,daimos_test_swap_before_v1107
-        aos     daimos_test_swap_errors_v1107
+        jrst    daimos_test_swap_blocks_bad_v1107
+        jrst    daimos_test_swap_blocks_ok_v1107
+daimos_test_swap_blocks_bad_v1107:
+        movei   7,010                 ; accounted blocks not retained
+        iorm    7,daimos_test_swap_errors_v1107
+daimos_test_swap_blocks_ok_v1107:
         move    4,daimos_test_swap_bitmap_addr_v1107
         move    5,daimos_test_swap_bitmap_saved_v1107
         movem   5,(4)
