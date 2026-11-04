@@ -1,3 +1,84 @@
+## 2026-11-04 v1130-v1133: D13 RUN rollback boundary isolation
+
+The v1129 production VM_NONE fix is independently boot-verified by the
+original v890 EXEC/FILE/WAIT guest. Its unrelated native VM sentinel
+mutation test also PASSes. D13's combined APR+postcommit EXEC+late
+unpublished RUN is still OPEN; its fresh, uninstrumented v1126 guest
+reaches `<EA`, triggers the same simulator UUO word
+`340000774047`, and never writes the parent's R or publishes a
+terminal EXEC-child ZOMB. The first original v1126 guest reaches
+the real RUN fdmap rejection (`late_run=1`), but a success result is
+not implied by that entry count.
+
+Two independently rebuilt full 256K PDP-6 RUN rollback controls
+PASS: unchanged v197 under inherited groups, and new testkit v1130
+under NEW groups. Both reject 16 real post-VM child RUN fd maps under
+three live children, preserve slots/words, and later RUN/WAIT cleanly.
+NEW process groups alone therefore do not reproduce the D13 fault.
+
+Three test-only v1126 diagnostic variants give distinct outcomes:
+
+- v1131: 13 guarded entry/return counters on the real RUN rollback
+  path: `rollback_slot/new/live/vm_retry/vm_done/uarea_retry/ok/return`
+  and `rollback_claimed/run_return` all equal 1; refusal/defer/fail
+  counters are zero; the EXEC owner reaches ZOMB=1 and parent prints
+  `<EARH`. This instrumented success is **not** D13 acceptance.
+- v1132: only 13 unused BSS words in the disposable kernel, no new
+  executable instructions, still gives `<EA`, the same UUO word and
+  ZOMB=0. The selected BSS padding alone does not change behavior.
+- v1133: just two counters at production `proc_run_claimed_bad` and
+  `proc_run_return`: claimed=1 and returned=2, the latter including
+  one earlier successful APR-child RUN. It still gives `<EA`, the
+  same UUO and ZOMB=0. Reaching the return label does **not** prove
+  successful return through `native_sys_mapped_return` into user code.
+
+The code-layout/execution sensitivity warrants additional isolation
+of the syscall mapped-user-release boundary and saved parent state.
+Do not add production padding or speculative workarounds. The
+historical original v890 guest remains passing, but this is not a
+signoff on mixed D13 lifecycle, nor on physical MM_BUSY unpublished
+RUN rollback. No v1130-v1133 production source, KCORE, MRES or ABI
+change; requester OOM remains OFF, P0-D13 and E/F activation OPEN.
+
+## 2026-11-04 v1129: exact VM_NONE idempotence and booted v890 repair
+
+A disposable stage-level v1128 PDP-6 probe isolated the previously
+failing v890 post-commit EXEC owner: its normal VFS FILE close had
+succeeded after two refusals, yet the real VM destructor returned -1
+once, with zero TTY failures, VM successes, u-area deferrals or
+ZOMB publications. Source inspection identified the production bug:
+`vm_space_destroy` interpreted the full-word `VM_SPACE_NONE` (-1)
+as a nonzero 18-bit physical base and entered inappropriate XIP/MM
+release. The old VM was already destroyed by the EXEC loader.
+
+Production `vm_pdp6.s` now distinguishes the *full-word* VM_NONE
+sentinel after storage-mode verification, then continues through
+the real swap-backing detach without freeing a nonexistent MM/XIP
+extent. The fix has no persistent data/RAM or ABI addition, just two
+instructions in the resident VM destructor. The new source-linked
+native PDP-6 `daimos-vm-none-idempotent-v1129.sh` PASSes two calls
+with no MM/XIP free, two ordinary backing detach calls, retained
+VM_NONE and rejection of invalid storage mode. The unsafe inverted
+sentinel and skipped backing-detach mutants both fail as required.
+The existing real-XIP VM release v1109 and swap-detach v880 native
+regressions also independently PASS. New Make target and source-
+linked P0-D release matrix row are present.
+
+Most importantly, an independently rebuilt, **unmodified historical
+v890 full PDP-6 boot guest** now PASSes: EXEC post-commit failure,
+two genuine injected VFS FILE refusals, one eventual success, exact
+descriptor/witness release, one exit and final parent WAIT. This
+same original guest had previously timed out at both 65 and 180
+seconds before the VM fix; the v1129 correction repairs that real
+baseline failure rather than merely increasing a simulator limit.
+
+The expanded v1126 nested APR/EXEC/unpublished RUN combined test
+remains OPEN despite that repair: the new full guest reached `<EA`
+and subsequently failed with a simulator UUO before the late RUN
+marker, so its finalizer trace cannot establish exact terminal WAIT.
+No D13 checkbox is changed. OOM remains OFF in production. Full
+`P0D_FULL=1` and final enabled/disabled OOM matrices are not claimed.
+
 ## 2026-11-04 v1126: D13 integrated APR/EXEC/RUN reproducer (OPEN)
 
 **v1126r1 exact-v890 baseline check:** In a clean TMPDIR fixture,

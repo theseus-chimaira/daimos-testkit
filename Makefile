@@ -1349,6 +1349,30 @@ test-daimos-oom-requester-disabled-v1075: check-prefix
 .PHONY: test-daimos-oom-brk-negatives-v1110
 .PHONY: test-daimos-oom-pid-reuse-v1120
 .PHONY: test-daimos-vm-none-idempotent-v1129
+.PHONY: test-daimos-run-pgrp-new-v1130
+test-daimos-run-pgrp-new-v1130: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-run-pgrp-new-v1130.sh
+
+.PHONY: test-daimos-fatal-exec-discard-diag-v1131
+test-daimos-fatal-exec-discard-diag-v1131: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-discard-diag-v1131.sh
+
+.PHONY: test-daimos-fatal-exec-layout-diag-v1132
+test-daimos-fatal-exec-layout-diag-v1132: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-layout-diag-v1132.sh
+
+.PHONY: test-daimos-fatal-exec-run-boundary-v1133
+test-daimos-fatal-exec-run-boundary-v1133: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-run-boundary-v1133.sh
+
 test-daimos-vm-none-idempotent-v1129: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

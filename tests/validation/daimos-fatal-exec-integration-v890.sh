@@ -14,6 +14,31 @@ diagnostic=${DAIMOS_V1126_DIAG:-0}
 case "$diagnostic" in 0|1) ;; *) echo 'v1126: invalid diagnostic mode' >&2; exit 2 ;; esac
 dual_timer=${DAIMOS_V1127_DUAL_TIMER:-0}
 case "$dual_timer" in 0|1) ;; *) echo 'v1127: invalid timer diagnostic' >&2; exit 2 ;; esac
+stage_probe=${DAIMOS_V1128_STAGE:-0}
+case "$stage_probe" in 0|1) ;; *) echo 'v1128: invalid finalizer diagnostic' >&2; exit 2 ;; esac
+discard_probe=${DAIMOS_V1131_DISCARD_TRACE:-0}
+case "$discard_probe" in 0|1) ;; *) echo 'v1131: invalid discard diagnostic' >&2; exit 2 ;; esac
+layout_probe=${DAIMOS_V1132_LAYOUT_ONLY:-0}
+case "$layout_probe" in 0|1) ;; *) echo 'v1132: invalid layout diagnostic' >&2; exit 2 ;; esac
+run_probe=${DAIMOS_V1133_RUN_ONLY:-0}
+case "$run_probe" in 0|1) ;; *) echo 'v1133: invalid RUN-only diagnostic' >&2; exit 2 ;; esac
+if [ "$run_probe" = 1 ] && { [ "$nested" != 1 ] ||
+    [ "$discard_probe" = 1 ] || [ "$layout_probe" = 1 ]; }; then
+    echo 'v1133: RUN-only probe requires otherwise uninstrumented nested guest' >&2
+    exit 2
+fi
+if [ "$layout_probe" = 1 ] && { [ "$nested" != 1 ] || [ "$discard_probe" = 1 ]; }; then
+    echo 'v1132: layout mode requires uninstrumented nested guest' >&2
+    exit 2
+fi
+if [ "$discard_probe" = 1 ] && [ "$nested" != 1 ]; then
+    echo 'v1131: discard probe requires nested APR/EXEC/RUN guest' >&2
+    exit 2
+fi
+if [ "$stage_probe" = 1 ] && [ "$dual_timer" != 1 ]; then
+    echo 'v1128: finalizer probe requires dual timer diagnostic' >&2
+    exit 2
+fi
 if [ "$dual_timer" = 1 ] && [ "$diagnostic" != 1 ]; then
     echo 'v1127: dual timer samples require diagnostic mode' >&2
     exit 2
@@ -22,7 +47,7 @@ mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" <<'PY'
+python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" "$stage_probe" "$discard_probe" "$layout_probe" "$run_probe" <<'PY'
 from pathlib import Path
 import sys
 
@@ -30,6 +55,10 @@ root = Path(sys.argv[1])
 nested = sys.argv[2] == '1'
 diagnostic = sys.argv[3] == '1'
 dual_timer = sys.argv[4] == '1'
+stage_probe = sys.argv[5] == '1'
+discard_probe = sys.argv[6] == '1'
+layout_probe = sys.argv[7] == '1'
+run_probe = sys.argv[8] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -393,6 +422,134 @@ daimos_test_child_vm_v1127: .block 1
         .globl daimos_test_child_sched_v1127
 daimos_test_child_sched_v1127: .block 1
 ''')
+    if stage_probe:
+        # Distinguish actual TTY, VM and post-VM release refusal paths.
+        # AC10 is the retained owner slot; all counters are test-only.
+        patch('proc/proc_pdp6.s',
+              '''        pushj   17,proc_tty_release_session
+        jumpn   1,proc_finish_prevm_fail_v1081''',
+              '''        pushj   17,proc_tty_release_session
+        jumpe   1,daimos_test_tty_ok_v1128
+        caie    10,2
+        jrst    daimos_test_tty_ok_v1128
+        aos     daimos_test_tty_fail_v1128
+        movem   1,daimos_test_tty_error_v1128
+daimos_test_tty_ok_v1128:
+        jumpn   1,proc_finish_prevm_fail_v1081''')
+        patch('proc/proc_pdp6.s',
+              '''        pushj   17,vm_space_destroy
+        jumpe   1,proc_finish_vm_done''',
+              '''        pushj   17,vm_space_destroy
+        jumpe   1,proc_finish_vm_done
+        caie    10,2
+        jrst    proc_finish_prevm_fail_v1081
+        aos     daimos_test_vm_fail_v1128
+        movem   1,daimos_test_vm_error_v1128
+        jrst    proc_finish_prevm_fail_v1081''')
+        patch('proc/proc_pdp6.s',
+              '''proc_finish_vm_done:
+        ; Clear the PREVM stage''',
+              '''proc_finish_vm_done:
+        caie    10,2
+        jrst    daimos_test_vm_done_other_v1128
+        aos     daimos_test_vm_done_v1128
+daimos_test_vm_done_other_v1128:
+        ; Clear the PREVM stage''')
+        patch('proc/proc_pdp6.s',
+              '''proc_finish_defer_uarea_v881:
+        ; VM has been destroyed.''',
+              '''proc_finish_defer_uarea_v881:
+        caie    10,2
+        jrst    daimos_test_defer_other_v1128
+        aos     daimos_test_defer_v1128
+        movem   1,daimos_test_defer_error_v1128
+daimos_test_defer_other_v1128:
+        ; VM has been destroyed.''')
+        patch('proc/proc_pdp6.s',
+              '''proc_finish_zombie:
+        move    1,14''',
+              '''proc_finish_zombie:
+        caie    10,2
+        jrst    daimos_test_zombie_other_v1128
+        aos     daimos_test_zombie_v1128
+daimos_test_zombie_other_v1128:
+        move    1,14''')
+        p = root / 'proc/proc_pdp6.s'
+        labels = ('tty_fail', 'tty_error', 'vm_fail', 'vm_error',
+                  'vm_done', 'defer', 'defer_error', 'zombie')
+        p.write_text(p.read_text() + '\n        .bss\n' +
+                     ''.join('        .globl daimos_test_%s_v1128\n'
+                             'daimos_test_%s_v1128: .block 1\n' % (n,n)
+                             for n in labels))
+
+if discard_probe:
+    # Trace the *real* RUN rollback, not a stubbed allocator/free. Only
+    # record after the late fd-map rejection has armed its owner marker.
+    # These probes alter no registers and never modify a release result.
+    proc_labels = (
+        ('slot', 'proc_slot_discard'),
+        ('new', 'proc_discard_new_v892'),
+        ('live', 'proc_discard_live'),
+        ('vm_retry', 'proc_discard_vm_retry_v894'),
+        ('prevm_fail', 'proc_discard_prevm_fail_v1085'),
+        ('vm_done', 'proc_discard_vm_done'),
+        ('uarea_retry', 'proc_discard_retry_uarea_v892'),
+        ('uarea_defer', 'proc_discard_defer_uarea_v892'),
+        ('ok', 'proc_discard_ok'),
+        ('fail', 'proc_discard_fail'),
+        ('return', 'proc_discard_return'),
+    )
+    run_labels = (
+        ('claimed', 'proc_run_claimed_bad'),
+        ('run_return', 'proc_run_return'),
+    )
+    for rel, labels in (('proc/proc_pdp6.s', proc_labels),
+                        ('proc/proc_run.s', run_labels)):
+        for name, label in labels:
+            symbol = 'daimos_test_%s_v1131' % name
+            skip = 'daimos_test_skip_%s_v1131' % name
+            patch(rel, label + ':\n',
+                  label + ':\n'
+                  '        skipn   daimos_test_late_run_v1126\n'
+                  '        jrst    %s\n'
+                  '        aos     %s\n'
+                  '%s:\n' % (skip, symbol, skip))
+        p = root / rel
+        p.write_text(p.read_text() + '\n        .bss\n' +
+                     ''.join('        .globl daimos_test_%s_v1131\n'
+                             'daimos_test_%s_v1131: .block 1\n' % (name,name)
+                             for name, _ in labels))
+
+if layout_probe:
+    # Deliberately unused, test-only memory layout perturbation.
+    # No new instruction, MM operation or successful error return.
+    for rel, amount, name in (
+        ('proc/proc_pdp6.s', 11, 'proc'),
+        ('proc/proc_run.s', 2, 'run'),
+    ):
+        p = root / rel
+        p.write_text(p.read_text() +
+                     '\n        .bss\n'
+                     '        .globl daimos_test_pad_%s_v1132\n'
+                     'daimos_test_pad_%s_v1132: .block %d\n' %
+                     (name, name, amount))
+
+if run_probe:
+    # Minimal witness on the two unchanged production RUN boundaries.
+    # No allocator or rollback state is fabricated, no code padding.
+    p = root / 'proc/proc_run.s'
+    for name, label in (('claimed', 'proc_run_claimed_bad'),
+                        ('returned', 'proc_run_return')):
+        anchor = label + ':\n'
+        assert p.read_text().count(anchor) == 1, label
+        p.write_text(p.read_text().replace(
+            anchor, anchor +
+            '        aos     daimos_test_run_%s_v1133\n' % name, 1))
+    p.write_text(p.read_text() + '\n        .bss\n'
+                 '        .globl daimos_test_run_claimed_v1133\n'
+                 'daimos_test_run_claimed_v1133: .block 1\n'
+                 '        .globl daimos_test_run_returned_v1133\n'
+                 'daimos_test_run_returned_v1133: .block 1\n')
 
 stats = [
     'owner', 'staged', 'commits', 'vm_destroy', 'load_fail',
@@ -471,6 +628,32 @@ if [ "$dual_timer" = 1 ]; then
         printf '%s %s\n' "dual_$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$stage_probe" = 1 ]; then
+    for name in tty_fail tty_error vm_fail vm_error vm_done \
+                defer defer_error zombie; do
+        sym="daimos_test_${name}_v1128"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1128: no $sym" >&2; exit 1; }
+        printf '%s %s\n' "stage_$name" "$addr" >> "$work/addresses"
+    done
+fi
+if [ "$discard_probe" = 1 ]; then
+    for name in slot new live vm_retry prevm_fail vm_done \
+                uarea_retry uarea_defer ok fail return claimed run_return; do
+        sym="daimos_test_${name}_v1131"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1131: no $sym" >&2; exit 1; }
+        printf '%s %s\n' "rollback_$name" "$addr" >> "$work/addresses"
+    done
+fi
+if [ "$run_probe" = 1 ]; then
+    for name in claimed returned; do
+        sym="daimos_test_run_${name}_v1133"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1133: no $sym" >&2; exit 1; }
+        printf '%s %s\n' "runprobe_$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
@@ -493,7 +676,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v890: SIMH failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" "$discard_probe" "$layout_probe" "$run_probe" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -501,6 +684,9 @@ names = Path(sys.argv[1]).read_text().splitlines()
 output = Path(sys.argv[2]).read_text(errors='replace')
 nested = sys.argv[3] == '1'
 diagnostic = sys.argv[4] == '1'
+discard_probe = sys.argv[5] == '1'
+layout_probe = sys.argv[6] == '1'
+run_probe = sys.argv[7] == '1'
 counts = {}
 for line in names:
     name, address = line.split()
@@ -512,6 +698,40 @@ for line in names:
                          ': ' + output[-1600:])
     counts[name] = int(matches[-1], 8)
 print('v890 real EXEC post-VM/FILE fault counters:', counts)
+if run_probe:
+    if 'HALT' not in output or counts['late_run'] != 1:
+        raise SystemExit('v1133: no late RUN boundary: ' + str(counts))
+    print('v1133: RUN-only boundary: claimed=%d returned=%d markers=%s' %
+          (counts['runprobe_claimed'], counts['runprobe_returned'],
+           '<EARH' if '<EARH' in output else '<EA/no-complete-RUN'))
+    print('v1133: diagnostic only; D13 NOT ACCEPTED')
+    raise SystemExit(0)
+if layout_probe:
+    if 'HALT' not in output or '<EA' not in output or \
+       counts['late_run'] != 1:
+        raise SystemExit('v1132: incomplete layout-only trace: '+str(counts))
+    print('v1132: layout-only guest markers: ' +
+          ('<EARH' if '<EARH' in output else '<EA/no-complete-RUN'))
+    print('v1132: BSS-only diagnostic snapshot; D13 NOT ACCEPTED')
+    raise SystemExit(0)
+if discard_probe:
+    if 'HALT' not in output or '<EA' not in output or \
+       counts['late_run'] != 1 or counts['rollback_slot'] != 1:
+        raise SystemExit('v1131: incomplete rollback trace: ' + str(counts))
+    expected = dict(rollback_slot=1, rollback_new=1,
+                    rollback_live=1, rollback_vm_retry=1,
+                    rollback_prevm_fail=0, rollback_vm_done=1,
+                    rollback_uarea_retry=1, rollback_uarea_defer=0,
+                    rollback_ok=1, rollback_fail=0,
+                    rollback_return=1, rollback_claimed=1,
+                    rollback_run_return=1, finish_zombie=1)
+    for name, value in expected.items():
+        if counts[name] != value:
+            raise SystemExit('v1131: %s=%s expected=%s; snapshot=%s' %
+                             (name, counts[name], value, counts))
+    print('v1131: traced rollback and zombie exactly once; '
+          'instrumented guest only, D13 NOT ACCEPTED')
+    raise SystemExit(0)
 if diagnostic:
     if 'HALT' not in output or '<E' not in output:
         raise SystemExit('v1126: diagnostic did not reach EXEC owner')
