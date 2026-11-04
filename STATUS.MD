@@ -17,6 +17,12 @@ zero observed errors. Slot 3's separate spinner advances around the
 delayed APR fault and the parent reaches a clean HALT. Other counts:
 one APR fault, one MM descriptor owner poisoning, six reaper visits,
 seven MM invalid owner returns, zero busy/pins or test errors.
+At HALT, a separate descriptor observation confirms that slot 2
+still has its transition/u-area ownership flags and its saved
+u-area base equals the originally faulted physical MM target.
+The parent also observes NOHANG for the live provider owner and
+spinner. These checks exclude silent slot recycling or premature
+retirement of a different process.
 
 The initial run had correct MM/provider counters but failed its
 historical transcript order assertion because the new F child waits
@@ -27,8 +33,8 @@ v1101 wrong-owner full guest was also independently rebuilt and
 rebooted: PASS with seven real -4 refusals, six reaper visits and no
 early WAIT. The entire source-linked v1096 P0-D matrix PASSes. v1125
 is included in `P0D_FULL=1`, not yet rerun as a whole. D12 CLOSED;
-34/65 mandatory checked,
-31 open (29 pre-activation). D13-D16 and P0-E/F remain OPEN and
+34/65 mandatory checked, 31 open (29 pre-activation).
+D13-D16 and P0-E/F remain OPEN and
 production requester OOM remains OFF; no persistent KCORE/MRES/ABI
 or memory increase.
 
