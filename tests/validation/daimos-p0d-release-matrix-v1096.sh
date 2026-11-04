@@ -18,6 +18,7 @@ for name in \
     daimos-uarea-typed-release-v1097 \
     daimos-prevm-retry-clock-v1098 \
     daimos-reaper-backoff-v1102 \
+    daimos-reaper-sidl-runq-v1107 \
     daimos-tty-prevm-finalize-v1081 \
     daimos-discard-tty-prevm-v1085 \
     daimos-tty-mm-error-stage-v1093 \
@@ -42,6 +43,8 @@ if [ "${P0D_FULL:-0}" = 1 ]; then
     sh "$self/daimos-session-hup-dpy-mm-v1105.sh"
     echo 'v1106: booted real process-VM MM_BUSY plus FILE, uarea and FS lease'
     sh "$self/daimos-oom-physical-vm-v1106.sh"
+    echo 'v1107: booted real DISK swap bitmap rejection and deferred release'
+    sh "$self/daimos-session-hup-swap-v1107.sh"
     echo 'v1096: booted real OOM with D6FS SYNC and MM_BUSY refusals'
     sh "$self/daimos-oom-requester-provider-mm-v1077.sh"
     echo 'v1101: booted permanent MM wrong-owner quarantine and bystander'

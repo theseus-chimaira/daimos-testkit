@@ -8,11 +8,14 @@ mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 pipe_hup=${DAIMOS_V1104_PIPE_HUP:-0}
 dpy_hup=${DAIMOS_V1105_DPY_HUP:-0}
-case "$pipe_hup:$dpy_hup" in
-    0:0|1:0|0:1) ;;
+swap_hup=${DAIMOS_V1107_SWAP_HUP:-0}
+case "$pipe_hup:$dpy_hup:$swap_hup" in
+    0:0:0|1:0:0|0:1:0|0:0:1) ;;
     *) echo 'v1105: select only one physical HUP provider' >&2; exit 2 ;;
 esac
-if [ "$dpy_hup" = 1 ]; then
+if [ "$swap_hup" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-session-hup-swap-v1107.XXXXXX")
+elif [ "$dpy_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-dpy-mm-v1105.XXXXXX")
 elif [ "$pipe_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-pipe-mm-v1104.XXXXXX")
@@ -25,7 +28,7 @@ cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
 python3 - "$work/source/system/kernel/proc/proc_pdp6.s" \
-    "${DAIMOS_V907_NEGATIVE:-0}" "$pipe_hup" "$dpy_hup" <<'PY'
+    "${DAIMOS_V907_NEGATIVE:-0}" "$pipe_hup" "$dpy_hup" "$swap_hup" <<'PY'
 from pathlib import Path
 import sys
 path=Path(sys.argv[1]); source=path.read_text()
@@ -36,9 +39,9 @@ def patch(old,new):
     source=source.replace(old,new)
 # The first child to receive HUP is really pinned in the kernel MM table.
 # The second child first rejects HUP (synthetic v907, physical PIPE MM
-# refusal v1104, or physical DPY MM refusal v1105). Retry must skip
-# the finalized first child and deliver
-# only the previously refused member HUP.
+# refusal v1104, physical DPY MM refusal v1105, or disk-swap verifier
+# refusal v1107). For v1107, slot 0 finishes the PREVM owner before
+# leader retry, so no second delivery is expected for that child.
 patch('''        move    1,011
         movei   2,2                    ; default-fatal HUP
         pushj   17,proc_event_apply
@@ -132,6 +135,108 @@ if sys.argv[4] == '1':
         aos     daimos_test_failures_v907
         setom   daimos_test_dpy_armed_v1105
         jrst    daimos_test_deliver_v907''')
+if sys.argv[5] == '1':
+    # The real second session member becomes nonresident through the
+    # production swap-out transaction. Its DISK state and live bitmap
+    # record are not synthesized. Only after success is the first HUP
+    # allowed to enter the real checked swap-detach path.
+    patch('''daimos_test_fail_second_v907:
+        aos     daimos_test_failures_v907
+        jrst    proc_session_teardown_fail''',
+          '''daimos_test_fail_second_v907:
+        aos     daimos_test_failures_v907
+        move    4,proc_swap_blocks_used
+        movem   4,daimos_test_swap_before_v1107
+        setom   daimos_test_swap_select_v1107
+        push    17,011
+        movei   1,1                   ; one free word, valid alignment
+        movei   2,1
+        movei   3,1                   ; exclude parent INIT
+        pushj   17,proc_swap_reclaim
+        pop     17,011
+        setzm   daimos_test_swap_select_v1107
+        movem   1,daimos_test_swap_result_v1107
+        jumpe   1,daimos_test_swap_success_v1107
+        aos     daimos_test_swap_errors_v1107
+        jrst    proc_session_teardown_fail
+daimos_test_swap_success_v1107:
+        aos     daimos_test_swap_outs_v1107
+        move    4,proc_swap_records
+        move    4,4(4)                ; actual slot-4 disk record
+        movem   4,daimos_test_swap_record_v1107
+        ; BACKSTORE block zero is a valid first allocation. Only the
+        ; block count must be nonzero; the whole packed record must
+        ; remain owned until the checked detach commits.
+        hrrz    5,4
+        jumpn   5,daimos_test_swap_arm_v1107
+daimos_test_swap_record_bad_v1107:
+        aos     daimos_test_swap_errors_v1107
+daimos_test_swap_arm_v1107:
+        setom   daimos_test_swap_armed_v1107
+        jrst    daimos_test_deliver_v907''')
+    patch('''        aos     daimos_test_second_v907
+        jrst    daimos_test_deliver_v907''',
+          '''        aos     daimos_test_second_v907
+        move    4,proc_finish_last_tick_v881
+        movem   4,daimos_test_swap_tick_v1107
+        move    4,proc_table
+        move    4,014(4)               ; slot-4 descriptor
+        movem   4,daimos_test_swap_slot_v1107
+        hlrz    5,4
+        jumpe   5,daimos_test_swap_slot_done_v1107
+        move    5,PROC_FINALIZE_OFFSET(5)
+        movem   5,daimos_test_swap_marker_v1107
+daimos_test_swap_slot_done_v1107:
+        move    4,proc_swap_records
+        move    4,4(4)
+        ; Slot 0 may have completed the PREVM retry before this later
+        ; HUP scan. Ownership before repair is checked inside the
+        ; actual bitmap verifier, not here after possible commit.
+        jrst    daimos_test_deliver_v907''')
+    patch('''proc_session_teardown_commit_v875:
+        skipn   daimos_test_first_v907''',
+          '''proc_session_teardown_commit_v875:
+        move    4,daimos_test_swap_outs_v1107
+        jumpe   4,daimos_test_swap_commit_done_v1107
+        move    4,daimos_test_leader_v907
+        came    4,010
+        jrst    daimos_test_swap_commit_done_v1107
+        ; A session may reach this scan more than once while a member
+        ; is being finalized. Keep the *last* targeted observation.
+        ; The terminal record and block count must both be cleared.
+        move    4,proc_swap_blocks_used
+        movem   4,daimos_test_swap_commit_blocks_v1107
+        ; Prove the exact slot-4 DISK record was retired, not merely
+        ; that the allocator's total returned to its previous value.
+        move    4,proc_swap_records
+        move    4,4(4)
+        movem   4,daimos_test_swap_commit_record_v1107
+        aos     daimos_test_swap_commits_v1107
+daimos_test_swap_commit_done_v1107:
+        skipn   daimos_test_first_v907''')
+    patch('''proc_finish_service_v881:
+        push    17,10''',
+          '''proc_finish_service_v881:
+        aos     daimos_test_swap_reaper_v1107
+        push    17,10''')
+    patch('''proc_finish_mark_pending_v892:
+        move    5,PROC_FINALIZE_OFFSET(3)''',
+          '''proc_finish_mark_pending_v892:
+        aos     daimos_test_swap_mark_v1107
+        move    5,PROC_FINALIZE_OFFSET(3)''')
+    # Use the installed SWAP MRES through the original KCORE gateway.
+    # Force selection of job2 only in this isolated test; proc_swap_out
+    # still enforces actual admission, writes backing and frees VM.
+    patch('''proc_swap_victim:
+        add     17,kconst_7_7''',
+          '''proc_swap_victim:
+        skipn   daimos_test_swap_select_v1107
+        jrst    daimos_test_swap_select_normal_v1107
+        aos     daimos_test_swap_select_calls_v1107
+        movei   1,4
+        popj    17,
+daimos_test_swap_select_normal_v1107:
+        add     17,kconst_7_7''')
 # Negative control restores pre-v905 handling in this isolated image.
 if sys.argv[2]=='1':
     old='''        ; A previous HUP may have committed its fatal exit but deferred
@@ -164,8 +269,161 @@ daimos_test_pending_v907: .block 1
         .globl daimos_test_errors_v907
 daimos_test_errors_v907: .block 1
 '''
+if sys.argv[5] == '1':
+    source += '''
+        .globl proc_swap_reclaim
+        .globl proc_swap_records
+        .globl proc_swap_blocks_used
+        .bss
+        .globl daimos_test_swap_select_v1107
+daimos_test_swap_select_v1107: .block 1
+        .globl daimos_test_swap_armed_v1107
+daimos_test_swap_armed_v1107: .block 1
+        .globl daimos_test_swap_outs_v1107
+daimos_test_swap_outs_v1107: .block 1
+        .globl daimos_test_swap_record_v1107
+daimos_test_swap_record_v1107: .block 1
+        .globl daimos_test_swap_before_v1107
+daimos_test_swap_before_v1107: .block 1
+        .globl daimos_test_swap_commits_v1107
+daimos_test_swap_commits_v1107: .block 1
+        .globl daimos_test_swap_errors_v1107
+daimos_test_swap_errors_v1107: .block 1
+        .globl daimos_test_swap_verify_v1107
+daimos_test_swap_verify_v1107: .block 1
+        .globl daimos_test_swap_bitmap_addr_v1107
+daimos_test_swap_bitmap_addr_v1107: .block 1
+        .globl daimos_test_swap_bitmap_saved_v1107
+daimos_test_swap_bitmap_saved_v1107: .block 1
+        .globl daimos_test_swap_corrupt_v1107
+daimos_test_swap_corrupt_v1107: .block 1
+        .globl daimos_test_swap_restores_v1107
+daimos_test_swap_restores_v1107: .block 1
+        .globl daimos_test_swap_result_v1107
+daimos_test_swap_result_v1107: .block 1
+        .globl daimos_test_swap_select_calls_v1107
+daimos_test_swap_select_calls_v1107: .block 1
+        .globl daimos_test_swap_reaper_v1107
+daimos_test_swap_reaper_v1107: .block 1
+        .globl daimos_test_swap_mark_v1107
+daimos_test_swap_mark_v1107: .block 1
+        .globl daimos_test_swap_tick_v1107
+daimos_test_swap_tick_v1107: .block 1
+        .globl daimos_test_swap_slot_v1107
+daimos_test_swap_slot_v1107: .block 1
+        .globl daimos_test_swap_marker_v1107
+daimos_test_swap_marker_v1107: .block 1
+        .globl daimos_test_swap_free_calls_v1107
+daimos_test_swap_free_calls_v1107: .block 1
+        .globl daimos_test_swap_commit_blocks_v1107
+daimos_test_swap_commit_blocks_v1107: .block 1
+        .globl daimos_test_swap_commit_record_v1107
+daimos_test_swap_commit_record_v1107: .block 1
+'''
 path.write_text(source)
 PY
+if [ "$swap_hup" = 1 ]; then
+    python3 - "$work/source/system/kernel/storage/backstore.s" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+source = path.read_text()
+old = '''backstore_verify_allocated_v795:
+        skipn   backstore_enabled'''
+new = '''backstore_verify_allocated_v795:
+        skipn   daimos_test_swap_armed_v1107
+        jrst    backstore_verify_original_v1107
+        move    4,proc_swap_records
+        move    4,4(4)
+        hlrz    5,4
+        came    1,5
+        jrst    backstore_verify_original_v1107
+        hrrz    5,4
+        came    2,5
+        jrst    backstore_verify_original_v1107
+        aos     daimos_test_swap_verify_v1107
+        move    4,daimos_test_swap_verify_v1107
+        caie    4,1
+        jrst    daimos_test_swap_restore_v1107
+        ; Clear precisely one actually allocated disk-bitmap bit.
+        ; The real verifier will fail; no free or record clear may occur.
+        move    4,1
+        idivi   4,044
+        add     4,backstore_bitmap
+        movei   6,1
+        lsh     6,0(5)
+        tdne    6,(4)                  ; skip live branch if bit is clear
+        jrst    daimos_test_swap_bit_live_v1107
+        aos     daimos_test_swap_errors_v1107
+daimos_test_swap_bit_live_v1107:
+        movem   4,daimos_test_swap_bitmap_addr_v1107
+        move    7,(4)
+        movem   7,daimos_test_swap_bitmap_saved_v1107
+        andcm   7,6
+        movem   7,(4)
+        aos     daimos_test_swap_corrupt_v1107
+        jrst    backstore_verify_original_v1107
+daimos_test_swap_restore_v1107:
+        caie    4,2
+        jrst    backstore_verify_original_v1107
+        ; The first failed verification must not have consumed the
+        ; original DISK record or reduced its block accounting.
+        move    4,proc_swap_records
+        move    4,4(4)
+        camn    4,daimos_test_swap_record_v1107
+        aos     daimos_test_swap_errors_v1107
+        move    4,proc_swap_blocks_used
+        camg    4,daimos_test_swap_before_v1107
+        aos     daimos_test_swap_errors_v1107
+        move    4,daimos_test_swap_bitmap_addr_v1107
+        move    5,daimos_test_swap_bitmap_saved_v1107
+        movem   5,(4)
+        aos     daimos_test_swap_restores_v1107
+backstore_verify_original_v1107:
+        skipn   backstore_enabled'''
+if source.count(old) != 1:
+    raise SystemExit('v1107: unique real bitmap-verifier anchor not found')
+source = source.replace(old, new, 1)
+old_free = '''backstore_free:
+        jumpe   2,backstore_free_return'''
+new_free = '''backstore_free:
+        skipn   daimos_test_swap_armed_v1107
+        jrst    daimos_test_swap_free_original_v1107
+        push    17,4
+        push    17,5
+        move    4,daimos_test_swap_record_v1107
+        hlrz    5,4
+        came    1,5
+        jrst    daimos_test_swap_free_other_v1107
+        hrrz    5,4
+        came    2,5
+        jrst    daimos_test_swap_free_other_v1107
+        aos     daimos_test_swap_free_calls_v1107
+daimos_test_swap_free_other_v1107:
+        pop     17,5
+        pop     17,4
+daimos_test_swap_free_original_v1107:
+        jumpe   2,backstore_free_return'''
+if source.count(old_free) != 1:
+    raise SystemExit('v1107: unique physical backing-free anchor not found')
+source = source.replace(old_free, new_free, 1)
+source = source.replace('''        .text
+''', '''        .text
+        .globl proc_swap_records
+        .globl daimos_test_swap_armed_v1107
+        .globl daimos_test_swap_errors_v1107
+        .globl daimos_test_swap_verify_v1107
+        .globl daimos_test_swap_bitmap_addr_v1107
+        .globl daimos_test_swap_bitmap_saved_v1107
+        .globl daimos_test_swap_corrupt_v1107
+        .globl daimos_test_swap_restores_v1107
+        .globl daimos_test_swap_record_v1107
+        .globl daimos_test_swap_free_calls_v1107
+''', 1)
+path.write_text(source)
+PY
+fi
 if [ "$pipe_hup" = 1 ]; then
     python3 - "$work/source/system/kernel/mm/mm_pdp6.s" <<'PY'
 from pathlib import Path
@@ -408,6 +666,8 @@ if [ "$pipe_hup" = 1 ]; then
     cflags='-DDAIMOS_V1104_PIPE_HUP=1'
 elif [ "$dpy_hup" = 1 ]; then
     cflags='-DDAIMOS_V1105_DPY_HUP=1'
+elif [ "$swap_hup" = 1 ]; then
+    cflags='-DDAIMOS_V1107_SWAP_HUP=1'
 else
     cflags=''
 fi
@@ -453,6 +713,14 @@ if [ "$dpy_hup" = 1 ]; then
         printf 'dpy_%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$swap_hup" = 1 ]; then
+    for name in select armed outs record before commits errors verify bitmap_addr bitmap_saved corrupt restores result select_calls reaper mark tick slot marker free_calls commit_blocks commit_record; do
+        sym="daimos_test_swap_${name}_v1107"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1107: missing $sym" >&2; exit 1; }
+        printf 'swap_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
@@ -470,7 +738,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v907: simulator exited $rc" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$pipe_hup" "$dpy_hup" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$pipe_hup" "$dpy_hup" "$swap_hup" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -483,7 +751,8 @@ for line in Path(sys.argv[1]).read_text().splitlines():
     if not values:
         raise SystemExit('v907: missing sample '+name+'\n'+output[-1500:])
     seen[name]=int(values[-1],8)
-expected=dict(pins=1,unpins=1,failures=1,second=1,
+expected=dict(pins=1,unpins=1,failures=1,
+              second=0 if sys.argv[5] == '1' else 1,
               repeats=0,pending=1,errors=0)
 for name,value in expected.items():
     if seen[name]!=value:
@@ -509,11 +778,35 @@ if sys.argv[4] == '1':
             seen['dpy_after_busy'] < 1:
         raise SystemExit('v1105: DPY raw PI6 replay/owner failed: '+
                          str(seen)+'\n'+output[-1800:])
+if sys.argv[5] == '1':
+    # The slot-0 PREVM reaper finalizes the DISK owner before leader
+    # retry; the next HUP scan correctly skips the terminal member.
+    for name, value in dict(swap_select=0, swap_result=0,
+                            swap_select_calls=1, swap_armed=(1 << 36)-1,
+                            swap_outs=1,swap_free_calls=1,swap_errors=0,
+                            swap_verify=2,swap_corrupt=1,
+                            swap_restores=1).items():
+        if seen[name] != value:
+            raise SystemExit('v1107: '+name+'='+str(seen[name])+
+                             ' expected '+str(value)+'\n'+output[-2300:])
+    if not seen['swap_record'] or not seen['swap_bitmap_addr']:
+        raise SystemExit('v1107: no real disk backing owner')
+    if seen['swap_commits'] < 1 or seen['swap_reaper'] < 1 or \
+            seen['swap_mark'] < 1:
+        raise SystemExit('v1107: missing deferred finalizer/reaper/commit: '+
+                         str(seen))
+    if seen['swap_commit_blocks'] != seen['swap_before'] or \
+            seen['swap_commit_record'] != 0:
+        raise SystemExit('v1107: terminal DISK owner/bitmap leaked: '+
+                         str(seen)+'\n'+output[-2300:])
 if seen['first']<=2 or seen['leader']<=1 or not seen['base'] or \
         '<' not in output or \
         'H' not in output or 'HALT' not in output or '!' in output:
     raise SystemExit('v907: guest failed\n'+output[-2000:])
-if sys.argv[4] == '1':
+if sys.argv[5] == '1':
+    print('v1107: real swap-out, physical bitmap verifier refusal, '
+          'record/WAIT retention and exact repair/free HUP PASS:',seen)
+elif sys.argv[4] == '1':
     print('v1105: booted physical HUP + pinned DPY PI6 replay/real '
           'MM_BUSY retry + deferred u-area/WAIT PASS:',seen)
 elif sys.argv[3] == '1':

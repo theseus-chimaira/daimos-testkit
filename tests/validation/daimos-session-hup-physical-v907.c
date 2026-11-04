@@ -123,6 +123,11 @@ fail(int ch, int status)
 {
         (void)dsys_writechar(1, '!');
         (void)dsys_writechar(1, ch);
+#ifdef DAIMOS_V1107_SWAP_HUP
+        /* An unrepaired DISK owner can legitimately prevent EXIT from
+         * completing. Halt the diagnostic guest and sample counters. */
+        (void)dsys_halt();
+#endif
         (void)dsys_exit(status);
 }
 
@@ -228,6 +233,12 @@ main(int argc, kword_t **argv)
         if (job1 <= 1 || job2 <= 1 || job1 == job2 ||
             dsys_close(report_r) != 0)
                 fail('3', 0203);
+#ifdef DAIMOS_V1107_SWAP_HUP
+        /* Production INIT enables swap through this privileged syscall.
+         * The isolated test INIT must explicitly do the same. */
+        if (dsys_storagectl(SYS_STORAGECTL_SWAP) != 0)
+                fail('s', 0213);
+#endif
 #ifdef DAIMOS_V1105_DPY_HUP
         /* Ensure job2 has installed its hardware display program before
          * INIT requests the first fatal session HUP. */
@@ -238,12 +249,13 @@ main(int argc, kword_t **argv)
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
             SYS_EVENT_ARG((unsigned int)leader, SYS_EVENT_HUP)) != -1)
                 fail('6', 0206);
-#if defined(DAIMOS_V1104_PIPE_HUP) || defined(DAIMOS_V1105_DPY_HUP)
+#if defined(DAIMOS_V1104_PIPE_HUP) || \
+    defined(DAIMOS_V1105_DPY_HUP) || defined(DAIMOS_V1107_SWAP_HUP)
         {
                 kword_t pending_status;
 
                 /* INIT directly parents the session leader, not job2.
-                 * A rejected member PIPE/DPY close must prevent the leader
+                 * A rejected PIPE/DPY/swap release must prevent the leader
                  * from becoming waitable before HUP actually commits. */
                 pending_status = 0UL;
                 if (dsys_wait((unsigned int)leader, &pending_status,
@@ -255,6 +267,14 @@ main(int argc, kword_t **argv)
         /* PI6/PI7 must be able to replay the original DPY list even
          * after the first physical MM_BUSY. */
         if (dsys_sleep(020U) != 0)
+                fail('r', 0212);
+#endif
+#ifdef DAIMOS_V1107_SWAP_HUP
+        /* A failed DISK backing check publishes FINALIZE+PREVM and
+         * is repaired through the slot-0 reaper, not by delivering
+         * another HUP into a process already in TRANSITION. Wait past
+         * the first 16-tick retry interval before the leader's retry. */
+        if (dsys_sleep(0200U) != 0)
                 fail('r', 0212);
 #endif
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
