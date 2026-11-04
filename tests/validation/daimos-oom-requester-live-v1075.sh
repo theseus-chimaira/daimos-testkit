@@ -10,6 +10,7 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 enable=${V1075_TEST_OOM_ENABLED:-1}
 negatives=${V1110_TEST_NEGATIVES:-0}
 bad_run=${V1112_TEST_FAILED_RUN:-0}
+mm_slots=${V1114_TEST_MM_SLOTS:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -21,6 +22,10 @@ esac
 case "$bad_run" in
     0|1) ;;
     *) echo 'v1112: invalid failed-RUN mode' >&2; exit 2 ;;
+esac
+case "$mm_slots" in
+    0|1) ;;
+    *) echo 'v1114: invalid MM descriptor mode' >&2; exit 2 ;;
 esac
 work=$(mktemp -d "$TMPDIR/daimos-oom-requester-live-v1075.XXXXXX")
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; else echo "v1075 work: $work"; fi' EXIT HUP INT TERM
@@ -39,6 +44,21 @@ if sys.argv[2] == '1':
     p.write_text(s.replace(original,
                            '.equ    PROC_OOM_BRK_ENABLED_V1000,1', 1))
 PY
+if [ "$mm_slots" = 1 ]; then
+    python3 - "$work/source/system/kernel/proc/syscall_dispatch_pdp6.s" \
+        "$self/daimos-oom-mm-slots-v1114.s" <<'PY'
+from pathlib import Path
+import sys
+
+p = Path(sys.argv[1])
+snippet = Path(sys.argv[2]).read_text()
+before, after = snippet.split('; Definitions appended after the original syscall assembly file.', 1)
+source = p.read_text()
+anchor = 'native_sys_brk:\n'
+assert source.count(anchor) == 1, 'v1114: syscall entry changed'
+p.write_text(source.replace(anchor, anchor + before, 1) + '\n' + after)
+PY
+fi
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
@@ -53,6 +73,7 @@ done
 "$cc" -std=c89 -Os -DV1075_TEST_OOM_ENABLED="$enable" \
     -DV1110_TEST_NEGATIVES="$negatives" \
     -DV1112_TEST_FAILED_RUN="$bad_run" \
+    -DV1114_TEST_MM_SLOTS="$mm_slots" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -95,7 +116,8 @@ if [ "$rc" -ne 0 ]; then
 fi
 text=$(tr -d '\r\n' < "$work/simh.out")
 prefix=
-if [ "$bad_run" = 1 ]; then prefix=R; fi
+if [ "$mm_slots" = 1 ]; then prefix=M; fi
+if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
 if [ "$negatives" = 1 ]; then
     case "$text" in
@@ -131,4 +153,7 @@ if [ "$negatives" = 1 ]; then
 fi
 if [ "$bad_run" = 1 ]; then
     echo "v1112: invalid child RUN rejected; no retained child slot or process-MM words, requester/witness survive (OOM enabled=$enable) PASS"
+fi
+if [ "$mm_slots" = 1 ]; then
+    echo "v1114: real MM descriptor capacity filled, child RUN refused, original MM released (OOM enabled=$enable) PASS"
 fi

@@ -17,6 +17,10 @@
 #define V1112_TEST_FAILED_RUN 0
 #endif
 
+#ifndef V1114_TEST_MM_SLOTS
+#define V1114_TEST_MM_SLOTS 0
+#endif
+
 #define V1075_PATH_WORDS 3U
 #define V1075_PATH_OFF SYS_RUN_V2_FIXED_WORDS
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
@@ -163,6 +167,24 @@ main(int argc, kword_t **argv)
             before.total_words <= V1075_BRK_REQUEST)
                 fail('0');
     (void)dsys_writechar(1, '<');
+
+#if V1114_TEST_MM_SLOTS
+    /* The disposable kernel fills actual MM slots with private dynamic
+     * extents. The ordinary RUN must fail cleanly while the table is
+     * full; release all those exact extents before further syscalls. */
+    if (dsys_brk(0777776UL) != 0UL)
+            fail('m');
+    requester = run_child('I', 0);
+    if (requester != -1)
+            fail('s');
+    if (dsys_brk(0777775UL) != 0UL)
+            fail('u');
+    if (dsys_meminfo(&occupied) != 0 ||
+        occupied.process_slots_used != before.process_slots_used ||
+        occupied.process_words != before.process_words)
+            fail('q');
+    (void)dsys_writechar(1, 'M');
+#endif
 
 #if V1112_TEST_FAILED_RUN
     /* Invalid RUN cannot count as requester physical OOM. Check the

@@ -1361,6 +1361,18 @@ test-daimos-oom-failed-run-enabled-v1112: check-prefix
 
 .PHONY: test-daimos-mm-exhaustion-class-v1111
 .PHONY: test-daimos-oom-brk-real-mm-v1113
+.PHONY: test-daimos-oom-mm-slots-v1114
+test-daimos-oom-mm-slots-v1114: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-mm-slots-v1114.sh
+
+.PHONY: test-daimos-oom-mm-slots-enabled-v1114
+test-daimos-oom-mm-slots-enabled-v1114: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1114_OOM_ENABLED=1 \
+	 sh tests/validation/daimos-oom-mm-slots-v1114.sh
+
 test-daimos-oom-brk-real-mm-v1113: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

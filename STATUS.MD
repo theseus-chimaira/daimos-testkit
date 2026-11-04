@@ -1,3 +1,26 @@
+## 2026-11-04 v1114: booted real MM descriptor pressure with child RUN
+
+The opt-in full 256K PDP-6 guest v1114 adds a test-only extension to
+the disposable syscall BRK entry. Two invalid logical break sentinels
+fill the actual `mm_extent_count` to its configured
+`mm_extent_capacity` using real `mm_alloc_aligned_noreclaim` calls,
+record each one-word kernel-dynamic extent base, and release them
+with exact `mm_free` type/owner checks. The original kernel source is
+neither edited nor committed. A structurally valid RUN of the same
+real executable used by the v1110 child tests returns -1 while the
+descriptor table is fully occupied. The exact internal RUN/MM error
+is not directly traced. Exact allocation cleanup restores the parent
+to its baseline process slot and process-MM accounting.
+
+Both separately built, booted 256K variants PASS: default-disabled
+OOM produces `<MRILDNWP`, and test-only OOM-enabled produces
+`<MRILKWP`. The later ordinary RUNs, invalid BRKs, real physical
+exhaustion requester and independent witness still behave correctly;
+only physical exhaustion fatally retires the requester with the test
+policy enabled. Test-only temporary kernel code and scratch storage
+are not part of production KCore/MRES. Booted BRK fragmentation and
+direct -3 RUN-cause tracing remain open under P0-F, as do P0-D/E.
+
 ## 2026-11-04 v1113: MM failure causes through actual VM BRK and syscall
 
 The native PDP-6 `daimos-oom-brk-real-mm-v1113` regression combines
