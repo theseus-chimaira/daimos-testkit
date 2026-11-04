@@ -1385,6 +1385,12 @@ test-daimos-xip-release-stage-v1094: check-prefix
 	 sh tests/validation/daimos-xip-release-stage-v1094.sh
 
 .PHONY: test-daimos-p0d-release-matrix-v1096
+.PHONY: test-daimos-oom-multistage-v1103
+test-daimos-oom-multistage-v1103: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-multistage-v1103.sh
+
 .PHONY: test-daimos-fatal-mm-wrong-owner-v1101
 .PHONY: test-daimos-reaper-backoff-v1102
 test-daimos-reaper-backoff-v1102: check-prefix

@@ -111,6 +111,9 @@ main(int argc, kword_t **argv)
                 fail('E');            /* EXIT must not return to user mode. */
         }
         if (mode == 'C') {
+#ifdef DAIMOS_V1103_MULTISTAGE
+                kword_t pipe_pair;
+#endif
                 descendant = spawn_mode('D');
                 if (descendant != 6)
                         fail('J');
@@ -118,6 +121,15 @@ main(int argc, kword_t **argv)
                 /* Keep an additional real FILE descriptor until fatal close. */
                 if (dsys_dup(1) < 0)
                         fail('U');
+#ifdef DAIMOS_V1103_MULTISTAGE
+                /* Keep both PIPE descriptors owned until fatal FILE
+                 * teardown. The v997 CLOSE refusal hook must not fire
+                 * during setup. Fatal cleanup first drops the reader;
+                 * its last writer gets the real MM_BUSY refusal. */
+                pipe_pair = dsys_pipe();
+                if (pipe_pair == ~(kword_t)0UL)
+                        fail('I');
+#endif
                 status = 0UL;
                 if (dsys_wait((unsigned int)descendant, &status, 0U) !=
                     descendant)

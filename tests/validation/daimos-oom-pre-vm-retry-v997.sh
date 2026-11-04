@@ -12,17 +12,20 @@ export TMPDIR=${TMPDIR:-$HOME/tmp}
 mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 work=$(mktemp -d "$TMPDIR/daimos-oom-pre-vm-retry-v997.XXXXXX")
+integrated=${DAIMOS_V1103_MULTISTAGE:-0}
+case "$integrated" in 0|1) ;; *) echo 'v1103: invalid stage selector' >&2; exit 2 ;; esac
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 printf 'v924: isolated work %s\n' "$work"
 mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" <<'PY'
+python3 - "$work/source/system/kernel" "$integrated" <<'PY'
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
+integrated = sys.argv[2] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -272,6 +275,78 @@ daimos_test_mm_calls_v939: .block 1
         .globl daimos_test_mm_refusals_v939
 daimos_test_mm_refusals_v939: .block 1
 """)
+if integrated:
+    # The final C-child PIPE read descriptor owns an MM dynamic extent
+    # with the normal PIPE owner 5. Only the first physical free is
+    # rejected. All later requests execute the unmodified mm_free.
+    patch('mm/mm_pdp6.s',
+          '''mm_free:
+        caie    2,3''',
+          '''mm_free:
+        caie    2,3
+        jrst    daimos_test_pipe_other_v1103
+        caie    3,5
+        jrst    daimos_test_pipe_other_v1103
+        move    0,proc_current_slot
+        caie    0,5
+        jrst    daimos_test_pipe_other_v1103
+        skipn   daimos_test_pipe_base_v1103
+        movem   1,daimos_test_pipe_base_v1103
+        move    0,daimos_test_pipe_base_v1103
+        came    0,1
+        setom   daimos_test_pipe_error_v1103
+        move    0,3(1)               ; no reader, one writer
+        camn    0,[0,,1]
+        jrst    daimos_test_pipe_refs_ok_v1103
+        setom   daimos_test_pipe_error_v1103
+daimos_test_pipe_refs_ok_v1103:
+        aos     daimos_test_pipe_calls_v1103
+        move    0,daimos_test_pipe_calls_v1103
+        caie    0,1
+        jrst    daimos_test_pipe_other_v1103
+        aos     daimos_test_pipe_refusals_v1103
+        movni   1,5
+        popj    17,
+daimos_test_pipe_other_v1103:
+        caie    2,3''')
+    p = root / 'mm/mm_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_pipe_base_v1103
+daimos_test_pipe_base_v1103: .block 1
+        .globl daimos_test_pipe_calls_v1103
+daimos_test_pipe_calls_v1103: .block 1
+        .globl daimos_test_pipe_refusals_v1103
+daimos_test_pipe_refusals_v1103: .block 1
+        .globl daimos_test_pipe_error_v1103
+daimos_test_pipe_error_v1103: .block 1
+''')
+    # This is a deliberate HUP stage refusal, not physical TTY HUP.
+    # Real member delivery and partial retry are covered by v907.
+    patch('proc/proc_pdp6.s',
+          '''proc_session_teardown:
+        push    17,010''',
+          '''proc_session_teardown:
+        move    0,proc_current_slot
+        caie    0,5
+        jrst    daimos_test_hup_normal_v1103
+        aos     daimos_test_hup_calls_v1103
+        move    0,daimos_test_hup_calls_v1103
+        caie    0,1
+        jrst    daimos_test_hup_normal_v1103
+        aos     daimos_test_hup_refusals_v1103
+        seto    1,
+        popj    17,
+daimos_test_hup_normal_v1103:
+        push    17,010''')
+    p = root / 'proc/proc_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_hup_calls_v1103
+daimos_test_hup_calls_v1103: .block 1
+        .globl daimos_test_hup_refusals_v1103
+daimos_test_hup_refusals_v1103: .block 1
+''')
 # Stage witnesses reside only in the disposable kernel.
 patch('proc/proc_pdp6.s',
       '''proc_notify_parent:
@@ -349,7 +424,12 @@ for d in boot core drivers fs ipc mm modules proc storage; do
     incs="$incs -I$DAIMOS_REPO/system/kernel/$d"
 done
 # shellcheck disable=SC2086
-"$cc" -std=c89 -Os $incs -I"$DAIMOS_REPO/userland/libc" \
+extra_cflags=''
+if [ "$integrated" = 1 ]; then
+    extra_cflags=-DDAIMOS_V1103_MULTISTAGE=1
+fi
+# shellcheck disable=SC2086
+"$cc" -std=c89 -Os $extra_cflags $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-mixed-fatal-retry-v978.c" -o "$work/user/init.s"
 "$das" -C -F -O "$work/user/init.dobj" "$work/user/init.s"
 libgcc=$("$cc" -print-libgcc-file-name)
@@ -384,6 +464,14 @@ for name in mm_calls mm_refusals vm_calls uarea_calls close_calls close_refusals
     test -n "$addr" || { echo "v924: missing $sym" >&2; exit 1; }
     printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
 done
+if [ "$integrated" = 1 ]; then
+    for name in pipe_base pipe_calls pipe_refusals pipe_error hup_calls hup_refusals; do
+        sym="daimos_test_${name}_v1103"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1103: missing $sym" >&2; exit 1; }
+        printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 sym=daimos_test_fatal_count_v924
 addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
 test -n "$addr" || { echo "v924: missing fatal counter" >&2; exit 1; }
@@ -410,11 +498,12 @@ if [ "$rc" -ne 0 ]; then
     echo "v924: simulator failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$integrated" <<'PY'
 from pathlib import Path
 import re
 import sys
 out = Path(sys.argv[2]).read_text(errors='replace')
+integrated = sys.argv[3] == '1'
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
@@ -439,5 +528,13 @@ if 'HALT' not in out or '<HWCD' not in out or 'H' not in out or \
         re.search(r'S{3,}', out) is None or '!' in out:
     raise SystemExit('v924: guest markers/independent work failed: '+
                      out[-2000:])
+if integrated:
+    if not seen['pipe_base'] or seen['pipe_calls'] != 2 or \
+            seen['pipe_refusals'] != 1 or seen['pipe_error'] != 0 or \
+            seen['hup_calls'] != 2 or seen['hup_refusals'] != 1:
+        raise SystemExit('v1103: PIPE/HUP stage ownership/count violation: '+
+                         str(seen)+'\n'+out[-2300:])
+    print('v1103: real PIPE MM_BUSY, injected HUP refusal, VM and u-area '
+          'retries, held provider, CHLD and bystander PASS:', seen)
 print('v997: pre-VM refusal then post-VM u-area retry PASS:', seen)
 PY

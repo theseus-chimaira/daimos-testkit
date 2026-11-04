@@ -1,6 +1,6 @@
 #!/bin/sh
 # P0-D ownership stages: reuse executable source-linked PDP-6 test leaves.
-# P0D_FULL=1 adds two disposable 256K guest fault-injection regressions.
+# P0D_FULL=1 adds disposable 256K guest fault-injection regressions.
 set -eu
 : "${DAIMOS_REPO:?}" "${PDP10_PREFIX:?}"
 export TMPDIR=${TMPDIR:-$HOME/tmp}
@@ -34,6 +34,8 @@ python3 "$self/daimos-oom-transitive-release-v1087.py"
 if [ "${P0D_FULL:-0}" = 1 ]; then
     echo 'v1096: booted pre-VM owner retry and committed finalization'
     sh "$self/daimos-oom-pre-vm-retry-v997.sh"
+    echo 'v1103: booted combined PIPE/FILE/HUP/VM/u-area owner stages'
+    sh "$self/daimos-oom-multistage-v1103.sh"
     echo 'v1096: booted real OOM with D6FS SYNC and MM_BUSY refusals'
     sh "$self/daimos-oom-requester-provider-mm-v1077.sh"
     echo 'v1101: booted permanent MM wrong-owner quarantine and bystander'
