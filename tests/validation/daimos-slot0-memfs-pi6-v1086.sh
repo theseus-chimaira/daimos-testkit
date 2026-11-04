@@ -32,10 +32,31 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 
 fixture="$self/daimos-slot0-memfs-pi6-v1086.s"
 mode=${DAIMOS_V1108_XIP_MM:-0}
-case "$mode" in
-    0) ;;
-    1) fixture="$self/daimos-xip-physical-retry-v1108.s" ;;
-    *) echo 'v1108: invalid XIP MM mode' >&2; exit 2 ;;
+vm_mode=${DAIMOS_V1109_XIP_VM:-0}
+case "$mode:$vm_mode" in
+    0:0) ;;
+    1:0) fixture="$self/daimos-xip-physical-retry-v1108.s" ;;
+    0:1)
+        # Link the production VM destroy leaf to the actual movable MEMFS
+        # dispatch and real MM pin/unpin, rather than v1094 stub oracles.
+        printf '.text\n.globl vm_space_destroy\n' >> "$work/leaf.s"
+        sed -n '/^vm_space_destroy:$/,/^\/\*\*/p' \
+            "$DAIMOS_REPO/system/kernel/proc/vm_pdp6.s" | sed '$d' \
+            >> "$work/leaf.s"
+        python3 - "$self/daimos-xip-physical-retry-v1108.s" \
+            "$self/daimos-xip-vm-retry-v1109.s" "$work/fixture.s" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+start = source.index('main:\n')
+end = source.index('; This test service only vets the XIP operation')
+new_main = Path(sys.argv[2]).read_text()
+Path(sys.argv[3]).write_text(source[:start] + new_main + source[end:])
+PY
+        fixture="$work/fixture.s"
+        ;;
+    *) echo 'v1109: incompatible XIP modes' >&2; exit 2 ;;
 esac
 if [ "$mode" = 1 ]; then
     # Both unsafe variants use the identical production MM leaf and
@@ -65,6 +86,30 @@ for name, (before, after) in mutants.items():
         leaf.replace(before, after, 1))
 PY
 fi
+if [ "$vm_mode" = 1 ]; then
+    python3 - "$work/leaf.s" "$work" <<'PY'
+from pathlib import Path
+import sys
+
+leaf = Path(sys.argv[1]).read_text()
+work = Path(sys.argv[2])
+mutants = {
+    'unsafe-mm-fallback': (
+        '        jrst    vm_space_destroy_fail\n'
+        'vm_space_destroy_maybe_process:',
+        '        jrst    vm_space_destroy_maybe_process\n'
+        'vm_space_destroy_maybe_process:'),
+    'unsafe-vm-commit': (
+        '        jumpn   1,vm_space_destroy_fail  ; keep VM and swap record retryable',
+        '        jumpe   1,vm_space_destroy_fail  ; unsafe VM commit'),
+}
+for name, (before, after) in mutants.items():
+    if leaf.count(before) != 1:
+        raise SystemExit('v1109: missing native VM mutant anchor: ' + name)
+    (work / ('unsafe-' + name + '.s')).write_text(
+        leaf.replace(before, after, 1))
+PY
+fi
 run_case() {
     name=$1
     source=$2
@@ -87,6 +132,14 @@ if [ "$mode" = 1 ]; then
         fi
     done
     echo 'v1108: real XIP MM -4 refusal, exact pin/ownership retry, two unsafe mutations rejected PASS'
+elif [ "$vm_mode" = 1 ]; then
+    for mutant in unsafe-mm-fallback unsafe-vm-commit; do
+        if run_case "$mutant" "$work/unsafe-$mutant.s"; then
+            echo "v1109: unsafe $mutant mutation PASSED" >&2
+            exit 1
+        fi
+    done
+    echo 'v1109: real VM XIP/MM -4 refusal/retry, exact detach/VM_NONE, unsafe mutations rejected PASS'
 else
     echo 'v1086: slot-0 XIP bypasses foreign provider lease, unpins via real MM, no clock wait PASS'
 fi

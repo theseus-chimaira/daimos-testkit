@@ -23,7 +23,8 @@ for name in \
     daimos-discard-tty-prevm-v1085 \
     daimos-tty-mm-error-stage-v1093 \
     daimos-xip-release-stage-v1094 \
-    daimos-xip-physical-retry-v1108; do
+    daimos-xip-physical-retry-v1108 \
+    daimos-xip-vm-retry-v1109; do
     echo "v1096: stage $name"
     sh "$self/$name.sh"
 done
