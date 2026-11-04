@@ -1379,6 +1379,12 @@ test-daimos-fatal-exec-run-boundary-v1133: check-prefix
 .PHONY: test-daimos-fatal-exec-sequential-return-v1137
 .PHONY: test-daimos-fatal-exec-discard-breaks-v1138
 .PHONY: test-daimos-fatal-exec-release-breaks-v1139
+.PHONY: test-daimos-oom-pipe-dpy-vm-provider-v1144
+test-daimos-oom-pipe-dpy-vm-provider-v1144: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-pipe-dpy-vm-provider-v1144.sh
+
 .PHONY: test-daimos-p10fold-local-section-v1141
 .PHONY: test-daimos-fatal-exec-physical-uarea-v1142
 test-daimos-fatal-exec-physical-uarea-v1142: check-prefix

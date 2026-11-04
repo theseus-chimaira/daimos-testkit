@@ -18,6 +18,13 @@ physical_vm=${DAIMOS_V1106_PHYSICAL_VM:-0}
 case "$physical_vm" in 0|1) ;; *) echo 'v1106: invalid VM selector' >&2; exit 2 ;; esac
 wait_churn=${DAIMOS_V1117_WAIT_CHURN:-0}
 case "$wait_churn" in 0|1) ;; *) echo 'v1117: invalid WAIT churn selector' >&2; exit 2 ;; esac
+mixed_dpy=${DAIMOS_V1144_DPY_MIXED:-0}
+case "$mixed_dpy" in 0|1) ;; *) echo 'v1144: invalid DPY selector' >&2; exit 2 ;; esac
+if [ "$mixed_dpy" = 1 ] && { [ "$integrated" != 1 ] ||
+    [ "$physical_vm" != 1 ] || [ "$wait_churn" != 1 ]; }; then
+    echo 'v1144: DPY requires combined PIPE/VM and WAIT churn' >&2
+    exit 2
+fi
 if [ "$wait_churn" = 1 ] && [ "$integrated" != 1 ]; then
     echo 'v1117: WAIT churn requires the combined v1103 fault stages' >&2
     exit 2
@@ -28,13 +35,14 @@ mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" "$integrated" "$physical_vm" <<'PY'
+python3 - "$work/source/system/kernel" "$integrated" "$physical_vm" "$mixed_dpy" <<'PY'
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
 integrated = sys.argv[2] == '1'
 physical_vm = sys.argv[3] == '1'
+mixed_dpy = sys.argv[4] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -476,6 +484,227 @@ daimos_test_hup_calls_v1103: .block 1
         .globl daimos_test_hup_refusals_v1103
 daimos_test_hup_refusals_v1103: .block 1
 ''')
+if mixed_dpy:
+    # Complete the integrated physical path: PIPE and u-area must have
+    # actual MM pins, not the earlier isolated fixtures' synthetic -5.
+    # Both original mm_free calls continue through owner/type checks.
+    patch('mm/mm_pdp6.s',
+          '''        aos     daimos_test_pipe_calls_v1103
+        move    0,daimos_test_pipe_calls_v1103
+        caie    0,1
+        jrst    daimos_test_pipe_other_v1103
+        aos     daimos_test_pipe_refusals_v1103
+        movni   1,5
+        popj    17,
+daimos_test_pipe_other_v1103:''',
+          '''        aos     daimos_test_pipe_calls_v1103
+        move    0,daimos_test_pipe_calls_v1103
+        caie    0,1
+        jrst    daimos_pipe_unpin_gate_v1144
+        aos     daimos_test_pipe_refusals_v1103
+        push    17,1
+        push    17,2
+        push    17,3
+        pushj   17,mm_pin
+        jumpn   1,daimos_pipe_mm_error_v1144
+        aos     daimos_pipe_pins_v1144
+        jrst    daimos_pipe_restore_v1144
+daimos_pipe_unpin_gate_v1144:
+        caie    0,2
+        jrst    daimos_test_pipe_other_v1103
+        push    17,1
+        push    17,2
+        push    17,3
+        pushj   17,mm_unpin
+        jumpn   1,daimos_pipe_mm_error_v1144
+        aos     daimos_pipe_unpins_v1144
+        jrst    daimos_pipe_restore_v1144
+daimos_pipe_mm_error_v1144:
+        aos     daimos_test_pipe_error_v1103
+daimos_pipe_restore_v1144:
+        pop     17,3
+        pop     17,2
+        pop     17,1
+daimos_test_pipe_other_v1103:''')
+    # Replace v939's synthetic u-area error with an actual pin.
+    patch('mm/mm_pdp6.s',
+          '''        aos     daimos_test_mm_calls_v939
+        move    0,daimos_test_mm_calls_v939
+        caie    0,1
+        jrst    daimos_test_mm_other_v939
+        aos     daimos_test_mm_refusals_v939
+        movni   1,5
+        popj    17,
+daimos_test_mm_other_v939:''',
+          '''        aos     daimos_test_mm_calls_v939
+        move    0,daimos_test_mm_calls_v939
+        caie    0,1
+        jrst    daimos_uarea_unpin_gate_v1144
+        aos     daimos_test_mm_refusals_v939
+        movem   1,daimos_uarea_base_v1144
+        push    17,1
+        push    17,2
+        push    17,3
+        pushj   17,mm_pin
+        jumpn   1,daimos_uarea_error_v1144
+        aos     daimos_uarea_pins_v1144
+        jrst    daimos_uarea_restore_v1144
+daimos_uarea_unpin_gate_v1144:
+        caie    0,2
+        jrst    daimos_test_mm_other_v939
+        move    4,daimos_uarea_base_v1144
+        came    4,1
+        aos     daimos_uarea_errors_v1144
+        push    17,1
+        push    17,2
+        push    17,3
+        pushj   17,mm_unpin
+        jumpn   1,daimos_uarea_error_v1144
+        aos     daimos_uarea_unpins_v1144
+        jrst    daimos_uarea_restore_v1144
+daimos_uarea_error_v1144:
+        aos     daimos_uarea_errors_v1144
+daimos_uarea_restore_v1144:
+        pop     17,3
+        pop     17,2
+        pop     17,1
+daimos_test_mm_other_v939:''')
+    # Add a genuinely allocated Type-340 raw list to the same fatal
+    # owner as PIPE/VM/u-area. Both DPY and u-area use true MM pins.
+    patch('mm/mm_pdp6.s',
+          '''mm_free:
+        caie    2,3
+        jrst    daimos_test_pipe_other_v1103''',
+          '''mm_free:
+        caie    2,3                   ; MM_TYPE_KERNEL_DYNAMIC
+        jrst    daimos_dpy_original_v1144
+        caie    3,014                 ; real DPY raw-list MM owner
+        jrst    daimos_dpy_original_v1144
+        move    0,proc_current_slot
+        caie    0,5                   ; child C only
+        jrst    daimos_dpy_original_v1144
+        skipn   daimos_dpy_base_v1144
+        movem   1,daimos_dpy_base_v1144
+        move    0,daimos_dpy_base_v1144
+        came    0,1
+        aos     daimos_dpy_errors_v1144
+        aos     daimos_dpy_calls_v1144
+        move    0,daimos_dpy_calls_v1144
+        push    17,1
+        push    17,2
+        push    17,3
+        caie    0,1
+        jrst    daimos_dpy_unpin_v1144
+        pushj   17,mm_pin
+        jumpn   1,daimos_dpy_pin_error_v1144
+        aos     daimos_dpy_pins_v1144
+        jrst    daimos_dpy_restore_v1144
+daimos_dpy_unpin_v1144:
+        pushj   17,mm_unpin
+        jumpn   1,daimos_dpy_pin_error_v1144
+        aos     daimos_dpy_unpins_v1144
+        jrst    daimos_dpy_restore_v1144
+daimos_dpy_pin_error_v1144:
+        aos     daimos_dpy_errors_v1144
+daimos_dpy_restore_v1144:
+        pop     17,3
+        pop     17,2
+        pop     17,1
+daimos_dpy_original_v1144:
+        caie    2,3
+        jrst    daimos_test_pipe_other_v1103''')
+    patch('mm/mm_pdp6.s',
+          '''mm_free_busy:
+        move    4,daimos_test_vm_base_v1106''',
+          '''mm_free_busy:
+        move    4,daimos_test_pipe_base_v1103
+        camn    4,5
+        aos     daimos_pipe_busy_v1144
+        move    4,daimos_uarea_base_v1144
+        camn    4,5
+        aos     daimos_uarea_busy_v1144
+        move    4,daimos_dpy_base_v1144
+        camn    4,5
+        aos     daimos_dpy_busy_v1144
+        move    4,daimos_test_vm_base_v1106''')
+    patch('mm/mm_pdp6.s',
+          '''        pushj   17,mm_delete
+        setz    1,
+        popj    17,
+mm_free_inval:''',
+          '''        move    4,daimos_test_pipe_base_v1103
+        camn    4,5
+        aos     daimos_pipe_frees_v1144
+        move    4,daimos_uarea_base_v1144
+        camn    4,5
+        aos     daimos_uarea_frees_v1144
+        move    4,daimos_dpy_base_v1144
+        camn    4,5
+        aos     daimos_dpy_frees_v1144
+        pushj   17,mm_delete
+        setz    1,
+        popj    17,
+mm_free_inval:''')
+    p = root / 'mm/mm_pdp6.s'
+    names = ('base', 'calls', 'pins', 'unpins', 'busy', 'frees', 'errors')
+    p.write_text(p.read_text() + '\n        .bss\n' +
+                 ''.join('        .globl daimos_dpy_%s_v1144\n'
+                         'daimos_dpy_%s_v1144: .block 1\n' % (n, n)
+                         for n in names) +
+                 ''.join('        .globl daimos_uarea_%s_v1144\n'
+                         'daimos_uarea_%s_v1144: .block 1\n' % (n, n)
+                         for n in names if n != 'calls') +
+                 ''.join('        .globl daimos_pipe_%s_v1144\n'
+                         'daimos_pipe_%s_v1144: .block 1\n' % (n, n)
+                         for n in ('pins', 'unpins', 'busy', 'frees')))
+
+    # Physical publication order: FILE/PIPE/DPY must be committed before
+    # the first VM destroy; VM/u-area must be freed before ZOMB/WAIT.
+    patch('proc/vm_pdp6.s',
+          '''vm_space_destroy:
+        caie    2,5''',
+          '''vm_space_destroy:
+        caie    2,5
+        jrst    daimos_vm_order_other_v1144
+        move    0,daimos_dpy_frees_v1144
+        caie    0,1
+        aos     daimos_dpy_errors_v1144
+        move    0,daimos_test_pipe_calls_v1103
+        caie    0,2
+        aos     daimos_dpy_errors_v1144
+        move    0,daimos_pipe_frees_v1144
+        caie    0,1
+        aos     daimos_test_pipe_error_v1103
+daimos_vm_order_other_v1144:
+        caie    2,5''')
+    patch('proc/proc_pdp6.s',
+          '''proc_finish_zombie:
+        move    1,14''',
+          '''proc_finish_zombie:
+        caie    10,5
+        jrst    daimos_zombie_other_v1144
+        aos     daimos_publish_checks_v1144
+        move    0,daimos_dpy_frees_v1144
+        caie    0,1
+        aos     daimos_dpy_errors_v1144
+        move    0,daimos_pipe_frees_v1144
+        caie    0,1
+        aos     daimos_test_pipe_error_v1103
+        move    0,daimos_uarea_frees_v1144
+        caie    0,1
+        aos     daimos_uarea_errors_v1144
+        move    0,daimos_test_vm_mm_frees_v1106
+        caie    0,1
+        aos     daimos_uarea_errors_v1144
+daimos_zombie_other_v1144:
+        move    1,14''')
+    p = root / 'proc/proc_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_publish_checks_v1144
+daimos_publish_checks_v1144: .block 1
+''')
+
 # Stage witnesses reside only in the disposable kernel.
 patch('proc/proc_pdp6.s',
       '''proc_notify_parent:
@@ -560,6 +789,9 @@ fi
 if [ "$wait_churn" = 1 ]; then
     extra_cflags="$extra_cflags -DDAIMOS_V1117_WAIT_CHURN=1"
 fi
+if [ "$mixed_dpy" = 1 ]; then
+    extra_cflags="$extra_cflags -DDAIMOS_V1144_DPY_MIXED=1"
+fi
 # shellcheck disable=SC2086
 "$cc" -std=c89 -Os $extra_cflags $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-mixed-fatal-retry-v978.c" -o "$work/user/init.s"
@@ -612,6 +844,30 @@ if [ "$physical_vm" = 1 ]; then
         printf 'vm_%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$mixed_dpy" = 1 ]; then
+    for name in base calls pins unpins busy frees errors; do
+        sym="daimos_dpy_${name}_v1144"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1144: missing $sym" >&2; exit 1; }
+        printf 'dpy_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+    for name in base pins unpins busy frees errors; do
+        sym="daimos_uarea_${name}_v1144"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1144: missing $sym" >&2; exit 1; }
+        printf 'uarea_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+    for name in pins unpins busy frees; do
+        sym="daimos_pipe_${name}_v1144"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1144: missing $sym" >&2; exit 1; }
+        printf 'pipe_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+    sym=daimos_publish_checks_v1144
+    addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+    test -n "$addr" || { echo "v1144: missing $sym" >&2; exit 1; }
+    printf 'publish_checks %s\n' "$addr" >> "$work/addresses"
+fi
 sym=daimos_test_fatal_count_v924
 addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
 test -n "$addr" || { echo "v924: missing fatal counter" >&2; exit 1; }
@@ -642,7 +898,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v924: simulator failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$integrated" "$physical_vm" "$wait_churn" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$integrated" "$physical_vm" "$wait_churn" "$mixed_dpy" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -650,6 +906,7 @@ out = Path(sys.argv[2]).read_text(errors='replace')
 integrated = sys.argv[3] == '1'
 physical_vm = sys.argv[4] == '1'
 wait_churn = sys.argv[5] == '1'
+mixed_dpy = sys.argv[6] == '1'
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
@@ -695,6 +952,25 @@ if physical_vm:
     print('v1106: physical VM pin/MM_BUSY, actual MM release and '
           'one swap detach, uarea retry, foreign provider, CHLD, '
           'bystander PASS:', seen)
+if mixed_dpy:
+    expected = dict(dpy_calls=2, dpy_pins=1, dpy_unpins=1,
+                    dpy_busy=1, dpy_frees=1, dpy_errors=0,
+                    uarea_pins=1, uarea_unpins=1, uarea_busy=1,
+                    uarea_frees=1, uarea_errors=0, publish_checks=1,
+                    pipe_pins=1, pipe_unpins=1, pipe_busy=1,
+                    pipe_frees=1)
+    for name, value in expected.items():
+        if seen[name] != value:
+            raise SystemExit('v1144: '+name+'='+str(seen[name])+
+                             ' expected '+str(value)+'\n'+out[-2500:])
+    bases = (seen['dpy_base'], seen['uarea_base'],
+             seen['pipe_base'], seen['vm_base'])
+    if 0 in bases or len(set(bases)) != len(bases):
+        raise SystemExit('v1144: missing or aliased physical owners: ' +
+                         repr(bases))
+    print('v1144: physical PIPE/DPY/VM/u-area MM ownership, '
+          'FILE->VM->u-area->ZOMB publication order, held provider, '
+          'no premature WAIT and bystander in one 256K guest PASS')
 if wait_churn:
     # The independent spinner may interleave S at any progress mark.
     if re.search(r'B(?:S*\.){6}S*R', out) is None or '!' in out:

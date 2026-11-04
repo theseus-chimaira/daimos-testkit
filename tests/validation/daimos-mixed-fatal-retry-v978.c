@@ -16,6 +16,16 @@
 #define V1117_WAIT_CYCLES 48U
 #endif
 
+#ifdef DAIMOS_V1144_DPY_MIXED
+#define V1144_DPY_WORDS 32U
+static kword_t v1144_dpy_path[] = {
+        9UL,
+        TEST_SIX6('/', 'D', 'E', 'V', '/', 'D'),
+        TEST_SIX6('P', 'Y', '0', ' ', ' ', ' ')
+};
+static kword_t v1144_dpy_frame[V1144_DPY_WORDS];
+#endif
+
 static kword_t init_path[] = {
         12UL,
         TEST_SIX6('/', 'S', 'Y', 'S', 'T', 'E'),
@@ -118,6 +128,10 @@ main(int argc, kword_t **argv)
 #ifdef DAIMOS_V1103_MULTISTAGE
                 kword_t pipe_pair;
 #endif
+#ifdef DAIMOS_V1144_DPY_MIXED
+                unsigned int word;
+                int dpy_fd;
+#endif
                 descendant = spawn_mode('D');
                 if (descendant != 6)
                         fail('J');
@@ -125,6 +139,17 @@ main(int argc, kword_t **argv)
                 /* Keep an additional real FILE descriptor until fatal close. */
                 if (dsys_dup(1) < 0)
                         fail('U');
+#ifdef DAIMOS_V1144_DPY_MIXED
+                /* Keep a physical DPY raw list owned by the faulting
+                 * child until its original fatal FILE close. */
+                for (word = 0U; word < V1144_DPY_WORDS; ++word)
+                        v1144_dpy_frame[word] = 0353535353535UL;
+                dpy_fd = dsys_open(v1144_dpy_path, SYS_O_WRONLY);
+                if (dpy_fd < 0 ||
+                    dsys_write_words(dpy_fd, v1144_dpy_frame,
+                        V1144_DPY_WORDS) != (int)V1144_DPY_WORDS)
+                        fail('V');
+#endif
 #ifdef DAIMOS_V1103_MULTISTAGE
                 /* Keep both PIPE descriptors owned until fatal FILE
                  * teardown. The v997 CLOSE refusal hook must not fire
@@ -175,6 +200,14 @@ main(int argc, kword_t **argv)
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
                 SYS_EVENT_ARG(child_parent, SYS_EVENT_HUP)) != 0)
                 fail('h');
+#ifdef DAIMOS_V1144_DPY_MIXED
+        /* A live, nonreportable child returns zero for WAIT NOHANG.
+         * -1 means no matching child; a positive result is premature. */
+        status = 0UL;
+        if (dsys_wait((unsigned int)child_parent, &status,
+                SYS_WAIT_NOHANG) != 0)
+                fail('Q');
+#endif
         if (dsys_sleep(01000U) != 0)
                 fail('8');
         status = 0UL;

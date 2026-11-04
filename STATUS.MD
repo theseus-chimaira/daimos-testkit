@@ -1,3 +1,23 @@
+## 2026-11-04 v1144: full physical PIPE/DPY/VM/u-area D14 PASS
+
+New `test-daimos-oom-pipe-dpy-vm-provider-v1144` reuses the v1118
+full 256K PDP-6 held-provider and mixed fatal-EXIT guest. Slot 5
+installs a real Type-340 DPY raw list before its fatal FILE cleanup.
+The final opt-in test variant pins the actual PIPE, DPY, VM and
+u-area extents independently rather than fabricating either the
+older PIPE or u-area MM_BUSY result. Each owner has exactly one
+pin, one real -5, one unpin, one physical free, zero hook errors,
+and all four physical bases differ. The producer/consumer provider
+lease remains held while another independent user makes progress.
+
+The test checks FILE/PIPE/DPY release before VM destruction, VM and
+u-area release before slot-5 zombie publication, no premature
+WAIT(NO-HANG) (its correct value is zero), exact final WAIT/CHLD,
+one swap detach, 48 stale WAIT/PID/event refusals, and 37 bystander
+advances. All assertions PASS. This closes mandatory D14, not D16,
+C04, E/F or strict 32K runtime acceptance. Production OOM remains
+disabled, and no production DAIMOS kernel code/data were changed.
+
 ## 2026-11-04 v1143: D13 independent rerun, D15 XIP scope closure
 
 Independently rebuilt full 256K PDP-6 v1142 guest PASSes the combined
