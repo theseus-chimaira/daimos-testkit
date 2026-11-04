@@ -9,8 +9,18 @@
         jrst    v1114_fill
 v1114_maybe_release:
         caie    2,0777775
-        jrst    v1114_normal_brk
+        jrst    v1114_maybe_run_cause
         jrst    v1114_release
+v1114_maybe_run_cause:
+        caie    2,0777774
+        jrst    v1114_maybe_vm_cause
+        move    1,v1116_last_run_cause
+        popj    17,
+v1114_maybe_vm_cause:
+        caie    2,0777770
+        jrst    v1114_normal_brk
+        move    1,v1116_last_vm_cause
+        popj    17,
 v1114_normal_brk:
 
 ; Definitions appended after the original syscall assembly file.
@@ -19,6 +29,8 @@ v1114_normal_brk:
         .globl mm_extent_count
         .globl mm_extent_capacity
         .globl mm_free
+        .globl v1116_last_run_cause
+        .globl v1116_last_vm_cause
 
 v1114_fill:
         skipn   v1114_count
@@ -28,6 +40,9 @@ v1114_fill:
 v1114_fill_start:
         push    17,010
         push    17,011
+        movni   1,7                   ; no allocation observed yet
+        movem   1,v1116_last_vm_cause
+        movem   1,v1116_last_run_cause
         move    1,mm_extent_count
         movem   1,v1114_original_count
 v1114_fill_loop:
@@ -107,3 +122,5 @@ v1114_base: .block 1
 v1114_count: .block 1
 v1114_failed: .block 1
 v1114_bases: .block 040
+v1116_last_run_cause: .block 1
+v1116_last_vm_cause: .block 1

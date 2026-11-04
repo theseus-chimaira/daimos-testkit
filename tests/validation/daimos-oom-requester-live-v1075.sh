@@ -12,6 +12,7 @@ negatives=${V1110_TEST_NEGATIVES:-0}
 bad_run=${V1112_TEST_FAILED_RUN:-0}
 mm_slots=${V1114_TEST_MM_SLOTS:-0}
 mm_fragment=${V1115_TEST_MM_FRAGMENT:-0}
+run_cause=${V1116_TEST_RUN_CAUSE:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -32,6 +33,14 @@ case "$mm_fragment" in
     0|1) ;;
     *) echo 'v1115: invalid MM fragmentation mode' >&2; exit 2 ;;
 esac
+case "$run_cause" in
+    0|1) ;;
+    *) echo 'v1116: invalid RUN cause mode' >&2; exit 2 ;;
+esac
+if [ "$run_cause" = 1 ] && [ "$mm_slots" != 1 ]; then
+    echo 'v1116: RUN cause requires MM descriptor pressure' >&2
+    exit 2
+fi
 if [ "$mm_slots" = 1 ] && [ "$mm_fragment" = 1 ]; then
     echo 'v1115: only one MM fault mode per disposable kernel' >&2
     exit 2
@@ -66,6 +75,41 @@ source = p.read_text()
 anchor = 'native_sys_brk:\n'
 assert source.count(anchor) == 1, 'v1114: syscall entry changed'
 p.write_text(source.replace(anchor, anchor + before, 1) + '\n' + after)
+PY
+fi
+if [ "$run_cause" = 1 ]; then
+    python3 - "$work/source/system/kernel/proc/vm_pdp6.s" \
+        "$work/source/system/kernel/proc/proc_run.s" <<'PY'
+from pathlib import Path
+import sys
+
+p = Path(sys.argv[1])
+run = Path(sys.argv[2])
+s = p.read_text()
+anchor = ('        pushj   17,mm_alloc_aligned\n'
+          '        sub     17,kconst_2_2\n'
+          '        jumpn   1,vm_space_create_fail\n')
+assert s.count(anchor) == 1, 'v1116: VM create allocator contract changed'
+header = '        .globl  vm_space_create\n'
+assert s.count(header) == 1
+s = s.replace(header, header + '        .globl  v1116_last_vm_cause\n', 1)
+s = s.replace(anchor, anchor.replace('        jumpn',
+            '        movem   1,v1116_last_vm_cause\n        jumpn'), 1)
+p.write_text(s)
+
+# RUN allocates the child u-area only after successful VM construction.
+# Capture that later production MM result before it becomes generic -1.
+s = run.read_text()
+header = '        .globl  mm_alloc_aligned\n'
+anchor = ('        pushj   17,mm_alloc_aligned\n'
+          '        move    014,-2(17)\n'
+          '        sub     17,kconst_3_3\n'
+          '        jumpn   1,proc_run_mm_bad\n')
+assert s.count(header) == 1 and s.count(anchor) == 1
+s = s.replace(header, header + '        .globl  v1116_last_run_cause\n', 1)
+s = s.replace(anchor, anchor.replace('        jumpn',
+            '        movem   1,v1116_last_run_cause\n        jumpn'), 1)
+run.write_text(s)
 PY
 fi
 if [ "$mm_fragment" = 1 ]; then
@@ -116,6 +160,7 @@ done
     -DV1112_TEST_FAILED_RUN="$bad_run" \
     -DV1114_TEST_MM_SLOTS="$mm_slots" \
     -DV1115_TEST_MM_FRAGMENT="$mm_fragment" \
+    -DV1116_TEST_RUN_CAUSE="$run_cause" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -160,6 +205,7 @@ text=$(tr -d '\r\n' < "$work/simh.out")
 prefix=
 if [ "$mm_fragment" = 1 ]; then prefix=F; fi
 if [ "$mm_slots" = 1 ]; then prefix=M; fi
+if [ "$run_cause" = 1 ]; then prefix=${prefix}C; fi
 if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
 if [ "$negatives" = 1 ]; then
@@ -202,4 +248,7 @@ if [ "$mm_slots" = 1 ]; then
 fi
 if [ "$mm_fragment" = 1 ]; then
     echo "v1115: real physical MM fragmentation, BRK -1 with cause -2, no fatal requester, exact cleanup (OOM enabled=$enable) PASS"
+fi
+if [ "$run_cause" = 1 ]; then
+    echo "v1116: real descriptor-saturated RUN returned -1 with original VM/MM cause -3, no retained child (OOM enabled=$enable) PASS"
 fi

@@ -25,6 +25,10 @@
 #define V1115_TEST_MM_FRAGMENT 0
 #endif
 
+#ifndef V1116_TEST_RUN_CAUSE
+#define V1116_TEST_RUN_CAUSE 0
+#endif
+
 #define V1075_PATH_WORDS 3U
 #define V1075_PATH_OFF SYS_RUN_V2_FIXED_WORDS
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
@@ -211,6 +215,23 @@ main(int argc, kword_t **argv)
     requester = run_child('I', 0);
     if (requester != -1)
             fail('s');
+#if V1116_TEST_RUN_CAUSE
+    {
+        kword_t vm_cause;
+        kword_t uarea_cause;
+
+        /* VM allocation and later child u-area allocation have distinct
+         * pressure/reclaim opportunities. Exactly one stage must return
+         * a genuine MM descriptor failure; the other is either successful
+         * or was not entered. Both recorders are production-MM backed. */
+        vm_cause = dsys_brk(0777770UL);
+        uarea_cause = dsys_brk(0777774UL);
+        if (!((vm_cause == (kword_t)-3L &&
+               uarea_cause == (kword_t)-7L) ||
+              (vm_cause == 0UL && uarea_cause == (kword_t)-3L)))
+                fail('c');
+    }
+#endif
     if (dsys_brk(0777775UL) != 0UL)
             fail('u');
     if (dsys_meminfo(&occupied) != 0 ||
@@ -218,6 +239,9 @@ main(int argc, kword_t **argv)
         occupied.process_words != before.process_words)
             fail('q');
     (void)dsys_writechar(1, 'M');
+#if V1116_TEST_RUN_CAUSE
+    (void)dsys_writechar(1, 'C');
+#endif
 #endif
 
 #if V1112_TEST_FAILED_RUN

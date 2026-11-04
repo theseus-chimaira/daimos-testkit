@@ -1,3 +1,25 @@
+## 2026-11-04 v1116: booted exact RUN MM descriptor failure cause
+
+Two separately built and booted 256K PDP-6 disposable images PASS
+the opt-in `daimos-oom-run-cause-v1116` test. Tracked physical MM
+allocations fill the real extent-descriptor table before a valid
+child RUN. Test-only captures immediately following the production
+MM allocator calls in `vm_space_create` and `proc_run_block` prove
+the failing stage returned -3 (descriptor exhaustion). The other
+stage returned 0 or was not executed (-7 test sentinel). The public
+RUN returns -1; no extra process slot or process RAM remains after
+the rejection. Every tracked temporary extent is released by its
+physical base, original type and owner.
+
+Both default-disabled and disposable OOM-enabled boots PASS, then
+successfully repeat the existing invalid-RUN and BRK controls, true
+physical-exhaustion requester, WAIT and independent witness checks.
+The genuine physical-OOM requester alone is terminated when OOM is
+enabled in the test copy. Native v1111, v1113 and v1000 regressions
+also PASS. No production text/data, MRES, ABI or OOM switch changed.
+These results do not close the remaining P0-D/E integrated liveness
+and fault cross-products or authorize production OOM enablement.
+
 ## 2026-11-04 v1115: booted real MM fragmentation with exact BRK cause
 
 The opt-in full 256K PDP-6 v1115 guest links an isolated test-only
