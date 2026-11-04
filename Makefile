@@ -1516,6 +1516,12 @@ test-daimos-oom-physical-vm-v1106: check-prefix
 .PHONY: test-daimos-session-hup-dpy-mm-v1105
 .PHONY: test-daimos-session-hup-pipe-dpy-v1119
 .PHONY: test-daimos-session-hup-dpy-swap-v1121
+.PHONY: test-daimos-session-hup-pipe-swap-v1122
+test-daimos-session-hup-pipe-swap-v1122: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-session-hup-pipe-swap-v1122.sh
+
 test-daimos-session-hup-dpy-swap-v1121: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

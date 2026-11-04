@@ -1,3 +1,47 @@
+## 2026-11-04 v1122: two real failures, PIPE MM_BUSY then DISK bitmap
+
+`daimos-session-hup-pipe-swap-v1122` PASSes a full 256K PDP-6 guest
+with two independently owned resources and a single session-HUP
+teardown. The first member owns a real PIPE dynamic MM extent. Its
+first delivered HUP enters the production final FILE/PIPE close;
+a test-only MM pin makes the actual MM free return -5. The first
+session HUP fails without releasing that owner, PID, or the session.
+On the next HUP scan the first member is visited exactly once more;
+its original PIPE extent unpins and frees successfully. Only then
+does the second member reach its independently owned, real DISK
+swap record created by production `proc_swap_reclaim` in SWAP MRES.
+
+The second member's actual `backstore_verify_allocated_v795` verifier
+detects a test-corrupted allocated bit and refuses checked detach.
+The terminal slot-0 PREVM reaper retries after the recorded clock
+delay, restores precisely that physical bitmap bit, and releases
+the original backing record once. No invented DISK record, synthetic
+second-member return code, or production change is involved.
+
+The accepted boot measures first member ID=3, leader ID=2,
+PIPE calls=2/pins=1/busy=1/unpins=1/frees=1/owner errors=0,
+first-member HUP repeats=1, physical DISK swap-outs=1,
+bitmap verifier calls=2/corruptions=1/restores=1,
+swap-free calls=1/swap errors=0, and final exact DISK record=0,
+block count=0. First-member u-area pins=1/unpins=1,
+session pending=1 and final leader/member WAIT and TTY ownership
+PASS without duplicate committed HUP or premature leader WAIT.
+
+The test composes v1104 PIPE and v1107 DISK injection only in
+disposable kernel copies and explicitly uses three leader HUP
+attempts to traverse two distinct real physical refusals. The two
+original single-provider entry modes remain available unchanged.
+`P0D_FULL` and a versioned standalone Make target include v1122.
+This is a genuine PIPE+DISK bitmap combined-failure P0-D subset;
+booted MEMFS XIP, sustained simultaneous provider-liveness and the
+full P0-D/E/F enable decision remain OPEN. Production requester
+OOM remains disabled, with no production KCORE/MRES/ABI/RAM change.
+The original v1104 PIPE-only and v1107 real bitmap-only guests were
+independently rebuilt and rebooted after the v1122 generator change.
+Both PASS their original fault/retry, owner, WAIT and TTY checks;
+v1107 retains exactly two verifier calls, one deliberate bitmap
+corruption, one restore and one physical backing free.
+
 ## 2026-11-04 v1121: real DISK swap-out/in during physical DPY HUP refusal
 
 The `daimos-session-hup-dpy-swap-v1121` full 256K PDP-6 guest PASSes

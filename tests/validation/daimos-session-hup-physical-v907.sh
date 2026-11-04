@@ -10,10 +10,12 @@ pipe_hup=${DAIMOS_V1104_PIPE_HUP:-0}
 dpy_hup=${DAIMOS_V1105_DPY_HUP:-0}
 swap_hup=${DAIMOS_V1107_SWAP_HUP:-0}
 case "$pipe_hup:$dpy_hup:$swap_hup" in
-    0:0:0|1:0:0|0:1:0|0:0:1|1:1:0|0:1:1) ;;
+    0:0:0|1:0:0|0:1:0|0:0:1|1:1:0|0:1:1|1:0:1) ;;
     *) echo 'v1119: unsupported physical HUP provider combination' >&2; exit 2 ;;
 esac
-if [ "$dpy_hup" = 1 ] && [ "$swap_hup" = 1 ]; then
+if [ "$pipe_hup" = 1 ] && [ "$swap_hup" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-session-hup-pipe-swap-v1122.XXXXXX")
+elif [ "$dpy_hup" = 1 ] && [ "$swap_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-dpy-swap-v1121.XXXXXX")
 elif [ "$pipe_hup" = 1 ] && [ "$dpy_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-pipe-dpy-v1119.XXXXXX")
@@ -121,10 +123,23 @@ if sys.argv[3] == '1':
     # Do not synthesize the second HUP error: its real FILE close now
     # reaches a genuinely pinned private PIPE extent and fails -5.
     # Keep the v907 first-member pinned-uarea and committed-HUP checks.
-    patch('''daimos_test_fail_second_v907:
+    if sys.argv[5] == '1':
+        # The first HUP recipient is a distinct, still-resident PIPE
+        # owner. Arm its physical MM refusal BEFORE the first HUP.
+        # The second recipient retains a real DISK swap record; its
+        # bitmap failure is armed separately by the v1107 branch.
+        patch('''daimos_test_pin_ok_v907:
+        aos     daimos_test_pins_v907
+        jrst    daimos_test_deliver_v907''',
+              '''daimos_test_pin_ok_v907:
+        aos     daimos_test_pins_v907
+        setom   daimos_test_pipe_armed_v1104
+        jrst    daimos_test_deliver_v907''')
+    else:
+        patch('''daimos_test_fail_second_v907:
         aos     daimos_test_failures_v907
         jrst    proc_session_teardown_fail''',
-          '''daimos_test_fail_second_v907:
+              '''daimos_test_fail_second_v907:
         aos     daimos_test_failures_v907
         setom   daimos_test_pipe_armed_v1104
         jrst    daimos_test_deliver_v907''')
@@ -761,6 +776,9 @@ if [ "$pipe_hup" = 1 ]; then
     if [ "$dpy_hup" = 1 ]; then
         cflags="$cflags -DDAIMOS_V1105_DPY_HUP=1"
     fi
+    if [ "$swap_hup" = 1 ]; then
+        cflags="$cflags -DDAIMOS_V1107_SWAP_HUP=1 -DDAIMOS_V1122_PIPE_SWAP=1"
+    fi
 elif [ "$dpy_hup" = 1 ]; then
     cflags='-DDAIMOS_V1105_DPY_HUP=1'
     if [ "$swap_hup" = 1 ]; then
@@ -862,7 +880,8 @@ for line in Path(sys.argv[1]).read_text().splitlines():
 expected=dict(pins=1,unpins=1,failures=1,
               second=(0 if sys.argv[5] == '1' and sys.argv[4] != '1'
                       else 1),
-              repeats=0,pending=1,errors=0)
+              repeats=1 if sys.argv[3] == '1' and sys.argv[5] == '1' else 0,
+              pending=1,errors=0)
 for name,value in expected.items():
     if seen[name]!=value:
         raise SystemExit('v907: '+name+'='+str(seen[name])+
@@ -923,7 +942,11 @@ if seen['first']<=2 or seen['leader']<=1 or not seen['base'] or \
         'H' not in output or 'HALT' not in output or '!' in output:
     raise SystemExit('v907: guest failed\n'+output[-2000:])
 if sys.argv[5] == '1':
-    if sys.argv[4] == '1':
+    if sys.argv[3] == '1':
+        print('v1122: real first-member PIPE MM_BUSY followed by '
+              'second-member DISK bitmap refusal and exact retries '
+              'with final WAIT/TTY ownership PASS:', seen)
+    elif sys.argv[4] == '1':
         print('v1121: real physical DPY MM_BUSY with genuine DISK '
               'swap-out/swap-in, exact backing release, retained PI6 '
               'list and WAIT/TTY ownership PASS:', seen)

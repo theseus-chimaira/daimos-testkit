@@ -271,6 +271,23 @@ main(int argc, kword_t **argv)
         if (dsys_sleep(020U) != 0)
                 fail('r', 0212);
 #endif
+#ifdef DAIMOS_V1122_PIPE_SWAP
+        /* The first HUP hit the resident first-member PIPE's genuine
+         * MM_BUSY. A new HUP may now finish that owner and reach the
+         * separate DISK member's checked bitmap-detach refusal.
+         * The session must still not become waitable at this point. */
+        if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
+            SYS_EVENT_ARG((unsigned int)leader, SYS_EVENT_HUP)) != -1)
+                fail('b', 0214);
+        {
+                kword_t pending_status;
+
+                pending_status = 0UL;
+                if (dsys_wait((unsigned int)leader, &pending_status,
+                    SYS_WAIT_NOHANG) != 0)
+                        fail('c', 0215);
+        }
+#endif
 #ifdef DAIMOS_V1107_SWAP_HUP
         /* A failed DISK backing check publishes FINALIZE+PREVM and
          * is repaired through the slot-0 reaper, not by delivering

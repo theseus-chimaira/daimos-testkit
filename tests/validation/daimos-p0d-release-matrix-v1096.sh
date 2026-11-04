@@ -51,6 +51,8 @@ if [ "${P0D_FULL:-0}" = 1 ]; then
     sh "$self/daimos-session-hup-pipe-dpy-v1119.sh"
     echo 'v1121: booted Type-340 DPY MM_BUSY across DISK swap-out/restore'
     sh "$self/daimos-session-hup-dpy-swap-v1121.sh"
+    echo 'v1122: first-member PIPE MM_BUSY then second-member DISK bitmap refusal'
+    sh "$self/daimos-session-hup-pipe-swap-v1122.sh"
     echo 'v1120: booted actual numeric PID reuse after physical OOM, disabled'
     V1120_OOM_ENABLED=0 sh "$self/daimos-oom-pid-reuse-v1120.sh"
     echo 'v1120: booted actual numeric PID reuse after physical OOM, enabled'
