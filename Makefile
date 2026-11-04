@@ -1373,6 +1373,50 @@ test-daimos-fatal-exec-run-boundary-v1133: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-fatal-exec-run-boundary-v1133.sh
 
+.PHONY: test-daimos-fatal-exec-text-placement-v1134
+.PHONY: test-daimos-fatal-exec-return-state-v1135
+.PHONY: test-daimos-fatal-exec-return-break-v1136
+.PHONY: test-daimos-fatal-exec-sequential-return-v1137
+.PHONY: test-daimos-fatal-exec-discard-breaks-v1138
+.PHONY: test-daimos-fatal-exec-release-breaks-v1139
+.PHONY: test-daimos-p10fold-local-section-v1141
+test-daimos-p10fold-local-section-v1141: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 P10FOLD="$${P10FOLD:-$(PDP10_PREFIX)/bin/p10fold}" \
+	 DLINK="$${DLINK:-$(PDP10_PREFIX)/bin/dlink}" \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-p10fold-local-section-v1141.sh
+
+test-daimos-fatal-exec-release-breaks-v1139: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-release-breaks-v1139.sh
+
+test-daimos-fatal-exec-discard-breaks-v1138: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-discard-breaks-v1138.sh
+
+test-daimos-fatal-exec-sequential-return-v1137: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-sequential-return-v1137.sh
+
+test-daimos-fatal-exec-return-break-v1136: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-return-break-v1136.sh
+
+test-daimos-fatal-exec-return-state-v1135: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-return-state-v1135.sh
+
+test-daimos-fatal-exec-text-placement-v1134: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-text-placement-v1134.sh
+
 test-daimos-vm-none-idempotent-v1129: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

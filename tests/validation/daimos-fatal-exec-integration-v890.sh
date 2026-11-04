@@ -22,6 +22,47 @@ layout_probe=${DAIMOS_V1132_LAYOUT_ONLY:-0}
 case "$layout_probe" in 0|1) ;; *) echo 'v1132: invalid layout diagnostic' >&2; exit 2 ;; esac
 run_probe=${DAIMOS_V1133_RUN_ONLY:-0}
 case "$run_probe" in 0|1) ;; *) echo 'v1133: invalid RUN-only diagnostic' >&2; exit 2 ;; esac
+text_pad=${DAIMOS_V1134_TEXT_PLACEMENT:-0}
+case "$text_pad" in 0|1) ;; *) echo 'v1134: invalid text-placement diagnostic' >&2; exit 2 ;; esac
+return_snapshot=${DAIMOS_V1135_RETURN_SNAPSHOT:-0}
+case "$return_snapshot" in 0|1) ;; *) echo 'v1135: invalid return-snapshot diagnostic' >&2; exit 2 ;; esac
+break_trace=${DAIMOS_V1136_BREAK_TRACE:-0}
+case "$break_trace" in 0|1) ;; *) echo 'v1136: invalid breakpoint diagnostic' >&2; exit 2 ;; esac
+sequential_trace=${DAIMOS_V1137_SEQUENTIAL:-0}
+case "$sequential_trace" in 0|1) ;; *) echo 'v1137: invalid sequential diagnostic' >&2; exit 2 ;; esac
+discard_breaks=${DAIMOS_V1138_DISCARD_BREAKS:-0}
+case "$discard_breaks" in 0|1) ;; *) echo 'v1138: invalid discard breakpoint mode' >&2; exit 2 ;; esac
+release_breaks=${DAIMOS_V1139_RELEASE_BREAKS:-0}
+case "$release_breaks" in 0|1) ;; *) echo 'v1139: invalid release breakpoint mode' >&2; exit 2 ;; esac
+if [ "$release_breaks" = 1 ] && [ "$discard_breaks" != 1 ]; then
+    echo 'v1139: release breakpoints require discard breakpoints' >&2
+    exit 2
+fi
+if [ "$discard_breaks" = 1 ] && [ "$sequential_trace" = 1 ]; then
+    echo 'v1138: cannot combine sequential and stage breakpoints' >&2
+    exit 2
+fi
+if [ "$sequential_trace" = 1 ]; then break_trace=1; fi
+if [ "$discard_breaks" = 1 ]; then break_trace=1; fi
+if [ "$break_trace" = 1 ] && { [ "$nested" != 1 ] ||
+    [ "$return_snapshot" = 1 ] || [ "$text_pad" = 1 ] ||
+    [ "$discard_probe" = 1 ] || [ "$layout_probe" = 1 ] ||
+    [ "$run_probe" = 1 ]; }; then
+    echo 'v1136: breakpoints require otherwise uninstrumented nested guest' >&2
+    exit 2
+fi
+if [ "$return_snapshot" = 1 ] && { [ "$nested" != 1 ] ||
+    [ "$text_pad" = 1 ] || [ "$discard_probe" = 1 ] ||
+    [ "$layout_probe" = 1 ] || [ "$run_probe" = 1 ]; }; then
+    echo 'v1135: snapshot requires otherwise uninstrumented nested guest' >&2
+    exit 2
+fi
+if [ "$text_pad" = 1 ] && { [ "$nested" != 1 ] ||
+    [ "$discard_probe" = 1 ] || [ "$layout_probe" = 1 ] ||
+    [ "$run_probe" = 1 ]; }; then
+    echo 'v1134: text-placement probe requires otherwise uninstrumented nested guest' >&2
+    exit 2
+fi
 if [ "$run_probe" = 1 ] && { [ "$nested" != 1 ] ||
     [ "$discard_probe" = 1 ] || [ "$layout_probe" = 1 ]; }; then
     echo 'v1133: RUN-only probe requires otherwise uninstrumented nested guest' >&2
@@ -47,7 +88,7 @@ mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" "$stage_probe" "$discard_probe" "$layout_probe" "$run_probe" <<'PY'
+python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" "$stage_probe" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" <<'PY'
 from pathlib import Path
 import sys
 
@@ -59,6 +100,7 @@ stage_probe = sys.argv[5] == '1'
 discard_probe = sys.argv[6] == '1'
 layout_probe = sys.argv[7] == '1'
 run_probe = sys.argv[8] == '1'
+text_pad = sys.argv[9] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -551,6 +593,23 @@ if run_probe:
                  '        .globl daimos_test_run_returned_v1133\n'
                  'daimos_test_run_returned_v1133: .block 1\n')
 
+if text_pad:
+    # Move only the downstream production text: these 043 octal words
+    # are unreachable after the explicit JRST above the next label.
+    # This is diagnostic code-placement variation, NOT a proposed fix.
+    p = root / 'proc/proc_run.s'
+    anchor = ('daimos_test_run_normal_v1126:\n'
+              '        jrst    proc_run_claimed_bad\n'
+              '\n'
+              'proc_run_claimed_bad:\n')
+    assert p.read_text().count(anchor) == 1
+    p.write_text(p.read_text().replace(
+        anchor,
+        ('daimos_test_run_normal_v1126:\n'
+         '        jrst    proc_run_claimed_bad\n\n' +
+         '        .word   0\n' * 0o43 +
+         'proc_run_claimed_bad:\n'), 1))
+
 stats = [
     'owner', 'staged', 'commits', 'vm_destroy', 'load_fail',
     'vfs_fd0', 'vfs_calls', 'vfs_rejects',
@@ -654,9 +713,150 @@ if [ "$run_probe" = 1 ]; then
         printf '%s %s\n' "runprobe_$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$return_snapshot" = 1 ]; then
+    # Simulator-only snapshots; unlike source instrumentation these do
+    # not change KCORE text, data or the actual syscall return path.
+    for name in mach_invalid_uuo_pc mach_invalid_uuo_word \
+                mach_syscall_save mach_user_sp mach_kernel_sp \
+                proc_current_slot proc_current_ptr proc_table; do
+        addr=$(awk -v s="$name" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1135: missing $name" >&2; exit 1; }
+        printf '%s %s\n' "v1135_$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
+if [ "$break_trace" = 1 ]; then
+    # Two one-shot SIMH execution breakpoints on unchanged production
+    # instructions. The second address is three words after the
+    # exported claimed_bad entry in the verified compact RUN epilogue.
+    claimed=$(awk '$1 == "proc_run_claimed_bad" {print $2; exit}' "$map")
+    release=$(awk '$1 == "vm_user_mapping_release" {print $2; exit}' "$map")
+    save=$(awk '$1 == "mach_syscall_save" {print $2; exit}' "$map")
+    user_sp=$(awk '$1 == "mach_user_sp" {print $2; exit}' "$map")
+    kern_sp=$(awk '$1 == "mach_kernel_sp" {print $2; exit}' "$map")
+    slot=$(awk '$1 == "proc_current_slot" {print $2; exit}' "$map")
+    test -n "$claimed" && test -n "$release" && test -n "$save" &&
+        test -n "$user_sp" && test -n "$kern_sp" && test -n "$slot"
+    awk -v c="$claimed" -v f="$work/claimed-return-v1136" '
+      BEGIN { n=0; for (i=1;i<=length(c);i++) n=n*8+index("01234567",substr(c,i,1))-1;
+              printf "%o\n",n+3 > f }'
+    return_pc=$(cat "$work/claimed-return-v1136")
+    # Reinsert the breakpoint commands before the boot instruction;
+    # all address values come from this fresh, linked guest's map.
+    if [ "$discard_breaks" = 1 ]; then
+        # Reassemble for local-label listings only. Neither object is
+        # linked into the guest: the running image is byte-identical.
+        { echo '.set PROC_STACK_WATERMARK,0';
+          echo '.set KINIT_STACK_WATERMARK,0';
+          cat "$work/source/system/kernel/proc/proc_pdp6.s";
+        } > "$work/proc-pdp6-v1138.s"
+        { echo '.set PROC_STACK_WATERMARK,0';
+          cat "$work/source/system/kernel/proc/proc_run.s";
+        } > "$work/proc-run-v1138.s"
+        "$das" -F -C -L "$work/proc-pdp6-v1138.labels" \
+            -O "$work/proc-pdp6-v1138.dobj" "$work/proc-pdp6-v1138.s"
+        "$das" -F -C -L "$work/proc-run-v1138.labels" \
+            -O "$work/proc-run-v1138.dobj" "$work/proc-run-v1138.s"
+        python3 - "$boot" "$map" "$work/proc-pdp6-v1138.labels" \
+            "$work/proc-run-v1138.labels" "$work/trace-labels-v1138" \
+            "$release_breaks" <<'PY'
+from pathlib import Path
+import sys
+
+boot, map_path, proc_path, run_path, report = map(Path, sys.argv[1:6])
+release_breaks = sys.argv[6] == '1'
+
+def symbols(path):
+    pairs = (line.split() for line in path.read_text().splitlines())
+    return {parts[0]: int(parts[1], 8) for parts in pairs
+            if len(parts) == 2 and all(c in '01234567' for c in parts[1])}
+
+linked = symbols(map_path)
+proc, run = symbols(proc_path), symbols(run_path)
+folds = {}
+for line in map_path.with_name('kcore.fold').read_text().splitlines():
+    fields = line.split('\t')
+    if len(fields) == 6 and fields[0] == 'FOLD':
+        name = Path(fields[1]).name
+        folds.setdefault(name, []).append((int(fields[2], 8),
+                                            int(fields[5], 8)))
+
+def final_address(labels, anchor, obj):
+    start = labels[anchor]
+    base = linked[anchor]
+    segments = folds.get(obj, [])
+    def removed_before(off):
+        return sum(count for first, count in segments if first < off)
+    def translate(label):
+        off = labels[label]
+        # A folded-away local label has no instruction to break on.
+        if any(first <= off < first + count for first, count in segments):
+            return None
+        return (base + off - start - removed_before(off) +
+                removed_before(start))
+    return translate
+
+proc_address = final_address(proc, 'proc_slot_discard', 'proc_pdp6.dobj')
+run_address = final_address(run, 'proc_run_block', 'proc_run.dobj')
+assert proc_address('proc_uarea_release') == linked['proc_uarea_release']
+assert run_address('proc_run_claimed_bad') == linked['proc_run_claimed_bad']
+proc_stages = ('proc_slot_discard', 'proc_discard_new_v892',
+               'proc_discard_live', 'proc_discard_vm_retry_v894',
+               'proc_discard_prevm_fail_v1085', 'proc_discard_vm_done',
+               'proc_discard_retry_uarea_v892',
+               'proc_discard_defer_uarea_v892', 'proc_discard_ok',
+               'proc_discard_fail', 'proc_discard_return',
+               'proc_uarea_release')
+if release_breaks:
+    proc_stages += ('proc_uarea_release_fail',
+                    'proc_uarea_release_invalid_v1097',
+                    'proc_runq_remove', 'proc_trim_high')
+run_stages = ('proc_run_claimed_bad', 'proc_run_return')
+stages = [(name, proc_address(name)) for name in proc_stages]
+stages += [(name, run_address(name)) for name in run_stages]
+if release_breaks:
+    stages += [('mm_free', linked['mm_free'])]
+    # The first instruction following PUSHJ 17,mm_free in this source.
+    stages += [('proc_uarea_mm_return_v1140',
+                proc_address('proc_uarea_release') + 0o14)]
+folded_out = [name for name, addr in stages if addr is None]
+stages = [(name, addr) for name, addr in stages if addr is not None]
+sample = ';'.join('examine %s' % name for name in
+                  ('PC', '17', '1', '2', '10', '11', '12', '13',
+                   '14', '15', '%o' % linked['mach_syscall_save'],
+                   '%o' % linked['mach_user_sp'],
+                   '%o' % linked['mach_kernel_sp'],
+                   '%o' % linked['proc_current_slot']))
+script = ''.join('break %o;%s;go\n' % (addr, sample)
+                 for name, addr in stages)
+original = boot.read_text()
+assert original.count('go 020\n') == 1
+boot.write_text(original.replace('go 020\n', script + 'go 020\n', 1))
+report.write_text(''.join('%s %06o\n' % (name, addr)
+                          for name, addr in stages))
+print('v1138: folded local labels not used as breakpoints:', folded_out)
+PY
+    elif [ "$sequential_trace" = 1 ]; then
+        python3 - "$boot" "$claimed" "$return_pc" "$save" \
+            "$user_sp" "$kern_sp" "$slot" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+claimed, returned, save, user, kernel, slot = sys.argv[2:]
+original = p.read_text()
+assert original.count('go 020\n') == 1
+sample = ''.join('examine %s\n' % name for name in
+                 ('PC', '17', save, user, kernel, slot))
+script = ('break %s\ngo 020\n' % claimed + sample +
+          'break %s\ngo\n' % returned + sample)
+p.write_text(original.replace('go 020\n', script, 1))
+PY
+    else
+        sed -i "/^go 020$/i break $claimed;examine PC;examine 17;examine $save;examine $user_sp;examine $kern_sp;examine $slot;go\nbreak $return_pc;examine PC;examine 17;examine $save;examine $user_sp;examine $kern_sp;examine $slot;go" "$boot"
+    fi
+fi
 while read -r name addr; do
     printf 'examine %s\n' "$addr" >> "$boot"
 done < "$work/addresses"
@@ -676,7 +876,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v890: SIMH failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" "$discard_probe" "$layout_probe" "$run_probe" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$return_snapshot" "$break_trace" "$sequential_trace" "${claimed:-}" "${return_pc:-}" "$discard_breaks" "$work/trace-labels-v1138" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -687,6 +887,11 @@ diagnostic = sys.argv[4] == '1'
 discard_probe = sys.argv[5] == '1'
 layout_probe = sys.argv[6] == '1'
 run_probe = sys.argv[7] == '1'
+text_pad = sys.argv[8] == '1'
+return_snapshot = sys.argv[9] == '1'
+break_trace = sys.argv[10] == '1'
+sequential_trace = sys.argv[11] == '1'
+discard_breaks = sys.argv[14] == '1'
 counts = {}
 for line in names:
     name, address = line.split()
@@ -698,6 +903,61 @@ for line in names:
                          ': ' + output[-1600:])
     counts[name] = int(matches[-1], 8)
 print('v890 real EXEC post-VM/FILE fault counters:', counts)
+if break_trace:
+    captures = [line for line in output.splitlines() if line.startswith('PC:')]
+    print('v1136: simulator breakpoint PC captures: ' + repr(captures))
+    if counts['late_run'] != 1 or 'HALT' not in output:
+        raise SystemExit('v1136: late RUN/capture terminal state missing')
+    if discard_breaks:
+        trace = dict(line.split() for line in Path(sys.argv[15]).read_text().splitlines())
+        reverse = {int(addr, 8): name for name, addr in trace.items()}
+        pcs = [int(re.search(r'PC:\s*([0-7]+)', line).group(1), 8)
+               for line in captures]
+        visited = [reverse.get(pc, 'unexpected_%o' % pc) for pc in pcs]
+        print('v1138: native rollback stage visits: ' + ','.join(visited))
+        if 'proc_run_claimed_bad' not in visited or \
+                'proc_slot_discard' not in visited:
+            raise SystemExit('v1138: claimed RUN/real discard not visited')
+        print('v1138: simulator-only unchanged kernel diagnostic; D13 OPEN')
+        raise SystemExit(0)
+    if sequential_trace:
+        if len(captures) != 2:
+            raise SystemExit('v1137: expected exactly two PC samples: ' + repr(captures))
+        import re
+        pcs = [int(re.search(r'PC:\s*([0-7]+)', line).group(1), 8)
+               for line in captures]
+        expected_claimed, expected_return = (int(sys.argv[i], 8)
+                                               for i in (12, 13))
+        if pcs[0] != expected_claimed:
+            raise SystemExit('v1137: first breakpoint missed claimed child')
+        if pcs[1] == expected_return:
+            print('v1137: late discard returned to RUN epilogue; diagnostic only')
+        elif pcs[1] == 0 and 'UUO 000000000014' in output:
+            print('v1137: late discard did NOT return; next sample is HALT PC=0')
+        else:
+            raise SystemExit('v1137: unexpected second PC %o, expected %o' %
+                             (pcs[1], expected_return))
+    print('v1136: breakpoint-only diagnostic; D13 NOT ACCEPTED')
+    raise SystemExit(0)
+if return_snapshot:
+    names = ('mach_invalid_uuo_pc', 'mach_invalid_uuo_word',
+             'mach_syscall_save', 'mach_user_sp', 'mach_kernel_sp',
+             'proc_current_slot', 'proc_current_ptr', 'proc_table')
+    print('v1135: simulator-only return state: ' +
+          ', '.join('%s=%012o' % (n, counts['v1135_' + n])
+                    for n in names))
+    if counts['late_run'] != 1 or 'HALT' not in output:
+        raise SystemExit('v1135: RUN rejection/terminal capture missing')
+    print('v1135: return-state snapshot only; D13 NOT ACCEPTED')
+    raise SystemExit(0)
+if text_pad:
+    if 'HALT' not in output or counts['late_run'] != 1:
+        raise SystemExit('v1134: invalid text-placement snapshot: ' + str(counts))
+    print('v1134: text-placement-only diagnostic: markers=%s ZOMB=%d' %
+          ('<EARH' if '<EARH' in output else '<EA/no-complete-RUN',
+           counts['finish_zombie']))
+    print('v1134: code placement diagnostic only; D13 NOT ACCEPTED')
+    raise SystemExit(0)
 if run_probe:
     if 'HALT' not in output or counts['late_run'] != 1:
         raise SystemExit('v1133: no late RUN boundary: ' + str(counts))

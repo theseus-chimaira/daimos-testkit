@@ -1,3 +1,47 @@
+## 2026-11-04 v1141: cross-object local relocation fold fix
+
+The corrected installed PDP10-TOOLS `p10fold` and `dlink` prevent an
+unsafe cross-object LOCAL TEXT alias: equal numerical section addends
+outside a folded block belong to different objects and are not equal.
+The new `test-daimos-p10fold-local-section-v1141` passes with both
+corrected tool source trees. Old P10FOLD proposes the invalid fold,
+and old DLINK accepts the injected invalid fold; both are detected by
+the regression. Corrected DLINK rejects it before linking.
+
+The formerly failing full 256K PDP-6 nested APR/EXEC/failed-RUN guest
+now PASSes *uninstrumented*: FILE refusal/retry, late unpublished RUN
+rollback, parent continuation/WAIT, `finish_zombie=1`, `error=0`.
+The historical uninstrumented v890 EXEC/FILE/WAIT guest, native v1129
+VM_NONE sentinel test and independently rebuilt v197 RUN rollback
+(16 rejected post-VM fd maps, three live children) also PASS. The
+second freshly rebuilt, uninstrumented nested v1126 guest independently
+PASSes with the same late RUN, parent WAIT and exact terminal ZOMB.
+The unsafe fold of `proc_discard_ok` into syscall-dispatch TEXT is absent
+from the corrected production link. There was no DAIMOS source change
+or OOM policy change. Physical MM_BUSY RUN rollback and remaining
+activation signoff remain separate.
+
+## 2026-11-04 v1140: D13 timing-sensitive MM-return trace
+
+A fresh unchanged-production 256K guest with expanded simulator-only
+breakpoints reached `mm_free` return, `proc_discard_ok`, child rollback
+return, RUN epilogue and EXEC ZOMB=1. The previous narrower v1138
+breakpoint set reached u-area release but then trapped with ZOMB=0.
+This outcome difference is debugger-sensitive and is not D13 release
+acceptance. Preserve the failing uninstrumented guest as the control;
+the production OOM switch remains disabled.
+
+## 2026-11-04 v1138: stage-only nested RUN rollback diagnostic
+
+The disposable 256K PDP-6 v1138 guest was built with unchanged
+production source. Simulator execution breakpoints trace the late
+claimed-child rollback through VM completion and child u-area-release
+entry. The same failed RUN does not reach its return epilogue before
+invalid UUO; later u-area-release visits for slots 1 and 2 are
+post-trap activity. This is a diagnostic PASS, not D13 acceptance.
+Next inspect the MM-free return and parent-stack state immediately
+around child u-area release. Production requester OOM remains OFF.
+
 ## 2026-11-04 v1130-v1133: D13 RUN rollback boundary isolation
 
 The v1129 production VM_NONE fix is independently boot-verified by the
