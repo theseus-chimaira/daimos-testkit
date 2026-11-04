@@ -1,3 +1,48 @@
+## 2026-11-04 v1121: real DISK swap-out/in during physical DPY HUP refusal
+
+The `daimos-session-hup-dpy-swap-v1121` full 256K PDP-6 guest PASSes
+one new combined resource-lifecycle scenario. The second session
+member first publishes a real Type-340 display list; a test-only
+production `proc_swap_reclaim` call then swaps that exact slot out
+to real DISK backing. Its first HUP attempts private DPY final-close
+and physically pins the exact MM raw-list extent, returning the real
+MM_BUSY (-5). Private FILE-close retry restores the original process
+from DISK using the genuine SWAP MRES `proc_swap_in` path and then
+unpins/releases the display extent on a later HUP continuation.
+
+An initial guest reached clean HALT and all physical DPY counters
+but failed the old swap-only expectation `second=0`: DPY refusal
+legitimately delayed terminal finalization, causing one later
+second-member HUP attempt. The recorded swap bitmap verifier count
+was zero; assuming an actual DISK detach refusal here would be
+incorrect. The revised v1121 fixture therefore records real SWAP
+MRES restore entry and successful return into KCORE-owned test-only
+words, and requires exactly one successful restore, zero direct
+bitmap-verifier invocations, one backing free and final zero backing
+record/block count. The original v1107 bitmap-failure path remains
+separately asserted in its original mode, unchanged.
+
+The corrected guest PASSes: one genuine swap-out and one genuine
+swap-in, DPY calls=2, pin=1, MM_BUSY=1, unpin=1, free=1, errors=0,
+118 PI6 display refreshes (90 while held after busy), leader/member
+WAIT/TTY success, first-member u-area pin/unpin, one second-member
+HUP retry, no repeated first-member delivery, zero swap errors,
+one backing free and no retained DISK record or blocks. All test-only
+instrumentation lives in disposable kernel and SWAP MRES copies.
+
+This is valid integration of physical DPY release with swap-out and
+swap-in in one process, NOT simultaneous DPY MM_BUSY and bitmap
+detachment failure. The latter requires an owner/lifecycle capable
+of retaining a DISK record at the point of actual checked detach;
+physical MEMFS XIP integration and wider P0-D/E/F remain OPEN.
+Production code, MRES footprint, ABI and default OOM state are
+unchanged. New Make and optional P0D_FULL rows run this regression.
+The unmodified v1107 swap-only full 256K PDP-6 compatibility guest
+was independently rebuilt and rerun after v1121: PASS with two real
+bitmap-verifier calls, one deliberate bitmap corruption, one exact
+restore and backing free, no duplicate member-HUP delivery, and zero
+terminal DISK record/blocks. The new mode does not weaken v1107.
+
 ## 2026-11-04 v1120: full guest numeric PID reuse after real physical OOM
 
 Two independent disposable 256K PDP-6 images PASS the new

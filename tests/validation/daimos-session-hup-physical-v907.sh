@@ -10,10 +10,12 @@ pipe_hup=${DAIMOS_V1104_PIPE_HUP:-0}
 dpy_hup=${DAIMOS_V1105_DPY_HUP:-0}
 swap_hup=${DAIMOS_V1107_SWAP_HUP:-0}
 case "$pipe_hup:$dpy_hup:$swap_hup" in
-    0:0:0|1:0:0|0:1:0|0:0:1|1:1:0) ;;
+    0:0:0|1:0:0|0:1:0|0:0:1|1:1:0|0:1:1) ;;
     *) echo 'v1119: unsupported physical HUP provider combination' >&2; exit 2 ;;
 esac
-if [ "$pipe_hup" = 1 ] && [ "$dpy_hup" = 1 ]; then
+if [ "$dpy_hup" = 1 ] && [ "$swap_hup" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-session-hup-dpy-swap-v1121.XXXXXX")
+elif [ "$pipe_hup" = 1 ] && [ "$dpy_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-pipe-dpy-v1119.XXXXXX")
 elif [ "$swap_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-swap-v1107.XXXXXX")
@@ -130,7 +132,12 @@ if sys.argv[4] == '1':
     # Unlike v907's synthetic refusal, the second HUP really closes
     # the published Type-340 raw list. An MM pin will reject its first
     # release while the previously finalized first member remains held.
-    if sys.argv[3] == '1':
+    if sys.argv[5] == '1':
+        # The swap branch must first complete a genuine backing write,
+        # then arm the DPY MM fault before delivering member HUP.
+        # Keep the original second-member HUP injection for swap.
+        pass
+    elif sys.argv[3] == '1':
         # Both private MM owners are live at the same session-member HUP.
         # Arm the separate hooks before the original event dispatcher.
         patch('''        setom   daimos_test_pipe_armed_v1104
@@ -204,6 +211,15 @@ daimos_test_swap_slot_done_v1107:
         ; Slot 0 may have completed the PREVM retry before this later
         ; HUP scan. Ownership before repair is checked inside the
         ; actual bitmap verifier, not here after possible commit.
+        jrst    daimos_test_deliver_v907''')
+    if sys.argv[4] == '1':
+        # The DPY owner is independent of the member's DISK record.
+        # Both faults must be armed for the same actual member HUP,
+        # but only AFTER swap-out has successfully published its record.
+        patch('''        setom   daimos_test_swap_armed_v1107
+        jrst    daimos_test_deliver_v907''',
+              '''        setom   daimos_test_swap_armed_v1107
+        setom   daimos_test_dpy_armed_v1105
         jrst    daimos_test_deliver_v907''')
     patch('''proc_session_teardown_commit_v875:
         skipn   daimos_test_first_v907''',
@@ -332,8 +348,55 @@ daimos_test_swap_commit_blocks_v1107: .block 1
         .globl daimos_test_swap_commit_record_v1107
 daimos_test_swap_commit_record_v1107: .block 1
 '''
+    if sys.argv[4] == '1':
+        # The DPY owner can force a swapped process back into core to
+        # execute its private FILE-close continuation. Count the real
+        # SWAP MRES restore rather than infer it from bitmap activity.
+        source += '''
+        .bss
+        .globl daimos_test_swap_in_calls_v1121
+daimos_test_swap_in_calls_v1121: .block 1
+        .globl daimos_test_swap_in_ok_v1121
+daimos_test_swap_in_ok_v1121: .block 1
+'''
 path.write_text(source)
 PY
+if [ "$swap_hup" = 1 ] && [ "$dpy_hup" = 1 ]; then
+    python3 - "$work/source/system/kernel/proc/proc_swap_pdp6.s" <<'PY'
+from pathlib import Path
+import sys
+
+p = Path(sys.argv[1])
+source = p.read_text()
+def patch(old, new):
+    global source
+    if source.count(old) != 1:
+        raise SystemExit('v1121: nonunique production SWAP anchor')
+    source = source.replace(old, new, 1)
+
+patch('''proc_swap_in:
+        add     17,kconst_7_7''',
+      '''proc_swap_in:
+        caie    1,4                  ; exact second session member
+        jrst    daimos_test_swap_in_other_v1121
+        aos     daimos_test_swap_in_calls_v1121
+daimos_test_swap_in_other_v1121:
+        add     17,kconst_7_7''')
+patch('''proc_swap_in_restore:
+        movei   0,10''',
+      '''proc_swap_in_restore:
+        caie    10,4
+        jrst    daimos_test_swap_in_return_v1121
+        jumpn   1,daimos_test_swap_in_return_v1121
+        aos     daimos_test_swap_in_ok_v1121
+daimos_test_swap_in_return_v1121:
+        movei   0,10''')
+source = ('''        .globl daimos_test_swap_in_calls_v1121
+        .globl daimos_test_swap_in_ok_v1121
+''' + source)
+p.write_text(source)
+PY
+fi
 if [ "$swap_hup" = 1 ]; then
     python3 - "$work/source/system/kernel/storage/backstore.s" <<'PY'
 from pathlib import Path
@@ -700,6 +763,9 @@ if [ "$pipe_hup" = 1 ]; then
     fi
 elif [ "$dpy_hup" = 1 ]; then
     cflags='-DDAIMOS_V1105_DPY_HUP=1'
+    if [ "$swap_hup" = 1 ]; then
+        cflags="$cflags -DDAIMOS_V1107_SWAP_HUP=1"
+    fi
 elif [ "$swap_hup" = 1 ]; then
     cflags='-DDAIMOS_V1107_SWAP_HUP=1'
 else
@@ -755,6 +821,14 @@ if [ "$swap_hup" = 1 ]; then
         printf 'swap_%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$swap_hup" = 1 ] && [ "$dpy_hup" = 1 ]; then
+    for name in calls ok; do
+        sym="daimos_test_swap_in_${name}_v1121"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1121: missing $sym" >&2; exit 1; }
+        printf 'swap_in_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
@@ -786,7 +860,8 @@ for line in Path(sys.argv[1]).read_text().splitlines():
         raise SystemExit('v907: missing sample '+name+'\n'+output[-1500:])
     seen[name]=int(values[-1],8)
 expected=dict(pins=1,unpins=1,failures=1,
-              second=0 if sys.argv[5] == '1' else 1,
+              second=(0 if sys.argv[5] == '1' and sys.argv[4] != '1'
+                      else 1),
               repeats=0,pending=1,errors=0)
 for name,value in expected.items():
     if seen[name]!=value:
@@ -813,17 +888,27 @@ if sys.argv[4] == '1':
         raise SystemExit('v1105: DPY raw PI6 replay/owner failed: '+
                          str(seen)+'\n'+output[-1800:])
 if sys.argv[5] == '1':
-    # The slot-0 PREVM reaper finalizes the DISK owner before leader
-    # retry; the next HUP scan correctly skips the terminal member.
-    for name, value in dict(swap_select=0, swap_result=0,
-                            swap_select_calls=1, swap_armed=(1 << 36)-1,
-                            swap_outs=1,swap_free_calls=1,swap_errors=0,
-                            swap_verify=2,swap_corrupt=1,
-                            swap_restores=1).items():
+    mixed_restore = sys.argv[4] == '1'
+    # In v1107 alone, the terminal DISK owner is finalized by slot 0.
+    # With an earlier physical DPY FILE-close refusal, its owning
+    # process instead runs a real swap-in before finishing private
+    # FILE close. The DISK bitmap verifier may not be injected on that
+    # path, so require actual SWAP MRES restoration counters instead.
+    required=dict(swap_select=0, swap_result=0,
+                  swap_select_calls=1, swap_armed=(1 << 36)-1,
+                  swap_outs=1,swap_free_calls=1,swap_errors=0)
+    if mixed_restore:
+        required.update(swap_in_calls=1,swap_in_ok=1,
+                        swap_verify=0,swap_corrupt=0,swap_restores=0,
+                        swap_bitmap_addr=0,swap_bitmap_saved=0)
+    else:
+        required.update(swap_verify=2,swap_corrupt=1,swap_restores=1)
+    for name, value in required.items():
         if seen[name] != value:
-            raise SystemExit('v1107: '+name+'='+str(seen[name])+
+            raise SystemExit('v1121/v1107: '+name+'='+str(seen[name])+
                              ' expected '+str(value)+'\n'+output[-2300:])
-    if not seen['swap_record'] or not seen['swap_bitmap_addr']:
+    if not seen['swap_record'] or (
+            not mixed_restore and not seen['swap_bitmap_addr']):
         raise SystemExit('v1107: no real disk backing owner')
     if seen['swap_commits'] < 1 or seen['swap_reaper'] < 1 or \
             seen['swap_mark'] < 1:
@@ -838,8 +923,13 @@ if seen['first']<=2 or seen['leader']<=1 or not seen['base'] or \
         'H' not in output or 'HALT' not in output or '!' in output:
     raise SystemExit('v907: guest failed\n'+output[-2000:])
 if sys.argv[5] == '1':
-    print('v1107: real swap-out, physical bitmap verifier refusal, '
-          'record/WAIT retention and exact repair/free HUP PASS:',seen)
+    if sys.argv[4] == '1':
+        print('v1121: real physical DPY MM_BUSY with genuine DISK '
+              'swap-out/swap-in, exact backing release, retained PI6 '
+              'list and WAIT/TTY ownership PASS:', seen)
+    else:
+        print('v1107: real swap-out, physical bitmap verifier refusal, '
+              'record/WAIT retention and exact repair/free HUP PASS:',seen)
 elif sys.argv[3] == '1' and sys.argv[4] == '1':
     print('v1119: combined physical PIPE/DPY HUP MM release retry, '
           'display PI6 and final WAIT/TTY ownership PASS:',seen)
