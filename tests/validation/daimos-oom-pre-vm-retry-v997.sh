@@ -14,18 +14,21 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 work=$(mktemp -d "$TMPDIR/daimos-oom-pre-vm-retry-v997.XXXXXX")
 integrated=${DAIMOS_V1103_MULTISTAGE:-0}
 case "$integrated" in 0|1) ;; *) echo 'v1103: invalid stage selector' >&2; exit 2 ;; esac
+physical_vm=${DAIMOS_V1106_PHYSICAL_VM:-0}
+case "$physical_vm" in 0|1) ;; *) echo 'v1106: invalid VM selector' >&2; exit 2 ;; esac
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 printf 'v924: isolated work %s\n' "$work"
 mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" "$integrated" <<'PY'
+python3 - "$work/source/system/kernel" "$integrated" "$physical_vm" <<'PY'
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
 integrated = sys.argv[2] == '1'
+physical_vm = sys.argv[3] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -232,6 +235,76 @@ p.write_text(p.read_text() + """
         .globl daimos_test_vm_calls_v937
 daimos_test_vm_calls_v937: .block 1
 """)
+if physical_vm:
+    # Use the *actual* process VM extent and the original MM allocator.
+    # A physical pin on the first fatal VM attempt must yield -5, not a
+    # fabricated failure before the VM cleanup path. Slot-0's second
+    # attempt unpins the same base, allowing one true MM deletion and
+    # one real swap-detach/VM_NONE publication.
+    patch('proc/vm_pdp6.s',
+          '''        caie    0,1
+        jrst    daimos_test_vm_other_v937
+        ; Synthetic first VM rejection before any MM deletion.
+        ; The live process has already left its private kernel stack.
+        seto    1,
+        popj    17,
+daimos_test_vm_other_v937:''',
+          '''        caie    0,1
+        jrst    daimos_test_vm_second_v1106
+        push    17,1
+        push    17,2
+        hrrz    1,1(1)               ; live VM base, not u-area
+        movem   1,daimos_test_vm_base_v1106
+        jumpe   1,daimos_test_vm_pin_bad_v1106
+        pushj   17,mm_pin
+        jumpn   1,daimos_test_vm_pin_bad_v1106
+        aos     daimos_test_vm_pins_v1106
+        jrst    daimos_test_vm_restore_v1106
+daimos_test_vm_pin_bad_v1106:
+        aos     daimos_test_vm_errors_v1106
+        jrst    daimos_test_vm_restore_v1106
+daimos_test_vm_second_v1106:
+        caie    0,2
+        jrst    daimos_test_vm_other_v937
+        push    17,1
+        push    17,2
+        move    1,daimos_test_vm_base_v1106
+        jumpe   1,daimos_test_vm_unpin_bad_v1106
+        pushj   17,mm_unpin
+        jumpn   1,daimos_test_vm_unpin_bad_v1106
+        aos     daimos_test_vm_unpins_v1106
+        jrst    daimos_test_vm_restore_v1106
+daimos_test_vm_unpin_bad_v1106:
+        aos     daimos_test_vm_errors_v1106
+daimos_test_vm_restore_v1106:
+        pop     17,2
+        pop     17,1
+        jrst    daimos_test_vm_other_v937
+daimos_test_vm_other_v937:''')
+    patch('proc/vm_pdp6.s',
+          '''vm_space_destroy_detach:
+        move    1,(17)''',
+          '''vm_space_destroy_detach:
+        move    0,(17)
+        caie    0,5
+        jrst    daimos_test_vm_detach_other_v1106
+        aos     daimos_test_vm_detach_v1106
+daimos_test_vm_detach_other_v1106:
+        move    1,(17)''')
+    p = root / 'proc/vm_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_vm_base_v1106
+daimos_test_vm_base_v1106: .block 1
+        .globl daimos_test_vm_pins_v1106
+daimos_test_vm_pins_v1106: .block 1
+        .globl daimos_test_vm_unpins_v1106
+daimos_test_vm_unpins_v1106: .block 1
+        .globl daimos_test_vm_errors_v1106
+daimos_test_vm_errors_v1106: .block 1
+        .globl daimos_test_vm_detach_v1106
+daimos_test_vm_detach_v1106: .block 1
+''')
 patch('proc/proc_pdp6.s',
       """proc_uarea_release:
         hrrz    3,(2)""",
@@ -275,6 +348,51 @@ daimos_test_mm_calls_v939: .block 1
         .globl daimos_test_mm_refusals_v939
 daimos_test_mm_refusals_v939: .block 1
 """)
+if physical_vm:
+    patch('mm/mm_pdp6.s',
+          '''mm_free:
+        caie    2,3''',
+          '''mm_free:
+        caie    2,1                   ; MM_TYPE_PROCESS
+        jrst    daimos_test_vm_mm_other_v1106
+        caie    3,5                   ; exact dying slot-5 VM owner
+        jrst    daimos_test_vm_mm_other_v1106
+        move    0,daimos_test_vm_base_v1106
+        came    0,1
+        jrst    daimos_test_vm_mm_other_v1106
+        aos     daimos_test_vm_mm_calls_v1106
+daimos_test_vm_mm_other_v1106:
+        caie    2,3''')
+    patch('mm/mm_pdp6.s',
+          '''mm_free_busy:
+        movni   1,5''',
+          '''mm_free_busy:
+        move    4,daimos_test_vm_base_v1106
+        camn    4,5
+        aos     daimos_test_vm_mm_busy_v1106
+        movni   1,5''')
+    patch('mm/mm_pdp6.s',
+          '''        pushj   17,mm_delete
+        setz    1,
+        popj    17,
+mm_free_inval:''',
+          '''        move    4,daimos_test_vm_base_v1106
+        camn    4,5
+        aos     daimos_test_vm_mm_frees_v1106
+        pushj   17,mm_delete
+        setz    1,
+        popj    17,
+mm_free_inval:''')
+    p = root / 'mm/mm_pdp6.s'
+    p.write_text(p.read_text() + '''
+        .bss
+        .globl daimos_test_vm_mm_calls_v1106
+daimos_test_vm_mm_calls_v1106: .block 1
+        .globl daimos_test_vm_mm_busy_v1106
+daimos_test_vm_mm_busy_v1106: .block 1
+        .globl daimos_test_vm_mm_frees_v1106
+daimos_test_vm_mm_frees_v1106: .block 1
+''')
 if integrated:
     # The final C-child PIPE read descriptor owns an MM dynamic extent
     # with the normal PIPE owner 5. Only the first physical free is
@@ -472,6 +590,14 @@ if [ "$integrated" = 1 ]; then
         printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$physical_vm" = 1 ]; then
+    for name in base pins unpins errors detach mm_calls mm_busy mm_frees; do
+        sym="daimos_test_vm_${name}_v1106"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1106: missing $sym" >&2; exit 1; }
+        printf 'vm_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 sym=daimos_test_fatal_count_v924
 addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
 test -n "$addr" || { echo "v924: missing fatal counter" >&2; exit 1; }
@@ -498,12 +624,13 @@ if [ "$rc" -ne 0 ]; then
     echo "v924: simulator failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$integrated" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$integrated" "$physical_vm" <<'PY'
 from pathlib import Path
 import re
 import sys
 out = Path(sys.argv[2]).read_text(errors='replace')
 integrated = sys.argv[3] == '1'
+physical_vm = sys.argv[4] == '1'
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
@@ -536,5 +663,18 @@ if integrated:
                          str(seen)+'\n'+out[-2300:])
     print('v1103: real PIPE MM_BUSY, injected HUP refusal, VM and u-area '
           'retries, held provider, CHLD and bystander PASS:', seen)
+if physical_vm:
+    for name, expected in dict(vm_pins=1, vm_unpins=1,
+                               vm_mm_calls=2, vm_mm_busy=1,
+                               vm_mm_frees=1, vm_detach=1,
+                               vm_errors=0).items():
+        if seen[name] != expected:
+            raise SystemExit('v1106: '+name+'='+str(seen[name])+
+                             ' expected '+str(expected)+'\n'+out[-2500:])
+    if not seen['vm_base']:
+        raise SystemExit('v1106: no real process VM base recorded')
+    print('v1106: physical VM pin/MM_BUSY, actual MM release and '
+          'one swap detach, uarea retry, foreign provider, CHLD, '
+          'bystander PASS:', seen)
 print('v997: pre-VM refusal then post-VM u-area retry PASS:', seen)
 PY
