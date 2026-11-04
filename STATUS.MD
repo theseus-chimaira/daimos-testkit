@@ -1,3 +1,14 @@
+## 2026-11-04 v1108: real MM refusal and repair of MEMFS-owned XIP
+
+`daimos-xip-physical-retry-v1108` reuses the real v1086 source-linked
+MEMFS direct-provider dispatch and MM leaves. With an owned XIP ref
+but zero physical MM pins, the first release returns -4 and retains
+the ref, original extent and foreign provider lease. Production
+`mm_pin` repairs the extent; a second release consumes the ref and
+unpins once, and a third reports no remaining XIP owner. No provider
+clock wait occurs. Baseline v1086 and existing v1094 fault/mutation
+tests PASS. This native test does not close the booted XIP/VM P0-D gate.
+
 ## 2026-11-03 v1087: transitive fatal-release P0-A CLOSED
 
 The new source-linked `daimos-oom-transitive-release-v1087.py` follows

@@ -1385,6 +1385,12 @@ test-daimos-xip-release-stage-v1094: check-prefix
 	 sh tests/validation/daimos-xip-release-stage-v1094.sh
 
 .PHONY: test-daimos-p0d-release-matrix-v1096
+.PHONY: test-daimos-xip-physical-retry-v1108
+test-daimos-xip-physical-retry-v1108: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-xip-physical-retry-v1108.sh
+
 .PHONY: test-daimos-reaper-sidl-runq-v1107
 test-daimos-reaper-sidl-runq-v1107: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

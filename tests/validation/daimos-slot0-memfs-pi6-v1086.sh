@@ -10,7 +10,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 
 {
     printf '.text\n.globl fs_provider_reg_call\n.globl memfs_mres_xip_release\n'
-    printf '.globl memfs_mres_reg_dispatch\n'
+    printf '.globl memfs_mres_reg_dispatch\n.globl mm_pin\n'
     printf '.equ MEMFS_NODE_DATA,6\n.equ MEMFS_XIP_SLOTS,4\n'
     printf '.equ MM_PIN_FIELD,03770000000\n.equ MM_PIN_ONE,010000000\n'
     sed -n '/^fs_provider_reg_call:$/,/^; KCORE memory-pressure bridge/p' \
@@ -30,13 +30,23 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
         "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
 
+fixture="$self/daimos-slot0-memfs-pi6-v1086.s"
+case "${DAIMOS_V1108_XIP_MM:-0}" in
+    0) ;;
+    1) fixture="$self/daimos-xip-physical-retry-v1108.s" ;;
+    *) echo 'v1108: invalid XIP MM mode' >&2; exit 2 ;;
+esac
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 250000 --timeout 25 \
     --workdir "$work/run" --name slot0-memfs-pi6-v1086 \
     --expect __test_exit=0 \
     "$self/daimos-test-crt0-v1.s" "$work/leaf.s" \
-    "$self/daimos-slot0-memfs-pi6-v1086.s" > "$work/log" 2>&1 || {
+    "$fixture" > "$work/log" 2>&1 || {
         tail -75 "$work/log" >&2
         exit 1
     }
-echo 'v1086: slot-0 XIP bypasses foreign provider lease, unpins via real MM, no clock wait PASS'
+if [ "${DAIMOS_V1108_XIP_MM:-0}" = 1 ]; then
+    echo 'v1108: real XIP MM -4 refusal retains ref; physical pin repair and exact retry PASS'
+else
+    echo 'v1086: slot-0 XIP bypasses foreign provider lease, unpins via real MM, no clock wait PASS'
+fi
