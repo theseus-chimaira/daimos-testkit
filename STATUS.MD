@@ -1,3 +1,23 @@
+## 2026-11-04 v1112: failed RUN remains nonfatal in booted OOM matrix
+
+The optional v1112 extension of the real 256K PDP-6 v1075 guest
+submits a structurally valid RUN request to a nonexistent absolute
+executable. The kernel rejects the request with -1, retaining the
+calling parent and leaving its process-slot and process-memory counts
+unchanged. The parent continues through the v1110 invalid BRK controls,
+then through the established genuine BRK physical-OOM requester and
+independent blocked witness.
+
+Both separately built and booted disposable configurations PASS:
+`<RILDNWP` with the production OOM default disabled, and `<RILKWP`
+with the OOM switch enabled only in the isolated test kernel. Normal
+failed RUN never terminates the requester; only genuine physical
+exhaustion triggers fatal requester selection when enabled. The
+witness survives, final MM accounting returns to baseline, and no
+production code, data, default policy or ABI changes. This covers
+a missing-executable failure, not a RUN that fails under real MM
+descriptor exhaustion or fragmentation; those P0-F gates remain open.
+
 ## 2026-11-04 v1111: real PDP-6 MM error classification
 
 `daimos-mm-exhaustion-class-v1111` links the unchanged production

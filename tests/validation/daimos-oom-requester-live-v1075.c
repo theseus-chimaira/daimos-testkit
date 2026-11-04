@@ -13,6 +13,10 @@
 #define V1110_TEST_NEGATIVES 0
 #endif
 
+#ifndef V1112_TEST_FAILED_RUN
+#define V1112_TEST_FAILED_RUN 0
+#endif
+
 #define V1075_PATH_WORDS 3U
 #define V1075_PATH_OFF SYS_RUN_V2_FIXED_WORDS
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
@@ -54,10 +58,20 @@ run_child(int mode, int input_fd)
         req->flags = SYS_RUN_PGRP_INHERIT;
         req->argc = 2UL;
         req->fdmap_count = 3UL;
-        for (i = 0U; i < V1075_PATH_WORDS; ++i) {
-                block[V1075_PATH_OFF + i] = v1075_path[i];
-                block[V1075_ARG0_OFF + i] = v1075_path[i];
-        }
+    for (i = 0U; i < V1075_PATH_WORDS; ++i) {
+        block[V1075_PATH_OFF + i] = v1075_path[i];
+        block[V1075_ARG0_OFF + i] = v1075_path[i];
+    }
+#if V1112_TEST_FAILED_RUN
+    if (mode == 'X') {
+        /* A syntactically valid, nonexistent absolute executable path.
+         * A rejected RUN must not publish a PID or consume process RAM. */
+        block[V1075_PATH_OFF + 1U] =
+            TEST_SIX6('/', 'X', 'X', 'X', 'X', 'X');
+        block[V1075_PATH_OFF + 2U] =
+            TEST_SIX6('X', '/', 'X', 'X', 'X', 'X');
+    }
+#endif
         block[V1075_ARG1_OFF] = 1UL;
         block[V1075_ARG1_OFF + 1U] =
             TEST_SIX6(mode, ' ', ' ', ' ', ' ', ' ');
@@ -148,7 +162,19 @@ main(int argc, kword_t **argv)
             dsys_meminfo(&before) != 0 ||
             before.total_words <= V1075_BRK_REQUEST)
                 fail('0');
-        (void)dsys_writechar(1, '<');
+    (void)dsys_writechar(1, '<');
+
+#if V1112_TEST_FAILED_RUN
+    /* Invalid RUN cannot count as requester physical OOM. Check the
+     * parent stays live and owns exactly its original memory/slots. */
+    if (run_child('X', 0) != -1)
+            fail('R');
+    if (dsys_meminfo(&occupied) != 0 ||
+        occupied.process_slots_used != before.process_slots_used ||
+        occupied.process_words != before.process_words)
+            fail('r');
+    (void)dsys_writechar(1, 'R');
+#endif
 
 #if V1110_TEST_NEGATIVES
         /* These are validation failures, not physical OOM. Even the

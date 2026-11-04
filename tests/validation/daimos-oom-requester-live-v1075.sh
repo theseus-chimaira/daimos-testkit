@@ -9,6 +9,7 @@ mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 enable=${V1075_TEST_OOM_ENABLED:-1}
 negatives=${V1110_TEST_NEGATIVES:-0}
+bad_run=${V1112_TEST_FAILED_RUN:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -16,6 +17,10 @@ esac
 case "$negatives" in
     0|1) ;;
     *) echo 'v1110: invalid negative-control mode' >&2; exit 2 ;;
+esac
+case "$bad_run" in
+    0|1) ;;
+    *) echo 'v1112: invalid failed-RUN mode' >&2; exit 2 ;;
 esac
 work=$(mktemp -d "$TMPDIR/daimos-oom-requester-live-v1075.XXXXXX")
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; else echo "v1075 work: $work"; fi' EXIT HUP INT TERM
@@ -47,6 +52,7 @@ done
 # shellcheck disable=SC2086
 "$cc" -std=c89 -Os -DV1075_TEST_OOM_ENABLED="$enable" \
     -DV1110_TEST_NEGATIVES="$negatives" \
+    -DV1112_TEST_FAILED_RUN="$bad_run" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -88,9 +94,12 @@ if [ "$rc" -ne 0 ]; then
     exit 1
 fi
 text=$(tr -d '\r\n' < "$work/simh.out")
+prefix=
+if [ "$bad_run" = 1 ]; then prefix=R; fi
+if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
 if [ "$negatives" = 1 ]; then
     case "$text" in
-        *'<IL'*'HALT'*) : ;;
+        *"<$prefix"*'HALT'*) : ;;
         *) tail -70 "$work/simh.out" >&2
            echo 'v1110: invalid/address-limit BRK child did not return' >&2
            exit 1 ;;
@@ -98,14 +107,7 @@ if [ "$negatives" = 1 ]; then
 fi
 if [ "$enable" = 1 ]; then
     case "$text" in
-        *'<KWP'*'HALT'*)
-            test "$negatives" = 0 || {
-                echo 'v1110: missing invalid BRK markers' >&2; exit 1;
-            } ;;
-        *'<ILKWP'*'HALT'*)
-            test "$negatives" = 1 || {
-                echo 'v1075: unexpected invalid BRK markers' >&2; exit 1;
-            } ;;
+        *"<${prefix}KWP"*'HALT'*) : ;;
         *) tail -70 "$work/simh.out" >&2
            echo 'v1075: missing requester-reclaimed / witness-survived markers' >&2
            exit 1 ;;
@@ -117,14 +119,7 @@ if [ "$enable" = 1 ]; then
     echo 'v1075: physical OOM kills requester only; blocked witness runs; MM accounting recovers PASS'
 else
     case "$text" in
-        *'<DNWP'*'HALT'*)
-            test "$negatives" = 0 || {
-                echo 'v1110: missing invalid BRK markers' >&2; exit 1;
-            } ;;
-        *'<ILDNWP'*'HALT'*)
-            test "$negatives" = 1 || {
-                echo 'v1075: unexpected invalid BRK markers' >&2; exit 1;
-            } ;;
+        *"<${prefix}DNWP"*'HALT'*) : ;;
         *) tail -70 "$work/simh.out" >&2
            echo 'v1075: default-off negative control failed' >&2
            exit 1 ;;
@@ -133,4 +128,7 @@ else
 fi
 if [ "$negatives" = 1 ]; then
     echo "v1110: invalid-floor and address-limit BRK return -1, preserve BRK and process MM (OOM enabled=$enable) PASS"
+fi
+if [ "$bad_run" = 1 ]; then
+    echo "v1112: invalid child RUN rejected; PID and MM unchanged, requester/witness survive (OOM enabled=$enable) PASS"
 fi
