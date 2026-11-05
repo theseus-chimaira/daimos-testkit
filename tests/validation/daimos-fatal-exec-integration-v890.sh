@@ -811,7 +811,7 @@ if [ "$physical_uarea" = 1 ]; then
 fi
 if [ "$e10_provider" = 1 ]; then
     for name in holder_enter holder_lease holder_return release \
-                run_armed foreign_busy; do
+                run_armed foreign_busy fd3_stage fd3_after; do
         sym="daimos_e10_${name}_v1157"
         addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
         test -n "$addr" || { echo "v1157: missing $sym" >&2; exit 1; }
@@ -1190,6 +1190,9 @@ if e10_provider:
                              (name, counts[name], value))
     if counts['e10_foreign_busy'] < 1:
         raise SystemExit('v1157: no real foreign-provider close contention')
+    if counts['e10_fd3_stage'] < 1 or counts['e10_fd3_after'] < 1:
+        raise SystemExit('v1157: provider-backed FD3 did not survive '
+                         'until the real foreign-lock attempt')
     if not e10_markers:
         raise SystemExit('v1157: missing holder/APR/RUN/release markers')
     print('v1157: live foreign provider lease retained through APR, '

@@ -112,6 +112,7 @@ main(int argc, kword_t **argv)
 #endif
 #if DAIMOS_V1157_PROVIDER
         int holder;
+        struct sys_meminfo initial;
 #endif
 
         mode = 0U;
@@ -171,6 +172,10 @@ main(int argc, kword_t **argv)
                 fail('0');
         if (dsys_writechar(1, '<') != 0)
                 fail('1');
+#if DAIMOS_V1157_PROVIDER
+        if (dsys_meminfo(&initial) != 0)
+                fail('q');
+#endif
         child = spawn_exec(0, 0, 0);
         if (child <= 1)
                 fail('2');
@@ -223,6 +228,13 @@ main(int argc, kword_t **argv)
         if (dsys_meminfo(&after) != 0)
                 fail('e');
 #if DAIMOS_V1142_PHYSICAL_UAREA
+#if DAIMOS_V1157_PROVIDER
+        /* The pinned RUN u-area can require deferred finalization while
+         * APR and the foreign provider still hold their own resources.
+         * Check the exact baseline only after all three are reaped. */
+        if (after.process_slots_used > before.process_slots_used + 1UL)
+                fail('n');
+#else
         /* A genuine pinned child u-area cannot disappear at the return
          * from RUN. Wait for the scheduler's normal deferred finalizer.
          * Concurrent EXEC termination may also reduce live usage, so
@@ -236,6 +248,7 @@ main(int argc, kword_t **argv)
         if (after.process_slots_used > before.process_slots_used ||
             after.process_words > before.process_words)
                 fail('n');
+#endif
 #else
         if (after.process_slots_used != before.process_slots_used ||
             after.process_words != before.process_words)
@@ -309,6 +322,15 @@ main(int argc, kword_t **argv)
         if (SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
             SYS_WAIT_STATUS_VALUE(status) != 1U)
                 fail('4');
+#if DAIMOS_V1157_PROVIDER
+        /* No deferred RUN, APR, EXEC, FILE, or provider owner may
+         * survive after every terminal WAIT has been consumed. */
+        if (dsys_meminfo(&after) != 0 ||
+            after.process_slots_used != initial.process_slots_used ||
+            after.process_words != initial.process_words ||
+            after.file_slots_used != initial.file_slots_used)
+                fail('z');
+#endif
         if (dsys_writechar(1, 'H') != 0)
                 fail('5');
         (void)dsys_exit(0);

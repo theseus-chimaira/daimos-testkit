@@ -79,6 +79,43 @@ daimos_e10_run_event_v1157: .block 1
 daimos_e10_foreign_busy_v1157: .block 1
 ''')
 
+# FILE_CLOSE_ALL continues past a refused FD0 and would otherwise
+# close FD3 before the holder is admitted. Keep this *real* D6FS FILE
+# live during the staging window only; after the holder enters, use
+# the original vfs_sync unmodified so its actual foreign-lock refusal
+# is mandatory for acceptance. This never fabricates the final event.
+patch('fs/file_runtime.s',
+      '''daimos_test_vfs_call_v890:
+        pushj   17,vfs_sync''',
+      '''daimos_test_vfs_call_v890:
+        move    0,proc_current_slot
+        caie    0,2
+        jrst    daimos_e10_sync_real_v1157
+        move    0,file_table
+        addi    0,6                 ; FD 3: two words per descriptor
+        came    0,010               ; real descriptor being closed
+        jrst    daimos_e10_sync_real_v1157
+        skipn   daimos_e10_holder_enter_v1157
+        jrst    daimos_e10_stage_fd3_v1157
+        aos     daimos_e10_fd3_after_v1157
+daimos_e10_sync_real_v1157:
+        pushj   17,vfs_sync
+        jrst    daimos_e10_sync_done_v1157
+daimos_e10_stage_fd3_v1157:
+        aos     daimos_e10_fd3_stage_v1157
+        movni   1,5                ; temporary, pre-holder staging
+daimos_e10_sync_done_v1157:''')
+
+p = root / 'fs/file_runtime.s'
+p.write_text('''        .globl daimos_e10_holder_enter_v1157
+''' + p.read_text() + '''
+        .bss
+        .globl daimos_e10_fd3_stage_v1157
+daimos_e10_fd3_stage_v1157: .block 1
+        .globl daimos_e10_fd3_after_v1157
+daimos_e10_fd3_after_v1157: .block 1
+''')
+
 patch('proc/proc_run.s',
       '''proc_run_fdmap_bad:
         move    5,proc_current_slot''',
