@@ -1,3 +1,24 @@
+## 2026-11-05 v1156: E09 whole-system MM/backing error matrix PASS
+
+The frozen `test-daimos-oom-error-matrix-v1156` run PASSes all nine
+native and full 256K PDP-6 error-class cases against DAIMOS
+`9f51326e` and testkit `81f40eb`, with fixed P10FOLD/DLINK/DAS/PDP6
+checksums and logs under
+`$TMPDIR/daimos-oom-error-matrix-v1156.gzw27g`.
+Authentic RAM shortage (-1), fragmentation (-2), MM descriptor
+pressure (-3), invalid or wrong owner (-4), and pinned owner (-5)
+remain distinct. The v1156 disk-full cases actually saturate the
+production backing allocation bitmap, verify a second allocator
+refusal is atomic, then restore original ownership and exercise
+ordinary successful BRK. Both normal OOM-disabled and isolated
+OOM-enabled guests PASS without wrongly terminating the requester.
+The native full-bitmap contract also rejects unsafe mutants.
+
+E09 is CLOSED for the writable-process activation scope: 46/65
+checks complete, 19 open (17 pre-enable plus F12/F13). E10-E13,
+S07/S08, A04, F02-F11 and resident/peak RAM checks remain open;
+production requester OOM is still OFF.
+
 ## 2026-11-05 v1155: E08 concurrent sessions/group lifecycle PASS
 
 The full 256K PDP-6 `test-daimos-oom-groups-sessions-v1155`
