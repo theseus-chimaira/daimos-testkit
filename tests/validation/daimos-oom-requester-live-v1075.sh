@@ -18,6 +18,7 @@ held_provider=${V1150_TEST_HELD_PROVIDER:-0}
 endurance=${V1151_TEST_ENDURANCE:-0}
 disk_full=${V1156_TEST_DISK_FULL:-0}
 combined=${V1158_TEST_COMBINED:-0}
+protected=${V1159_TEST_PROTECTED:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -62,6 +63,19 @@ case "$combined" in
     0|1) ;;
     *) echo 'v1158: invalid combined mode' >&2; exit 2 ;;
 esac
+case "$protected" in
+    0|1) ;;
+    *) echo 'v1159: invalid protected mode' >&2; exit 2 ;;
+esac
+if [ "$protected" = 1 ] && { [ "$held_provider" != 1 ] ||
+    [ "$combined" != 0 ] || [ "$endurance" != 0 ] ||
+    [ "$disk_full" != 0 ] || [ "$mm_slots" != 0 ] ||
+    [ "$mm_fragment" != 0 ] || [ "$run_cause" != 0 ] ||
+    [ "$negatives" != 0 ] || [ "$bad_run" != 0 ] ||
+    [ "$pid_reuse" != 0 ]; }; then
+    echo 'v1159: requires isolated held-provider OOM guest' >&2
+    exit 2
+fi
 if [ "$combined" = 1 ] && { [ "$mm_slots" != 1 ] ||
     [ "$run_cause" != 1 ] || [ "$bad_run" != 0 ] ||
     [ "$held_provider" != 0 ] || [ "$endurance" != 0 ] ||
@@ -120,6 +134,10 @@ PY
 if [ "$held_provider" = 1 ]; then
     python3 "$self/daimos-oom-provider-held-v1150.py" \
         "$work/source/system/kernel" "$enable"
+fi
+if [ "$protected" = 1 ]; then
+    python3 "$self/daimos-oom-protected-v1159.py" \
+        "$work/source/system/kernel"
 fi
 if [ "$endurance" = 1 ]; then
     python3 "$self/daimos-oom-endurance-v1151.py" \
@@ -233,6 +251,7 @@ done
     -DV1151_TEST_ENDURANCE="$endurance" \
     -DV1156_TEST_DISK_FULL="$disk_full" \
     -DV1158_TEST_COMBINED="$combined" \
+    -DV1159_TEST_PROTECTED="$protected" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -271,6 +290,15 @@ if [ "$held_provider" = 1 ]; then
         test -n "$addr" || { echo "v1150: missing $sym" >&2; exit 1; }
         printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
+    if [ "$protected" = 1 ]; then
+        for name in requester init witness waiter spinner holder \
+                    error snapshots selected select_calls; do
+            sym="daimos_e12_${name}_v1159"
+            addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$build/kcore.map")
+            test -n "$addr" || { echo "v1159: missing $sym" >&2; exit 1; }
+            printf 'e12_%s %s\n' "$name" "$addr" >> "$work/addresses"
+        done
+    fi
     sed -i '/^exit$/d' "$build/boot.ini"
     while read -r name addr; do
         printf 'examine %s\n' "$addr" >> "$build/boot.ini"
@@ -407,4 +435,8 @@ print('v1150: physical OOM under held in-flight FS lease and real '
       'pre-dispatch waiter, exact owner retry/release, independent '
       'spinner and MM accounting PASS:', seen)
 PY
+fi
+if [ "$protected" = 1 ]; then
+    python3 "$self/daimos-oom-protected-verify-v1159.py" \
+        "$work/addresses" "$work/simh.out" "$enable"
 fi

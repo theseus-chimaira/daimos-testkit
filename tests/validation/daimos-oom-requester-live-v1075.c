@@ -49,6 +49,10 @@
 #define V1158_TEST_COMBINED 0
 #endif
 
+#ifndef V1159_TEST_PROTECTED
+#define V1159_TEST_PROTECTED 0
+#endif
+
 #define V1156_BACKING_FILL 0777760UL
 #define V1156_BACKING_FREE 0777761UL
 
@@ -569,6 +573,14 @@ main(int argc, kword_t **argv)
                 fail('4');
         wait_status((unsigned int)requester,
             V1075_TEST_OOM_ENABLED ? V1075_OOM_STATUS : 070U);
+#if V1159_TEST_PROTECTED
+        /* INIT itself must still be executing, and the pipe witness
+         * must not have received a termination event during OOM. */
+        if (dsys_getpid() != 1 ||
+            dsys_wait((unsigned int)witness, &word,
+                SYS_WAIT_NOHANG) != 0)
+                fail('Z');
+#endif
 #if V1150_TEST_HELD_PROVIDER
         wait_status((unsigned int)holder, 064U);
         wait_status((unsigned int)gateway_waiter, 063U);

@@ -1,3 +1,31 @@
+## 2026-11-05 v1159: E12 protected processes under genuine BRK OOM PASS
+
+Two freshly built full 256K PDP-6 guests PASS
+`test-daimos-oom-protected-v1159` and its production-disabled control.
+The existing v1150 real physical-OOM/foreign-provider regression is
+retained, with test-only snapshots at the actual MM -1 BRK decision
+point. A separate faulting slot 3 is the only selected fatal victim
+when the requester-OOM switch is enabled; the disabled guest records
+zero fatal selections and returns BRK -1. Both guests prove that
+slot 1 INIT, slot 2 blocked pipe witness, slot 4 gateway waiter,
+slot 5 independent spinner and slot 6 original in-flight provider
+owner remain live at the decision point. The original lease is
+later released by its owner, not stolen or force-freed.
+
+Enabled: one genuine physical OOM, one slot-3 selection, seven
+foreign fatal-close BUSY attempts, 160 spinner advances, one
+provider-owner return and zero integrity errors. Disabled: one
+genuine OOM, zero selections, ordinary requester FILE close/wait,
+160 spinner advances, one provider-owner return and zero errors.
+Both existing full-system WAIT and MM/FILE accounting checks PASS.
+The experiment does not claim an INIT exemption if INIT itself
+requests a failing BRK; it proves nonrequester protection.
+
+E12 accepted for supported writable-process requester-only scope:
+49/65 mandatory checks complete, 16 open (14 pre-enable plus
+F12/F13). E13/S07/S08/A04/F02-F11 remain. No production KCORE,
+MRES, ABI or permanent RAM changes. Production OOM remains OFF.
+
 ## 2026-11-05 v1158: E11 independent RUN parent and physical BRK OOM PASS
 
 Two freshly built 256K PDP-6 full-system guests PASS
