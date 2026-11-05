@@ -21,6 +21,7 @@ combined=${V1158_TEST_COMBINED:-0}
 protected=${V1159_TEST_PROTECTED:-0}
 release_media=${V1160_RELEASE_MEDIA:-0}
 residency=${V1174_TEST_RESIDENCY:-0}
+f07_peak=${V1203_TEST_F07_PEAK:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -77,6 +78,16 @@ case "$residency" in
     0|1) ;;
     *) echo 'v1174: invalid residency-audit mode' >&2; exit 2 ;;
 esac
+case "$f07_peak" in
+    0|1) ;;
+    *) echo 'v1203: invalid F07 peak observation mode' >&2; exit 2 ;;
+esac
+if [ "$f07_peak" = 1 ] && {
+    [ "$held_provider" != 1 ] || [ "$protected" != 1 ] ||
+    [ "$release_media" != 1 ] || [ "$residency" != 0 ]; }; then
+    echo 'v1203: require release-media protected physical OOM with held FS owner' >&2
+    exit 2
+fi
 if [ "$residency" = 1 ] && [ "$release_media" != 1 ]; then
     echo 'v1174: require explicit release-media boot profile' >&2
     exit 2
@@ -158,6 +169,10 @@ if [ "$held_provider" = 1 ]; then
 fi
 if [ "$protected" = 1 ]; then
     python3 "$self/daimos-oom-protected-v1159.py" \
+        "$work/source/system/kernel"
+fi
+if [ "$f07_peak" = 1 ]; then
+    python3 "$self/daimos-f07-mm-peak-v1203.py" \
         "$work/source/system/kernel"
 fi
 if [ "$endurance" = 1 ]; then
@@ -336,6 +351,28 @@ if [ "$held_provider" = 1 ]; then
             printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
         done
     fi
+    if [ "$f07_peak" = 1 ]; then
+        python3 - "$build/kcore.map" "$work/addresses" <<'PY'
+from pathlib import Path
+import sys
+
+symbols = dict(line.split()[:2] for line in Path(sys.argv[1]).read_text().splitlines()
+               if len(line.split()) >= 2)
+names = ('samples', 'count', 'capacity', 'core', 'arena_count',
+         'arena0', 'arena1', 'arena2', 'lease', 'buffer_base',
+         'words', 'error')
+with Path(sys.argv[2]).open('a') as out:
+    for name in names:
+        sym = 'daimos_f07_%s_v1203' % name
+        assert sym in symbols, 'v1203 missing symbol ' + sym
+        out.write('f07_%s %s\n' % (name, symbols[sym]))
+    sym = 'daimos_f07_extents_v1203'
+    assert sym in symbols, 'v1203 missing fixed snapshot table'
+    base = int(symbols[sym], 8)
+    for i in range(2 * 136):
+        out.write('f07_extent%d %06o\n' % (i, base + i))
+PY
+    fi
     sed -i '/^exit$/d' "$build/boot.ini"
     while read -r name addr; do
         printf 'examine %s\n' "$addr" >> "$build/boot.ini"
@@ -445,6 +482,11 @@ text = Path(sys.argv[2]).read_text(errors='replace')
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
+    if name.startswith('f07_'):
+        # v1203 has a separate, strict MM-snapshot verifier. Do not
+        # flood the older v1150 provider-owner counter report with
+        # up to 272 captured extent words.
+        continue
     matches = re.findall(r'(?m)^\s*0*' + re.escape(addr.lstrip('0')) +
                          r'\s*:\s*([0-7]+)', text)
     if not matches:
@@ -476,6 +518,11 @@ fi
 if [ "$protected" = 1 ]; then
     python3 "$self/daimos-oom-protected-verify-v1159.py" \
         "$work/addresses" "$work/simh.out" "$enable"
+fi
+if [ "$f07_peak" = 1 ]; then
+    python3 "$self/daimos-f07-mm-peak-verify-v1203.py" \
+        "$work/addresses" "$work/simh.out" > "$work/f07-v1203.txt"
+    cat "$work/f07-v1203.txt"
 fi
 if [ "$residency" = 1 ]; then
     # Retain raw independent observations if the new audit fails.  The
@@ -518,6 +565,9 @@ if [ "$release_media" = 1 ]; then
         cp "$work/residency-v1174.txt" "$e/residency-v1174.txt"
         cp "$work/mres-packages-v1174.txt" "$e/mres-packages-v1174.txt"
     fi
+    if [ "$f07_peak" = 1 ]; then
+        cp "$work/f07-v1203.txt" "$e/f07-v1203.txt"
+    fi
     printf 'mode=%s\n' "$enable" > "$e/profile.txt"
     printf 'boot=dsk\nroot=disk\nrootset=1\n' >> "$e/profile.txt"
     printf 'profile=full\ncore_octal=01000000\n' >> "$e/profile.txt"
@@ -545,6 +595,9 @@ if [ "$release_media" = 1 ]; then
     if [ "$residency" = 1 ]; then
         (cd "$e" && sha256sum residency-v1174.txt mres-packages-v1174.txt \
             >> evidence-sha256.txt)
+    fi
+    if [ "$f07_peak" = 1 ]; then
+        (cd "$e" && sha256sum f07-v1203.txt >> evidence-sha256.txt)
     fi
     echo "v1160: explicit 256K KCC DSK/D6FS physical-OOM release-media evidence PASS: $e"
 fi

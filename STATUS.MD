@@ -1,3 +1,25 @@
+## 2026-11-06 v1203: simultaneous F07 physical-OOM MM snapshot PASS (partial)
+
+Disposable `daimos-f07-mm-peak-v1203` instrumentation samples the
+live 136-slot MM extent table and managed-core arenas at the actual
+physical BRK `-1` decision, while a foreign D6FS provider is leased.
+It does not allocate, acquire a lease, sleep or push a kernel stack
+word in the sample path. The full 256K KCC DSK/D6FS release-media
+guests PASS with requester OOM test-enabled and production-disabled.
+Both pass original v1150/v1159 owner, scheduler progress and final
+release checks; 10 negative host-accounting mutants also PASS.
+
+At the fault each has 19/136 live descriptors, six APR-aligned
+process extents, 13 kernel-dynamic extents and 112692 allocated
+MM words, with a held 128-word shared filesystem workspace.
+Enabled/disabled managed/free words differ by 14 because of test-only
+OOM code residency. Exact free-gap/APR low-placement slack metrics
+and full SIMH/build/map/media/tool checksums are archived in the
+versioned v1203 evidence. F07 remains OPEN: this is an actual
+simultaneous observation, **not** maximum simultaneous process,
+descriptor, physical allocation or provider-buffer pressure.
+Production kernel, OOM switch and ABI are unchanged.
+
 ## 2026-11-05 v1196: physical MM peak-boundary subcases PASS (F07 partial)
 
 Fresh current-source PDP-6 256K/full DSK/D6FS disposable OOM-enabled
