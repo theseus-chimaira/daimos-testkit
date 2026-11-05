@@ -1,3 +1,19 @@
+## 2026-11-05 v1157: E10 held-provider APR/EXEC/RUN PASS
+
+Fresh `make test-daimos-fatal-exec-provider-v1157` full 256K PDP-6
+guest PASSes on DAIMOS `a7b721b4` and testkit `436552f`.
+The original foreign filesystem gateway owner retains its lease,
+an asynchronous APR fatal event occurs in post-commit EXEC cleanup,
+and unpublished RUN rollback hits actual physical u-area MM_BUSY.
+FD3 survives staging until real foreign-provider lock contention;
+the original owner resumes and unlocks, and WAIT/FILE/MM accounting
+is exact. Six VFS calls, five refusals, seven FILE retry passes,
+six sleeps, one pin/busy/unpin and zero integrity errors are recorded.
+The previous retained v1157r11 PASS is independently reproduced.
+E10 accepted for writable-process OOM scope; 47/65 checks complete,
+18 open. No production KCORE/MRES/RAM/ABI changes; production requester
+OOM remains disabled.
+
 ## 2026-11-05 v1156: E09 whole-system MM/backing error matrix PASS
 
 The frozen `test-daimos-oom-error-matrix-v1156` run PASSes all nine
