@@ -1,5 +1,12 @@
 ## 2026-11-05 v1151r1: sustained physical OOM/recovery E05/E06 PASS
 
+Post-acceptance compatibility rerun: the original
+`make test-daimos-oom-pid-reuse-v1120` also PASSes on the current
+testkit after the v1151 fixture extension, retaining its original
+24-lifetime, alternating-WAIT-status and stale-event checks.
+The retained run log is
+`$TMPDIR/daimos-v1151-legacy-pid-v1120-r1.log`.
+
 Two independently rebuilt 256K PDP-6 full disk-root guests PASS the
 `test-daimos-oom-endurance-v1151` and
 `test-daimos-oom-endurance-disabled-v1151` targets. Each performs the
