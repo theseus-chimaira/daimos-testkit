@@ -1014,6 +1014,18 @@ for line in names:
                          ': ' + output[-1600:])
     counts[name] = int(matches[-1], 8)
 print('v890 real EXEC post-VM/FILE fault counters:', counts)
+e10_markers = False
+if e10_provider and '<' in output:
+    # APR runs asynchronously on its own process. Its marker A can
+    # precede or follow B/R, but must occur while the lease is held,
+    # strictly before the original holder's U release marker.
+    user_marks = output.split('<', 1)[1].split('HALT', 1)[0]
+    positions = {ch: user_marks.find(ch) for ch in 'EABRUH'}
+    e10_markers = (user_marks.startswith('E') and
+                   all(pos >= 0 for pos in positions.values()) and
+                   positions['E'] < positions['B'] < positions['R'] <
+                   positions['U'] < positions['H'] and
+                   positions['E'] < positions['A'] < positions['U'])
 if physical_uarea:
     observed = {n: counts['physical_' + n] for n in
                 ('calls', 'base', 'pins', 'busy', 'unpins', 'errors')}
@@ -1023,8 +1035,7 @@ if physical_uarea:
         observed['unpins'] != 1 or observed['errors'] != 0 or
         counts['late_run'] != 1 or counts['run_error'] != 0 or
         counts['finish_zombie'] != 1 or counts['error'] != 0 or
-        ('<EARH' not in output if not e10_provider else
-         '<EABRUH' not in output) or
+        (not e10_markers if e10_provider else '<EARH' not in output) or
         'UUO 000000000014' in output or
         'HALT' not in output):
         raise SystemExit('v1142: real-MM_BUSY nested rollback failed')
@@ -1162,7 +1173,8 @@ if 'HALT' not in output or '<E' not in output or \
 print('v890: real EXEC destroys VM, replacement loader fails, '
       'VFS refusal twice, retry, FILE ownership, WAIT PASS')
 if nested:
-    if '<EA' not in output or 'R' not in output:
+    if ((not e10_markers) if e10_provider else
+        ('<EA' not in output or 'R' not in output)):
         raise SystemExit('v1126: missing APR and late-RUN markers: ' +
                          output[-1000:])
     print('v1126: real APR fatal during post-commit EXEC FILE retry; '
@@ -1178,7 +1190,7 @@ if e10_provider:
                              (name, counts[name], value))
     if counts['e10_foreign_busy'] < 1:
         raise SystemExit('v1157: no real foreign-provider close contention')
-    if '<EAB' not in output or 'RU' not in output:
+    if not e10_markers:
         raise SystemExit('v1157: missing holder/APR/RUN/release markers')
     print('v1157: live foreign provider lease retained through APR, '
           'postcommit EXEC FILE and failed RUN; owner resumes/unlocks PASS')
