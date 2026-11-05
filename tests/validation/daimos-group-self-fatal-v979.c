@@ -10,6 +10,14 @@
 #define SELFFATAL_MODE      0307U
 #define EVENT_STATUS        061U
 
+#ifndef V1155_E08
+#define V1155_E08           0
+#endif
+#if V1155_E08
+#define SESSION_MODE        0310U
+#define E08_PID_CYCLES      64U
+#endif
+
 #define RUN_PATH_WORDS      3U
 #define RUN_ARG_WORDS       2U
 #define RUN_PATH_OFF        SYS_RUN_V2_FIXED_WORDS
@@ -17,6 +25,15 @@
 #define RUN_ARG1_OFF        (RUN_ARG0_OFF + RUN_PATH_WORDS)
 #define RUN_MAP_OFF         (RUN_ARG1_OFF + RUN_ARG_WORDS)
 #define RUN_BLOCK_WORDS     (RUN_MAP_OFF + 3U)
+
+#if V1155_E08
+#define E08_SESSION_WORDS   (RUN_MAP_OFF + 4U)
+static int send_pid(unsigned int pid, unsigned int event);
+static int send_group(unsigned int pgrp, unsigned int event);
+static int status_is(kword_t status, unsigned int kind, unsigned int value);
+static int wait_group_pair(unsigned int pgrp, unsigned int kind,
+    unsigned int value, unsigned int a, unsigned int b);
+#endif
 
 static kword_t init_path[] = {
         12UL,
@@ -83,6 +100,223 @@ spawn(unsigned int mode, unsigned int pgrp_mode, unsigned int pgrp)
         return dsys_run(run);
 }
 
+#if V1155_E08
+/* The fourth FD is a real parent/child publication barrier. The
+ * session is fully created before the parent attempts group events. */
+static int
+spawn_session(int report_fd)
+{
+        kword_t block[E08_SESSION_WORDS];
+        struct sys_run_v2 *run;
+        unsigned int i;
+
+        for (i = 0U; i < E08_SESSION_WORDS; ++i)
+                block[i] = 0UL;
+        run = (struct sys_run_v2 *)block;
+        run->flags = SYS_RUN_PGRP_NEW;
+        run->fdmap_count = 4UL;
+        run->argc = 2UL;
+        for (i = 0U; i < RUN_PATH_WORDS; ++i) {
+                block[RUN_PATH_OFF + i] = init_path[i];
+                block[RUN_ARG0_OFF + i] = init_path[i];
+        }
+        block[RUN_ARG1_OFF] = 1UL;
+        block[RUN_ARG1_OFF + 1U] =
+            TEST_SIX6('N', ' ', ' ', ' ', ' ', ' ');
+        for (i = 0U; i < 3U; ++i)
+                block[RUN_MAP_OFF + i] = SYS_RUN_FD_MAP(i, i);
+        block[RUN_MAP_OFF + 3U] = SYS_RUN_FD_MAP(3U,
+            (unsigned int)report_fd);
+        run->version_words = SYS_RUN_HEADER(SYS_RUN_VERSION_2,
+            E08_SESSION_WORDS);
+        return dsys_run(run);
+}
+
+static int
+spawn_ready_session(void)
+{
+        kword_t pair;
+        kword_t ready;
+        int rd;
+        int wr;
+        int pid;
+
+        pair = dsys_pipe();
+        if (pair == ~(kword_t)0UL)
+                return -1;
+        rd = (int)((pair >> 18U) & 0777777UL);
+        wr = (int)(pair & 0777777UL);
+        pid = spawn_session(wr);
+        if (pid <= 1 || dsys_close(wr) != 0 ||
+            dsys_read_words(rd, &ready, 1U) != 1 || ready != 'N' ||
+            dsys_close(rd) != 0)
+                return -1;
+        return pid;
+}
+
+static int
+no_second_status(unsigned int pid)
+{
+        kword_t status;
+        status = 0UL;
+        return dsys_wait(pid, &status, SYS_WAIT_NOHANG) == 0 ? 0 : -1;
+}
+
+static int
+no_stale_pid(unsigned int pid)
+{
+        kword_t status;
+        status = 0UL;
+        return dsys_wait(pid, &status, SYS_WAIT_NOHANG) == -1 &&
+            send_pid(pid, SYS_EVENT_TERM) == -1 ? 0 : -1;
+}
+
+static int
+wait_pid_status(unsigned int pid, unsigned int kind,
+    unsigned int value)
+{
+        kword_t status;
+        status = 0UL;
+        return dsys_wait(pid, &status, 0U) == (int)pid &&
+            status_is(status, kind, value) ? 0 : -1;
+}
+
+static int
+exercise_e08(void)
+{
+        struct sys_procinfo info;
+        struct sys_meminfo before;
+        struct sys_meminfo after;
+        unsigned int cycle;
+        unsigned int reused;
+        unsigned int grp_a;
+        unsigned int grp_b;
+        unsigned int events;
+        int session_a;
+        int session_b;
+        int a;
+        int b;
+        int c;
+        int d;
+        int pid;
+        int old_pid;
+
+        if (dsys_meminfo(&before) != 0)
+                return -1;
+        session_a = spawn_ready_session();
+        session_b = spawn_ready_session();
+        if (session_a <= 1 || session_b <= session_a)
+                return -2;
+        (void)mark('a');
+        a = spawn(SPIN_MODE, SYS_RUN_PGRP_NEW, 0U);
+        b = spawn(SPIN2_MODE, SYS_RUN_PGRP_JOIN, (unsigned int)a);
+        c = spawn(SPIN_MODE, SYS_RUN_PGRP_NEW, 0U);
+        d = spawn(SPIN2_MODE, SYS_RUN_PGRP_JOIN, (unsigned int)c);
+        if (a <= 1 || b <= a || c <= b || d <= c)
+                return -3;
+        (void)mark('b');
+        grp_a = (unsigned int)a;
+        grp_b = (unsigned int)c;
+        if (send_group(grp_a, SYS_EVENT_TSTP) != 0 ||
+            wait_group_pair(grp_a, SYS_WAIT_STOPPED, SYS_EVENT_TSTP,
+                (unsigned int)a, (unsigned int)b) != 0 ||
+            no_second_status((unsigned int)a) != 0 ||
+            no_second_status((unsigned int)b) != 0)
+                return -4;
+        if (send_group(grp_b, SYS_EVENT_TSTP) != 0 ||
+            wait_group_pair(grp_b, SYS_WAIT_STOPPED, SYS_EVENT_TSTP,
+                (unsigned int)c, (unsigned int)d) != 0 ||
+            no_second_status((unsigned int)c) != 0 ||
+            no_second_status((unsigned int)d) != 0)
+                return -5;
+        if (dsys_procinfo((unsigned int)a, &info) != 0 ||
+            info.state != 6UL ||
+            dsys_procinfo((unsigned int)d, &info) != 0 ||
+            info.state != 6UL ||
+            no_second_status((unsigned int)session_a) != 0 ||
+            no_second_status((unsigned int)session_b) != 0)
+                return -6;
+        events = (unsigned int)dsys_procctl(SYS_PROCCTL_GETEVENTS, 0U);
+        if ((events & SYS_EVENT_BIT(SYS_EVENT_CHLD)) == 0U)
+                return -7;
+        (void)mark('c');
+
+        if (send_group(grp_a, SYS_EVENT_CONT) != 0 ||
+            wait_group_pair(grp_a, SYS_WAIT_CONTINUED, SYS_EVENT_CONT,
+                (unsigned int)a, (unsigned int)b) != 0 ||
+            send_group(grp_b, SYS_EVENT_CONT) != 0 ||
+            wait_group_pair(grp_b, SYS_WAIT_CONTINUED, SYS_EVENT_CONT,
+                (unsigned int)c, (unsigned int)d) != 0 ||
+            no_second_status((unsigned int)a) != 0 ||
+            no_second_status((unsigned int)d) != 0)
+                return -8;
+        events = (unsigned int)dsys_procctl(SYS_PROCCTL_GETEVENTS, 0U);
+        if ((events & SYS_EVENT_BIT(SYS_EVENT_CHLD)) == 0U)
+                return -9;
+        (void)mark('d');
+
+        if (send_group(grp_a, SYS_EVENT_TERM) != 0 ||
+            wait_group_pair(grp_a, SYS_WAIT_EXITED,
+                SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM,
+                (unsigned int)a, (unsigned int)b) != 0 ||
+            no_stale_pid((unsigned int)a) != 0 ||
+            no_stale_pid((unsigned int)b) != 0 ||
+            no_second_status((unsigned int)c) != 0 ||
+            no_second_status((unsigned int)d) != 0 ||
+            no_second_status((unsigned int)session_a) != 0 ||
+            no_second_status((unsigned int)session_b) != 0)
+                return -10;
+        if (send_group(grp_b, SYS_EVENT_INT) != 0 ||
+            wait_group_pair(grp_b, SYS_WAIT_EXITED,
+                SYS_WAIT_EVENT_FLAG | SYS_EVENT_INT,
+                (unsigned int)c, (unsigned int)d) != 0 ||
+            no_stale_pid((unsigned int)c) != 0 ||
+            no_stale_pid((unsigned int)d) != 0)
+                return -11;
+        (void)mark('e');
+
+        reused = 0U;
+        old_pid = -1;
+        for (cycle = 0U; cycle < E08_PID_CYCLES; ++cycle) {
+                pid = spawn(EVENT_MODE, SYS_RUN_PGRP_INHERIT, 0U);
+                if (pid <= 1 || pid == session_a || pid == session_b)
+                        return -12;
+                if (old_pid == pid)
+                        ++reused;
+                if (send_pid((unsigned int)pid, SYS_EVENT_ALRM) != 0 ||
+                    wait_pid_status((unsigned int)pid, SYS_WAIT_EXITED,
+                        EVENT_STATUS) != 0 ||
+                    no_stale_pid((unsigned int)pid) != 0 ||
+                    no_second_status((unsigned int)session_a) != 0 ||
+                    no_second_status((unsigned int)session_b) != 0)
+                        return -13;
+                old_pid = pid;
+        }
+        if (reused != E08_PID_CYCLES - 1U)
+                return -14;
+        (void)mark('f');
+        if (send_pid((unsigned int)session_a, SYS_EVENT_TERM) != 0 ||
+            wait_pid_status((unsigned int)session_a, SYS_WAIT_EXITED,
+                SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM) != 0 ||
+            no_stale_pid((unsigned int)session_a) != 0 ||
+            no_second_status((unsigned int)session_b) != 0 ||
+            send_pid((unsigned int)session_b, SYS_EVENT_TERM) != 0 ||
+            wait_pid_status((unsigned int)session_b, SYS_WAIT_EXITED,
+                SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM) != 0 ||
+            no_stale_pid((unsigned int)session_b) != 0)
+                return -15;
+        (void)mark('g');
+        events = (unsigned int)dsys_procctl(SYS_PROCCTL_GETEVENTS, 0U);
+        if ((events & SYS_EVENT_BIT(SYS_EVENT_CHLD)) == 0U ||
+            dsys_meminfo(&after) != 0 ||
+            after.process_slots_used != before.process_slots_used ||
+            after.process_words != before.process_words ||
+            after.file_slots_used != before.file_slots_used)
+                return -16;
+        return 0;
+}
+#endif
+
 static unsigned int
 startup_mode(int argc, kword_t **argv)
 {
@@ -108,6 +342,10 @@ startup_mode(int argc, kword_t **argv)
                 return SELFFATAL_MODE;
         if (ch == 'H')
                 return HUP_MODE;
+#if V1155_E08
+        if (ch == 'N')
+                return SESSION_MODE;
+#endif
         return 0U;
 }
 
@@ -202,6 +440,27 @@ main(int argc, kword_t **argv)
                         spin += 1UL;
         }
 
+#if V1155_E08
+        if (mode == SESSION_MODE) {
+                kword_t ready;
+                int me;
+
+                me = dsys_getpid();
+                if (me <= 1 ||
+                    dsys_procctl(SYS_PROCCTL_NEWSESSION, 0U) != me ||
+                    dsys_procctl(SYS_PROCCTL_GETSESSION, 0U) != me ||
+                    dsys_procctl(SYS_PROCCTL_GETPGRP, 0U) != me)
+                        (void)dsys_exit(075);
+                ready = 'N';
+                if (dsys_write_words(3, &ready, 1U) != 1 ||
+                    dsys_close(3) != 0)
+                        (void)dsys_exit(076);
+                spin = 0UL;
+                for (;;)
+                        spin += 1UL;
+        }
+#endif
+
         if (mode != 1U || dsys_getpid() != 1)
                 fail('0', 010);
         if (mark('<') != 0)
@@ -292,6 +551,13 @@ main(int argc, kword_t **argv)
 
         if (dsys_meminfo(&mem) != 0 || mem.process_slots_used != 2UL)
                 fail('F', 027);
+#if V1155_E08
+        (void)mark('0');
+        if (exercise_e08() != 0)
+                fail('J', 035);
+        if (mark('J') != 0)
+                fail('J', 036);
+#endif
         (void)mark('E');
         (void)dsys_exit(0);
         return 0;

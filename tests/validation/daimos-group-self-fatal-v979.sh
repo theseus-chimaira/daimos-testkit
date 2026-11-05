@@ -7,6 +7,12 @@ set -eu
 
 make_cmd=${MAKE:-make}
 tag=daimos-group-self-fatal-v979
+e08=${V1155_E08:-0}
+case "$e08" in
+    0|1) ;;
+    *) echo 'v1155: invalid E08 mode' >&2; exit 2 ;;
+esac
+if [ "$e08" = 1 ]; then tag=daimos-oom-groups-sessions-v1155; fi
 work="$TMPDIR/$tag-$$"
 build="$work/build"
 user="$work/user"
@@ -15,7 +21,11 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 
 cleanup()
 {
-        rm -rf "$work"
+        if [ "${KEEP_TEST:-0}" != 1 ]; then
+                rm -rf "$work"
+        else
+                printf 'v1155: retained guest and logs at %s\n' "$work"
+        fi
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -24,7 +34,7 @@ cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
 dlink="$PDP10_PREFIX/bin/dlink"
 
-"$cc" -std=c89 -Os \
+"$cc" -std=c89 -Os -DV1155_E08="$e08" \
     -I"$DAIMOS_REPO/system/kernel/boot" \
     -I"$DAIMOS_REPO/system/kernel/core" \
     -I"$DAIMOS_REPO/system/kernel/drivers" \
@@ -60,9 +70,11 @@ ge_port=$((45000 + ($$ % 10000)))
 "$self/../lib/daimos-simh-headless.sh" "$boot/boot.ini" \
     "$boot/boot.headless.ini" "$dcs_port" "$ge_port"
 set +e
+guest_timeout=30s
+if [ "$e08" = 1 ]; then guest_timeout=240s; fi
 (
         cd "$boot"
-        TERM=dumb timeout -k 2s 30s stdbuf -o0 -e0 \
+        TERM=dumb timeout -k 2s "$guest_timeout" stdbuf -o0 -e0 \
             "$PDP10_PREFIX/bin/pdp6" boot.headless.ini
 ) >"$out" 2>&1
 rc=$?
@@ -90,7 +102,8 @@ case "$text" in
         ;;
 esac
 case "$text" in
-*'E'*'HALT'*) ;;
+*'0abcdefgJE'*'HALT'*) [ "$e08" = 1 ] ;;
+*'E'*'HALT'*) [ "$e08" = 0 ] ;;
 *)
         cat "$out" >&2
         echo "$tag: event completion/HALT missing" >&2
@@ -98,4 +111,8 @@ case "$text" in
         ;;
 esac
 
-printf '%s\n' "$tag: PASS (PID/PGRP events, TSTP/CONT, CHLD, fatal-event WAIT status, pending ALRM)"
+if [ "$e08" = 1 ]; then
+    echo "$tag: PASS (two live foreign sessions, two concurrent 2-member groups, STOP/CONT/CHLD/WAIT, 64 PID lifetimes and stale-event exclusion)"
+else
+    echo "$tag: PASS (PID/PGRP events, TSTP/CONT, CHLD, fatal-event WAIT status, pending ALRM)"
+fi

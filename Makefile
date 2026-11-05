@@ -1636,6 +1636,12 @@ test-daimos-oom-unbounded-owner-v1149: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-reaper-backoff-v1102.sh
 
+.PHONY: test-daimos-oom-groups-sessions-v1155
+test-daimos-oom-groups-sessions-v1155: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-groups-sessions-v1155.sh
+
 test-daimos-tty-vm-uarea-v1124: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
