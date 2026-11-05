@@ -4,6 +4,10 @@
 #define CHILD_MODE           0441U
 #define CHILD_STATUS         062U
 
+#ifdef DAIMOS_V1147_PI6_OWNER
+#define BYSTANDER_MODE       0442U
+#endif
+
 #define RUN_PATH_WORDS       3U
 #define RUN_ARG_WORDS        2U
 #define RUN_PATH_OFF         SYS_RUN_V2_FIXED_WORDS
@@ -65,6 +69,62 @@ spawn_child(int command_fd, int report_fd)
         return dsys_run(run);
 }
 
+#ifdef DAIMOS_V1147_PI6_OWNER
+/* A separate session must remain runnable while INIT owns its fatal
+ * HUP and the clock-driven PREVM/POSTVM retry transactions. */
+static void fail(int ch, int status);
+
+static int
+spawn_bystander(int ready_fd)
+{
+        kword_t block[RUN_BLOCK_WORDS];
+        struct sys_run_v2 *run;
+        unsigned int i;
+
+        for (i = 0U; i < RUN_BLOCK_WORDS; ++i)
+                block[i] = 0UL;
+        run = (struct sys_run_v2 *)block;
+        run->flags = SYS_RUN_PGRP_NEW;
+        run->pgrp = 0UL;
+        run->fdmap_count = 4UL;
+        run->argc = 2UL;
+        run->envc = 0UL;
+        for (i = 0U; i < RUN_PATH_WORDS; ++i) {
+                block[RUN_PATH_OFF + i] = init_path[i];
+                block[RUN_ARG0_OFF + i] = init_path[i];
+        }
+        block[RUN_ARG1_OFF] = 1UL;
+        block[RUN_ARG1_OFF + 1U] =
+            TEST_SIX6('B', ' ', ' ', ' ', ' ', ' ');
+        for (i = 0U; i < 3U; ++i)
+                block[RUN_MAP_OFF + i] = SYS_RUN_FD_MAP(i, i);
+        block[RUN_MAP_OFF + 3U] = SYS_RUN_FD_MAP(3U,
+            (unsigned int)ready_fd);
+        run->version_words = SYS_RUN_HEADER(SYS_RUN_VERSION_2,
+            RUN_MAP_OFF + 4U);
+        return dsys_run(run);
+}
+
+static void
+bystander_main(void)
+{
+        int pid;
+        kword_t ready;
+
+        pid = dsys_getpid();
+        if (pid <= 1 || dsys_procctl(SYS_PROCCTL_NEWSESSION, 0U) != pid)
+                fail('N', 0221);
+        ready = (kword_t)'B';
+        if (dsys_write_words(3, &ready, 1U) != 1 || dsys_close(3) != 0)
+                fail('G', 0224);
+        for (;;) {
+                if (dsys_sleep(1U) != 0 ||
+                    dsys_writechar(1, 'S') != 0)
+                        fail('K', 0222);
+        }
+}
+#endif
+
 static unsigned int
 startup_mode(int argc, kword_t **argv)
 {
@@ -76,6 +136,10 @@ startup_mode(int argc, kword_t **argv)
             (argv[1][0] & 0777777UL) != 1UL)
                 return 0U;
         ch = (unsigned int)(((argv[1][1] >> 30U) & 077UL) + 040U);
+#ifdef DAIMOS_V1147_PI6_OWNER
+        if (ch == 'B')
+                return BYSTANDER_MODE;
+#endif
         return ch == 'C' ? CHILD_MODE : 0U;
 }
 
@@ -142,6 +206,10 @@ main(int argc, kword_t **argv)
         int report_r;
         int report_w;
         int child;
+#ifdef DAIMOS_V1147_PI6_OWNER
+        int bystander_ready_r;
+        int bystander_ready_w;
+#endif
         unsigned int mode;
 
         mode = startup_mode(argc, argv);
@@ -150,6 +218,12 @@ main(int argc, kword_t **argv)
                 child_main();
                 return 0;
         }
+#ifdef DAIMOS_V1147_PI6_OWNER
+        if (mode == BYSTANDER_MODE) {
+                bystander_main();
+                return 0;
+        }
+#endif
         if (mode != 1U || dsys_getpid() != 1)
                 fail('0', 0200);
         if (dsys_writechar(1, '<') != 0 ||
@@ -180,6 +254,17 @@ main(int argc, kword_t **argv)
             wait_exit((unsigned int)child, CHILD_STATUS) != 0 ||
             dsys_close(command_w) != 0 || dsys_close(report_r) != 0)
                 fail('5', 0205);
+#ifdef DAIMOS_V1147_PI6_OWNER
+        /* Wait for the distinct session to be published before INIT
+         * begins HUP. This is an ownership barrier, not a timed delay. */
+        if (new_pipe(&bystander_ready_r, &bystander_ready_w) != 0 ||
+            spawn_bystander(bystander_ready_w) <= 1 ||
+            dsys_close(bystander_ready_w) != 0 ||
+            pipe_recv(bystander_ready_r, &report) != 0 ||
+            report != (kword_t)'B' ||
+            dsys_close(bystander_ready_r) != 0)
+                fail('B', 0223);
+#endif
         /* Keep the controlling TTY through the success marker.  A process
          * that has just detached it cannot report success through fd 1;
          * detach/reattach propagation was already verified above. */

@@ -8,12 +8,24 @@ set -eu
 make_cmd=${MAKE:-make}
 tag=daimos-tty-exit-pin-live-v969
 physical_chain=${DAIMOS_V1124_TTY_VM_UAREA:-0}
+pi6_owner=${DAIMOS_V1147_PI6_OWNER:-0}
 case "$physical_chain" in
     0|1) ;;
     *) echo 'v1124: invalid physical TTY/VM/u-area mode' >&2; exit 2 ;;
 esac
+case "$pi6_owner" in
+    0|1) ;;
+    *) echo 'v1147: invalid PI6 owner mode' >&2; exit 2 ;;
+esac
+if [ "$pi6_owner" = 1 ] && [ "$physical_chain" != 1 ]; then
+    echo 'v1147: PI6 test requires physical TTY/VM/u-area mode' >&2
+    exit 2
+fi
 if [ "$physical_chain" = 1 ]; then
         tag=daimos-tty-vm-uarea-v1124
+fi
+if [ "$pi6_owner" = 1 ]; then
+        tag=daimos-tty-pi6-owner-v1147
 fi
 work="$TMPDIR/$tag-$$"
 build="$work/build"
@@ -30,7 +42,8 @@ cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
 python3 "$self/daimos-tty-exit-pin-live-v969.py" \
-    "$work/source/system/kernel/proc/proc_pdp6.s" "$physical_chain"
+    "$work/source/system/kernel/proc/proc_pdp6.s" "$physical_chain" \
+    "$pi6_owner"
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
@@ -43,7 +56,11 @@ if [ "$physical_chain" = 1 ]; then
 else
         cflags='-DDAIMOS_V969_TTY_HUP=1'
 fi
-"$cc" -std=c89 -Os "$cflags" \
+cflags_pi6=
+if [ "$pi6_owner" = 1 ]; then
+        cflags_pi6='-DDAIMOS_V1147_PI6_OWNER=1'
+fi
+"$cc" -std=c89 -Os "$cflags" ${cflags_pi6:+"$cflags_pi6"} \
     -I"$DAIMOS_REPO/system/kernel/boot" \
     -I"$DAIMOS_REPO/system/kernel/core" \
     -I"$DAIMOS_REPO/system/kernel/drivers" \
@@ -90,6 +107,18 @@ if [ "$physical_chain" = 1 ]; then
         printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$pi6_owner" = 1 ]; then
+    for name in tty vm uarea final; do
+        sym="daimos_test_tick_${name}_v1147"
+        addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$boot/kcore.map")
+        test -n "$addr" || { echo "v1147: missing $sym" >&2; exit 1; }
+        printf 'tick_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+    sym=daimos_test_bystander_sleeps_v1147
+    addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$boot/kcore.map")
+    test -n "$addr" || { echo "v1147: missing $sym" >&2; exit 1; }
+    printf 'bystander_sleeps %s\n' "$addr" >> "$work/addresses"
+fi
 sed -i '/^exit$/d' "$boot/boot.ini"
 while read -r name addr; do
     printf 'examine %s\n' "$addr" >> "$boot/boot.ini"
@@ -134,7 +163,7 @@ case "$text" in
         ;;
 esac
 
-python3 - "$work/addresses" "$out" "$physical_chain" <<'PY'
+python3 - "$work/addresses" "$out" "$physical_chain" "$pi6_owner" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -148,6 +177,10 @@ for line in Path(sys.argv[1]).read_text().splitlines():
                    r'\s*:\s*([0-7]+)', out)
     print('v969 witness', name, m[-1] if m else 'MISSING')
     seen[name] = int(m[-1], 8) if m else None
+    if name.startswith('tick_') or name == 'bystander_sleeps':
+        if not m:
+            bad.append((name, m))
+        continue
     if not m or (name not in ('matched', 'entry', 'armed') and int(m[-1], 8) !=
                  (0 if name == 'error_word' or name.endswith('_base') else 1)
                  and (not name.endswith('_base') or int(m[-1], 8) == 0)) or \
@@ -164,4 +197,18 @@ if sys.argv[3] == '1':
           'and exact three-stage finalization PASS:', seen)
 else:
     print('v969: booted final-session pinned TTY retains, unpins, retries PASS')
+if sys.argv[4] == '1':
+    phases = [seen['tick_' + name] for name in ('tty', 'vm', 'uarea', 'final')]
+    if any(v is None or v == 0 for v in phases) or not (
+            phases[0] <= phases[1] <= phases[2] < phases[3]) or \
+            phases[3] - phases[0] < 3:
+        raise SystemExit('v1147: PI6 timer did not advance across '
+                         'owner release phases: '+str(seen))
+    guest = out.split('<', 1)[-1].split('HALT', 1)[0]
+    if seen['bystander_sleeps'] < 2 or guest.count('S') < 2:
+        raise SystemExit('v1147: independent user lacked sleep '
+                         'progress after real TTY MM_BUSY: '+str(seen))
+    print('v1147: independent PI6 clock, bystander and owner-side '
+          'physical TTY/VM/uarea retry PASS:', phases,
+          'bystander_sleeps', seen['bystander_sleeps'])
 PY
