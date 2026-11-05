@@ -6,6 +6,15 @@
 #define DAIMOS_V1126_NESTED 0
 #endif
 
+#ifndef DAIMOS_V1157_PROVIDER
+#define DAIMOS_V1157_PROVIDER 0
+#endif
+
+#if DAIMOS_V1157_PROVIDER
+#define E10_HOLDER_STATE_V1157 0777750UL
+#define E10_HOLDER_RELEASE_V1157 0777751UL
+#endif
+
 #define EXEC_BLOCK_WORDS   (SYS_EXEC_V1_FIXED_WORDS + RUN_PATH_WORDS)
 #define RUN_PATH_WORDS     3U
 #define RUN_ARG_WORDS      2U
@@ -54,7 +63,7 @@ exec_self_v890(void)
 }
 
 static int
-spawn_exec(int invalid_fd, int apr_child)
+spawn_exec(int invalid_fd, int apr_child, int holder_child)
 {
         kword_t block[RUN_BLOCK_WORDS + 1U];
         struct sys_run_v2 *run;
@@ -72,6 +81,7 @@ spawn_exec(int invalid_fd, int apr_child)
         }
         block[RUN_ARG1_OFF] = 1UL;
         block[RUN_ARG1_OFF + 1U] =
+            holder_child ? TEST_SIX6('B', ' ', ' ', ' ', ' ', ' ') :
             apr_child ? TEST_SIX6('A', ' ', ' ', ' ', ' ', ' ') :
                         TEST_SIX6('E', ' ', ' ', ' ', ' ', ' ');
         for (i = 0U; i < 3U; ++i)
@@ -98,13 +108,16 @@ main(int argc, kword_t **argv)
         int rejected;
         unsigned int i;
 #endif
+#if DAIMOS_V1157_PROVIDER
+        int holder;
+#endif
 
         mode = 0U;
         if (argc == 2 && argv != 0 && argv[1] != 0 &&
             (argv[1][0] & 0777777UL) == 1UL)
                 mode = (unsigned int)(((argv[1][1] >> 30U) &
                     077UL) + 040U);
-        if (mode == 'E') {
+    if (mode == 'E') {
                 (void)dsys_writechar(1, 'E');
                 /* Valid UUO/EXEC argument; isolated kernel injects
                  * staged memory pressure followed by a failed loader
@@ -113,7 +126,18 @@ main(int argc, kword_t **argv)
                 (void)dsys_writechar(1, '!');
                 (void)dsys_exit(0277);
                 return 0;
+    }
+#if DAIMOS_V1157_PROVIDER
+        if (mode == 'B') {
+                /* The disposable FS gateway parks this real owner after
+                 * acquiring its serialized provider lease. */
+                int fd;
+                fd = dsys_open(init_path, SYS_O_RDONLY);
+                if (fd >= 0)
+                        (void)dsys_close(fd);
+                (void)dsys_exit(066);
         }
+#endif
 #if DAIMOS_V1126_NESTED
         if (mode == 'A') {
                 volatile kword_t *bad;
@@ -128,7 +152,7 @@ main(int argc, kword_t **argv)
                 fail('0');
         if (dsys_writechar(1, '<') != 0)
                 fail('1');
-        child = spawn_exec(0, 0);
+        child = spawn_exec(0, 0, 0);
         if (child <= 1)
                 fail('2');
 #if DAIMOS_V1126_NESTED
@@ -146,7 +170,21 @@ main(int argc, kword_t **argv)
         }
         if (i == 40U)
                 fail('t');
-        apr = spawn_exec(0, 1);
+#if DAIMOS_V1157_PROVIDER
+        holder = spawn_exec(0, 0, 1);
+        if (holder <= child)
+                fail('h');
+        for (i = 0U; i < 64U; ++i) {
+                if (dsys_brk(E10_HOLDER_STATE_V1157) == 1UL)
+                        break;
+                if (dsys_sleep(010U) != 0)
+                        fail('i');
+        }
+        if (i == 64U)
+                fail('j');
+        (void)dsys_writechar(1, 'B');
+#endif
+        apr = spawn_exec(0, 1, 0);
         if (apr <= child)
                 fail('a');
         status = 0UL;
@@ -157,7 +195,7 @@ main(int argc, kword_t **argv)
                 fail('b');
         if (dsys_meminfo(&before) != 0)
                 fail('c');
-        rejected = spawn_exec(1, 0);
+        rejected = spawn_exec(1, 0, 0);
         if (rejected != -1)
                 fail('d');
         if (dsys_meminfo(&after) != 0)
@@ -185,6 +223,17 @@ main(int argc, kword_t **argv)
             SYS_WAIT_NOHANG) != -1)
                 fail('f');
         (void)dsys_writechar(1, 'R');
+#if DAIMOS_V1157_PROVIDER
+        /* Release only after APR and the failed RUN. The holder then
+         * resumes its own kernel stack and unlocks normally. */
+        if (dsys_brk(E10_HOLDER_RELEASE_V1157) != 0UL)
+                fail('k');
+        if (dsys_wait((unsigned int)holder, &status, 0U) != holder ||
+            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+            SYS_WAIT_STATUS_VALUE(status) != 066U)
+                fail('l');
+        (void)dsys_writechar(1, 'U');
+#endif
 #endif
         status = 0UL;
 #if DAIMOS_V1126_NESTED

@@ -12,6 +12,13 @@ nested=${DAIMOS_V1126_NESTED:-0}
 case "$nested" in 0|1) ;; *) echo 'v1126: invalid nested mode' >&2; exit 2 ;; esac
 physical_uarea=${DAIMOS_V1142_PHYSICAL_UAREA:-0}
 case "$physical_uarea" in 0|1) ;; *) echo 'v1142: invalid u-area fault mode' >&2; exit 2 ;; esac
+e10_provider=${DAIMOS_V1157_PROVIDER:-0}
+case "$e10_provider" in 0|1) ;; *) echo 'v1157: invalid provider mode' >&2; exit 2 ;; esac
+if [ "$e10_provider" = 1 ] && { [ "$physical_uarea" != 1 ] ||
+    [ "${DAIMOS_V1126_NESTED:-0}" != 1 ]; }; then
+    echo 'v1157: provider mode requires nested APR/EXEC/RUN and real u-area' >&2
+    exit 2
+fi
 if [ "$physical_uarea" = 1 ] && [ "$nested" != 1 ]; then
     echo 'v1142: physical u-area fault requires nested APR/EXEC/RUN' >&2
     exit 2
@@ -689,6 +696,10 @@ path.write_text(path.read_text() + '\n        .bss\n' +
                         'daimos_test_%s_v890: .block 1\n' % (n, n)
                         for n in stats))
 PY
+if [ "$e10_provider" = 1 ]; then
+    python3 "$self/daimos-fatal-exec-provider-v1157.py" \
+        "$work/source/system/kernel"
+fi
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
@@ -702,6 +713,7 @@ done
 # shellcheck disable=SC2086
 "$cc" -std=c89 -Os -DDAIMOS_V1126_NESTED="$nested" \
     -DDAIMOS_V1142_PHYSICAL_UAREA="$physical_uarea" \
+    -DDAIMOS_V1157_PROVIDER="$e10_provider" \
     $inc -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-fatal-exec-integration-v890.c" -o "$work/user/init.s"
 "$das" -C -F -O "$work/user/init.dobj" "$work/user/init.s"
@@ -788,6 +800,17 @@ if [ "$physical_uarea" = 1 ]; then
         test -n "$addr" || { echo "v1142: no $sym" >&2; exit 1; }
         printf '%s %s\n' "physical_$name" "$addr" >> "$work/addresses"
     done
+fi
+if [ "$e10_provider" = 1 ]; then
+    for name in holder_enter holder_lease holder_return release; do
+        sym="daimos_e10_${name}_v1157"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
+        test -n "$addr" || { echo "v1157: missing $sym" >&2; exit 1; }
+        printf 'e10_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+    addr=$(awk '$1 == "fs_provider_ready" {print $2}' "$map")
+    test -n "$addr" || { echo 'v1157: missing provider lease' >&2; exit 1; }
+    printf 'e10_final_lease %s\n' "$addr" >> "$work/addresses"
 fi
 if [ "$return_snapshot" = 1 ]; then
     # Simulator-only snapshots; unlike source instrumentation these do
@@ -952,7 +975,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v890: SIMH failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$return_snapshot" "$break_trace" "$sequential_trace" "${claimed:-}" "${return_pc:-}" "$discard_breaks" "$work/trace-labels-v1138" "$physical_uarea" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$nested" "$diagnostic" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$return_snapshot" "$break_trace" "$sequential_trace" "${claimed:-}" "${return_pc:-}" "$discard_breaks" "$work/trace-labels-v1138" "$physical_uarea" "$e10_provider" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -969,6 +992,7 @@ break_trace = sys.argv[10] == '1'
 sequential_trace = sys.argv[11] == '1'
 discard_breaks = sys.argv[14] == '1'
 physical_uarea = sys.argv[16] == '1'
+e10_provider = sys.argv[17] == '1'
 counts = {}
 for line in names:
     name, address = line.split()
@@ -1127,4 +1151,16 @@ if nested:
                          output[-1000:])
     print('v1126: real APR fatal during post-commit EXEC FILE retry; '
           'unpublished post-VM RUN rollback, retained owner and WAIT PASS')
+if e10_provider:
+    expected_e10 = dict(e10_holder_enter=1, e10_holder_lease=4 << 18,
+                        e10_holder_return=1, e10_release=(1 << 36) - 1,
+                        e10_final_lease=(1 << 36) - 1)
+    for name, value in expected_e10.items():
+        if counts[name] != value:
+            raise SystemExit('v1157: %s = %s, expected %s' %
+                             (name, counts[name], value))
+    if '<EBA' not in output or 'RU' not in output:
+        raise SystemExit('v1157: missing holder/APR/RUN/release markers')
+    print('v1157: live foreign provider lease retained through APR, '
+          'postcommit EXEC FILE and failed RUN; owner resumes/unlocks PASS')
 PY

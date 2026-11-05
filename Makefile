@@ -1,3 +1,9 @@
+.PHONY: test-daimos-fatal-exec-provider-v1157
+test-daimos-fatal-exec-provider-v1157: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fatal-exec-provider-v1157.sh
+
 .PHONY: test-daimos-oom-exact-once-matrix-v1146
 test-daimos-oom-exact-once-matrix-v1146: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
