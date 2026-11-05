@@ -173,7 +173,7 @@ int main(void)
     assert(mapped == (void *)0x100000UL);
     resident_setup();
     memset(&d, 0, sizeof(d));
-    assert(proc_packed_evict_transaction_v32(SLOT, &d, OFFSET, 64U,
+    assert(proc_packed_evict_tx_v32(SLOT, &d, OFFSET, 64U,
         bad_encode) != MM_OK);
     assert(VM_PDP6_BASE(&processes[SLOT]) == DEST);
     assert(mm_extent_count == 1 && find_extent(SOURCE) < 0);
@@ -181,16 +181,16 @@ int main(void)
     assert(proc_storage_get_v28(&proc_storage_runtime_v29, SLOT) == PROC_STORAGE_RESIDENT);
     resident_setup();
     memset(&d, 0, sizeof(d));
-    assert(proc_packed_evict_transaction_v32(SLOT, &d, OFFSET, 128U,
+    assert(proc_packed_evict_tx_v32(SLOT, &d, OFFSET, 128U,
         pair_encode) == MM_ERR_INVAL);
-    assert(proc_packed_evict_transaction_v32(SLOT, &d, OFFSET, 64U,
+    assert(proc_packed_evict_tx_v32(SLOT, &d, OFFSET, 64U,
         pair_encode) == MM_OK);
     assert(VM_PDP6_BASE(&processes[SLOT]) == 0UL && d.span != 0UL);
     assert(find_extent(DEST) < 0 && find_extent(SOURCE) >= 0);
     assert(mm_extent_count == 1 && !PROC_TRANSITION(&processes[SLOT]));
     assert(proc_storage_get_v28(&proc_storage_runtime_v29, SLOT) == PROC_STORAGE_PACKED);
     PROC_SET_TRANSITION(&processes[SLOT]);
-    assert(proc_packed_restore_transaction_v31(SLOT, &d, BACKING,
+    assert(proc_packed_restore_tx_v31(SLOT, &d, BACKING,
         pair_decode, reload) == MM_OK);
     assert(VM_PDP6_BASE(&processes[SLOT]) == DEST && d.span == 0UL);
     assert(proc_storage_get_v28(&proc_storage_runtime_v29, SLOT) == PROC_STORAGE_RESIDENT);

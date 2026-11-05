@@ -78,7 +78,7 @@ tsfs_boot_select(unsigned int ordinal)
 }
 
 unsigned int
-tsfs_boot_selected_unit_mask_v22(void)
+tsfs_boot_unit_mask_v22(void)
 {
         return selected_tape_mask;
 }
