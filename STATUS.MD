@@ -1,3 +1,19 @@
+## 2026-11-05 v1195: current candidate P0-D and stack checks PASS
+
+`test-daimos-p0d-release-matrix-v1096` on the current DAIMOS source
+PASSed all 18 native/source-linked owner-release tests, v1083 and
+v1087 transitive no-new-allocation graph. No `P0D_FULL=1` guests
+were run in this batch; A04/F02 remain open.
+
+`test-daimos-proc-stack-watermark` PASSed highwater `0300` octal
+(warning limit `0310`, capacity `0316`). After repairing v1192
+DBOOT conversion in v1194, the fresh
+`test-daimos-idle-stack-watermark` 256K PDP-6 guest PASSed with
+idle highwater `025` octal (limit `060`). The initial build failure
+was genuine mkauxstore incompatibility, not a stack measurement.
+F07 is NOT closed; descriptor/extent, APR alignment and provider
+buffer peaks remain to be audited. Production OOM is still OFF.
+
 ## 2026-11-05 v1194: AUXSTORE explicit DBOOT conversion regression
 
 The v1192 explicit-zero DBOOT marker exposed a compatible-media
