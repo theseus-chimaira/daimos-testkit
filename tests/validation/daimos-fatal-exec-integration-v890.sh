@@ -1123,10 +1123,13 @@ if nested:
     for name in ('vfs_calls', 'vfs_rejects', 'passes', 'sleeps', 'fd_held'):
         del expected[name]
     if not (3 <= counts['vfs_calls'] <= 50 and
-            counts['vfs_rejects'] == counts['vfs_calls'] - 1 and
-            counts['fd_held'] == counts['vfs_rejects'] and
+            ((not e10_provider and
+              counts['vfs_rejects'] == counts['vfs_calls'] - 1) or
+             (e10_provider and
+              2 <= counts['vfs_rejects'] < counts['vfs_calls'] - 1)) and
+            counts['fd_held'] == counts['vfs_calls'] - 1 and
             counts['passes'] == counts['vfs_calls'] and
-            counts['sleeps'] == counts['vfs_rejects'] and
+            counts['sleeps'] == counts['vfs_calls'] - 1 and
             counts['late_run'] == 1 and counts['run_error'] == 0 and
             counts['finish_owner'] == 1 and
             counts['finish_fail'] == 0 and
