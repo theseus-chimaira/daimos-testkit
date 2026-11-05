@@ -1,3 +1,27 @@
+## 2026-11-05 v1154: E07 actual PI6/bystander release matrix CLOSED
+
+The full 256K PDP-6 `test-daimos-oom-disk-pi6-v1154` guest PASSes the
+original v1122 PIPE physical MM_BUSY and distinct DISK bitmap-refusal
+and exact backing restore, with an added unrelated separate-session
+user. At the *first* real DISK allocation-bitmap verification failure
+the qualified PI6 clock is 1015; at the successful verifier retry it
+is 1032. The independent user executes eight genuine sleep/wakeup
+syscalls between those exact failure/retry boundaries. Both bitmap
+verifier calls, one corruption/restore, one physical PIPE MM release,
+the original DISK record, and terminal WAIT/TTY accounting PASS with
+zero error counters. Test-only instrumentation never substitutes a
+clock event, MM return, or filesystem-provider result.
+
+Together with the v1153 full guest (55 real PI6 ticks and three
+independent user sleeps between PIPE MM_BUSY and final publication,
+with physical DPY/VM/u-area and held foreign provider) and v1148
+(32 real PI6 ticks and live unrelated session during pinned TTY,
+VM/u-area and deferred HUP), this covers every E07 resource class.
+E07 is accepted for the currently supported writable-process scope.
+Mandatory OOM status: **44/65 complete, 21 open** (19 pre-enable
+blockers plus F12/F13). E08-E13 and F02-F11 remain open. No
+production KCORE, MRES, RAM, ABI, or OOM policy changed.
+
 ## 2026-11-05 v1153: E07 mixed physical PI6/bystander evidence (partial)
 
 The new `test-daimos-oom-pi6-spinners-v1153` independently rebuilds
