@@ -17,6 +17,7 @@ pid_reuse=${V1120_TEST_PID_REUSE:-0}
 held_provider=${V1150_TEST_HELD_PROVIDER:-0}
 endurance=${V1151_TEST_ENDURANCE:-0}
 disk_full=${V1156_TEST_DISK_FULL:-0}
+combined=${V1158_TEST_COMBINED:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -57,6 +58,18 @@ case "$disk_full" in
     0|1) ;;
     *) echo 'v1156: invalid backing exhaustion mode' >&2; exit 2 ;;
 esac
+case "$combined" in
+    0|1) ;;
+    *) echo 'v1158: invalid combined mode' >&2; exit 2 ;;
+esac
+if [ "$combined" = 1 ] && { [ "$mm_slots" != 1 ] ||
+    [ "$run_cause" != 1 ] || [ "$bad_run" != 0 ] ||
+    [ "$held_provider" != 0 ] || [ "$endurance" != 0 ] ||
+    [ "$disk_full" != 0 ] || [ "$mm_fragment" != 0 ] ||
+    [ "$pid_reuse" != 0 ]; }; then
+    echo 'v1158: combined mode requires actual RUN MM failure' >&2
+    exit 2
+fi
 if [ "$disk_full" = 1 ] && { [ "$held_provider" != 0 ] ||
     [ "$endurance" != 0 ] || [ "$mm_slots" != 0 ] ||
     [ "$mm_fragment" != 0 ] || [ "$run_cause" != 0 ] ||
@@ -219,6 +232,7 @@ done
     -DV1150_TEST_HELD_PROVIDER="$held_provider" \
     -DV1151_TEST_ENDURANCE="$endurance" \
     -DV1156_TEST_DISK_FULL="$disk_full" \
+    -DV1158_TEST_COMBINED="$combined" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -283,6 +297,7 @@ prefix=
 if [ "$mm_fragment" = 1 ]; then prefix=F; fi
 if [ "$mm_slots" = 1 ]; then prefix=M; fi
 if [ "$run_cause" = 1 ]; then prefix=${prefix}C; fi
+if [ "$combined" = 1 ]; then prefix=${prefix}A; fi
 if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
 tail_marker=P
@@ -341,6 +356,9 @@ if [ "$mm_fragment" = 1 ]; then
 fi
 if [ "$run_cause" = 1 ]; then
     echo "v1116: real descriptor-saturated RUN returned -1 with original VM/MM cause -3, no retained child (OOM enabled=$enable) PASS"
+fi
+if [ "$combined" = 1 ]; then
+    echo "v1158: independent RUN parent survives real -3 admission failure and remains live across physical requester OOM, with exact WAIT (OOM enabled=$enable) PASS"
 fi
 if [ "$pid_reuse" = 1 ]; then
     if [ "$endurance" = 1 ]; then

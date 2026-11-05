@@ -1,3 +1,19 @@
+## 2026-11-05 v1158: E11 independent RUN parent and physical BRK OOM PASS
+
+Two freshly built 256K PDP-6 full-system guests PASS
+`test-daimos-oom-run-parent-v1158` and its disabled counterpart.
+A separate live witness process fills genuine MM descriptor slots,
+attempts an ordinary child RUN, observes real -3 VM/u-area allocation
+failure, verifies no child slot or process words remain, and restores
+the original descriptors. A parent/child pipe acknowledgment proves
+this happened before INIT launches an independent physical BRK-OOM
+requester. The failed-RUN parent remains waiting and alive across the
+other process's OOM; it later exits normally with exact parent WAIT.
+Enabled policy kills only the BRK requester, while production-disabled
+policy returns -1. Both recover original process RAM/slot accounting.
+Only the disposable copied kernel carries the fault-injection MM
+descriptor probe and enabled OOM switch. Production remains unchanged.
+
 ## 2026-11-05 v1157: E10 held-provider APR/EXEC/RUN PASS
 
 Fresh `make test-daimos-fatal-exec-provider-v1157` full 256K PDP-6

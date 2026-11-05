@@ -45,6 +45,10 @@
 #define V1156_TEST_DISK_FULL 0
 #endif
 
+#ifndef V1158_TEST_COMBINED
+#define V1158_TEST_COMBINED 0
+#endif
+
 #define V1156_BACKING_FILL 0777760UL
 #define V1156_BACKING_FREE 0777761UL
 
@@ -68,7 +72,7 @@
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
 #define V1075_ARG1_OFF (V1075_ARG0_OFF + V1075_PATH_WORDS)
 #define V1075_MAP_OFF (V1075_ARG1_OFF + 2U)
-#define V1075_REQ_WORDS (V1075_MAP_OFF + 3U + V1150_TEST_HELD_PROVIDER)
+#define V1075_REQ_WORDS (V1075_MAP_OFF + 3U + V1150_TEST_HELD_PROVIDER + V1158_TEST_COMBINED)
 #define V1075_BRK_REQUEST 0776000UL
 #define V1075_WITNESS_STATUS 052U
 #define V1075_OOM_STATUS 1U
@@ -95,6 +99,10 @@ v1150_pipe(int *read_fd, int *write_fd)
         *write_fd = (int)(pair & 0777777UL);
         return 0;
 }
+#endif
+
+#if V1158_TEST_COMBINED
+static int v1158_ack_writer;
 #endif
 
 static void
@@ -183,6 +191,16 @@ run_child(int mode, int input_fd)
                     V1075_MAP_OFF + 3U);
         }
 #endif
+#if V1158_TEST_COMBINED
+        if (mode == 'W') {
+                req->fdmap_count = 4UL;
+                block[V1075_MAP_OFF + 3U] = SYS_RUN_FD_MAP(3U,
+                    (unsigned int)v1158_ack_writer);
+        } else {
+                req->version_words = SYS_RUN_HEADER(SYS_RUN_VERSION_2,
+                    V1075_MAP_OFF + 3U);
+        }
+#endif
         return dsys_run(req);
 }
 
@@ -212,6 +230,10 @@ main(int argc, kword_t **argv)
         int writer;
         int witness;
         int requester;
+#if V1158_TEST_COMBINED
+        int ack_pair_reader;
+        int ack_pair_writer;
+#endif
 #if V1150_TEST_HELD_PROVIDER
         int release_r;
         int release_w;
@@ -228,6 +250,39 @@ main(int argc, kword_t **argv)
             argv[1][0] == 1UL) {
                 if (argv[1][1] ==
                     TEST_SIX6('W', ' ', ' ', ' ', ' ', ' ')) {
+#if V1158_TEST_COMBINED
+                        struct sys_meminfo run_before;
+                        struct sys_meminfo run_after;
+                        kword_t vm_cause;
+                        kword_t uarea_cause;
+
+                        /* This independent live process, not INIT, is
+                         * the RUN parent. Fill actual MM descriptors,
+                         * exercise child VM/u-area admission failure,
+                         * restore descriptors, and stay alive until the
+                         * OTHER child has encountered real BRK OOM. */
+                        if (dsys_meminfo(&run_before) != 0 ||
+                            dsys_brk(0777776UL) != 0UL ||
+                            run_child('I', 0) != -1)
+                                (void)dsys_exit(066);
+                        vm_cause = dsys_brk(0777770UL);
+                        uarea_cause = dsys_brk(0777774UL);
+                        if (dsys_brk(0777775UL) != 0UL ||
+                            dsys_meminfo(&run_after) != 0 ||
+                            run_after.process_slots_used !=
+                                run_before.process_slots_used ||
+                            run_after.process_words !=
+                                run_before.process_words ||
+                            !((vm_cause == (kword_t)-3L &&
+                               uarea_cause == (kword_t)-7L) ||
+                              (vm_cause == 0UL &&
+                               uarea_cause == (kword_t)-3L)))
+                                (void)dsys_exit(066);
+                        word = 'A';
+                        if (dsys_write_words(3, &word, 1U) != 1 ||
+                            dsys_close(3) != 0)
+                                (void)dsys_exit(067);
+#endif
                         /* Parent releases this witness only AFTER OOM. */
                         if (dsys_read_words(0, &word, 1U) != 0)
                                 (void)dsys_exit(053);
@@ -455,9 +510,29 @@ main(int argc, kword_t **argv)
             writer >= 16 || reader == writer)
                 fail('2');
 
+#if V1158_TEST_COMBINED
+        pair = dsys_pipe();
+        if (pair == ~(kword_t)0UL)
+                fail('a');
+        ack_pair_reader = (int)((pair >> 18U) & 0777777UL);
+        ack_pair_writer = (int)(pair & 0777777UL);
+        v1158_ack_writer = ack_pair_writer;
+#endif
+
         witness = run_child('W', reader);
         if (witness <= 1 || dsys_close(reader) != 0)
                 fail('3');
+#if V1158_TEST_COMBINED
+        if (dsys_close(ack_pair_writer) != 0 ||
+            dsys_read_words(ack_pair_reader, &word, 1U) != 1 ||
+            word != 'A' || dsys_close(ack_pair_reader) != 0)
+                fail('b');
+        word = 0UL;
+        if (dsys_wait((unsigned int)witness, &word,
+                SYS_WAIT_NOHANG) != 0)
+                fail('c');
+        (void)dsys_writechar(1, 'A');
+#endif
 #if V1150_TEST_HELD_PROVIDER
         if (v1150_pipe(&release_r, &release_w) != 0 ||
             v1150_pipe(&ack_r, &ack_w) != 0)

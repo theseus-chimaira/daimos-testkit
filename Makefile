@@ -1,3 +1,12 @@
+.PHONY: test-daimos-oom-run-parent-v1158 test-daimos-oom-run-parent-disabled-v1158
+test-daimos-oom-run-parent-v1158: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" sh tests/validation/daimos-oom-run-parent-v1158.sh
+test-daimos-oom-run-parent-disabled-v1158: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1158_OOM_ENABLED=0 \
+	 sh tests/validation/daimos-oom-run-parent-v1158.sh
+
 .PHONY: test-daimos-fatal-exec-provider-v1157
 test-daimos-fatal-exec-provider-v1157: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
