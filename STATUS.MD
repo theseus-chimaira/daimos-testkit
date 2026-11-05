@@ -1,3 +1,22 @@
+## 2026-11-05 v1161: frozen-candidate A04/P0-D component preflight PASS
+
+On DAIMOS `fe0f3c0e`, the unmodified
+`test-daimos-p0d-release-matrix-v1096` (without `P0D_FULL=1`)
+PASSes all 18 source-linked/native release-stage fixtures:
+PIPE/FIFO typed final close, DPY replacement and MM ownership,
+swap/backing detach and retry, HUP, u-area/MM typed free,
+PREVM clock and reaper backoff, unpublished RUN discard,
+TTY/VM finalization, XIP/MM release and VM_NONE idempotence.
+The included v1083 direct-scope audit and v1087 transitive
+BRK/APR/EXEC -> FILE/VFS/FS -> PIPE/DPY -> TTY/VM/XIP/MM/SWAP/WAIT
+allocation-free graph PASS, with error/owner transitions checked.
+
+This is a **component preflight only**. The script explicitly
+reported `disposable full guest matrix skipped (set P0D_FULL=1)`.
+Therefore neither final-candidate A04 nor F02 is closed; both need
+the booted matrix at the final frozen release revision. The
+production OOM switch remains OFF. No source changes required.
+
 ## 2026-11-05 v1160: explicit E13 256K DSK/D6FS boot/media PASS
 
 Fresh 256K KCC PDP-6 `test-daimos-oom-release-media-v1160`
