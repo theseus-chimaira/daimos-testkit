@@ -1,3 +1,20 @@
+## 2026-11-05 v1194: AUXSTORE explicit DBOOT conversion regression
+
+The v1192 explicit-zero DBOOT marker exposed a compatible-media
+regression in `mkauxstore --convert-dboot`: the auxiliary-drum
+precursor was correctly flagged as explicit and rejected by the
+old exact-legacy DBOOT allowlist. The corrected converter accepts
+only flag `0` or `1` at octal descriptor word `020`, and retains
+strict rejection of all other nonzero descriptor metadata.
+Expanded v638 destructive-conversion tests PASS for both modes,
+unknown flag `2`, high-bit flags, dry-run image immutability and
+original D6FS payload survival. Original v636 destructive-format
+safety tests PASS. Fresh current-source P0-D component matrix
+(`test-daimos-p0d-release-matrix-v1096` without `P0D_FULL=1`)
+also PASSes all 18 source-linked release stages and the v1087
+allocation-free graph. This is not A04/F02 full-guest acceptance.
+Production OOM remains disabled.
+
 ## 2026-11-05 v1192: D6FSR2 explicit-zero layout regression PASS
 
 `test-daimos-d6fs-explicit-zero-layout-v1192` compiles fresh host

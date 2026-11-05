@@ -37,6 +37,39 @@ cmp "$image" "$work/before"
 "$tool" --inspect "$image" > "$work/inspect"
 grep -q 'BACKSTORE 21+10' "$work/inspect"
 test "$(dd if="$image" bs=1 skip=$((10 * 1024)) count=1 2>/dev/null)" = X
+# Modern D6FSR2 zero-reservation descriptors carry explicit flag 1
+# at octal word 020. Both normal conversion and a dry run must
+# preserve the filesystem and reject any other 36-bit flag value.
+cp "$work/before" "$work/explicit"
+python3 - "$work/explicit" <<'PY'
+import struct
+import sys
+with open(sys.argv[1], 'r+b') as f:
+    f.seek(0o20 * 8)
+    f.write(struct.pack('<Q', 1))
+PY
+cp "$work/explicit" "$work/explicit.before"
+"$tool" -i "$work/explicit" --dry-run --convert-dboot $args >/dev/null
+cmp "$work/explicit" "$work/explicit.before"
+"$tool" -i "$work/explicit" --confirm-destructive --convert-dboot $args >/dev/null
+"$tool" --inspect "$work/explicit" | grep -q 'BACKSTORE 21+10'
+test "$(dd if="$work/explicit" bs=1 skip=$((10 * 1024)) count=1 2>/dev/null)" = X
+for flags in 2 17179869185; do
+    cp "$work/explicit.before" "$work/badflags"
+    python3 - "$work/badflags" "$flags" <<'PY'
+import struct
+import sys
+with open(sys.argv[1], 'r+b') as f:
+    f.seek(0o20 * 8)
+    f.write(struct.pack('<Q', int(sys.argv[2])))
+PY
+    cp "$work/badflags" "$work/badflags.before"
+    if "$tool" -i "$work/badflags" --confirm-destructive \
+        --convert-dboot $args >/dev/null 2>&1; then
+        echo 'v638: unknown explicit layout flags accepted' >&2; exit 1
+    fi
+    cmp "$work/badflags" "$work/badflags.before"
+done
 "$tool" --blank "$work/mismatch" --blocks 0200
 python3 - "$work/mismatch" <<'PY'
 import struct
