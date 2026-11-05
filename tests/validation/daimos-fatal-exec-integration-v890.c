@@ -208,12 +208,9 @@ main(int argc, kword_t **argv)
         if (rejected != -1)
                 fail('d');
 #if DAIMOS_V1157_PROVIDER
-        status = 0UL;
-        if (dsys_wait((unsigned int)apr, &status, 0U) != apr ||
-            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
-            SYS_WAIT_STATUS_VALUE(status) !=
-                (SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM))
-                fail('b');
+        /* APR has faulted but may still be blocked in its own fatal
+         * FILE close against the foreign lease. Never WAIT for its
+         * terminal status until the original provider owner unlocks. */
         (void)dsys_writechar(1, 'B');
 #endif
         if (dsys_meminfo(&after) != 0)
@@ -237,9 +234,11 @@ main(int argc, kword_t **argv)
             after.process_words != before.process_words)
                 fail('e');
 #endif
+#if !DAIMOS_V1157_PROVIDER
         if (dsys_wait((unsigned int)apr, &status,
             SYS_WAIT_NOHANG) != -1)
                 fail('f');
+#endif
         (void)dsys_writechar(1, 'R');
 #if DAIMOS_V1157_PROVIDER
         /* Do not unlock before the EXEC fatal closer has *actually*
@@ -261,6 +260,14 @@ main(int argc, kword_t **argv)
             SYS_WAIT_STATUS_VALUE(status) != 066U)
                 fail('l');
         (void)dsys_writechar(1, 'U');
+        status = 0UL;
+        if (dsys_wait((unsigned int)apr, &status, 0U) != apr ||
+            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+            SYS_WAIT_STATUS_VALUE(status) !=
+                (SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM) ||
+            dsys_wait((unsigned int)apr, &status,
+                SYS_WAIT_NOHANG) != -1)
+                fail('b');
 #endif
 #endif
         status = 0UL;
