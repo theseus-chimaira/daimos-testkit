@@ -16,6 +16,7 @@ run_cause=${V1116_TEST_RUN_CAUSE:-0}
 pid_reuse=${V1120_TEST_PID_REUSE:-0}
 held_provider=${V1150_TEST_HELD_PROVIDER:-0}
 endurance=${V1151_TEST_ENDURANCE:-0}
+disk_full=${V1156_TEST_DISK_FULL:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -52,6 +53,18 @@ case "$endurance" in
     0|1) ;;
     *) echo 'v1151: invalid endurance mode' >&2; exit 2 ;;
 esac
+case "$disk_full" in
+    0|1) ;;
+    *) echo 'v1156: invalid backing exhaustion mode' >&2; exit 2 ;;
+esac
+if [ "$disk_full" = 1 ] && { [ "$held_provider" != 0 ] ||
+    [ "$endurance" != 0 ] || [ "$mm_slots" != 0 ] ||
+    [ "$mm_fragment" != 0 ] || [ "$run_cause" != 0 ] ||
+    [ "$negatives" != 0 ] || [ "$bad_run" != 0 ] ||
+    [ "$pid_reuse" != 0 ]; }; then
+    echo 'v1156: independent backing-full guest required' >&2
+    exit 2
+fi
 if [ "$endurance" = 1 ] && { [ "$pid_reuse" != 1 ] ||
     [ "$held_provider" != 0 ] || [ "$negatives" != 0 ] ||
     [ "$bad_run" != 0 ] || [ "$mm_slots" != 0 ] ||
@@ -97,6 +110,10 @@ if [ "$held_provider" = 1 ]; then
 fi
 if [ "$endurance" = 1 ]; then
     python3 "$self/daimos-oom-endurance-v1151.py" \
+        "$work/source/system/kernel"
+fi
+if [ "$disk_full" = 1 ]; then
+    python3 "$self/daimos-oom-disk-full-v1156.py" \
         "$work/source/system/kernel"
 fi
 if [ "$mm_slots" = 1 ]; then
@@ -201,6 +218,7 @@ done
     -DV1120_TEST_PID_REUSE="$pid_reuse" \
     -DV1150_TEST_HELD_PROVIDER="$held_provider" \
     -DV1151_TEST_ENDURANCE="$endurance" \
+    -DV1156_TEST_DISK_FULL="$disk_full" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -269,6 +287,7 @@ if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
 tail_marker=P
 if [ "$pid_reuse" = 1 ]; then tail_marker=QP; fi
+if [ "$disk_full" = 1 ]; then tail_marker=BMRP; fi
 if [ "$endurance" = 1 ]; then
     tail_marker=EQP
     if [ "$enable" = 0 ]; then
@@ -329,6 +348,9 @@ if [ "$pid_reuse" = 1 ]; then
     else
         echo "v1120: 24 numeric PID reuse cycles, alternating exit statuses, stale WAIT/TERM rejection and exact MM/slot cleanup (OOM enabled=$enable) PASS"
     fi
+fi
+if [ "$disk_full" = 1 ]; then
+    echo "v1156: real backing bitmap full, real allocation refusal, still-live BRK grow/shrink, subsequent backing recovery and stable process/FILE accounting PASS (OOM enabled=$enable)"
 fi
 if [ "$held_provider" = 1 ]; then
     python3 - "$work/addresses" "$work/simh.out" "$enable" <<'PY'

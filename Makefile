@@ -1642,6 +1642,30 @@ test-daimos-oom-groups-sessions-v1155: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-oom-groups-sessions-v1155.sh
 
+.PHONY: test-daimos-oom-backstore-capacity-v1156
+test-daimos-oom-backstore-capacity-v1156: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-backstore-capacity-v1156.sh
+
+.PHONY: test-daimos-oom-disk-full-v1156
+test-daimos-oom-disk-full-v1156: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1156_OOM_ENABLED=0 \
+	 sh tests/validation/daimos-oom-disk-full-v1156.sh
+
+.PHONY: test-daimos-oom-disk-full-enabled-v1156
+test-daimos-oom-disk-full-enabled-v1156: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1156_OOM_ENABLED=1 \
+	 sh tests/validation/daimos-oom-disk-full-v1156.sh
+
+.PHONY: test-daimos-oom-error-matrix-v1156
+test-daimos-oom-error-matrix-v1156: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-error-matrix-v1156.sh
+
 test-daimos-tty-vm-uarea-v1124: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

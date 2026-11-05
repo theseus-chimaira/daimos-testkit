@@ -41,6 +41,13 @@
 #define V1151_TEST_ENDURANCE 0
 #endif
 
+#ifndef V1156_TEST_DISK_FULL
+#define V1156_TEST_DISK_FULL 0
+#endif
+
+#define V1156_BACKING_FILL 0777760UL
+#define V1156_BACKING_FREE 0777761UL
+
 #define V1151_OOM_WAVES 32U
 #define V1151_PID_LIFETIMES 256U
 #define V1151_MIN_PI6_TICKS 1024U
@@ -508,6 +515,40 @@ main(int argc, kword_t **argv)
             after.process_words != before.process_words ||
             v1075_pressure[037777] != 01234567UL)
                 fail('7');
+
+#if V1156_TEST_DISK_FULL
+        {
+                kword_t original;
+                kword_t expanded;
+
+                /* The test-only kernel fills the REAL backing bitmap,
+                 * then makes a second real allocation, checking -1,
+                 * unchanged counters and the untouched destination.
+                 * A full DISK pool must never mean fatal physical OOM. */
+                original = dsys_brk(0UL);
+                if (original == (kword_t)-1L ||
+                    dsys_storagectl(SYS_STORAGECTL_SWAP) != 0 ||
+                    dsys_brk(V1156_BACKING_FILL) != 0UL)
+                        fail('y');
+                (void)dsys_writechar(1, 'B');
+                expanded = original + 01000UL;
+                if (expanded >= V1156_BACKING_FILL ||
+                    dsys_brk(expanded) != expanded ||
+                    dsys_brk(original) != original ||
+                    dsys_brk(0777777UL) != (kword_t)-1L ||
+                    dsys_brk(0UL) != original)
+                        fail('z');
+                (void)dsys_writechar(1, 'M');
+                if (dsys_brk(V1156_BACKING_FREE) != 0UL ||
+                    dsys_storagectl(0U) != 0 ||
+                    dsys_meminfo(&after) != 0 ||
+                    after.process_slots_used != before.process_slots_used ||
+                    after.process_words != before.process_words ||
+                    after.file_slots_used != before.file_slots_used)
+                        fail('v');
+                (void)dsys_writechar(1, 'R');
+        }
+#endif
 
 #if V1151_TEST_ENDURANCE
         {
