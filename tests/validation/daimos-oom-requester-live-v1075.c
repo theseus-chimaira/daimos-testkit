@@ -53,6 +53,10 @@
 #define V1159_TEST_PROTECTED 0
 #endif
 
+#ifndef V1174_TEST_RESIDENCY
+#define V1174_TEST_RESIDENCY 0
+#endif
+
 #define V1156_BACKING_FILL 0777760UL
 #define V1156_BACKING_FREE 0777761UL
 
@@ -402,10 +406,30 @@ main(int argc, kword_t **argv)
                 (void)dsys_exit(054);
         }
 
-        if (argc != 1 || dsys_getpid() != 1 ||
+    if (argc != 1 || dsys_getpid() != 1 ||
             dsys_meminfo(&before) != 0 ||
             before.total_words <= V1075_BRK_REQUEST)
                 fail('0');
+#if V1174_TEST_RESIDENCY
+    {
+        /* Report the REAL boot-time SYS_MEMINFO resident immediate.
+         * Keep the existing OOM/witness marker stream unchanged. */
+        unsigned int digit;
+
+        if (before.resident_words >= before.total_words)
+                fail('8');
+        (void)dsys_writechar(1, 'R');
+        for (digit = 6U; digit != 0U; --digit)
+                (void)dsys_writechar(1, (char)('0' +
+                    (int)((before.resident_words >> ((digit - 1U) * 3U)) &
+                    07UL)));
+        (void)dsys_writechar(1, 'S');
+        for (digit = 6U; digit != 0U; --digit)
+                (void)dsys_writechar(1, (char)('0' +
+                    (int)((before.process_slots_total >>
+                    ((digit - 1U) * 3U)) & 07UL)));
+    }
+#endif
     (void)dsys_writechar(1, '<');
 
 #if V1115_TEST_MM_FRAGMENT

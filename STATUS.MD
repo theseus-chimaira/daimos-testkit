@@ -1,3 +1,38 @@
+## 2026-11-05 v1174-v1176: measured OOM guest residency and compiler fix
+
+The new v1174 release-media residency test boots both isolated physical
+requester-OOM policies with actual 256K DSK/D6FS media, and checks the
+userland SYS_MEMINFO resident count against the KINIT-patched MOVEI at
+the actual SIMH memory address. It independently checks the 256K
+process-slot count (64), the 136-entry MM descriptor capacity, and the
+initialized/BSS KCORE map boundaries. Android aarch64 and Linux x86_64
+archives both PASS. v1176 independently accounts for all installed
+MINIT MRES images, rather than all linked packages: 22 permanently
+installed modules, 8837 words on Android and 8839 on Linux. Differences
+reflect actual independent host/source-built packages, not unloadable
+MRES. No MRES is dynamically loadable, unloadable or OOM reclaimable.
+
+With v1175 corrected KCC on Android, the test-only disabled guest
+records 9944 KCORE + 272 permanent MM descriptor words + 8837 MRES =
+19053 resident words, and enabled records 9958 + 272 + 8837 = 19067.
+These are instrumented guest sizes; neither is an uninstrumented
+production memory acceptance. The disabled guest exceeds the separate
+octal 040000 (16K) permanent address budget by 2717 words, enabled by
+2731 words. F05/F06 remain OPEN; no budget relaxation or OOM enable.
+
+Real compiler defect identified during the audit: optimized KCC could
+drop a live incoming argument held in preserved AC10 while flushing a
+MOVE/MOVEM peephole, making 256K MM capacity appear as 24 instead of
+136 entries. The six-line compiler correction in KCC b9cd764 retains
+copies into preserved registers. New v1175 reproducer and actual
+production mm_boot_init code-generation test PASS under that compiler,
+and the pre-fix negative control fails. The KCC commit exists locally;
+upstream publication remains an independently verified prerequisite.
+
+The evidence closes no new release gate by itself. Checklist remains
+51/65, production requester-only OOM remains disabled, and final F02,
+F03-F11 and E13 review continues.
+
 ## 2026-11-05 v1163: second E13 host and cross-platform counter audit PASS
 
 Fresh Linux x86_64 Open SIMH PDP-6 V4.1-0 (`a6b511e5`) E13

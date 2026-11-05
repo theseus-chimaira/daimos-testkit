@@ -1,3 +1,22 @@
+.PHONY: test-daimos-mres-residency-inventory-v1176
+test-daimos-mres-residency-inventory-v1176:
+	@test -n '$(V1176_ARCHIVE)' || \
+	 { echo 'v1176: specify V1176_ARCHIVE' >&2; exit 2; }
+	@python3 tests/validation/daimos-mres-residency-inventory-v1176.py \
+	 '$(V1176_ARCHIVE)'
+
+.PHONY: test-daimos-kcc-preserved-arg-v1175
+test-daimos-kcc-preserved-arg-v1175: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-kcc-preserved-arg-v1175.sh
+
+.PHONY: test-daimos-oom-residency-v1174
+test-daimos-oom-residency-v1174: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-residency-v1174.sh
+
 .PHONY: test-daimos-oom-cross-platform-v1163
 test-daimos-oom-cross-platform-v1163:
 	@test -n '$(V1163_ARM_ARCHIVE)' && test -n '$(V1163_LINUX_ARCHIVE)' || \

@@ -8,7 +8,11 @@ set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp}
 mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-work=$(mktemp -d "$TMPDIR/daimos-e13-release-media-v1160.XXXXXX")
+if [ "${V1174_TEST_RESIDENCY:-0}" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-oom-residency-v1174.XXXXXX")
+else
+    work=$(mktemp -d "$TMPDIR/daimos-e13-release-media-v1160.XXXXXX")
+fi
 echo "v1160: evidence directory: $work"
 
 for mode in 0 1; do
@@ -29,6 +33,10 @@ for mode in 0 1; do
     cat "$work/$label-run.log"
     test -s "$work/$label/simh.out"
     test -s "$work/$label/media-sha256.txt"
+    if [ "${V1174_TEST_RESIDENCY:-0}" = 1 ]; then
+        test -s "$work/$label/residency-v1174.txt"
+        test -s "$work/$label/mres-packages-v1174.txt"
+    fi
 done
 
 cat > "$work/README.txt" <<'EOF'
@@ -40,6 +48,14 @@ boot.ini, KCORE/user INIT maps, tool and root-media SHA256, profile.
 The media itself is not copied; its SHA256 attests the built file.
 Passing this single simulator/media combination does NOT close E13.
 EOF
+if [ "${V1174_TEST_RESIDENCY:-0}" = 1 ]; then
+    cat >> "$work/README.txt" <<'EOF'
+v1174: resident audit observes SYS_MEMINFO in userland and an independent
+SIMH read of the KINIT-patched resident immediate, plus MM capacity and
+KCORE boundaries. Includes linked MRES package metadata. This is an
+instrumented OOM guest, not an uninstrumented production size signoff.
+EOF
+fi
 
 archive="$work.tar.gz"
 tar -czf "$archive" -C "$work" .

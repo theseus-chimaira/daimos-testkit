@@ -20,6 +20,7 @@ disk_full=${V1156_TEST_DISK_FULL:-0}
 combined=${V1158_TEST_COMBINED:-0}
 protected=${V1159_TEST_PROTECTED:-0}
 release_media=${V1160_RELEASE_MEDIA:-0}
+residency=${V1174_TEST_RESIDENCY:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -72,6 +73,14 @@ case "$release_media" in
     0|1) ;;
     *) echo 'v1160: invalid release-media mode' >&2; exit 2 ;;
 esac
+case "$residency" in
+    0|1) ;;
+    *) echo 'v1174: invalid residency-audit mode' >&2; exit 2 ;;
+esac
+if [ "$residency" = 1 ] && [ "$release_media" != 1 ]; then
+    echo 'v1174: require explicit release-media boot profile' >&2
+    exit 2
+fi
 if [ "$release_media" = 1 ]; then
     if [ "$protected" != 1 ] || [ "$held_provider" != 1 ] ||
         [ -z "${V1160_EVIDENCE_DIR:-}" ]; then
@@ -264,6 +273,7 @@ done
     -DV1156_TEST_DISK_FULL="$disk_full" \
     -DV1158_TEST_COMBINED="$combined" \
     -DV1159_TEST_PROTECTED="$protected" \
+    -DV1174_TEST_RESIDENCY="$residency" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -317,6 +327,13 @@ if [ "$held_provider" = 1 ]; then
             addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$build/kcore.map")
             test -n "$addr" || { echo "v1159: missing $sym" >&2; exit 1; }
             printf 'e12_%s %s\n' "$name" "$addr" >> "$work/addresses"
+        done
+    fi
+    if [ "$residency" = 1 ]; then
+        for name in sys_resident_words_immediate mm_extent_capacity; do
+            addr=$(awk -v sym="$name" '$1 == sym {print $2}' "$build/kcore.map")
+            test -n "$addr" || { echo "v1174: missing $name" >&2; exit 1; }
+            printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
         done
     fi
     sed -i '/^exit$/d' "$build/boot.ini"
@@ -460,19 +477,47 @@ if [ "$protected" = 1 ]; then
     python3 "$self/daimos-oom-protected-verify-v1159.py" \
         "$work/addresses" "$work/simh.out" "$enable"
 fi
+if [ "$residency" = 1 ]; then
+    # Retain raw independent observations if the new audit fails.  The
+    # outer versioned E13 directory survives the disposable guest trap.
+    e=$V1160_EVIDENCE_DIR
+    test ! -e "$e" || { echo "v1174: evidence exists: $e" >&2; exit 2; }
+    mkdir -p "$e"
+    cp "$work/simh.out" "$e/simh.out"
+    cp "$work/addresses" "$e/addresses"
+    cp "$build/kcore.map" "$e/kcore.map"
+    cp "$build/boot.ini" "$e/boot.ini"
+    python3 "$self/daimos-oom-residency-verify-v1174.py" \
+        "$work/addresses" "$work/simh.out" "$build/kcore.map" \
+        > "$work/residency-v1174.txt"
+    cat "$work/residency-v1174.txt"
+    : > "$work/mres-packages-v1174.txt"
+    for pkg in "$build"/*-mres.dobj; do
+        test -f "$pkg" || continue
+        "$PDP10_PREFIX/bin/pdp10-objdump" -h "$pkg" \
+            | sed "s@^@$(basename "$pkg") @" \
+            >> "$work/mres-packages-v1174.txt"
+    done
+fi
 if [ "$release_media" = 1 ]; then
     # Archive *complete* build/simulator/counter evidence, not just a PASS
     # summary. Media is hashed but not copied into the small evidence bundle.
     # This runs only after all production-path guest validations have passed.
     e=$V1160_EVIDENCE_DIR
-    test ! -e "$e" || { echo "v1160: evidence exists: $e" >&2; exit 2; }
-    mkdir -p "$e"
+    if [ "$residency" != 1 ]; then
+        test ! -e "$e" || { echo "v1160: evidence exists: $e" >&2; exit 2; }
+        mkdir -p "$e"
+    fi
     cp "$work/build.log" "$e/build.log"
     cp "$work/simh.out" "$e/simh.out"
     cp "$work/addresses" "$e/addresses"
     cp "$build/boot.ini" "$e/boot.ini"
     cp "$build/kcore.map" "$e/kcore.map"
     cp "$work/user/init.map" "$e/init.map"
+    if [ "$residency" = 1 ]; then
+        cp "$work/residency-v1174.txt" "$e/residency-v1174.txt"
+        cp "$work/mres-packages-v1174.txt" "$e/mres-packages-v1174.txt"
+    fi
     printf 'mode=%s\n' "$enable" > "$e/profile.txt"
     printf 'boot=dsk\nroot=disk\nrootset=1\n' >> "$e/profile.txt"
     printf 'profile=full\ncore_octal=01000000\n' >> "$e/profile.txt"
@@ -497,5 +542,9 @@ if [ "$release_media" = 1 ]; then
     done
     (cd "$e" && sha256sum build.log simh.out addresses boot.ini \
         kcore.map init.map profile.txt > evidence-sha256.txt)
+    if [ "$residency" = 1 ]; then
+        (cd "$e" && sha256sum residency-v1174.txt mres-packages-v1174.txt \
+            >> evidence-sha256.txt)
+    fi
     echo "v1160: explicit 256K KCC DSK/D6FS physical-OOM release-media evidence PASS: $e"
 fi
