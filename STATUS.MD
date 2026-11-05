@@ -1,3 +1,23 @@
+## 2026-11-05 v1184-v1185: F04 exact cause/ownership PASS
+
+The corrected-toolchain Linux/x86-64 DAIMOS `96e6c695`
+acceptance has eight additional positive/negative resource tests
+on top of the 14 F03 cases, all PASS: v1113 real VM BRK MM -2/-3
+and mutation rejection; v1156 DISK backing exhaustion with BRK
+survival in disabled/enabled policies; v1158 independent RUN parent
+surviving -3 and another requester's physical OOM in both policies;
+v1157 APR/postcommit EXEC under held foreign FS provider plus
+unpublished RUN retry; v1106 real pinned VM/u-area MM_BUSY and
+v1077 actual D6FS SYNC/MM_BUSY through physical OOM.
+
+Evidence: Linux `$HOME/tmp/daimos-f04-cause-evidence-v1184.tar.gz`
+SHA256 `5c12dce02fe1877a47c19afa9e9339e1a466a39f79526d1960617a048ee69096`.
+F04 is CLOSED for ordinary writable RUN/EXEC/BRK. F09 is also
+recorded as a separate complete operator document in
+`pdp10-doc/KERNEL/OOM-FAIL-CLOSED-RECOVERY-V1185.MD`; it
+expressly does not promise bounded completion of a dead provider.
+DAIMOS mandatory checklist 54/65; production OOM OFF.
+
 ## 2026-11-05 v1181: F03 seven-scenario, two-policy guest matrix PASS
 
 On fresh Linux DAIMOS `96e6c695`, corrected KCC `b9cd764`
