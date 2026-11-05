@@ -1,3 +1,20 @@
+## 2026-11-05 v1149: B07 unbounded owner lifetime accepted
+
+The new `test-daimos-oom-unbounded-owner-v1149` source contract
+PASSes on current production PDP-6 assembly, rejecting eight unsafe
+mutations: fatal owner stopped after a capped delay, changed delay
+threshold, owner-forced MM free, remote owner finalization, stolen
+provider lease, forced unlock, inverted slot-0 failure handling and
+reset slot-0 backoff. It verifies a capped *interval*, not a capped
+owner lifetime, preserves the original foreign lease and retains
+failed slot-0 owners for later retry. The same target PASSes actual
+native v885 (14 repeated FILE refusals, multiple 01000-tick delay
+intervals, eventual single successful owner exit) and v1102 (shared
+retry clock/backoff and four mutation rejections). B07 is accepted
+as an ownership-safety contract; this does NOT certify liveness of
+an indefinitely in-flight foreign provider. B06 genuine concurrent
+physical OOM is still open. Production OOM remains disabled.
+
 ## 2026-11-05 v1147-v1148: integrated PI6/pending HUP C04 PASS
 
 Fresh v1147 owner-side TTY/VM/u-area MM_BUSY and independent PI6
