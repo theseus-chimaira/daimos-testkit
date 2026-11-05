@@ -1,3 +1,26 @@
+## 2026-11-05 v1146r3: frozen nine-stage D16 matrix PASS
+
+`make test-daimos-oom-exact-once-matrix-v1146` completed all nine
+stages successfully with no source/tool revision changes. The frozen
+candidate is DAIMOS `2e12c1da`, testkit `253a813`, plus the installed
+P10FOLD/DLINK/DAS/PDP-6 checksums recorded in `revisions.txt`.
+Per-stage logs remain under
+`$TMPDIR/daimos-oom-exact-once-v1146.mV2FJf`. The matrix includes
+the v1087 source/native release graph and negative mutations, the
+v1144 physical PIPE/DPY/VM/u-area/FILE/provider mixed case, v1124
+pinned TTY/VM/u-area finalization, v1119 PIPE/DPY HUP, v1121 DPY
+swap-out/swap-in, v1122 PIPE plus disk bitmap fault, v1142
+APR/EXEC/unpublished RUN rollback, and v1120 physical exhaustion
+and 24 PID reuse lifetimes in both disabled and test-only enabled
+requester-OOM guests. All original ownership/refusal, exact-once
+release, final WAIT, bystander and MM/slot accounting tests pass.
+
+D16 is accepted for the current production writable-process scope.
+This completes 38/65 mandatory checks, leaving 25 pre-enable blockers
+and F12/F13 post-signoff. This does NOT imply OOM activation readiness;
+production `PROC_OOM_BRK_ENABLED_V1000` remains zero. C04, sustained
+E/F and physical memory/RAM budgets are still open.
+
 ## 2026-11-05 v1146r2: fresh physical PIPE plus swap-bitmap evidence
 
 The unchanged-production 256K PDP-6 v1122 full guest PASSes on the
