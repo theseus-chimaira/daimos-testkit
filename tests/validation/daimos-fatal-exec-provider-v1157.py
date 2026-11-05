@@ -28,6 +28,11 @@ patch('fs/fs_mres.s',
         aos     daimos_e10_holder_enter_v1157
         move    0,fs_provider_ready
         movem   0,daimos_e10_holder_lease_v1157
+        ; Wake the unfinished, private-stack RUN fdmap failure only
+        ; after the original filesystem gateway lease is occupied.
+        setom   daimos_e10_run_event_v1157
+        movei   1,daimos_e10_run_event_v1157
+        pushj   17,proc_wakeup_event
 daimos_e10_holder_loop_v1157:
         skipn   daimos_e10_release_v1157
         jrst    daimos_e10_holder_wait_v1157
@@ -42,6 +47,17 @@ daimos_e10_normal_v1157:
         ; The missing-service trampoline already returns -1 normally.
         ; Invoke it under the same lease and use the common unlock path.''')
 
+patch('fs/fs_mres.s',
+      '''fs_provider_lock_foreign_v1078:
+        ; Fatal FILE close is already on the owner's private retry path.''',
+      '''fs_provider_lock_foreign_v1078:
+        move    0,proc_current_slot
+        caie    0,2                   ; actual fatal EXEC owner
+        jrst    daimos_e10_other_closer_v1157
+        aos     daimos_e10_foreign_busy_v1157
+daimos_e10_other_closer_v1157:
+        ; Fatal FILE close is already on the owner's private retry path.''')
+
 p = root / 'fs/fs_mres.s'
 p.write_text(p.read_text() + '''
         .bss
@@ -55,7 +71,42 @@ daimos_e10_holder_return_v1157: .block 1
 daimos_e10_holder_event_v1157: .block 1
         .globl daimos_e10_release_v1157
 daimos_e10_release_v1157: .block 1
+        .globl daimos_e10_run_armed_v1157
+daimos_e10_run_armed_v1157: .block 1
+        .globl daimos_e10_run_event_v1157
+daimos_e10_run_event_v1157: .block 1
+        .globl daimos_e10_foreign_busy_v1157
+daimos_e10_foreign_busy_v1157: .block 1
 ''')
+
+patch('proc/proc_run.s',
+      '''proc_run_fdmap_bad:
+        move    5,proc_current_slot''',
+      '''proc_run_fdmap_bad:
+        ; The late unpublished RUN has already reached its real
+        ; fdmap failure. The foreign holder was admitted beforehand;
+        ; wake it now, and keep this RUN owner on its private stack.
+        move    0,proc_current_slot
+        caie    0,1
+        jrst    daimos_e10_run_regular_v1157
+        setom   daimos_e10_run_armed_v1157
+daimos_e10_run_wait_v1157:
+        skipn   daimos_e10_holder_enter_v1157
+        jrst    daimos_e10_run_sleep_v1157
+        jrst    daimos_e10_run_regular_v1157
+daimos_e10_run_sleep_v1157:
+        movei   1,daimos_e10_run_event_v1157
+        pushj   17,proc_wait_event
+        jrst    daimos_e10_run_wait_v1157
+daimos_e10_run_regular_v1157:
+        move    5,proc_current_slot''')
+
+p = root / 'proc/proc_run.s'
+p.write_text('''        .globl daimos_e10_run_armed_v1157
+        .globl daimos_e10_run_event_v1157
+        .globl daimos_e10_holder_enter_v1157
+        .globl proc_wait_event
+''' + p.read_text())
 
 patch('proc/syscall_dispatch_pdp6.s',
       '''native_sys_brk:
@@ -66,6 +117,10 @@ patch('proc/syscall_dispatch_pdp6.s',
         jrst    daimos_e10_probe_v1157
         camn    2,[0777751]
         jrst    daimos_e10_resume_v1157
+        camn    2,[0777752]
+        jrst    daimos_e10_armed_probe_v1157
+        camn    2,[0777753]
+        jrst    daimos_e10_busy_probe_v1157
         move    1,2
         pushj   17,vm_space_brk_current''')
 
@@ -77,6 +132,8 @@ p.write_text(p.read_text() + '''
         .globl daimos_e10_holder_return_v1157
         .globl daimos_e10_holder_event_v1157
         .globl daimos_e10_release_v1157
+        .globl daimos_e10_run_armed_v1157
+        .globl daimos_e10_foreign_busy_v1157
         .globl fs_provider_ready
         .globl proc_wakeup_event
 daimos_e10_probe_v1157:
@@ -94,6 +151,12 @@ daimos_e10_not_ready_v1157:
         popj    17,
 daimos_e10_ready_v1157:
         movei   1,1
+        popj    17,
+daimos_e10_armed_probe_v1157:
+        move    1,daimos_e10_run_armed_v1157
+        popj    17,
+daimos_e10_busy_probe_v1157:
+        move    1,daimos_e10_foreign_busy_v1157
         popj    17,
 daimos_e10_resume_v1157:
         skipn   daimos_e10_holder_enter_v1157

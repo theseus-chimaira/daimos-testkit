@@ -13,6 +13,8 @@
 #if DAIMOS_V1157_PROVIDER
 #define E10_HOLDER_STATE_V1157 0777750UL
 #define E10_HOLDER_RELEASE_V1157 0777751UL
+#define E10_RUN_ARMED_V1157 0777752UL
+#define E10_FOREIGN_BUSY_V1157 0777753UL
 #endif
 
 #define EXEC_BLOCK_WORDS   (SYS_EXEC_V1_FIXED_WORDS + RUN_PATH_WORDS)
@@ -132,6 +134,9 @@ main(int argc, kword_t **argv)
                 /* The disposable FS gateway parks this real owner after
                  * acquiring its serialized provider lease. */
                 int fd;
+                while (dsys_brk(E10_RUN_ARMED_V1157) != 1UL)
+                        if (dsys_sleep(010U) != 0)
+                                (void)dsys_exit(067);
                 fd = dsys_open(init_path, SYS_O_RDONLY);
                 if (fd >= 0)
                         (void)dsys_close(fd);
@@ -141,6 +146,13 @@ main(int argc, kword_t **argv)
 #if DAIMOS_V1126_NESTED
         if (mode == 'A') {
                 volatile kword_t *bad;
+#if DAIMOS_V1157_PROVIDER
+                /* Already admitted before the foreign FS lock.
+                 * Fault only when the original lease is occupied. */
+                while (dsys_brk(E10_HOLDER_STATE_V1157) != 1UL)
+                        if (dsys_sleep(010U) != 0)
+                                (void)dsys_exit(070);
+#endif
                 (void)dsys_writechar(1, 'A');
                 bad = (volatile kword_t *)0777777UL;
                 (void)*bad;           /* actual APR protection fault */
@@ -171,19 +183,15 @@ main(int argc, kword_t **argv)
         if (i == 40U)
                 fail('t');
 #if DAIMOS_V1157_PROVIDER
+        /* Both actors must be admitted before the provider is locked;
+         * normal RUN loading could otherwise block at the gateway. */
+        apr = spawn_exec(0, 1, 0);
+        if (apr <= child)
+                fail('a');
         holder = spawn_exec(0, 0, 1);
-        if (holder <= child)
+        if (holder <= apr)
                 fail('h');
-        for (i = 0U; i < 64U; ++i) {
-                if (dsys_brk(E10_HOLDER_STATE_V1157) == 1UL)
-                        break;
-                if (dsys_sleep(010U) != 0)
-                        fail('i');
-        }
-        if (i == 64U)
-                fail('j');
-        (void)dsys_writechar(1, 'B');
-#endif
+#else
         apr = spawn_exec(0, 1, 0);
         if (apr <= child)
                 fail('a');
@@ -193,11 +201,21 @@ main(int argc, kword_t **argv)
             SYS_WAIT_STATUS_VALUE(status) !=
                 (SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM))
                 fail('b');
+#endif
         if (dsys_meminfo(&before) != 0)
                 fail('c');
         rejected = spawn_exec(1, 0, 0);
         if (rejected != -1)
                 fail('d');
+#if DAIMOS_V1157_PROVIDER
+        status = 0UL;
+        if (dsys_wait((unsigned int)apr, &status, 0U) != apr ||
+            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+            SYS_WAIT_STATUS_VALUE(status) !=
+                (SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM))
+                fail('b');
+        (void)dsys_writechar(1, 'B');
+#endif
         if (dsys_meminfo(&after) != 0)
                 fail('e');
 #if DAIMOS_V1142_PHYSICAL_UAREA
@@ -224,8 +242,18 @@ main(int argc, kword_t **argv)
                 fail('f');
         (void)dsys_writechar(1, 'R');
 #if DAIMOS_V1157_PROVIDER
-        /* Release only after APR and the failed RUN. The holder then
-         * resumes its own kernel stack and unlocks normally. */
+        /* Do not unlock before the EXEC fatal closer has *actually*
+         * collided with this foreign lease. This is not a timer guess. */
+        for (i = 0U; i < 256U; ++i) {
+                if (dsys_brk(E10_FOREIGN_BUSY_V1157) != 0UL)
+                        break;
+                if (dsys_sleep(010U) != 0)
+                        fail('i');
+        }
+        if (i == 256U)
+                fail('j');
+        /* Release only after APR, failed RUN, and foreign contention.
+         * The original holder must resume/unlock on its own stack. */
         if (dsys_brk(E10_HOLDER_RELEASE_V1157) != 0UL)
                 fail('k');
         if (dsys_wait((unsigned int)holder, &status, 0U) != holder ||

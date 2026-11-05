@@ -802,7 +802,8 @@ if [ "$physical_uarea" = 1 ]; then
     done
 fi
 if [ "$e10_provider" = 1 ]; then
-    for name in holder_enter holder_lease holder_return release; do
+    for name in holder_enter holder_lease holder_return release \
+                run_armed foreign_busy; do
         sym="daimos_e10_${name}_v1157"
         addr=$(awk -v s="$sym" '$1 == s {print $2}' "$map")
         test -n "$addr" || { echo "v1157: missing $sym" >&2; exit 1; }
@@ -965,6 +966,7 @@ if [ "$nested" = 1 ]; then
 else
     sim_limit=65s
 fi
+if [ "$e10_provider" = 1 ]; then sim_limit=240s; fi
 set +e
 (cd "$build"; TERM=dumb timeout -k 2s "$sim_limit" stdbuf -o0 -e0 \
     "$PDP10_PREFIX/bin/pdp6" boot.ini) > "$work/simh.out" 2>&1
@@ -1154,12 +1156,15 @@ if nested:
 if e10_provider:
     expected_e10 = dict(e10_holder_enter=1, e10_holder_lease=4 << 18,
                         e10_holder_return=1, e10_release=(1 << 36) - 1,
-                        e10_final_lease=(1 << 36) - 1)
+                        e10_final_lease=(1 << 36) - 1,
+                        e10_run_armed=(1 << 36) - 1)
     for name, value in expected_e10.items():
         if counts[name] != value:
             raise SystemExit('v1157: %s = %s, expected %s' %
                              (name, counts[name], value))
-    if '<EBA' not in output or 'RU' not in output:
+    if counts['e10_foreign_busy'] < 1:
+        raise SystemExit('v1157: no real foreign-provider close contention')
+    if '<EAB' not in output or 'RU' not in output:
         raise SystemExit('v1157: missing holder/APR/RUN/release markers')
     print('v1157: live foreign provider lease retained through APR, '
           'postcommit EXEC FILE and failed RUN; owner resumes/unlocks PASS')
