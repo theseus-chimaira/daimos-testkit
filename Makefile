@@ -1,3 +1,10 @@
+.PHONY: test-daimos-oom-build-diagnostics-v1190
+test-daimos-oom-build-diagnostics-v1190:
+	@test -n '$(V1190_ARM_ARCHIVE)' && test -n '$(V1190_LINUX_ARCHIVE)' || \
+	 { echo 'v1190: provide Android and Linux archives' >&2; exit 2; }
+	@python3 tests/validation/daimos-oom-build-diagnostics-v1190.py \
+	 '$(V1190_ARM_ARCHIVE)' '$(V1190_LINUX_ARCHIVE)'
+
 .PHONY: test-daimos-mres-residency-inventory-v1176
 test-daimos-mres-residency-inventory-v1176:
 	@test -n '$(V1176_ARCHIVE)' || \

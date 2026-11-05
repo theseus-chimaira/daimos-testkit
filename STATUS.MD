@@ -1,3 +1,54 @@
+## 2026-11-05 v1190r1: F05 out of OOM scope; F10 evidence accepted
+
+User scope decision retires static 16K permanent KCORE/MRES fit
+(former F05) as an OOM gate, without marking it as passed. Its
+measured permanent-size overflow remains a separate KCORE/MRES
+optimization issue. The OOM count is now 64, not 65.
+
+The v1190 checker independently PASSed its three injected-diagnostic
+negative mutants and four complete release-media build logs from
+`$TMPDIR/daimos-oom-residency-v1174.zpheEd.tar.gz`
+(SHA256 `6f660d1ad5522467332063bffc5f63fb4e2bb162889e9999e7dcf7a5ca36fbbf`)
+and `$TMPDIR/daimos-oom-residency-linux-v1176.tar.gz`
+(SHA256 `fd0b4cac80677ae7a9eadabfe83c94192ea644f3c800a23ba599020f99e44b87`).
+Both policies on both hosts report 13 matching, explicitly cataloged
+diagnostic classes and no unexplained compiler/assembler errors.
+Known KCC/legacy D6FS warnings remain visible; the filesystem
+verification is CLEAN. F10 is CLOSED on this frozen evidence.
+Final-candidate source and diagnostic revalidation remains mandatory
+under A04/F02/F11, and dynamic peak-MM safety F07 remains OPEN.
+**57/64 OOM checks complete, 7 open** (5 pre-enable plus F12/F13).
+Production OOM remains OFF; no production changes were made.
+
+## 2026-11-05 v1190: OOM release diagnostics and stress audit PASS
+
+New `test-daimos-oom-build-diagnostics-v1190` examines the complete
+KCC/KINIT/DSK/D6FS disabled and test-enabled release-media build logs
+from Android/aarch64 and Linux/x86-64. All four logs contain only
+the same thirteen explicitly cataloged KCC informational-note or
+known legacy D6FSR2-format warning classes; there are zero
+unexplained compiler/assembler diagnostics. The legacy warning is
+checked against an actual clean d6fsck superblock selection, not
+silently removed. Three injected unexpected-warning/error mutants
+are rejected by the v1190 checker. Test-only OOM remains isolated
+from production source; `PROC_OOM_BRK_ENABLED_V1000,0` is unchanged.
+
+Fresh Linux `v1151` enabled and disabled endurance guests, on
+DAIMOS `96e6c695` with KCC `b9cd764`, each PASS 32 true
+physical OOM/recovery cycles, 256 PID lifetimes, 512 stale requests,
+at least 1024 PI6 ticks and exact stable MM/backing/slot accounting.
+The log and SHA256 archive is
+`/home/theseus/tmp/daimos-f07-endurance-evidence-v1189.tar.gz`
+(`0c01e4e98460a926e829daf85c2c224e20f2f5125d836885ea90dfa6138bfec1`).
+Independent process/private and idle kernel-stack watermark tests
+PASS (0300 octal below 0316 capacity; idle highwater 025 below 060
+limit). Full peak MM/APR/provider-buffer sizing is still F07 work.
+
+Together these results support F10 release-source diagnostics
+acceptance; final source/release signoff F11 and 16K-fit F05 remain
+OPEN. No production OOM activation, MRES runtime changes or KCORE
+code modification.
+
 ## 2026-11-05 v1184-v1185: F04 exact cause/ownership PASS
 
 The corrected-toolchain Linux/x86-64 DAIMOS `96e6c695`
