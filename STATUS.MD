@@ -1,3 +1,40 @@
+## 2026-11-05 v1163: second E13 host and cross-platform counter audit PASS
+
+Fresh Linux x86_64 Open SIMH PDP-6 V4.1-0 (`a6b511e5`) E13
+`test-daimos-oom-release-media-v1160` guests PASS with real DSK/D6FS
+release media in both isolated requester-OOM-enabled and default-off
+modes against DAIMOS `90dfc8d0` and testkit `4e7dd86`. Exactly one
+real physical BRK OOM occurs per guest, with exclusive slot-3 fatal
+selection when enabled, zero selections when disabled, preserved
+INIT/witness/waiter/spinner/foreign filesystem owner, original held
+provider lease and final FILE/WAIT/MM recovery. Both show 160 spinner
+advances and zero integrity errors. The Linux evidence archive
+`/home/theseus/tmp/daimos-e13-release-media-v1160.wPB6WE.tar.gz`
+has SHA256 `b80eb98991845b89fb56344cb621c22eb3e8fd79aff185912163c5406f3e86fd`.
+An independently verified copy is kept under
+`$TMPDIR/daimos-e13-linux-x86_64-v1163.tar.gz` on the Android host.
+
+New `test-daimos-oom-cross-platform-v1163` checks the complete Android
+and Linux archived boot profiles, original simulator SHA256 fingerprints,
+physical-OOM process table and provider counters and KCORE low ends.
+Both hosts agree: disabled `023410`, test-enabled `023426` octal.
+Those are *disposable instrumented* kernels, not final production
+KCORE/MRES residency or 16K limit proof.
+
+Linux first revealed an outdated installed `mkauxstore` that did not
+accept the current destructive-format confirmation protocol. Strict
+glibc C99 rebuild also exposed undeclared POSIX `fileno`, `fdopen`
+and `lstat`; DAIMOS `90dfc8d0` sets `_POSIX_C_SOURCE=200809L` before
+headers. v636 safety and v638 DBOOT conversion PASS on Android and
+Linux; corrected `/usr/local/bin/mkauxstore` installed on Linux with
+the previous binary backed up. No production kernel change.
+
+E13 remains OPEN: first Android guest used DAIMOS `27acb950`, while
+Linux used `90dfc8d0`, and independent OpenBSD/other required targets
+have not yet been reproduced. Linux KCC notes (identifier truncation,
+unused symbols) and legacy D6FS layout warning remain F10 review
+items. Mandatory acceptance remains 51/65, production OOM OFF.
+
 ## 2026-11-05 v1161: frozen-candidate A04/P0-D component preflight PASS
 
 On DAIMOS `fe0f3c0e`, the unmodified

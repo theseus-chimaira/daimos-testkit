@@ -1,3 +1,10 @@
+.PHONY: test-daimos-oom-cross-platform-v1163
+test-daimos-oom-cross-platform-v1163:
+	@test -n '$(V1163_ARM_ARCHIVE)' && test -n '$(V1163_LINUX_ARCHIVE)' || \
+	 { echo 'v1163: specify both V1163_ARM_ARCHIVE and V1163_LINUX_ARCHIVE' >&2; exit 2; }
+	@python3 tests/validation/daimos-oom-cross-platform-v1163.py \
+	 '$(V1163_ARM_ARCHIVE)' '$(V1163_LINUX_ARCHIVE)'
+
 .PHONY: test-daimos-oom-release-media-v1160
 test-daimos-oom-release-media-v1160: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
