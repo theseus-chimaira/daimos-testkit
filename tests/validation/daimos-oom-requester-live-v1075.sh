@@ -269,7 +269,16 @@ if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
 tail_marker=P
 if [ "$pid_reuse" = 1 ]; then tail_marker=QP; fi
-if [ "$endurance" = 1 ]; then tail_marker=EQP; fi
+if [ "$endurance" = 1 ]; then
+    tail_marker=EQP
+    if [ "$enable" = 0 ]; then
+        # Every one of 32 physical-OOM requesters returns normally and
+        # prints D in the production-disabled guest. Do not skip or
+        # wildcard those bytes: missing/extra completions must fail.
+        returned=$(printf '%032d' 0 | tr 0 D)
+        tail_marker=${returned}${tail_marker}
+    fi
+fi
 if [ "$negatives" = 1 ]; then
     case "$text" in
         *"<$prefix"*'HALT'*) : ;;
