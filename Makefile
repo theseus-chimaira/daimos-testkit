@@ -1421,6 +1421,12 @@ test-daimos-oom-pi6-spinners-v1153: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-oom-pi6-spinners-v1153.sh
 
+.PHONY: test-daimos-oom-disk-pi6-v1154
+test-daimos-oom-disk-pi6-v1154: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-disk-pi6-v1154.sh
+
 .PHONY: test-daimos-p10fold-local-section-v1141
 .PHONY: test-daimos-fatal-exec-physical-uarea-v1142
 test-daimos-fatal-exec-physical-uarea-v1142: check-prefix
