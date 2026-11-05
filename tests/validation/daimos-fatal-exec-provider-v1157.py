@@ -153,7 +153,9 @@ daimos_e10_ready_v1157:
         movei   1,1
         popj    17,
 daimos_e10_armed_probe_v1157:
-        move    1,daimos_e10_run_armed_v1157
+        skipn   daimos_e10_run_armed_v1157
+        jrst    daimos_e10_not_ready_v1157
+        movei   1,1
         popj    17,
 daimos_e10_busy_probe_v1157:
         move    1,daimos_e10_foreign_busy_v1157
