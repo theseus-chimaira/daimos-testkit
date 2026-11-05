@@ -1144,14 +1144,22 @@ expected = dict(staged=1, commits=1, vm_destroy=1, load_fail=1,
 if nested:
     for name in ('vfs_calls', 'vfs_rejects', 'passes', 'sleeps', 'fd_held'):
         del expected[name]
-    if not (3 <= counts['vfs_calls'] <= 50 and
-            ((not e10_provider and
-              counts['vfs_rejects'] == counts['vfs_calls'] - 1) or
-             (e10_provider and
-              2 <= counts['vfs_rejects'] < counts['vfs_calls'] - 1)) and
-            counts['fd_held'] == counts['vfs_calls'] - 1 and
-            counts['passes'] == counts['vfs_calls'] and
-            counts['sleeps'] == counts['vfs_calls'] - 1 and
+    # In E10, FD0's injected refusal ends before the original
+    # provider-backed FD3 can succeed. FD3 may require additional
+    # complete FILE passes while the foreign lease is occupied, even
+    # after FD0 has closed. Thus actual pass/sleep accounting, rather
+    # than FD0 VFS-call count, is the authoritative retry identity.
+    close_accounting = (
+        counts['fd_held'] == counts['sleeps'] ==
+            counts['passes'] - 1 and
+        counts['vfs_rejects'] == counts['vfs_calls'] - 1 and
+        (counts['passes'] >= counts['vfs_calls'] >= 3
+         if e10_provider else counts['passes'] == counts['vfs_calls']) and
+        (counts['fd_held'] >= counts['vfs_rejects']
+         if e10_provider else
+         counts['fd_held'] == counts['vfs_rejects'])
+    )
+    if not (3 <= counts['vfs_calls'] <= 50 and close_accounting and
             counts['late_run'] == 1 and counts['run_error'] == 0 and
             counts['finish_owner'] == 1 and
             counts['finish_fail'] == 0 and
