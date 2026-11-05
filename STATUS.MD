@@ -1,3 +1,30 @@
+## 2026-11-05 v1181: F03 seven-scenario, two-policy guest matrix PASS
+
+On fresh Linux DAIMOS `96e6c695`, corrected KCC `b9cd764`
+and independent Open SIMH `edd19b17`, all 14 required booted
+positive/negative OOM guests PASS: v1075 real physical requester OOM;
+v1110 invalid-floor/address BRK; v1112 failed child RUN; v1114
+descriptor saturation; v1115 fragmented physical MM with -2 cause;
+v1116 descriptor-shortage RUN with exact -3 cause; v1120 repeated
+PID reuse and stale WAIT/TERM refusal. Enabled cases kill only the
+eligible requester on real -1 MM exhaustion; disabled cases preserve
+the requester and return BRK -1.
+
+The v1175 compiler fix makes full 256K MM capacity correctly 136
+descriptors, exposing an obsolete 32-base cap in the disposable
+v1114 assembly test. Testkit `03e8325` expands its scratch base
+array to 136 words; disabled and enabled reruns PASS. This is a
+test-only fixture change, not an MM allocator or kernel change.
+The full 14 PASS logs, SHA256 manifest and source/toolchain IDs
+are archived at `/home/theseus/tmp/daimos-f03-verified-evidence-v1181.tar.gz`
+on the Linux host, SHA256
+`dab45fce94cd6350bfb32e7b1683010f85bb7d93e4a6fd60b4996d17d49bb6bc`.
+
+F03 is complete. DAIMOS mandatory checklist 52/65; production
+requester-OOM remains OFF. E13 and F02/F04-F11 remain open and
+post-enablement F12/F13 cannot run yet. No test result justifies
+runtime unloading or OOM reclamation of boot-installed MRES.
+
 ## 2026-11-05 v1174-v1176: measured OOM guest residency and compiler fix
 
 The new v1174 release-media residency test boots both isolated physical
