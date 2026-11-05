@@ -1,3 +1,33 @@
+## 2026-11-05 v1150: B06 real physical OOM with provider lease PASS
+
+The v1150 disposable full-system PDP-6 guests PASS in both opt-in
+requester-OOM-enabled and production-default-off configurations,
+each independently compiled with a fresh 256K disk-root image.
+The original OOM requester opens `/SYSTEM/INIT` for real FILE close
+work, then waits for the parent to release its pipe trigger. Another
+child obtains the true serialized provider lease (slot 6, encoded
+`7,,0`) and sleeps *inside* the acquired gateway on its private
+executive continuation. A third child sleeps before provider dispatch
+on the production gateway event, and a fourth user advances normally.
+
+The real BRK fails with physical-MM cause -1 while the held lease is
+still `7,,0` and the pre-dispatch waiter still has a SLEEP/event
+continuation. In the enabled guest, the requester alone is killed;
+seven actual foreign-provider FILE close attempts/retries preserve
+the lease until slot 6 resumes through the existing provider-unlock
+path. The disabled guest returns BRK -1 to the requester; its ordinary
+EXIT waits on the provider event once before the holder returns.
+Both guests record one held-owner entry/return, one physical OOM,
+one pre-dispatch waiter, 160 independent user advances, zero error
+witnesses, final WAIT statuses, the surviving witness, and stable
+MM/slot accounting. The original v1075 flags are left unchanged.
+
+B06 is accepted for the current writable-process scope. Mandatory
+count: 41/65 complete; 22 pre-enable blockers remain plus F12/F13.
+No production KCORE/MRES/data/ABI change; requester-OOM default stays
+OFF. E05-E13 stress, final release configuration and RAM audit are
+still open.
+
 ## 2026-11-05 v1149: B07 unbounded owner lifetime accepted
 
 The new `test-daimos-oom-unbounded-owner-v1149` source contract
