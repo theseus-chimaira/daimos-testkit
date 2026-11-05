@@ -194,7 +194,19 @@ child_main(void)
                 (void)dsys_exit(0103);
         if (pipe_recv(3, &command) != 0 || command != 'X')
                 (void)dsys_exit(0104);
+#ifdef DAIMOS_V1148_PENDING_HUP
+        /* Remain in this session with a live private syscall stack.
+         * The leader's first EXIT must defer HUP to this owner;
+         * the child must leave through the real deferred-HUP path. */
+        if (pipe_send(4, 'P') != 0 || dsys_close(4) != 0)
+                (void)dsys_exit(0105);
+        for (;;) {
+                if (dsys_sleep(1U) != 0)
+                        (void)dsys_exit(0106);
+        }
+#else
         (void)dsys_exit(CHILD_STATUS);
+#endif
 }
 
 int
@@ -251,7 +263,11 @@ main(int argc, kword_t **argv)
                 fail('4', 0204);
 
         if (pipe_send(command_w, 'X') != 0 ||
+#ifdef DAIMOS_V1148_PENDING_HUP
+            pipe_recv(report_r, &report) != 0 || report != 'P' ||
+#else
             wait_exit((unsigned int)child, CHILD_STATUS) != 0 ||
+#endif
             dsys_close(command_w) != 0 || dsys_close(report_r) != 0)
                 fail('5', 0205);
 #ifdef DAIMOS_V1147_PI6_OWNER
@@ -279,6 +295,12 @@ main(int argc, kword_t **argv)
             dsys_procctl(SYS_PROCCTL_GETTTY, 0U) !=
                 (int)SYS_TTY_ATTACHED(0U))
                 fail('T', 0216);
+#ifdef DAIMOS_V1148_PENDING_HUP
+        /* The child must complete exactly one remote deferred HUP.
+         * WAIT is an ownership barrier before retrying leader EXIT. */
+        if (wait_exit((unsigned int)child, 0400002U) != 0)
+                fail('Y', 0225);
+#endif
         (void)dsys_exit(0);
         fail('U', 0217);
 #else

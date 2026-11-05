@@ -9,6 +9,7 @@ make_cmd=${MAKE:-make}
 tag=daimos-tty-exit-pin-live-v969
 physical_chain=${DAIMOS_V1124_TTY_VM_UAREA:-0}
 pi6_owner=${DAIMOS_V1147_PI6_OWNER:-0}
+pending_hup=${DAIMOS_V1148_PENDING_HUP:-0}
 case "$physical_chain" in
     0|1) ;;
     *) echo 'v1124: invalid physical TTY/VM/u-area mode' >&2; exit 2 ;;
@@ -17,6 +18,14 @@ case "$pi6_owner" in
     0|1) ;;
     *) echo 'v1147: invalid PI6 owner mode' >&2; exit 2 ;;
 esac
+case "$pending_hup" in
+    0|1) ;;
+    *) echo 'v1148: invalid pending HUP mode' >&2; exit 2 ;;
+esac
+if [ "$pending_hup" = 1 ] && [ "$pi6_owner" != 1 ]; then
+    echo 'v1148: pending HUP requires the physical PI6 mode' >&2
+    exit 2
+fi
 if [ "$pi6_owner" = 1 ] && [ "$physical_chain" != 1 ]; then
     echo 'v1147: PI6 test requires physical TTY/VM/u-area mode' >&2
     exit 2
@@ -26,6 +35,9 @@ if [ "$physical_chain" = 1 ]; then
 fi
 if [ "$pi6_owner" = 1 ]; then
         tag=daimos-tty-pi6-owner-v1147
+fi
+if [ "$pending_hup" = 1 ]; then
+        tag=daimos-tty-pending-hup-pi6-v1148
 fi
 work="$TMPDIR/$tag-$$"
 build="$work/build"
@@ -43,7 +55,7 @@ cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
 python3 "$self/daimos-tty-exit-pin-live-v969.py" \
     "$work/source/system/kernel/proc/proc_pdp6.s" "$physical_chain" \
-    "$pi6_owner"
+    "$pi6_owner" "$pending_hup"
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
@@ -60,7 +72,10 @@ cflags_pi6=
 if [ "$pi6_owner" = 1 ]; then
         cflags_pi6='-DDAIMOS_V1147_PI6_OWNER=1'
 fi
-"$cc" -std=c89 -Os "$cflags" ${cflags_pi6:+"$cflags_pi6"} \
+if [ "$pending_hup" = 1 ]; then
+        cflags_pi6="$cflags_pi6 -DDAIMOS_V1148_PENDING_HUP=1"
+fi
+"$cc" -std=c89 -Os "$cflags" $cflags_pi6 \
     -I"$DAIMOS_REPO/system/kernel/boot" \
     -I"$DAIMOS_REPO/system/kernel/core" \
     -I"$DAIMOS_REPO/system/kernel/drivers" \
@@ -118,6 +133,14 @@ if [ "$pi6_owner" = 1 ]; then
     addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$boot/kcore.map")
     test -n "$addr" || { echo "v1147: missing $sym" >&2; exit 1; }
     printf 'bystander_sleeps %s\n' "$addr" >> "$work/addresses"
+fi
+if [ "$pending_hup" = 1 ]; then
+    for name in deferred_hup owner_hup; do
+        sym="daimos_test_${name}_v1148"
+        addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$boot/kcore.map")
+        test -n "$addr" || { echo "v1148: missing $sym" >&2; exit 1; }
+        printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
 fi
 sed -i '/^exit$/d' "$boot/boot.ini"
 while read -r name addr; do
@@ -177,7 +200,8 @@ for line in Path(sys.argv[1]).read_text().splitlines():
                    r'\s*:\s*([0-7]+)', out)
     print('v969 witness', name, m[-1] if m else 'MISSING')
     seen[name] = int(m[-1], 8) if m else None
-    if name.startswith('tick_') or name == 'bystander_sleeps':
+    if name.startswith('tick_') or name == 'bystander_sleeps' or \
+            name in ('deferred_hup', 'owner_hup'):
         if not m:
             bad.append((name, m))
         continue
@@ -211,4 +235,10 @@ if sys.argv[4] == '1':
     print('v1147: independent PI6 clock, bystander and owner-side '
           'physical TTY/VM/uarea retry PASS:', phases,
           'bystander_sleeps', seen['bystander_sleeps'])
+if 'deferred_hup' in seen:
+    if seen['deferred_hup'] != 1 or seen['owner_hup'] != 1:
+        raise SystemExit('v1148: deferred HUP not delivered exactly once: '
+                         +repr(seen))
+    print('v1148: exact deferred HUP, physical TTY/VM/u-area retries, '
+          'PI6 clock and separate-session bystander PASS')
 PY

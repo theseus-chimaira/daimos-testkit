@@ -7,8 +7,11 @@ p = Path(sys.argv[1])
 s = p.read_text()
 physical_chain = len(sys.argv) > 2 and sys.argv[2] == '1'
 pi6_owner = len(sys.argv) > 3 and sys.argv[3] == '1'
+pending_hup = len(sys.argv) > 4 and sys.argv[4] == '1'
 if pi6_owner and not physical_chain:
     raise SystemExit('v1147: physical TTY/VM/u-area mode required')
+if pending_hup and not pi6_owner:
+    raise SystemExit('v1148: PI6 and physical TTY/VM/u-area required')
 
 def patch(old, new):
     global s
@@ -404,6 +407,44 @@ daimos_test_tick_uarea_v1147: .block 1
 daimos_test_tick_final_v1147: .block 1
         .globl daimos_test_bystander_sleeps_v1147
 daimos_test_bystander_sleeps_v1147: .block 1
+'''
+
+    if pending_hup:
+        # The original session member (slot 2) is still alive when
+        # the session leader starts its first HUP preflight. Record
+        # deferred delivery at the real event/owner-return boundaries.
+        patch('''proc_event_fatal_other_defer_term_v926:
+        hlrz    1,(012)''',
+              '''proc_event_fatal_other_defer_term_v926:
+        caie    010,2                  ; original session member
+        jrst    daimos_defer_other_v1148
+        caie    011,2                  ; HUP event only
+        jrst    daimos_defer_other_v1148
+        aos     daimos_test_deferred_hup_v1148
+daimos_defer_other_v1148:
+        hlrz    1,(012)''')
+        mach = Path(sys.argv[1]).parent / 'mach_user_pdp6.s'
+        machine = mach.read_text()
+        anchor = '''proc_deferred_hup_v970:
+        movei 1,0400002'''
+        replacement = '''proc_deferred_hup_v970:
+        move    3,proc_current_slot
+        caie    3,2
+        jrst    daimos_hup_owner_other_v1148
+        aos     daimos_test_owner_hup_v1148
+daimos_hup_owner_other_v1148:
+        movei 1,0400002'''
+        assert machine.count(anchor) == 1, 'v1148: HUP return anchor'
+        machine = machine.replace(anchor, replacement, 1)
+        mach.write_text('''        .globl proc_current_slot
+        .globl daimos_test_owner_hup_v1148
+''' + machine)
+        s += '''
+        .bss
+        .globl daimos_test_deferred_hup_v1148
+daimos_test_deferred_hup_v1148: .block 1
+        .globl daimos_test_owner_hup_v1148
+daimos_test_owner_hup_v1148: .block 1
 '''
 
 s += '''

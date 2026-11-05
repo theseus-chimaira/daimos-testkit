@@ -1582,6 +1582,12 @@ test-daimos-tty-pi6-owner-v1147: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-tty-pi6-owner-v1147.sh
 
+.PHONY: test-daimos-tty-pending-hup-pi6-v1148
+test-daimos-tty-pending-hup-pi6-v1148: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-tty-pending-hup-pi6-v1148.sh
+
 test-daimos-tty-vm-uarea-v1124: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
