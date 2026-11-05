@@ -1,3 +1,24 @@
+## 2026-11-05 v1196: physical MM peak-boundary subcases PASS (F07 partial)
+
+Fresh current-source PDP-6 256K/full DSK/D6FS disposable OOM-enabled
+guests `test-daimos-oom-mm-slots-enabled-v1114` and
+`test-daimos-oom-mm-fragment-enabled-v1115` both PASS. v1114
+fills real MM descriptor capacity (136), correctly refuses new
+RUN without killing its parent and releases original allocations;
+v1115 creates real aligned extents and fragmentation despite
+sufficient aggregate free RAM, preserves internal MM cause `-2`,
+does not kill the requester, and restores allocator accounting.
+Both guests also PASS v1075 real requester-only physical OOM,
+v1110 invalid BRK and v1112 parent-safe failed child RUN.
+
+Together with current-source v1096 P0-D preflight and private/idle
+stack watermark passes, outputs and tool checksums are archived in
+`$TMPDIR/daimos-f07-mm-evidence-v1196.tar.gz` (SHA256
+`77f7f35141dc1aef84ed0a294b80d6521be8f42de77376f14993891bf54297a8`).
+F07 is still OPEN: actual combined maximum-load APR-alignment slack,
+MM extent peak and shared provider buffer occupancy remain unproven.
+No production OOM policy change; 57/64 acceptance gates complete.
+
 ## 2026-11-05 v1195: current candidate P0-D and stack checks PASS
 
 `test-daimos-p0d-release-matrix-v1096` on the current DAIMOS source
