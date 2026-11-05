@@ -57,7 +57,7 @@ v1114_fill_loop:
         jrst    v1114_fill_return
 v1114_fill_one:
         move    1,v1114_count
-        caige   1,040                  ; bounded test-only base list
+        caige   1,0210                 ; full 256K MM capacity: 136 slots
         jrst    v1114_fill_allocate
         jrst    v1114_fill_fail
 v1114_fill_allocate:
@@ -121,6 +121,9 @@ v1114_last_count: .block 1
 v1114_base: .block 1
 v1114_count: .block 1
 v1114_failed: .block 1
-v1114_bases: .block 040
+; At most 2*64+8 descriptors for the 256K release profile.  The test
+; must never assume the old, compiler-broken 24-descriptor capacity.
+; This scratch list exists only in a disposable diagnostic kernel.
+v1114_bases: .block 0210
 v1116_last_run_cause: .block 1
 v1116_last_vm_cause: .block 1
