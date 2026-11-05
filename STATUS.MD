@@ -1,3 +1,32 @@
+## 2026-11-05 v1160: explicit E13 256K DSK/D6FS boot/media PASS
+
+Fresh 256K KCC PDP-6 `test-daimos-oom-release-media-v1160`
+PASSes on Android aarch64 Open SIMH V4.1-0 `pdp6` (`edd19b17`)
+for both production-disabled and disposable-enabled requester BRK
+OOM. The test explicitly builds `BOOT=dsk ROOT=disk ROOTSET=1`,
+full 256K, PCLK REALTIME/60 Hz, CTY headless, real generated DSK
+root and drum AUXSTORE. It uses the normal image construction
+and only a disposable INIT and fault probes. Actual D6FS, BLOCKSET,
+LOGSTORE, MEMFS and TTY initialization is seen in the simulator.
+
+In both guests a real physical MM shortage occurs while a separate
+filesystem gateway owner retains its lease. Disabled returns -1
+with zero fatal selections; enabled selects exactly requester slot 3.
+Both verify protected INIT/witness/waiter/spinner/holder at the OOM
+point, original-owner return/unlock, 160 spinner advances, zero
+integrity errors and exact final FILE/MM/process WAIT bookkeeping.
+Full simulator/counter transcripts, build logs, KCORE/init maps,
+real boot.ini, host tool and D6FS-root media SHA256 are archived:
+`$TMPDIR/daimos-e13-release-media-v1160.qel3Zm.tar.gz`.
+
+The 256K DSK/D6FS first release candidate is described in
+`pdp10-doc/KERNEL/OOM-RELEASE-PROFILE-V1160.MD` (S07/S08 closed).
+E13 remains OPEN until required other targets/media are covered;
+this simulator guest uses a test-only INIT, so normal userland swap
+activation is not thereby certified. 51/65 mandatory checks complete,
+14 open (12 pre-enable plus F12/F13). Production OOM remains OFF;
+no production kernel, RAM, ABI or permanent MRES changes.
+
 ## 2026-11-05 v1159: E12 protected processes under genuine BRK OOM PASS
 
 Two freshly built full 256K PDP-6 guests PASS

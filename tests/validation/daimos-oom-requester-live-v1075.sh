@@ -19,6 +19,7 @@ endurance=${V1151_TEST_ENDURANCE:-0}
 disk_full=${V1156_TEST_DISK_FULL:-0}
 combined=${V1158_TEST_COMBINED:-0}
 protected=${V1159_TEST_PROTECTED:-0}
+release_media=${V1160_RELEASE_MEDIA:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -67,6 +68,17 @@ case "$protected" in
     0|1) ;;
     *) echo 'v1159: invalid protected mode' >&2; exit 2 ;;
 esac
+case "$release_media" in
+    0|1) ;;
+    *) echo 'v1160: invalid release-media mode' >&2; exit 2 ;;
+esac
+if [ "$release_media" = 1 ]; then
+    if [ "$protected" != 1 ] || [ "$held_provider" != 1 ] ||
+        [ -z "${V1160_EVIDENCE_DIR:-}" ]; then
+        echo 'v1160: require held-provider E12 and evidence directory' >&2
+        exit 2
+    fi
+fi
 if [ "$protected" = 1 ] && { [ "$held_provider" != 1 ] ||
     [ "$combined" != 0 ] || [ "$endurance" != 0 ] ||
     [ "$disk_full" != 0 ] || [ "$mm_slots" != 0 ] ||
@@ -264,8 +276,16 @@ grep -Eq '^_start[[:space:]]+000020$' "$work/user/init.map"
 build="$work/build/system/boot/pdp6"
 port=$((30000 + ($$ % 10000)))
 printf 'v1075: building disposable PDP-6 physical-OOM guest (enabled=%s)\n' "$enable"
+# E13 release candidate: explicitly select the disk boot path rather than
+# inheriting ROOT=auto from the development build. Other tests keep their
+# original source/target configurations.
+set --
+if [ "$release_media" = 1 ]; then
+    set -- BOOT=dsk ROOT=disk ROOTSET=1 COMPILER=kcc \
+        WALL_CLOCK_HZ=60 SIMH_PCLK_MODE=REALTIME
+fi
 PATH="$PDP10_PREFIX/bin:$PATH" "${MAKE:-make}" \
-    -C "$DAIMOS_REPO/system/boot/pdp6" image \
+    -C "$DAIMOS_REPO/system/boot/pdp6" image "$@" \
     BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
     KERNEL_DIR="$work/source/system/kernel" PROC_BOOT_USERS=1 \
     BOOT_PROFILE=full BOOT_CORE_WORDS=01000000 SIMH_CPU_KWORDS=256 \
@@ -439,4 +459,43 @@ fi
 if [ "$protected" = 1 ]; then
     python3 "$self/daimos-oom-protected-verify-v1159.py" \
         "$work/addresses" "$work/simh.out" "$enable"
+fi
+if [ "$release_media" = 1 ]; then
+    # Archive *complete* build/simulator/counter evidence, not just a PASS
+    # summary. Media is hashed but not copied into the small evidence bundle.
+    # This runs only after all production-path guest validations have passed.
+    e=$V1160_EVIDENCE_DIR
+    test ! -e "$e" || { echo "v1160: evidence exists: $e" >&2; exit 2; }
+    mkdir -p "$e"
+    cp "$work/build.log" "$e/build.log"
+    cp "$work/simh.out" "$e/simh.out"
+    cp "$work/addresses" "$e/addresses"
+    cp "$build/boot.ini" "$e/boot.ini"
+    cp "$build/kcore.map" "$e/kcore.map"
+    cp "$work/user/init.map" "$e/init.map"
+    printf 'mode=%s\n' "$enable" > "$e/profile.txt"
+    printf 'boot=dsk\nroot=disk\nrootset=1\n' >> "$e/profile.txt"
+    printf 'profile=full\ncore_octal=01000000\n' >> "$e/profile.txt"
+    printf 'simulator_kwords=256\ncompiler=kcc\n' >> "$e/profile.txt"
+    printf 'wall_clock_hz=60\npclk=REALTIME\ndpy=HEADLESS\n' >> "$e/profile.txt"
+    printf 'console=CTY\nwcnsls=disabled\nocnsls=disabled\n' >> "$e/profile.txt"
+    printf 'production_oom=OFF\ntest_only_oom=%s\n' "$enable" >> "$e/profile.txt"
+    printf 'daimos_commit=%s\n' "$(git -C "$DAIMOS_REPO" rev-parse HEAD)" >> "$e/profile.txt"
+    printf 'testkit_commit=%s\n' "$(git -C "$self/../.." rev-parse HEAD)" >> "$e/profile.txt"
+    grep -q '^set cpu 256k$' "$e/boot.ini"
+    grep -q '^deposit SW 1$' "$e/boot.ini"
+    grep -q '^set pclk REALTIME$' "$e/boot.ini"
+    grep -q '^set wcnsls disabled$' "$e/boot.ini"
+    grep -q '^set ocnsls disabled$' "$e/boot.ini"
+    grep -q 'D6FS.*LOADED' "$e/simh.out"
+    disk0=$(awk '$1 == "attach" && $2 == "-q" && $3 == "dsk0" { print $4 }' "$e/boot.ini")
+    test -n "$disk0" && test -f "$disk0"
+    sha256sum "$disk0" > "$e/media-sha256.txt"
+    for tool in pdp6 das dlink p10fold kcc pdp10-dec-none-gcc; do
+        test -x "$PDP10_PREFIX/bin/$tool"
+        sha256sum "$PDP10_PREFIX/bin/$tool" >> "$e/host-tools-sha256.txt"
+    done
+    (cd "$e" && sha256sum build.log simh.out addresses boot.ini \
+        kcore.map init.map profile.txt > evidence-sha256.txt)
+    echo "v1160: explicit 256K KCC DSK/D6FS physical-OOM release-media evidence PASS: $e"
 fi

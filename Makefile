@@ -1,3 +1,9 @@
+.PHONY: test-daimos-oom-release-media-v1160
+test-daimos-oom-release-media-v1160: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-release-media-v1160.sh
+
 .PHONY: test-daimos-oom-protected-v1159 test-daimos-oom-protected-disabled-v1159
 test-daimos-oom-protected-v1159: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
