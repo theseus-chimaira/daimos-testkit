@@ -6,6 +6,9 @@ import sys
 p = Path(sys.argv[1])
 s = p.read_text()
 physical_chain = len(sys.argv) > 2 and sys.argv[2] == '1'
+pi6_owner = len(sys.argv) > 3 and sys.argv[3] == '1'
+if pi6_owner and not physical_chain:
+    raise SystemExit('v1147: physical TTY/VM/u-area mode required')
 
 def patch(old, new):
     global s
@@ -158,6 +161,24 @@ if physical_chain:
         movni   1,5'''
     assert ms.count(old) == 1, 'v1124: nonunique real MM_BUSY branch'
     ms = ms.replace(old, new, 1)
+    if pi6_owner:
+        # Record the actual qualified PI6 clock at each physical MM_BUSY
+        # path. No synthetic timer increment or retry result is allowed.
+        for owner, counter in (('pin', 'tty'), ('vm', 'vm'),
+                               ('uarea', 'uarea')):
+            marker = ('        aos     daimos_test_%s_busy_v1124\n' %
+                      ('tty' if owner == 'pin' else owner))
+            assert ms.count(marker) == 1, ('v1147: busy hook', marker)
+            ms = ms.replace(
+                marker,
+                marker + '        move    6,proc_timer_clock\n'
+                '        movem   6,daimos_test_tick_%s_v1147\n' % counter,
+                1)
+        ms = ('''        .globl proc_timer_clock
+        .globl daimos_test_tick_tty_v1147
+        .globl daimos_test_tick_vm_v1147
+        .globl daimos_test_tick_uarea_v1147
+''' + ms)
     ms = '''        .globl daimos_test_pin_base_v969
         .globl daimos_test_vm_base_v1124
         .globl daimos_test_uarea_base_v1124
@@ -341,6 +362,49 @@ daimos_test_service_result_bad_v1124:
         jrst    .-1
 daimos_test_service_result_normal_v1124:
         jumpn   1,proc_finish_service_failed_v1102''')
+
+    if pi6_owner:
+        # Save the final clock after the real slot-0 finalizer commits.
+        # The analysis verifies this is later than the MM refusal phases.
+        patch('''        aos     daimos_test_final_v1124
+        halt''',
+              '''        aos     daimos_test_final_v1124
+        move    6,proc_timer_clock
+        movem   6,daimos_test_tick_final_v1147
+        halt''')
+
+        # After a genuine TTY MM_BUSY, count sleeping syscalls from an
+        # unrelated, runnable non-INIT user. That process has already
+        # acknowledged NEWSESSION; no other child remains from setup.
+        # No kernel counter is advanced by a synthetic clock tick.
+        patch('''proc_sleep_ticks:
+        hrrz    1,1''',
+              '''proc_sleep_ticks:
+        move    4,proc_current_slot
+        jumpe   4,daimos_pi6_sleep_original_v1147
+        caie    4,1
+        jrst    daimos_pi6_sleep_other_v1147
+        jrst    daimos_pi6_sleep_original_v1147
+daimos_pi6_sleep_other_v1147:
+        skipn   daimos_test_tty_busy_v1124
+        jrst    daimos_pi6_sleep_original_v1147
+        aos     daimos_test_bystander_sleeps_v1147
+daimos_pi6_sleep_original_v1147:
+        hrrz    1,1''')
+
+        s += '''
+        .bss
+        .globl daimos_test_tick_tty_v1147
+daimos_test_tick_tty_v1147: .block 1
+        .globl daimos_test_tick_vm_v1147
+daimos_test_tick_vm_v1147: .block 1
+        .globl daimos_test_tick_uarea_v1147
+daimos_test_tick_uarea_v1147: .block 1
+        .globl daimos_test_tick_final_v1147
+daimos_test_tick_final_v1147: .block 1
+        .globl daimos_test_bystander_sleeps_v1147
+daimos_test_bystander_sleeps_v1147: .block 1
+'''
 
 s += '''
         .bss
