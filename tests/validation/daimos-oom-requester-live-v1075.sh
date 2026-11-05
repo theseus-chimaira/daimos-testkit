@@ -15,6 +15,7 @@ mm_fragment=${V1115_TEST_MM_FRAGMENT:-0}
 run_cause=${V1116_TEST_RUN_CAUSE:-0}
 pid_reuse=${V1120_TEST_PID_REUSE:-0}
 held_provider=${V1150_TEST_HELD_PROVIDER:-0}
+endurance=${V1151_TEST_ENDURANCE:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -47,6 +48,17 @@ case "$held_provider" in
     0|1) ;;
     *) echo 'v1150: invalid provider mode' >&2; exit 2 ;;
 esac
+case "$endurance" in
+    0|1) ;;
+    *) echo 'v1151: invalid endurance mode' >&2; exit 2 ;;
+esac
+if [ "$endurance" = 1 ] && { [ "$pid_reuse" != 1 ] ||
+    [ "$held_provider" != 0 ] || [ "$negatives" != 0 ] ||
+    [ "$bad_run" != 0 ] || [ "$mm_slots" != 0 ] ||
+    [ "$mm_fragment" != 0 ] || [ "$run_cause" != 0 ]; }; then
+    echo 'v1151: endurance needs PID reuse without other fault modes' >&2
+    exit 2
+fi
 if [ "$held_provider" = 1 ] && { [ "$negatives" != 0 ] ||
     [ "$bad_run" != 0 ] || [ "$mm_slots" != 0 ] ||
     [ "$mm_fragment" != 0 ] || [ "$run_cause" != 0 ] ||
@@ -82,6 +94,10 @@ PY
 if [ "$held_provider" = 1 ]; then
     python3 "$self/daimos-oom-provider-held-v1150.py" \
         "$work/source/system/kernel" "$enable"
+fi
+if [ "$endurance" = 1 ]; then
+    python3 "$self/daimos-oom-endurance-v1151.py" \
+        "$work/source/system/kernel"
 fi
 if [ "$mm_slots" = 1 ]; then
     python3 - "$work/source/system/kernel/proc/syscall_dispatch_pdp6.s" \
@@ -184,6 +200,7 @@ done
     -DV1116_TEST_RUN_CAUSE="$run_cause" \
     -DV1120_TEST_PID_REUSE="$pid_reuse" \
     -DV1150_TEST_HELD_PROVIDER="$held_provider" \
+    -DV1151_TEST_ENDURANCE="$endurance" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -230,9 +247,11 @@ if [ "$held_provider" = 1 ]; then
 fi
 
 printf 'v1075: booting patched disposable guest; production unchanged\n'
+guest_timeout=90s
+if [ "$endurance" = 1 ]; then guest_timeout=360s; fi
 set +e
 (cd "$build" && TERM=dumb SDL_VIDEODRIVER=dummy \
-    SDL_AUDIODRIVER=dummy timeout -k 2s 90s stdbuf -o0 -e0 \
+    SDL_AUDIODRIVER=dummy timeout -k 2s "$guest_timeout" stdbuf -o0 -e0 \
     "$PDP10_PREFIX/bin/pdp6" boot.ini) > "$work/simh.out" 2>&1
 rc=$?
 set -e
@@ -250,6 +269,7 @@ if [ "$bad_run" = 1 ]; then prefix=${prefix}R; fi
 if [ "$negatives" = 1 ]; then prefix=${prefix}IL; fi
 tail_marker=P
 if [ "$pid_reuse" = 1 ]; then tail_marker=QP; fi
+if [ "$endurance" = 1 ]; then tail_marker=EQP; fi
 if [ "$negatives" = 1 ]; then
     case "$text" in
         *"<$prefix"*'HALT'*) : ;;
@@ -295,7 +315,11 @@ if [ "$run_cause" = 1 ]; then
     echo "v1116: real descriptor-saturated RUN returned -1 with original VM/MM cause -3, no retained child (OOM enabled=$enable) PASS"
 fi
 if [ "$pid_reuse" = 1 ]; then
-    echo "v1120: 24 numeric PID reuse cycles, alternating exit statuses, stale WAIT/TERM rejection and exact MM/slot cleanup (OOM enabled=$enable) PASS"
+    if [ "$endurance" = 1 ]; then
+        echo "v1151: 32 additional true physical OOM/reclaim + successful RUN/BRK cycles, 256 PID reuse lifetimes, 512 stale requests and >=1024 actual PI6 ticks with stable MM/slot/backing PASS (OOM enabled=$enable)"
+    else
+        echo "v1120: 24 numeric PID reuse cycles, alternating exit statuses, stale WAIT/TERM rejection and exact MM/slot cleanup (OOM enabled=$enable) PASS"
+    fi
 fi
 if [ "$held_provider" = 1 ]; then
     python3 - "$work/addresses" "$work/simh.out" "$enable" <<'PY'

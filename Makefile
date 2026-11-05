@@ -1364,6 +1364,18 @@ test-daimos-oom-provider-held-disabled-v1150: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1150_OOM_ENABLED=0 \
 	 sh tests/validation/daimos-oom-provider-held-v1150.sh
 
+.PHONY: test-daimos-oom-endurance-v1151
+test-daimos-oom-endurance-v1151: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1151_OOM_ENABLED=1 \
+	 sh tests/validation/daimos-oom-endurance-v1151.sh
+
+.PHONY: test-daimos-oom-endurance-disabled-v1151
+test-daimos-oom-endurance-disabled-v1151: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1151_OOM_ENABLED=0 \
+	 sh tests/validation/daimos-oom-endurance-v1151.sh
+
 .PHONY: test-daimos-oom-brk-negatives-v1110
 .PHONY: test-daimos-oom-pid-reuse-v1120
 .PHONY: test-daimos-vm-none-idempotent-v1129

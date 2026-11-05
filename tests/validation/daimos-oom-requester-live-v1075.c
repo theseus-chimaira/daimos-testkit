@@ -37,7 +37,24 @@
 #define V1150_TEST_HELD_PROVIDER 0
 #endif
 
+#ifndef V1151_TEST_ENDURANCE
+#define V1151_TEST_ENDURANCE 0
+#endif
+
+#define V1151_OOM_WAVES 32U
+#define V1151_PID_LIFETIMES 256U
+#define V1151_MIN_PI6_TICKS 1024U
+#define V1151_MM_COUNT_PROBE 0777770UL
+#define V1151_SWAP_USED_PROBE 0777771UL
+#define V1151_TIMER_PROBE 0777772UL
+#define V1151_OOM_COUNT_PROBE 0777773UL
+#define V1151_BCACHE_BASE_PROBE 0777774UL
+
+#if V1151_TEST_ENDURANCE
+#define V1120_PID_CYCLES V1151_PID_LIFETIMES
+#else
 #define V1120_PID_CYCLES 24U
+#endif
 
 #define V1075_PATH_WORDS 3U
 #define V1075_PATH_OFF SYS_RUN_V2_FIXED_WORDS
@@ -81,6 +98,35 @@ fail(int ch)
         (void)dsys_halt();
         for (;;) { }
 }
+
+#if V1151_TEST_ENDURANCE
+/* Only the failure path prints diagnostic counters; normal test output
+ * stays unchanged. Twelve octal digits represent one PDP-6 word. */
+static void
+v1151_print_octal(kword_t value)
+{
+        int shift;
+
+        for (shift = 33; shift >= 0; shift -= 3)
+                (void)dsys_writechar(1,
+                    (int)('0' + ((value >> shift) & 7UL)));
+}
+
+static void
+v1151_diff(int label, kword_t expected, kword_t actual,
+    unsigned int wave)
+{
+        (void)dsys_writechar(1, 'D');
+        (void)dsys_writechar(1, label);
+        (void)dsys_writechar(1, '[');
+        v1151_print_octal((kword_t)wave);
+        (void)dsys_writechar(1, ']');
+        v1151_print_octal(expected);
+        (void)dsys_writechar(1, '/');
+        v1151_print_octal(actual);
+        fail(label);
+}
+#endif
 
 static int
 run_child(int mode, int input_fd)
@@ -206,6 +252,22 @@ main(int argc, kword_t **argv)
                         (void)dsys_writechar(1, 'D');
                         (void)dsys_exit(070);
                 }
+#if V1151_TEST_ENDURANCE
+                if (argv[1][1] ==
+                    TEST_SIX6('T', ' ', ' ', ' ', ' ', ' ')) {
+                        kword_t original;
+                        kword_t expanded;
+
+                        original = dsys_brk(0UL);
+                        expanded = original + 01000UL;
+                        if (original == (kword_t)-1L ||
+                            expanded > 0777777UL ||
+                            dsys_brk(expanded) != expanded ||
+                            dsys_brk(original) != original)
+                                (void)dsys_exit(065);
+                        (void)dsys_exit(064);
+                }
+#endif
 #if V1150_TEST_HELD_PROVIDER
                 if (argv[1][1] ==
                     TEST_SIX6('H', ' ', ' ', ' ', ' ', ' ')) {
@@ -446,6 +508,122 @@ main(int argc, kword_t **argv)
             after.process_words != before.process_words ||
             v1075_pressure[037777] != 01234567UL)
                 fail('7');
+
+#if V1151_TEST_ENDURANCE
+        {
+                struct sys_meminfo steady;
+                kword_t extents;
+                kword_t backing;
+                kword_t clock_start;
+                kword_t clock_end;
+                kword_t oom_count;
+                kword_t cache_base;
+                kword_t live_extents;
+                kword_t observed_extents;
+                kword_t observed_cache;
+                unsigned int wave;
+                unsigned int cache_seen;
+                unsigned int cache_reclaimed;
+                int successful;
+
+                steady = after;
+                extents = dsys_brk(V1151_MM_COUNT_PROBE);
+                backing = dsys_brk(V1151_SWAP_USED_PROBE);
+                clock_start = dsys_brk(V1151_TIMER_PROBE);
+                oom_count = dsys_brk(V1151_OOM_COUNT_PROBE);
+                cache_base = dsys_brk(V1151_BCACHE_BASE_PROBE);
+                if (extents == (kword_t)-1L ||
+                    backing == (kword_t)-1L ||
+                    clock_start == (kword_t)-1L || oom_count != 1UL ||
+                    cache_base == (kword_t)-1L ||
+                    extents < (cache_base != 0UL))
+                        fail('e');
+                /* The one clean BCACHE slab is an intentional, bounded,
+                 * reclaimable 0201-word MM owner-6 extent. It may exist
+                 * between file reads, but is not a leaked process extent.
+                 * Compare all other MM owners exactly after every WAIT. */
+                live_extents = extents - (cache_base != 0UL);
+                cache_seen = (cache_base != 0UL);
+                cache_reclaimed = 0U;
+                for (wave = 0U; wave < V1151_OOM_WAVES; ++wave) {
+                        requester = run_child('O', 0);
+                        if (requester <= 1)
+                                fail('f');
+                        wait_status((unsigned int)requester,
+                            V1075_TEST_OOM_ENABLED ?
+                            V1075_OOM_STATUS : 070U);
+                        if (dsys_brk(V1151_OOM_COUNT_PROBE) !=
+                            oom_count + wave + 1U)
+                                fail('m');
+                        word = 0UL;
+                        if (dsys_wait((unsigned int)requester, &word,
+                                SYS_WAIT_NOHANG) != -1 ||
+                            dsys_procctl(SYS_PROCCTL_EVENT_PID,
+                                SYS_EVENT_ARG((unsigned int)requester,
+                                    SYS_EVENT_TERM)) != -1)
+                                fail('g');
+                        if (dsys_meminfo(&after) != 0 ||
+                            after.process_slots_used !=
+                                steady.process_slots_used ||
+                            after.process_words != steady.process_words ||
+                            after.file_slots_used != steady.file_slots_used ||
+                            dsys_brk(V1151_SWAP_USED_PROBE) != backing)
+                                fail('h');
+                        observed_cache =
+                            dsys_brk(V1151_BCACHE_BASE_PROBE);
+                        observed_extents = dsys_brk(V1151_MM_COUNT_PROBE);
+                        if (observed_cache != 0UL)
+                                fail('r'); /* real OOM must reclaim it */
+                        if (cache_seen != 0U)
+                                ++cache_reclaimed;
+                        if (observed_extents != live_extents)
+                                v1151_diff('x', live_extents,
+                                    observed_extents, wave);
+                        /* Reuse the recovered memory for a fresh child
+                         * which must successfully grow and shrink BRK. */
+                        successful = run_child('T', 0);
+                        if (successful <= 1)
+                                fail('i');
+                        wait_status((unsigned int)successful, 064U);
+                        if (dsys_meminfo(&after) != 0)
+                                fail('j');
+                        if (after.process_slots_used !=
+                            steady.process_slots_used)
+                                v1151_diff('s', steady.process_slots_used,
+                                    after.process_slots_used, wave);
+                        if (after.process_words != steady.process_words)
+                                v1151_diff('w', steady.process_words,
+                                    after.process_words, wave);
+                        if (after.file_slots_used != steady.file_slots_used)
+                                v1151_diff('f', steady.file_slots_used,
+                                    after.file_slots_used, wave);
+                        observed_cache =
+                            dsys_brk(V1151_BCACHE_BASE_PROBE);
+                        observed_extents = dsys_brk(V1151_MM_COUNT_PROBE);
+                        if (observed_cache != 0UL)
+                                cache_seen = 1U;
+                        /* Cache residency accounts for at most one
+                         * extra descriptor; every other owner must be
+                         * returned by the successful child. */
+                        if (observed_extents !=
+                            live_extents + (observed_cache != 0UL))
+                                v1151_diff('x',
+                                    live_extents + (observed_cache != 0UL),
+                                    observed_extents, wave);
+                        if (dsys_brk(V1151_SWAP_USED_PROBE) != backing)
+                                fail('b');
+                }
+                if (cache_seen == 0U || cache_reclaimed == 0U)
+                        fail('z');
+                if (dsys_sleep(02001U) != 0)
+                        fail('k');
+                clock_end = dsys_brk(V1151_TIMER_PROBE);
+                if (((clock_end - clock_start) & 0377777UL) <
+                    V1151_MIN_PI6_TICKS)
+                        fail('l');
+                (void)dsys_writechar(1, 'E');
+        }
+#endif
 
 #if V1120_TEST_PID_REUSE
         {
