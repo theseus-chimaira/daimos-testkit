@@ -1015,12 +1015,15 @@ if physical_uarea:
         observed['unpins'] != 1 or observed['errors'] != 0 or
         counts['late_run'] != 1 or counts['run_error'] != 0 or
         counts['finish_zombie'] != 1 or counts['error'] != 0 or
-        '<EARH' not in output or 'UUO 000000000014' in output or
+        ('<EARH' not in output if not e10_provider else
+         '<EABRUH' not in output) or
+        'UUO 000000000014' in output or
         'HALT' not in output):
         raise SystemExit('v1142: real-MM_BUSY nested rollback failed')
     print('v1142: actual MM pin/BUSY/unpin/deferred RUN discard, '
           'parent return and EXEC WAIT PASS; D13 subcase only')
-    raise SystemExit(0)
+    if not e10_provider:
+        raise SystemExit(0)
 if break_trace:
     captures = [line for line in output.splitlines() if line.startswith('PC:')]
     print('v1136: simulator breakpoint PC captures: ' + repr(captures))
@@ -1157,7 +1160,7 @@ if nested:
     print('v1126: real APR fatal during post-commit EXEC FILE retry; '
           'unpublished post-VM RUN rollback, retained owner and WAIT PASS')
 if e10_provider:
-    expected_e10 = dict(e10_holder_enter=1, e10_holder_lease=4 << 18,
+    expected_e10 = dict(e10_holder_enter=1, e10_holder_lease=5 << 18,
                         e10_holder_return=1, e10_release=(1 << 36) - 1,
                         e10_final_lease=(1 << 36) - 1,
                         e10_run_armed=(1 << 36) - 1)

@@ -20,10 +20,10 @@ def patch(rel, before, after):
 patch('fs/fs_mres.s',
       '''        ; The missing-service trampoline already returns -1 normally.
         ; Invoke it under the same lease and use the common unlock path.''',
-      '''        ; v1157: park only the foreign slot-3 owner, AFTER it has
+      '''        ; v1157: park only the foreign slot-4 owner, AFTER it has
         ; acquired the real filesystem provider gateway lease.
         move    0,proc_current_slot
-        caie    0,3
+        caie    0,4
         jrst    daimos_e10_normal_v1157
         aos     daimos_e10_holder_enter_v1157
         move    0,fs_provider_ready
@@ -144,7 +144,7 @@ daimos_e10_probe_v1157:
         jrst    daimos_e10_not_ready_v1157
 daimos_e10_probe_lease_v1157:
         move    1,fs_provider_ready
-        camn    1,[4,,0]
+        camn    1,[5,,0]
         jrst    daimos_e10_ready_v1157
 daimos_e10_not_ready_v1157:
         setz    1,
