@@ -14,6 +14,7 @@ mm_slots=${V1114_TEST_MM_SLOTS:-0}
 mm_fragment=${V1115_TEST_MM_FRAGMENT:-0}
 run_cause=${V1116_TEST_RUN_CAUSE:-0}
 pid_reuse=${V1120_TEST_PID_REUSE:-0}
+held_provider=${V1150_TEST_HELD_PROVIDER:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -42,6 +43,17 @@ case "$pid_reuse" in
     0|1) ;;
     *) echo 'v1120: invalid PID-reuse mode' >&2; exit 2 ;;
 esac
+case "$held_provider" in
+    0|1) ;;
+    *) echo 'v1150: invalid provider mode' >&2; exit 2 ;;
+esac
+if [ "$held_provider" = 1 ] && { [ "$negatives" != 0 ] ||
+    [ "$bad_run" != 0 ] || [ "$mm_slots" != 0 ] ||
+    [ "$mm_fragment" != 0 ] || [ "$run_cause" != 0 ] ||
+    [ "$pid_reuse" != 0 ]; }; then
+    echo 'v1150: provider guest has a separate fault matrix' >&2
+    exit 2
+fi
 if [ "$run_cause" = 1 ] && [ "$mm_slots" != 1 ]; then
     echo 'v1116: RUN cause requires MM descriptor pressure' >&2
     exit 2
@@ -67,6 +79,10 @@ if sys.argv[2] == '1':
     p.write_text(s.replace(original,
                            '.equ    PROC_OOM_BRK_ENABLED_V1000,1', 1))
 PY
+if [ "$held_provider" = 1 ]; then
+    python3 "$self/daimos-oom-provider-held-v1150.py" \
+        "$work/source/system/kernel" "$enable"
+fi
 if [ "$mm_slots" = 1 ]; then
     python3 - "$work/source/system/kernel/proc/syscall_dispatch_pdp6.s" \
         "$self/daimos-oom-mm-slots-v1114.s" <<'PY'
@@ -167,6 +183,7 @@ done
     -DV1115_TEST_MM_FRAGMENT="$mm_fragment" \
     -DV1116_TEST_RUN_CAUSE="$run_cause" \
     -DV1120_TEST_PID_REUSE="$pid_reuse" \
+    -DV1150_TEST_HELD_PROVIDER="$held_provider" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -194,6 +211,23 @@ sed -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' "$build/boot.ini" \
     > "$build/boot.v1075.tmp"
 mv "$build/boot.v1075.tmp" "$build/boot.ini"
+
+if [ "$held_provider" = 1 ]; then
+    : > "$work/addresses"
+    for name in armed holder_enter holder_lease holder_return release \
+                predispatch fatal_busy ordinary_wait spinner real_oom \
+                lease_at_oom error; do
+        sym="daimos_test_${name}_v1150"
+        addr=$(awk -v sym="$sym" '$1 == sym {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1150: missing $sym" >&2; exit 1; }
+        printf '%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+    sed -i '/^exit$/d' "$build/boot.ini"
+    while read -r name addr; do
+        printf 'examine %s\n' "$addr" >> "$build/boot.ini"
+    done < "$work/addresses"
+    printf 'exit\n' >> "$build/boot.ini"
+fi
 
 printf 'v1075: booting patched disposable guest; production unchanged\n'
 set +e
@@ -262,4 +296,42 @@ if [ "$run_cause" = 1 ]; then
 fi
 if [ "$pid_reuse" = 1 ]; then
     echo "v1120: 24 numeric PID reuse cycles, alternating exit statuses, stale WAIT/TERM rejection and exact MM/slot cleanup (OOM enabled=$enable) PASS"
+fi
+if [ "$held_provider" = 1 ]; then
+    python3 - "$work/addresses" "$work/simh.out" "$enable" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+text = Path(sys.argv[2]).read_text(errors='replace')
+seen = {}
+for line in Path(sys.argv[1]).read_text().splitlines():
+    name, addr = line.split()
+    matches = re.findall(r'(?m)^\s*0*' + re.escape(addr.lstrip('0')) +
+                         r'\s*:\s*([0-7]+)', text)
+    if not matches:
+        raise SystemExit('v1150: missing counter ' + name)
+    seen[name] = int(matches[-1], 8)
+
+one = ('holder_enter', 'holder_return', 'real_oom')
+if any(seen[name] != 1 for name in one) or \
+        seen['armed'] != (1 << 36) - 1 or \
+        seen['release'] != (1 << 36) - 1:
+    raise SystemExit('v1150: incorrect owner/oom counters ' + repr(seen))
+if seen['holder_lease'] != (7 << 18) or \
+        seen['lease_at_oom'] != (7 << 18) or \
+        seen['predispatch'] < 1 or seen['spinner'] < 5 or \
+        seen['error'] != 0:
+    raise SystemExit('v1150: lease/waiter/spinner/OOM stage invalid: '
+                     + repr(seen))
+if sys.argv[3] == '1':
+    if seen['fatal_busy'] < 2:
+        raise SystemExit('v1150: OOM FILE close never retried: '+repr(seen))
+elif seen['ordinary_wait'] < 1:
+    raise SystemExit('v1150: disabled-OOM FILE close never waited: '
+                     +repr(seen))
+print('v1150: physical OOM under held in-flight FS lease and real '
+      'pre-dispatch waiter, exact owner retry/release, independent '
+      'spinner and MM accounting PASS:', seen)
+PY
 fi

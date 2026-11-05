@@ -33,6 +33,10 @@
 #define V1120_TEST_PID_REUSE 0
 #endif
 
+#ifndef V1150_TEST_HELD_PROVIDER
+#define V1150_TEST_HELD_PROVIDER 0
+#endif
+
 #define V1120_PID_CYCLES 24U
 
 #define V1075_PATH_WORDS 3U
@@ -40,7 +44,7 @@
 #define V1075_ARG0_OFF (V1075_PATH_OFF + V1075_PATH_WORDS)
 #define V1075_ARG1_OFF (V1075_ARG0_OFF + V1075_PATH_WORDS)
 #define V1075_MAP_OFF (V1075_ARG1_OFF + 2U)
-#define V1075_REQ_WORDS (V1075_MAP_OFF + 3U)
+#define V1075_REQ_WORDS (V1075_MAP_OFF + 3U + V1150_TEST_HELD_PROVIDER)
 #define V1075_BRK_REQUEST 0776000UL
 #define V1075_WITNESS_STATUS 052U
 #define V1075_OOM_STATUS 1U
@@ -51,6 +55,23 @@ static kword_t v1075_path[] = {
         TEST_SIX6('/', 'S', 'Y', 'S', 'T', 'E'),
         TEST_SIX6('M', '/', 'I', 'N', 'I', 'T')
 };
+
+#if V1150_TEST_HELD_PROVIDER
+static int v1150_ack_writer;
+
+static int
+v1150_pipe(int *read_fd, int *write_fd)
+{
+        kword_t pair;
+
+        pair = dsys_pipe();
+        if (pair == ~(kword_t)0UL)
+                return -1;
+        *read_fd = (int)((pair >> 18U) & 0777777UL);
+        *write_fd = (int)(pair & 0777777UL);
+        return 0;
+}
+#endif
 
 static void
 fail(int ch)
@@ -97,6 +118,18 @@ run_child(int mode, int input_fd)
             (unsigned int)input_fd);
         block[V1075_MAP_OFF + 1U] = SYS_RUN_FD_MAP(1U, 1U);
         block[V1075_MAP_OFF + 2U] = SYS_RUN_FD_MAP(2U, 2U);
+#if V1150_TEST_HELD_PROVIDER
+        if (mode == 'O') {
+                req->fdmap_count = 4UL;
+                block[V1075_MAP_OFF + 3U] = SYS_RUN_FD_MAP(3U,
+                    (unsigned int)v1150_ack_writer);
+        } else {
+                /* RUN V2 length must match the three actual FD maps;
+                 * the extra O-only storage is not part of this request. */
+                req->version_words = SYS_RUN_HEADER(SYS_RUN_VERSION_2,
+                    V1075_MAP_OFF + 3U);
+        }
+#endif
         return dsys_run(req);
 }
 
@@ -126,6 +159,16 @@ main(int argc, kword_t **argv)
         int writer;
         int witness;
         int requester;
+#if V1150_TEST_HELD_PROVIDER
+        int release_r;
+        int release_w;
+        int ack_r;
+        int ack_w;
+        int holder;
+        int gateway_waiter;
+        int spinner;
+        unsigned int probe;
+#endif
 
         v1075_pressure[037777] = 01234567UL;
         if (argc == 2 && argv != 0 && argv[1] != 0 &&
@@ -140,6 +183,22 @@ main(int argc, kword_t **argv)
                 }
                 if (argv[1][1] ==
                     TEST_SIX6('O', ' ', ' ', ' ', ' ', ' ')) {
+#if V1150_TEST_HELD_PROVIDER
+                        int fd;
+                        kword_t ready;
+
+                        /* Open a genuine provider FILE before the lease
+                         * is held; the OOM close must later retry it. */
+                        fd = dsys_open(v1075_path, SYS_O_RDONLY);
+                        if (fd < 0)
+                                (void)dsys_exit(072);
+                        ready = 'A';
+                        if (dsys_write_words(3, &ready, 1U) != 1 ||
+                            dsys_close(3) != 0 ||
+                            dsys_read_words(0, &ready, 1U) != 1 ||
+                            ready != 'X')
+                                (void)dsys_exit(073);
+#endif
                         if (dsys_brk(V1075_BRK_REQUEST) !=
                             (kword_t)-1L)
                                 (void)dsys_exit(071);
@@ -147,6 +206,37 @@ main(int argc, kword_t **argv)
                         (void)dsys_writechar(1, 'D');
                         (void)dsys_exit(070);
                 }
+#if V1150_TEST_HELD_PROVIDER
+                if (argv[1][1] ==
+                    TEST_SIX6('H', ' ', ' ', ' ', ' ', ' ')) {
+                        int fd;
+
+                        if (dsys_sleep(010U) != 0)
+                                (void)dsys_exit(074);
+                        fd = dsys_open(v1075_path, SYS_O_RDONLY);
+                        if (fd >= 0)
+                                (void)dsys_close(fd);
+                        (void)dsys_exit(064);
+                }
+                if (argv[1][1] ==
+                    TEST_SIX6('G', ' ', ' ', ' ', ' ', ' ')) {
+                        int fd;
+
+                        if (dsys_sleep(0200U) != 0)
+                                (void)dsys_exit(075);
+                        fd = dsys_open(v1075_path, SYS_O_RDONLY);
+                        if (fd >= 0)
+                                (void)dsys_close(fd);
+                        (void)dsys_exit(063);
+                }
+                if (argv[1][1] ==
+                    TEST_SIX6('S', ' ', ' ', ' ', ' ', ' ')) {
+                        for (;;) {
+                                if (dsys_sleep(2U) != 0)
+                                        (void)dsys_exit(076);
+                        }
+                }
+#endif
 #if V1120_TEST_PID_REUSE
                 if (argv[1][1] ==
                     TEST_SIX6('A', ' ', ' ', ' ', ' ', ' '))
@@ -299,11 +389,50 @@ main(int argc, kword_t **argv)
         witness = run_child('W', reader);
         if (witness <= 1 || dsys_close(reader) != 0)
                 fail('3');
+#if V1150_TEST_HELD_PROVIDER
+        if (v1150_pipe(&release_r, &release_w) != 0 ||
+            v1150_pipe(&ack_r, &ack_w) != 0)
+                fail('e');
+        v1150_ack_writer = ack_w;
+        requester = run_child('O', release_r);
+        if (requester != 3 || dsys_close(release_r) != 0 ||
+            dsys_close(ack_w) != 0 ||
+            dsys_read_words(ack_r, &word, 1U) != 1 || word != 'A' ||
+            dsys_close(ack_r) != 0)
+                fail('i');
+        /* Complete every RUN before the provider lease is occupied. */
+        gateway_waiter = run_child('G', 0);
+        spinner = run_child('S', 0);
+        holder = run_child('H', 0);
+        if (gateway_waiter != 4 || spinner != 5 || holder != 6)
+                fail('j');
+        if (dsys_sleep(0400U) != 0)
+                fail('k');
+        word = 'X';
+        if (dsys_write_words(release_w, &word, 1U) != 1 ||
+            dsys_close(release_w) != 0)
+                fail('l');
+        /* A later INIT sleep releases the held provider only after
+         * the real BRK error and repeated FILE-close failures. */
+        for (probe = 0U; probe < 3U; ++probe) {
+                if (dsys_sleep(0100U) != 0)
+                        fail('p');
+        }
+#else
         requester = run_child('O', 0);
+#endif
         if (requester <= 1 || requester == witness)
                 fail('4');
         wait_status((unsigned int)requester,
             V1075_TEST_OOM_ENABLED ? V1075_OOM_STATUS : 070U);
+#if V1150_TEST_HELD_PROVIDER
+        wait_status((unsigned int)holder, 064U);
+        wait_status((unsigned int)gateway_waiter, 063U);
+        if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
+                SYS_EVENT_ARG((unsigned int)spinner, SYS_EVENT_TERM)) != 0)
+                fail('q');
+        wait_status((unsigned int)spinner, 0400001U);
+#endif
         (void)dsys_writechar(1, V1075_TEST_OOM_ENABLED ? 'K' : 'N');
 
         if (dsys_meminfo(&occupied) != 0 ||
