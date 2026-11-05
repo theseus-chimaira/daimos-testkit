@@ -3,6 +3,9 @@
 
 #define LEADER_MODE          0431U
 #define JOB_MODE             0432U
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+#define SPINNER_MODE         0433U
+#endif
 
 #define RUN_PATH_WORDS       3U
 #define RUN_ARG_WORDS        2U
@@ -65,6 +68,10 @@ spawn(unsigned int mode, unsigned int pgrp_mode, unsigned int pgrp,
                 block[RUN_ARG0_OFF + i] = init_path[i];
         }
         mode_ch = mode == LEADER_MODE ? 'L' : 'J';
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+        if (mode == SPINNER_MODE)
+                mode_ch = 'S';
+#endif
         block[RUN_ARG1_OFF] = 1UL;
         block[RUN_ARG1_OFF + 1U] =
             TEST_SIX6(mode_ch, ' ', ' ', ' ', ' ', ' ');
@@ -96,6 +103,10 @@ startup_mode(int argc, kword_t **argv)
                 return LEADER_MODE;
         if (ch == 'J')
                 return JOB_MODE;
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+        if (ch == 'S')
+                return SPINNER_MODE;
+#endif
         return 0U;
 }
 
@@ -166,6 +177,24 @@ leader_main(void)
                 spin_word += 1UL;
 }
 
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+/* A separate real user process must keep sleeping and waking while the
+ * other session's DISK bitmap owner remains pending in the finalizer. */
+static void
+spinner_main(void)
+{
+        int pid;
+
+        pid = dsys_getpid();
+        if (pid <= 1 || dsys_procctl(SYS_PROCCTL_NEWSESSION, 0U) != pid)
+                (void)dsys_exit(0111);
+        for (;;) {
+                if (dsys_sleep(2U) != 0)
+                        (void)dsys_exit(0112);
+        }
+}
+#endif
+
 int
 main(int argc, kword_t **argv)
 {
@@ -175,9 +204,19 @@ main(int argc, kword_t **argv)
         int leader;
         int job1;
         int job2;
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+        int spinner;
+#endif
         unsigned int mode;
 
         mode = startup_mode(argc, argv);
+
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+        if (mode == SPINNER_MODE) {
+                spinner_main();
+                return 0;
+        }
+#endif
 
         if (mode == JOB_MODE) {
 #ifdef DAIMOS_V1104_PIPE_HUP
@@ -240,6 +279,12 @@ main(int argc, kword_t **argv)
          * The isolated test INIT must explicitly do the same. */
         if (dsys_storagectl(SYS_STORAGECTL_SWAP) != 0)
                 fail('s', 0213);
+#endif
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+        spinner = spawn(SPINNER_MODE, SYS_RUN_PGRP_NEW, 0U, -1);
+        if (spinner <= 1 || spinner == job1 || spinner == job2 ||
+            spinner == leader)
+                fail('m', 0220);
 #endif
 #ifdef DAIMOS_V1105_DPY_HUP
         /* Ensure job2 has installed its hardware display program before
@@ -306,6 +351,13 @@ main(int argc, kword_t **argv)
             wait_is((unsigned int)job2, SYS_WAIT_EXITED,
             SYS_WAIT_EVENT_FLAG | SYS_EVENT_HUP) != 0)
                 fail('4', 0204);
+#ifdef DAIMOS_V1154_PI6_DISK_SPIN
+        if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
+            SYS_EVENT_ARG((unsigned int)spinner, SYS_EVENT_TERM)) != 0 ||
+            wait_is((unsigned int)spinner, SYS_WAIT_EXITED,
+                SYS_WAIT_EVENT_FLAG | SYS_EVENT_TERM) != 0)
+                fail('n', 0221);
+#endif
         if (dsys_procctl(SYS_PROCCTL_TTY_ATTACH, 0U) != 0 ||
             dsys_procctl(SYS_PROCCTL_GETTTY, 0U) !=
             (int)SYS_TTY_ATTACHED(0U) ||

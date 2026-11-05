@@ -9,11 +9,23 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 pipe_hup=${DAIMOS_V1104_PIPE_HUP:-0}
 dpy_hup=${DAIMOS_V1105_DPY_HUP:-0}
 swap_hup=${DAIMOS_V1107_SWAP_HUP:-0}
+disk_pi6=${DAIMOS_V1154_PI6_DISK_SPIN:-0}
+case "$disk_pi6" in
+    0|1) ;;
+    *) echo 'v1154: invalid DISK PI6 mode' >&2; exit 2 ;;
+esac
+if [ "$disk_pi6" = 1 ] && { [ "$swap_hup" != 1 ] ||
+    [ "$pipe_hup" != 1 ] || [ "$dpy_hup" != 0 ]; }; then
+    echo 'v1154: requires actual PIPE+DISK v1122 guest' >&2
+    exit 2
+fi
 case "$pipe_hup:$dpy_hup:$swap_hup" in
     0:0:0|1:0:0|0:1:0|0:0:1|1:1:0|0:1:1|1:0:1) ;;
     *) echo 'v1119: unsupported physical HUP provider combination' >&2; exit 2 ;;
 esac
-if [ "$pipe_hup" = 1 ] && [ "$swap_hup" = 1 ]; then
+if [ "$disk_pi6" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-session-disk-pi6-v1154.XXXXXX")
+elif [ "$pipe_hup" = 1 ] && [ "$swap_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-pipe-swap-v1122.XXXXXX")
 elif [ "$dpy_hup" = 1 ] && [ "$swap_hup" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-session-hup-dpy-swap-v1121.XXXXXX")
@@ -761,6 +773,10 @@ if source.count(old) != 1:
 dp.write_text(source.replace(old, new, 1))
 PY
 fi
+if [ "$disk_pi6" = 1 ]; then
+    python3 "$self/daimos-oom-disk-pi6-v1154.py" \
+        "$work/source/system/kernel"
+fi
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
 dlink="$PDP10_PREFIX/bin/dlink"
@@ -788,6 +804,9 @@ elif [ "$swap_hup" = 1 ]; then
     cflags='-DDAIMOS_V1107_SWAP_HUP=1'
 else
     cflags=''
+fi
+if [ "$disk_pi6" = 1 ]; then
+    cflags="$cflags -DDAIMOS_V1154_PI6_DISK_SPIN=1"
 fi
 # shellcheck disable=SC2086
 "$cc" -std=c89 -Os $cflags $incs -I"$DAIMOS_REPO/userland/libc" \
@@ -847,6 +866,14 @@ if [ "$swap_hup" = 1 ] && [ "$dpy_hup" = 1 ]; then
         printf 'swap_in_%s %s\n' "$name" "$addr" >> "$work/addresses"
     done
 fi
+if [ "$disk_pi6" = 1 ]; then
+    for name in swap_first swap_last user_sleeps user_first user_last; do
+        sym="daimos_pi6_${name}_v1154"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1154: missing $sym" >&2; exit 1; }
+        printf 'pi6_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 boot="$build/boot.ini"
 sed -i -e 's/^set wcnsls .*/set wcnsls disabled/' \
     -e 's/^set ocnsls .*/set ocnsls disabled/' -e '/^exit$/d' "$boot"
@@ -864,7 +891,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v907: simulator exited $rc" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$pipe_hup" "$dpy_hup" "$swap_hup" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$pipe_hup" "$dpy_hup" "$swap_hup" "$disk_pi6" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -937,6 +964,16 @@ if sys.argv[5] == '1':
             seen['swap_commit_record'] != 0:
         raise SystemExit('v1107: terminal DISK owner/bitmap leaked: '+
                          str(seen)+'\n'+output[-2300:])
+if sys.argv[6] == '1':
+    ticks = (seen['pi6_swap_last'] - seen['pi6_swap_first']) & 0o377777
+    work = seen['pi6_user_last'] - seen['pi6_user_first']
+    if seen['pi6_swap_first'] == 0 or ticks < 2 or work < 1 or \
+            seen['pi6_user_sleeps'] < work:
+        raise SystemExit('v1154: missing real PI6/independent spinner '
+                         'progress between actual DISK verifications: '
+                         + repr((ticks, work, seen)))
+    print('v1154: real PI6 DISK retry ticks', ticks,
+          'and unrelated user sleep progress', work, 'PASS')
 if seen['first']<=2 or seen['leader']<=1 or not seen['base'] or \
         '<' not in output or \
         'H' not in output or 'HALT' not in output or '!' in output:
