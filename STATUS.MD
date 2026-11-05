@@ -1,3 +1,22 @@
+## 2026-11-05 v1153: E07 mixed physical PI6/bystander evidence (partial)
+
+The new `test-daimos-oom-pi6-spinners-v1153` independently rebuilds
+one 256K PDP-6 full guest using the unchanged production kernel and
+the v1144 disposable physical PIPE/DPY/VM/u-area/foreign-provider
+fault matrix. Additional test-only witnesses capture the qualified
+PI6 clock and unrelated-user sleep count at the first genuine PIPE
+MM_BUSY and the final slot-5 ZOMB publication. The first guest PASSes:
+clock 1297 -> 1352 (55 actual ticks), unrelated user sleeps 25 -> 28
+(3 after the initial MM_BUSY), exactly one pin/busy/unpin/free per
+physical owner, one final publication and zero MM/FILE/DPY errors.
+The provider lease remains held and no fake timer or allocator return
+is introduced. The unchanged v1144/1117/1106/1103 checks also PASS.
+
+This adds concrete post-fault progress evidence for E07 PIPE/DPY/VM
+and held provider; the DISK backing interval and full E07 matrix are
+NOT yet accepted. Production requester OOM remains OFF. The branch
+is isolated from concurrent v1151 E05/E06 endurance acceptance.
+
 ## 2026-11-05 v1151r1: sustained physical OOM/recovery E05/E06 PASS
 
 Post-acceptance compatibility rerun: the original
