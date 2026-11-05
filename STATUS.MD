@@ -1,3 +1,29 @@
+## 2026-11-05 v1155: E08 concurrent sessions/group lifecycle PASS
+
+The full 256K PDP-6 `test-daimos-oom-groups-sessions-v1155`
+guest PASSes twice, with a fresh independent v1155 build and
+retained completed preceding build; the unmodified v979 event
+fixture also PASSes on a separate fresh guest. The expanded
+v1155 fixture creates two independent live session leaders
+using pipe-backed child-ready barriers, plus two different
+two-member process groups. STOP/CONT group delivery and
+exact per-child WAIT/CHLD are verified; both groups then
+terminate independently with exact event statuses and
+no second/stale WAIT or wrong-session death.
+
+While both foreign sessions are still alive, 64 additional
+numeric PID lifetimes each RUN a child, deliver ALRM,
+WAIT for the expected exit and reject stale WAIT/TERM.
+Each session is then terminated/reaped separately, followed
+by exact final process-slot, process-word and FILE-slot
+accounting. In-development v1155 r1 timed out before the
+session markers, but completed r2 and independent r3 PASS.
+
+This supplies E08 acceptance without changing production
+KCORE/MRES/RAM/ABI or the disabled requester-OOM switch.
+The remaining OOM gates are E09-E13, S07/S08, A04,
+F02-F11 and later F12/F13 (45/65 complete).
+
 ## 2026-11-05 v1154: E07 actual PI6/bystander release matrix CLOSED
 
 The full 256K PDP-6 `test-daimos-oom-disk-pi6-v1154` guest PASSes the
