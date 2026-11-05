@@ -20,6 +20,12 @@ wait_churn=${DAIMOS_V1117_WAIT_CHURN:-0}
 case "$wait_churn" in 0|1) ;; *) echo 'v1117: invalid WAIT churn selector' >&2; exit 2 ;; esac
 mixed_dpy=${DAIMOS_V1144_DPY_MIXED:-0}
 case "$mixed_dpy" in 0|1) ;; *) echo 'v1144: invalid DPY selector' >&2; exit 2 ;; esac
+pi6_stress=${DAIMOS_V1153_PI6_SPINNERS:-0}
+case "$pi6_stress" in 0|1) ;; *) echo 'v1153: invalid PI6 selector' >&2; exit 2 ;; esac
+if [ "$pi6_stress" = 1 ] && [ "$mixed_dpy" != 1 ]; then
+    echo 'v1153: PI6 witness requires mixed physical v1144 guest' >&2
+    exit 2
+fi
 if [ "$mixed_dpy" = 1 ] && { [ "$integrated" != 1 ] ||
     [ "$physical_vm" != 1 ] || [ "$wait_churn" != 1 ]; }; then
     echo 'v1144: DPY requires combined PIPE/VM and WAIT churn' >&2
@@ -772,6 +778,10 @@ p.write_text(p.read_text() + '''
 daimos_test_exit_v930: .block 1
 ''')
 PY
+if [ "$pi6_stress" = 1 ]; then
+    python3 "$self/daimos-oom-pi6-spinners-v1153.py" \
+        "$work/source/system/kernel"
+fi
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
 dlink="$PDP10_PREFIX/bin/dlink"
@@ -868,6 +878,14 @@ if [ "$mixed_dpy" = 1 ]; then
     test -n "$addr" || { echo "v1144: missing $sym" >&2; exit 1; }
     printf 'publish_checks %s\n' "$addr" >> "$work/addresses"
 fi
+if [ "$pi6_stress" = 1 ]; then
+    for name in first_tick final_tick first_user final_user; do
+        sym="daimos_pi6_${name}_v1153"
+        addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
+        test -n "$addr" || { echo "v1153: missing $sym" >&2; exit 1; }
+        printf 'pi6_%s %s\n' "$name" "$addr" >> "$work/addresses"
+    done
+fi
 sym=daimos_test_fatal_count_v924
 addr=$(awk -v s="$sym" '$1 == s {print $2}' "$build/kcore.map")
 test -n "$addr" || { echo "v924: missing fatal counter" >&2; exit 1; }
@@ -898,7 +916,7 @@ if [ "$rc" -ne 0 ]; then
     echo "v924: simulator failed ($rc): $work" >&2
     exit 1
 fi
-python3 - "$work/addresses" "$work/simh.out" "$integrated" "$physical_vm" "$wait_churn" "$mixed_dpy" <<'PY'
+python3 - "$work/addresses" "$work/simh.out" "$integrated" "$physical_vm" "$wait_churn" "$mixed_dpy" "$pi6_stress" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -907,6 +925,7 @@ integrated = sys.argv[3] == '1'
 physical_vm = sys.argv[4] == '1'
 wait_churn = sys.argv[5] == '1'
 mixed_dpy = sys.argv[6] == '1'
+pi6_stress = sys.argv[7] == '1'
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
@@ -971,6 +990,16 @@ if mixed_dpy:
     print('v1144: physical PIPE/DPY/VM/u-area MM ownership, '
           'FILE->VM->u-area->ZOMB publication order, held provider, '
           'no premature WAIT and bystander in one 256K guest PASS')
+if pi6_stress:
+    ticks = (seen['pi6_final_tick'] - seen['pi6_first_tick']) & 0o377777
+    user_steps = seen['pi6_final_user'] - seen['pi6_first_user']
+    if not seen['pi6_first_tick'] or ticks < 2 or user_steps < 1:
+        raise SystemExit('v1153: no qualified PI6 and independent user '
+                         'progress after physical MM_BUSY: '
+                         + repr((ticks, user_steps, seen)))
+    print('v1153: real PI6 tick delta', ticks, 'and independent user '
+          'progress', user_steps, 'through PIPE/DPY/VM/u-area retry '
+          'and held provider PASS')
 if wait_churn:
     # The independent spinner may interleave S at any progress mark.
     if re.search(r'B(?:S*\.){6}S*R', out) is None or '!' in out:

@@ -1403,6 +1403,12 @@ test-daimos-oom-pipe-dpy-vm-provider-v1144: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-oom-pipe-dpy-vm-provider-v1144.sh
 
+.PHONY: test-daimos-oom-pi6-spinners-v1153
+test-daimos-oom-pi6-spinners-v1153: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-oom-pi6-spinners-v1153.sh
+
 .PHONY: test-daimos-p10fold-local-section-v1141
 .PHONY: test-daimos-fatal-exec-physical-uarea-v1142
 test-daimos-fatal-exec-physical-uarea-v1142: check-prefix
