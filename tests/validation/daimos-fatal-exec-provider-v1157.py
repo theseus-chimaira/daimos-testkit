@@ -85,6 +85,21 @@ daimos_e10_foreign_busy_v1157: .block 1
 # the original vfs_sync unmodified so its actual foreign-lock refusal
 # is mandatory for acceptance. This never fabricates the final event.
 patch('fs/file_runtime.s',
+      '''        move    4,file_table
+        skipn   (4)                    ; failed FD must remain owned
+        setom   daimos_test_error_v890
+        aos     daimos_test_fd_held_v890''',
+      '''        move    4,file_table
+        skipn   (4)                    ; FD0 can succeed before FD3
+        jrst    daimos_e10_check_fd3_v1157
+        jrst    daimos_e10_held_real_v1157
+daimos_e10_check_fd3_v1157:
+        skipn   6(4)                  ; FD3 must retain failed owner
+        setom   daimos_test_error_v890
+daimos_e10_held_real_v1157:
+        aos     daimos_test_fd_held_v890''')
+
+patch('fs/file_runtime.s',
       '''daimos_test_vfs_call_v890:
         pushj   17,vfs_sync''',
       '''daimos_test_vfs_call_v890:
