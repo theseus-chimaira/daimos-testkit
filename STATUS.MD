@@ -1,3 +1,45 @@
+## 2026-11-05 v1151r1: sustained physical OOM/recovery E05/E06 PASS
+
+Two independently rebuilt 256K PDP-6 full disk-root guests PASS the
+`test-daimos-oom-endurance-v1151` and
+`test-daimos-oom-endurance-disabled-v1151` targets. Each performs the
+original physical-OOM/witness test, 32 additional genuine BRK
+physical-MM exhaustion cycles, and an intervening successful RUN
+with real BRK growth/shrink. It then completes 256 numeric PID
+reuse lifetimes with alternating WAIT statuses and 512 stale
+WAIT/event refusals. Every wave verifies stable process slots,
+process words, FILE slots, disk swap blocks, and MM descriptors;
+the actual qualified PI6 clock advances at least 1024 ticks.
+The test-only counter verifies a distinct physical-MM cause -1
+for each OOM request, rather than synthetic allocation failures.
+
+The first enabled run correctly exposed a test-accounting problem:
+after one successful recovery RUN, the MM descriptor count was
+7 -> 8. A preserved halted guest's physical MM table proves the
+new `0201`-word extent is the existing clean BCACHE slab, owner 6,
+base `0777577` octal. Production BCACHE deliberately retains this
+one reclaimable extent. The corrected test-only read-only BCACHE
+base probe subtracts exactly its current presence and still
+requires strict equality for all non-cache MM extents; a subsequent
+real physical OOM must reclaim the slab. This is not a relaxation
+of the process or backing leak criteria, and production MM is
+unchanged. The production-disabled guest additionally emits one
+normal BRK-return `D` for each of the 32 waves. The v1151r1 wrapper
+asserts precisely 32 such markers, instead of rejecting that
+valid output. Both fully rebuilt guests now PASS.
+
+Retained opt-in enabled guest/log:
+`$TMPDIR/daimos-oom-requester-live-v1075.LlPPRq` and
+`$TMPDIR/daimos-v1151-endurance-enabled-r3.log`.
+Retained production-disabled guest/log:
+`$TMPDIR/daimos-oom-requester-live-v1075.QJLF2A` and
+`$TMPDIR/daimos-v1151-endurance-disabled-r2.log`.
+E05/E06 are accepted for the 256K writable-process scope; the
+mandatory checklist is 43/65 complete, with 20 pre-enable blockers
+and F12/F13 still open. E07-E13, final RAM budgets, warning review
+and release-candidate reruns remain mandatory. Production requester
+OOM stays OFF. All probes are exclusively in disposable test images.
+
 ## 2026-11-05 v1150: B06 real physical OOM with provider lease PASS
 
 The v1150 disposable full-system PDP-6 guests PASS in both opt-in
