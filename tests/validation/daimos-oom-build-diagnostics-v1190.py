@@ -78,9 +78,8 @@ def check_log(log, archive_name, mode):
             raise SystemExit(
                 'v1190: %s %s unexpected diagnostic at line %d: %s' %
                 (archive_name, mode, lineno, line))
-    require(('legacy', 'd6fsr2') in counts,
-            '%s %s legacy D6FS warning disappeared unexpectedly' %
-            (archive_name, mode))
+    # Old D6FSR2 images legitimately emit this warning. Modern v1192
+    # explicit-zero layouts do not; neither outcome is a build error.
     expected_truncations = {
         (source, diagnostic) for source, diagnostic in KNOWN_NOTES
         if diagnostic.startswith('Identifer truncated')
@@ -102,6 +101,9 @@ def main():
         baseline += '\nd6fsck: selected superblock 0 seq=1 state=CLEAN\n'
         require(check_log(baseline, 'self-test', 'disabled'),
                 'known diagnostic baseline not accepted')
+        clean = baseline.replace(LEGACY_WARNING + '\n', '')
+        require(check_log(clean, 'self-test', 'disabled'),
+                'modern explicit-layout diagnostic baseline rejected')
         for mutant in (
                 '[Warning] silent code generation error',
                 'compiler: error: unexpected error',

@@ -1,3 +1,9 @@
+.PHONY: test-daimos-d6fs-explicit-zero-layout-v1192
+test-daimos-d6fs-explicit-zero-layout-v1192:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-d6fs-explicit-zero-layout-v1192.sh
+
 .PHONY: test-daimos-oom-build-diagnostics-v1190
 test-daimos-oom-build-diagnostics-v1190:
 	@test -n '$(V1190_ARM_ARCHIVE)' && test -n '$(V1190_LINUX_ARCHIVE)' || \

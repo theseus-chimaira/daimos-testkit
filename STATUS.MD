@@ -1,3 +1,21 @@
+## 2026-11-05 v1192: D6FSR2 explicit-zero layout regression PASS
+
+`test-daimos-d6fs-explicit-zero-layout-v1192` compiles fresh host
+mkdsk/mkd6fs/d6fsck binaries with strict warnings and PASSes:
+modern explicitly zero bootstream/LOGSTORE/BADMAP reservations (no
+legacy warning), flag-0 old-media compatibility (legacy warning
+retained), malformed flag 2 and high-bit flag rejection, and mixed
+flags across two physical disk members. The KINIT BLOCKSET boot
+decoder also rejects unknown/mixed flags; DAIMOS compiles its new
+kernel code with `-Wall -Wextra -Werror`.
+
+The existing v1190 F10 diagnostics auditor continues to PASS all
+four frozen archived release-media builds and its negative mutants.
+The legacy warning is recognized when present on old images and
+is no longer *required* on new, correctly flagged v1192 media.
+This is a disk-format compatibility correction, not an OOM gate.
+Production requester OOM remains OFF.
+
 ## 2026-11-05 v1190r1: F05 out of OOM scope; F10 evidence accepted
 
 User scope decision retires static 16K permanent KCORE/MRES fit
