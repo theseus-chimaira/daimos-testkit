@@ -1,3 +1,25 @@
+## 2026-11-05 v1147-v1148: integrated PI6/pending HUP C04 PASS
+
+Fresh v1147 owner-side TTY/VM/u-area MM_BUSY and independent PI6
+guest PASSes. Two fresh full-system v1148 builds also PASS with a
+live same-session child, one HUP deferred to its own private kernel
+stack and exactly one owner-return HUP delivery. INIT's original
+session survives its first pinned-TTY EXIT refusal; a real WAIT
+reaps the HUP recipient before the second owner EXIT. VM and u-area
+then encounter separate real MM_BUSY faults before normal slot-0
+retry completes one final release. Each v1148 build records one
+HUP defer and one HUP owner delivery, all physical ownership counters
+exactly one, zero errors, 32 qualified PI6 ticks after refusal and
+48 unrelated-session user sleeps. Native v1098 clock/backoff and its
+three unsafe mutations PASS. This supplies C04 closure for DAIMOS;
+the OOM default stays OFF, B06/B07/E/F remain open.
+
+The independent historical v885 native owner-backoff fixture has
+been updated with current process-event constants, a no-session
+HUP preflight, and an unexpected-runqueue guard. It PASSes 14
+actual FILE close refusals with repeated capped delay and later
+completion, but B07 is not declared closed by that fixture alone.
+
 ## 2026-11-05 v1146r3: frozen nine-stage D16 matrix PASS
 
 `make test-daimos-oom-exact-once-matrix-v1146` completed all nine

@@ -10,9 +10,10 @@ trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 {
     printf '.text\n.globl proc_fatal_close_current_v879\n.equ PROC_FILE_TABLE_OFFSET,026\n.equ PROC_FDCTL_OFFSET,024\n'
     printf '.equ PROC_FATAL_CLOSE_BIT,4\n.equ PROC_TRANSITION_RH,0200000\n.equ PROC_FINALIZE_OFFSET,067\n.equ PROC_FINALIZE_MARK_LH,0400000\n'
-    printf '.equ PROC_WAIT_EVENT_LH,020000\n'
+    printf '.equ PROC_WAIT_EVENT_LH,020000\n.equ PROC_WAIT_CHILD_LH,040000\n'
     printf '.equ CTX_PC,020\n'
     printf '.equ PROC_WAIT_LH_MASK,060000\n'
+    printf '.equ PROC_STATE_LH_MASK,0700000\n.equ PROC_STATE_SLEEP,0300000\n'
     sed -n '/^proc_fatal_close_current_v879:$/,/^\/\*\*$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
     printf '.globl proc_event_apply\n'

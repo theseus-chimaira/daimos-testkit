@@ -33,6 +33,9 @@ check_exit:
  move 1,__exit_status
  caie 1,0400001
  jrst fail_9
+ move 1,__session_calls
+ caie 1,1
+ jrst fail_17
  skipn __max_delay_seen
  jrst fail_15                 ; interval reached the 01000 cap
  move 1,__expected_delay
@@ -58,6 +61,12 @@ check_exit:
  move 1,__exit_status
  caie 1,012345
  jrst fail_14
+ move 1,__session_calls
+ caie 1,2
+ jrst fail_18
+ skipn __unexpected_runq
+ jrst pass
+ jrst fail_19
 pass: setz 1,
  jrst done
 fail_1: movei 1,1
@@ -91,6 +100,12 @@ fail_14: movei 1,016
 fail_15: movei 1,017
  jrst done
 fail_16: movei 1,020
+ jrst done
+fail_17: movei 1,021
+ jrst done
+fail_18: movei 1,022
+ jrst done
+fail_19: movei 1,023
 done: movem 1,__test_exit
  jrst 4,0
 
@@ -157,6 +172,18 @@ proc_finish_slot:
 proc_event_nonfatal:
  seto 1,
  popj 17,
+.globl proc_runq_add
+proc_runq_add:
+ ; This fixture has no FS gateway sleeper to wake.
+ setom __unexpected_runq
+ seto 1,
+ popj 17,
+.globl proc_session_teardown
+proc_session_teardown:
+ ; No attached session: model the successful owner-side HUP preflight.
+ aos __session_calls
+ setz 1,
+ popj 17,
 .globl proc_exit_current
 proc_exit_current:
  aos __exit_calls
@@ -182,6 +209,10 @@ __fd: .word 0777
  .block 0410-027
 .globl file_table
 file_table: .word __fd
+.globl fs_provider_wait_event_v917
+fs_provider_wait_event_v917: .word 0
+__unexpected_runq: .word 0
+__session_calls: .word 0
 __fail_remaining: .word 016
 __expected_delay: .word 1
 __max_delay_seen: .word 0
