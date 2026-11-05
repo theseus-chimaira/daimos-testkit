@@ -101,7 +101,7 @@ mkdir -p "$work/source/system" "$work/user"
 cp -a "$DAIMOS_REPO/system/kernel" "$work/source/system/kernel"
 cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
-python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" "$stage_probe" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$physical_uarea" <<'PY'
+python3 - "$work/source/system/kernel" "$nested" "$diagnostic" "$dual_timer" "$stage_probe" "$discard_probe" "$layout_probe" "$run_probe" "$text_pad" "$physical_uarea" "$e10_provider" <<'PY'
 from pathlib import Path
 import sys
 
@@ -115,6 +115,7 @@ layout_probe = sys.argv[7] == '1'
 run_probe = sys.argv[8] == '1'
 text_pad = sys.argv[9] == '1'
 physical_uarea = sys.argv[10] == '1'
+e10_provider = sys.argv[11] == '1'
 def patch(rel, old, new):
     path = root / rel
     source = path.read_text()
@@ -625,6 +626,11 @@ if text_pad:
          'proc_run_claimed_bad:\n'), 1))
 
 if physical_uarea:
+    # E10 holds APR slot 3 and provider slot 4 until the late failed
+    # RUN, so that real unpublished RUN owns slot 5. The original
+    # v1142 guest still uses slot 3 after reaping its APR child.
+    mm_owner = '01005' if e10_provider else '01003'
+    discard_slot = '5' if e10_provider else '3'
     # Pin the actual allocated u-area for the *late* unpublished child,
     # never a synthetic descriptor. The first real mm_free must return
     # MM_ERR_BUSY; the original discard code must defer the slot. Drop
@@ -635,7 +641,7 @@ if physical_uarea:
           '''mm_free:
         caie    2,3                 ; kernel-dynamic u-area
         jrst    daimos_mm_original_v1142
-        caie    3,01003             ; exact unpublished slot 3 owner
+        caie    3,01003             ; exact unpublished RUN u-area owner
         jrst    daimos_mm_original_v1142
         skipn   daimos_test_late_run_v1126
         jrst    daimos_mm_original_v1142
@@ -658,7 +664,8 @@ daimos_mm_pin_restore_v1142:
         pop     17,2
         pop     17,1
 daimos_mm_original_v1142:
-        move    5,1''')
+        move    5,1'''.replace('caie    3,01003',
+                             'caie    3,' + mm_owner))
     patch('proc/proc_pdp6.s',
           '''proc_discard_defer_uarea_v892:
         ; The u-area still belongs''',
@@ -676,7 +683,8 @@ daimos_mm_original_v1142:
 daimos_discard_wrong_v1142:
         aos     daimos_mm_errors_v1142
 daimos_discard_original_v1142:
-        ; The u-area still belongs''')
+        ; The u-area still belongs'''.replace('caie    11,3',
+                                            'caie    11,' + discard_slot))
     p = root / 'mm/mm_pdp6.s'
     labels = ('calls', 'base', 'pins', 'busy', 'unpins', 'errors')
     p.write_text(p.read_text() + '\n        .bss\n' +

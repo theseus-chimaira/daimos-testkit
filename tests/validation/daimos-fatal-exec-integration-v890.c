@@ -121,6 +121,13 @@ main(int argc, kword_t **argv)
                     077UL) + 040U);
     if (mode == 'E') {
                 (void)dsys_writechar(1, 'E');
+#if DAIMOS_V1157_PROVIDER
+                /* Retain a genuine provider-backed FILE through the
+                 * committed EXEC failure. Its fatal final-close must
+                 * compete with the separately held gateway lease. */
+                if (dsys_open(init_path, SYS_O_RDONLY) < 0)
+                        fail('p');
+#endif
                 /* Valid UUO/EXEC argument; isolated kernel injects
                  * staged memory pressure followed by a failed loader
                  * only AFTER real vm_space_destroy commits. */
