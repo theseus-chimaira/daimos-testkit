@@ -24,6 +24,8 @@ values = dict.fromkeys(('fs_provider_ready', 'fs_provider_wait_event_v917',
 values['fs_provider_ready'] = 5 << 18
 values['drm236_active_request'] = (0o454 << 18) | 0o52146
 values['drm236_pending_request'] = 0o52745
+values['proc_table'] = 0o47000
+values['proc_high_slot'] = 4
 values['f07q_slot011'] = 0
 values['f07q_slot012'] = 0o44000 << 18
 values['f07q_slot013'] = (0o340000 << 18) | 0o52150
@@ -39,7 +41,14 @@ with redirect_stdout(log):
 assert 'filesystem lease: PID 4' in log.getvalue()
 assert 'restore /var/guest-v1254.sav\n' in script
 for address in (0o52146, 0o52147, 0o52150, 0o52745, 0o52747,
-                0o23130):
+                0o23130, 0o47003, 0o47004, 0o47005,
+                0o47006, 0o47007, 0o47010, 0o47011, 0o47012,
+                0o47013):
     assert script.count('examine %o\n' % address) == 1
 assert script.endswith('exit\n')
+values['proc_high_slot'] = 0o777777
+with redirect_stdout(StringIO()) as log:
+    unbounded = mod.render(values, Path('/var/guest-v1254.sav'))
+assert 'process descriptor source: INVALID/MISSING' in log.getvalue()
+assert 'examine 47003\n' not in unbounded
 print('v1254: provider owner, process waits, DMA pointers and event dedup PASS')

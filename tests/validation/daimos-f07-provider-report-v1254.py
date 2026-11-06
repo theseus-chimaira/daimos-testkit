@@ -82,6 +82,19 @@ def render(values, savefile):
         if pointer:
             for at in (pointer, pointer + 1, pointer + 2):
                 sample(at)
+    # v1255: the optional v1238 full-descriptor dump may not be enabled
+    # in a v1254 guest. The stopped kernel still exposes the *actual*
+    # descriptor array base and high-water slot; inspect it directly.
+    # Include every occupied/empty descriptor so later decoding does not
+    # need to guess process state or reconstruct a live MM allocation.
+    table = values.get('proc_table', 0) & MASK
+    high_slot = values.get('proc_high_slot', 0) & MASK
+    if table and 1 < high_slot <= 0o100 and table + 3 * high_slot <= MASK:
+        for slot in range(1, high_slot):
+            for offset in range(3):
+                sample(table + 3 * slot + offset)
+    else:
+        print('process descriptor source: INVALID/MISSING table or bound')
     print('PID  state    wait_event   vm_base')
     for slot in (1, 2, 3, 4, 5, 6, 7, 13, 24):
         desc = saved_process(values, slot)
