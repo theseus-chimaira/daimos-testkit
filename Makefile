@@ -1,3 +1,20 @@
+.PHONY: test-daimos-f07-mm-high-v1204 test-daimos-f07-mm-high-disabled-v1204
+test-daimos-f07-mm-high-v1204: check-prefix
+	@test -n '$(V1204_EVIDENCE_DIR)' || { \
+	 echo 'v1204: specify a fresh V1204_EVIDENCE_DIR' >&2; exit 2; }
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 V1204_EVIDENCE_DIR='$(V1204_EVIDENCE_DIR)' V1204_OOM_ENABLED=1 \
+	 sh tests/validation/daimos-f07-mm-high-v1204.sh
+
+test-daimos-f07-mm-high-disabled-v1204: check-prefix
+	@test -n '$(V1204_EVIDENCE_DIR)' || { \
+	 echo 'v1204: specify a fresh V1204_EVIDENCE_DIR' >&2; exit 2; }
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 V1204_EVIDENCE_DIR='$(V1204_EVIDENCE_DIR)' V1204_OOM_ENABLED=0 \
+	 sh tests/validation/daimos-f07-mm-high-v1204.sh
+
 .PHONY: test-daimos-f07-mm-peak-v1203 test-daimos-f07-mm-peak-disabled-v1203
 test-daimos-f07-mm-peak-v1203: check-prefix
 	@test -n '$(V1203_EVIDENCE_DIR)' || { \

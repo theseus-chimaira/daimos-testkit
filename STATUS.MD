@@ -1,3 +1,34 @@
+## 2026-11-06 v1204: high physical and descriptor pressure under held provider PASS
+
+F07 disposable `daimos-f07-mm-high-v1204` allocates 12 genuine
+APR-aligned 020000-word MM extents plus 96 genuine one-word MM
+extents, in the already-booted 256K KCC DSK/D6FS guest while a
+foreign filesystem provider holds its original private-stack lease.
+This adds 98400 physical words and 108 descriptors without touching
+production code. It then triggers the original genuine BRK physical
+OOM fault, samples live MM state at that decision, and frees every
+test-owned extent through exact type/owner-checked MM release.
+
+Both disposable OOM-enabled and production-disabled guests PASS:
+127/136 live descriptors (six APR process images, 121 dynamic
+extents), 211092 allocated managed physical words, about 87 percent
+of the managed arena, 108/108 exact releases, and zero probe errors.
+The provider lease, original gateway owner, unrelated processes,
+WAIT statuses and final MM/process accounting are preserved.
+
+The v1204 host fixture rejects seven unsafe mutations. It also
+identified a defect in the earlier v1203 host verifier: APR alignment
+uses `02000` octal = 1024 words, not 512. The corrected maximal
+placement and logical-break rounding bounds are 1023 per gap or
+live process extent, not 511. Actual LOW gap-prefix slack is still
+measured from the MM table; the bound correction never relaxes
+real alignment or overlap validation. Previous v1203 evidence using
+the incorrect bound is superseded for those two computed fields.
+
+F07 is not yet closed: six live process images are not the maximum
+simultaneous process-slot population, and exact logical-break use
+in each process was not captured. Production requester OOM stays OFF.
+
 ## 2026-11-06 v1203: simultaneous F07 physical-OOM MM snapshot PASS (partial)
 
 Disposable `daimos-f07-mm-peak-v1203` instrumentation samples the

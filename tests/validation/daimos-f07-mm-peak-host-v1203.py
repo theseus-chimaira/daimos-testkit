@@ -40,6 +40,8 @@ assert valid['kernel_dynamic_extents'] == 1
 assert valid['managed_words'] == 2 * 0o200000
 assert valid['allocated_words'] == 0o2201
 assert valid['shared_provider_workspace_words'] == 128
+assert valid['max_low_apr_placement_slack_words'] == 1023 * valid['free_gap_count']
+assert valid['process_break_rounding_upper_bound_words'] == 1023
 
 mutants = {
     'missing-capture': ('samples', 0),

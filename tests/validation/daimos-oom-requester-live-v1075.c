@@ -57,6 +57,10 @@
 #define V1174_TEST_RESIDENCY 0
 #endif
 
+#ifndef V1204_TEST_F07_HIGH
+#define V1204_TEST_F07_HIGH 0
+#endif
+
 #define V1156_BACKING_FILL 0777760UL
 #define V1156_BACKING_FREE 0777761UL
 
@@ -580,6 +584,14 @@ main(int argc, kword_t **argv)
                 fail('j');
         if (dsys_sleep(0400U) != 0)
                 fail('k');
+#if V1204_TEST_F07_HIGH
+        /* The provider owner and gateway waiter are already sleeping
+         * on their original private stacks. Fill REAL MM extents only
+         * after all six processes have RUN, before waking requester O.
+         * This is a disposable-only BRK sentinel, not a production API. */
+        if (dsys_brk(0777762UL) != 0UL)
+                fail('t');
+#endif
         word = 'X';
         if (dsys_write_words(release_w, &word, 1U) != 1 ||
             dsys_close(release_w) != 0)
@@ -612,6 +624,12 @@ main(int argc, kword_t **argv)
                 SYS_EVENT_ARG((unsigned int)spinner, SYS_EVENT_TERM)) != 0)
                 fail('q');
         wait_status((unsigned int)spinner, 0400001U);
+#if V1204_TEST_F07_HIGH
+        /* No pressure allocation survives into the final PID/VM/FILE
+         * accounting checks; every base is type/owner-verified by MM. */
+        if (dsys_brk(0777763UL) != 0UL)
+                fail('u');
+#endif
 #endif
         (void)dsys_writechar(1, V1075_TEST_OOM_ENABLED ? 'K' : 'N');
 

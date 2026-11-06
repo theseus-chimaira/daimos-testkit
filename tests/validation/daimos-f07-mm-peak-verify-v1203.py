@@ -98,7 +98,7 @@ def decode_snapshot(values):
     # overhead, which requires separate per-process break snapshots.
     low_alignment_slack = sum(min(words, (-base) % ALIGN)
                               for base, words in gaps)
-    if low_alignment_slack > 511 * len(gaps):
+    if low_alignment_slack > (ALIGN - 1) * len(gaps):
         raise ValueError('alignment slack bound violated')
 
     buf = values['buffer_base']
@@ -123,8 +123,8 @@ def decode_snapshot(values):
         'free_gap_count': len(gaps),
         'largest_gap_words': max((words for _, words in gaps), default=0),
         'low_apr_placement_slack_words': low_alignment_slack,
-        'max_low_apr_placement_slack_words': 511 * len(gaps),
-        'process_break_rounding_upper_bound_words': 511 * processes,
+        'max_low_apr_placement_slack_words': (ALIGN - 1) * len(gaps),
+        'process_break_rounding_upper_bound_words': (ALIGN - 1) * processes,
         'shared_provider_workspace_base': buf,
         'shared_provider_workspace_words': BUFFER_WORDS,
         'provider_owner_lease': values['lease'],
