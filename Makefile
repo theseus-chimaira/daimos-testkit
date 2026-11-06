@@ -754,6 +754,12 @@ test-daimos-f07-software-timer-v1252: check-prefix
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		sh tests/validation/daimos-f07-software-timer-v1252.sh
 
+.PHONY: test-daimos-sched-resident-tie-v1256
+test-daimos-sched-resident-tie-v1256: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		sh tests/validation/daimos-sched-resident-tie-v1256.sh
+
 test-daimos-multiuser-kernel-auth:
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
