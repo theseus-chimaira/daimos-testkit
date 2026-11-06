@@ -6,6 +6,7 @@ snapshot remains on the same synchronous OOM path and precedes this
 test-only observation of genuine disk-swap backing and slot capacity.
 """
 
+import os
 from pathlib import Path
 import sys
 
@@ -69,7 +70,19 @@ p.write_text(source)
 
 swap_path = Path(sys.argv[1]) / 'proc/proc_swap_pdp6.s'
 swap_source = swap_path.read_text()
+clean_baseline = os.environ.get('V1266_CLEAN_BASELINE') == '1'
+fallback_anchor = 'proc_swap_service_reclaim_v1208:'
+if clean_baseline:
+    assert fallback_anchor not in swap_source, \
+        'v1266: clean comparison unexpectedly has v1208 fallback'
+else:
+    assert swap_source.count(fallback_anchor) == 1, \
+        'v1266: normal F07 probe requires the v1208 fallback'
 for label, anchor in probes:
+    if clean_baseline and label == 'fallback':
+        # A missing fallback is the defining baseline difference. The
+        # observation word remains zero, never a synthetic invocation.
+        continue
     assert swap_source.count(anchor) == 1, \
         'v1209: swap probe moved or ambiguous: ' + label
     # For branch-target labels the counter runs at entry. For the three
