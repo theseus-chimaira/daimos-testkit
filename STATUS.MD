@@ -1,3 +1,24 @@
+## 2026-11-06 v1252-r1: 18-child guest advances through timers; F07 OPEN
+
+The 256K KCC DSK/D6FS guest (production OOM OFF) acknowledged all
+18 added RUN children, reached `^@%*`, and then continued swapping
+without reaching the requester's `?` WAIT marker. A controlled stop
+before the 900-second timeout preserved the full simulator and map
+snapshot. At stop `proc_timer_next=0`, with 52,315 elapsed clock ticks,
+32 successful swap-outs, 20 ordinary swap-ins, 32 successful exchanges,
+zero swap-in/out failure branches, 1,800 swap blocks and 46 MM
+descriptors. The genuine physical BRK OOM sample remained zero and
+no added child had been reaped. This is partial diagnostic evidence,
+NOT complete F07 acceptance or evidence of a lost DRM completion.
+
+The copied guest contained the experimental v1208/v1211 swap paths
+and the first unguarded v1252 scheduler fix; the committed v1252
+path adds a DUE-only fast guard. Evidence is retained at
+`$TMPDIR/daimos-f07-v1252-fullguest-snapshot-r1.tar.gz`.
+Further F07 testing must measure per-slot dispatch/swap selection to
+distinguish requester starvation from heavy but finite swapping.
+E13/F07/F11 remain OPEN, 59/64, production OOM OFF.
+
 ## 2026-11-06 v1252: software PI6 deferred-timer service PASS (F07 OPEN)
 
 The source-backed PDP-6 native v1252 regression executes the actual
