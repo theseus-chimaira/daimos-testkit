@@ -869,6 +869,10 @@ printf 'v1075: booting patched disposable guest; production unchanged\n'
 guest_timeout=90s
 if [ "$endurance" = 1 ]; then guest_timeout=360s; fi
 if [ "$f07_swapslots" = 1 ]; then guest_timeout=900s; fi
+# The maximal 64-slot stress case performs 57 real RUN/TERM/WAIT
+# lifecycles plus disk swaps. Allow 30 minutes without relaxing any
+# guest marker, resource accounting, or postflight acceptance check.
+if [ "$full_slots" = 1 ]; then guest_timeout=1800s; fi
 set +e
 (cd "$build" && TERM=dumb SDL_VIDEODRIVER=dummy \
     SDL_AUDIODRIVER=dummy timeout -k 2s "$guest_timeout" stdbuf -o0 -e0 \
