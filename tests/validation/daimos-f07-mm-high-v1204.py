@@ -5,10 +5,17 @@ Only the test copy of syscall_dispatch_pdp6.s is modified. Ordinary
 physical allocations use the real non-reclaiming PDP-6 MM allocator.
 The owner/lease is checked before pressure is applied, and all owned
 extents are freed after the original process tests have finished.
+
+The optional v1206 small-only mode adds 96 one-word extents without
+large synthetic allocations while twelve real process VMs are live.
 """
 
 from pathlib import Path
 import sys
+
+small_only = len(sys.argv) == 3 and sys.argv[2] == 'small-only-v1206'
+if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and not small_only):
+    raise SystemExit('usage: v1204.py kernel-root [small-only-v1206]')
 
 p = Path(sys.argv[1]) / 'proc/syscall_dispatch_pdp6.s'
 s = p.read_text()
@@ -155,4 +162,17 @@ daimos_f07_error_v1204: .block 1
 daimos_f07_base_v1204: .block 1
 daimos_f07_bases_v1204: .block 0154
 '''
+if small_only:
+    # Decimal 96 = octal 0140. Reuse the same real typed MM owner,
+    # per-extent base recording and exact release path. Only the
+    # requested extent count/size differ in this disposable fixture.
+    for old, new in (('caige   010,0154 ', 'caige   010,0140 '),
+                     ('movei   1,0154\n', 'movei   1,0140\n'),
+                     ('caie    6,0154\n', 'caie    6,0140\n'),
+                     ('caige   010,014 ', 'caige   010,0   ')):
+        assert s.count(old) == 1, 'v1206 MM fixture changed: ' + old
+        s = s.replace(old, new, 1)
+    s = s.replace('; 108 extents total', '; 96 small test extents', 1)
+    s = s.replace('; first twelve: 8K words each',
+                  '; no 8K blocks in v1206', 1)
 p.write_text(s)

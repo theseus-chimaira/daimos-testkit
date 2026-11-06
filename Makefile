@@ -1,3 +1,20 @@
+.PHONY: test-daimos-f07-combined-v1206 test-daimos-f07-combined-disabled-v1206
+test-daimos-f07-combined-v1206: check-prefix
+	@test -n '$(V1206_EVIDENCE_DIR)' || { \
+	 echo 'v1206: specify fresh V1206_EVIDENCE_DIR' >&2; exit 2; }
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1206_OOM_ENABLED=1 \
+	 V1206_EVIDENCE_DIR='$(V1206_EVIDENCE_DIR)' \
+	 sh tests/validation/daimos-f07-combined-v1206.sh
+
+test-daimos-f07-combined-disabled-v1206: check-prefix
+	@test -n '$(V1206_EVIDENCE_DIR)' || { \
+	 echo 'v1206: specify fresh V1206_EVIDENCE_DIR' >&2; exit 2; }
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1206_OOM_ENABLED=0 \
+	 V1206_EVIDENCE_DIR='$(V1206_EVIDENCE_DIR)' \
+	 sh tests/validation/daimos-f07-combined-v1206.sh
+
 .PHONY: test-daimos-f07-real-proc-v1205 test-daimos-f07-real-proc-disabled-v1205
 test-daimos-f07-real-proc-v1205: check-prefix
 	@test -n '$(V1205_EVIDENCE_DIR)' || { \

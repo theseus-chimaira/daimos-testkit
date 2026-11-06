@@ -1,3 +1,31 @@
+## 2026-11-06 v1206: simultaneous real-process and MM-descriptor pressure (partial F07)
+
+The disposable v1206 test composes v1205's 12 genuine user
+processes (six original, six distinct user RUN/BRK/independent
+sleeping children) with 96 real one-word MM_TYPE_KERNEL_DYNAMIC
+extents owned by a unique test owner. The original separate D6FS
+provider lease and pre-dispatch waiter remain held during the
+real physical BRK OOM failure. The 96 descriptors are freed through
+real type/owner-checked MM, with exact final release verification.
+
+Both isolated enabled/disabled 256K KCC DSK/D6FS guests PASS:
+**12** resident real process APR extents, **127/136** descriptors,
+**231108** allocated MM words (95.4 percent of managed core),
+**5499** exact logical BRK/APR padding words, one original 128-word
+shared filesystem workspace and original `7,,0` provider lease.
+Enabled/disabled free MM words are 11123/11137; managed area
+242231/242245 words. All 96 typed frees, protected owners,
+requester-only OOM (test enabled) or -1 return (production-off),
+TERM/WAIT and full MM/slot accounting PASS. A seven-negative-mutation
+host verifier rejects forged owner, missing pressure, invalid
+release, insufficient real process images and stolen FS lease.
+
+v1206 removes v1204's 12 large synthetic 8K-word blocks; all
+high physical occupancy is from actual executable user VMs.
+The experiment does **not** create 64 concurrent logical process
+slots or sample simultaneous worst-case private-stack highwater.
+F07 remains OPEN, production requester OOM remains disabled.
+
 ## 2026-11-06 v1205: real concurrent user-process/BRK snapshot (partial F07)
 
 The disposable v1205 guest extends the v1150/v1159/v1203 256K

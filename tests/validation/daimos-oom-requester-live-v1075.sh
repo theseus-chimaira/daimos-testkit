@@ -24,6 +24,7 @@ residency=${V1174_TEST_RESIDENCY:-0}
 f07_peak=${V1203_TEST_F07_PEAK:-0}
 f07_high=${V1204_TEST_F07_HIGH:-0}
 f07_concurrent=${V1205_TEST_CONCURRENT:-0}
+f07_combined=${V1206_TEST_COMBINED:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -96,9 +97,20 @@ case "$f07_concurrent" in
     0|1) ;;
     *) echo 'v1205: invalid F07 concurrent-process mode' >&2; exit 2 ;;
 esac
+case "$f07_combined" in
+    0|1) ;;
+    *) echo 'v1206: invalid combined F07 mode' >&2; exit 2 ;;
+esac
 if [ "$f07_concurrent" = 1 ] && {
-    [ "$f07_peak" != 1 ] || [ "$f07_high" != 0 ]; }; then
-    echo 'v1205: requires v1203 snapshot, without v1204 artificial extents' >&2
+    [ "$f07_peak" != 1 ] ||
+    { [ "$f07_high" != 0 ] && [ "$f07_combined" != 1 ]; }; }; then
+    echo 'v1205: requires v1203 snapshot, or v1206 small-only MM pressure' >&2
+    exit 2
+fi
+if [ "$f07_combined" = 1 ] && {
+    [ "$f07_peak" != 1 ] || [ "$f07_high" != 1 ] ||
+    [ "$f07_concurrent" != 1 ]; }; then
+    echo 'v1206: requires simultaneous v1203/v1204/v1205 fixtures' >&2
     exit 2
 fi
 if [ "$f07_peak" = 1 ] && {
@@ -195,8 +207,13 @@ if [ "$f07_peak" = 1 ]; then
         "$work/source/system/kernel"
 fi
 if [ "$f07_high" = 1 ]; then
-    python3 "$self/daimos-f07-mm-high-v1204.py" \
-        "$work/source/system/kernel"
+    if [ "$f07_combined" = 1 ]; then
+        python3 "$self/daimos-f07-mm-high-v1204.py" \
+            "$work/source/system/kernel" small-only-v1206
+    else
+        python3 "$self/daimos-f07-mm-high-v1204.py" \
+            "$work/source/system/kernel"
+    fi
 fi
 if [ "$f07_concurrent" = 1 ]; then
     python3 "$self/daimos-f07-real-proc-v1205.py" \
@@ -582,14 +599,21 @@ if [ "$f07_peak" = 1 ]; then
     cat "$work/f07-v1203.txt"
 fi
 if [ "$f07_high" = 1 ]; then
-    python3 "$self/daimos-f07-mm-high-verify-v1204.py" \
-        "$work/addresses" "$work/simh.out" > "$work/f07h-v1204.txt"
-    cat "$work/f07h-v1204.txt"
+    if [ "$f07_combined" = 0 ]; then
+        python3 "$self/daimos-f07-mm-high-verify-v1204.py" \
+            "$work/addresses" "$work/simh.out" > "$work/f07h-v1204.txt"
+        cat "$work/f07h-v1204.txt"
+    fi
 fi
 if [ "$f07_concurrent" = 1 ]; then
     python3 "$self/daimos-f07-real-proc-verify-v1205.py" \
         "$work/addresses" "$work/simh.out" > "$work/f07p-v1205.txt"
     cat "$work/f07p-v1205.txt"
+fi
+if [ "$f07_combined" = 1 ]; then
+    python3 "$self/daimos-f07-combined-verify-v1206.py" \
+        "$work/addresses" "$work/simh.out" > "$work/f07c-v1206.txt"
+    cat "$work/f07c-v1206.txt"
 fi
 if [ "$residency" = 1 ]; then
     # Retain raw independent observations if the new audit fails.  The
@@ -635,11 +659,14 @@ if [ "$release_media" = 1 ]; then
     if [ "$f07_peak" = 1 ]; then
         cp "$work/f07-v1203.txt" "$e/f07-v1203.txt"
     fi
-    if [ "$f07_high" = 1 ]; then
+    if [ "$f07_high" = 1 ] && [ "$f07_combined" = 0 ]; then
         cp "$work/f07h-v1204.txt" "$e/f07h-v1204.txt"
     fi
     if [ "$f07_concurrent" = 1 ]; then
         cp "$work/f07p-v1205.txt" "$e/f07p-v1205.txt"
+    fi
+    if [ "$f07_combined" = 1 ]; then
+        cp "$work/f07c-v1206.txt" "$e/f07c-v1206.txt"
     fi
     printf 'mode=%s\n' "$enable" > "$e/profile.txt"
     printf 'boot=dsk\nroot=disk\nrootset=1\n' >> "$e/profile.txt"
@@ -672,11 +699,14 @@ if [ "$release_media" = 1 ]; then
     if [ "$f07_peak" = 1 ]; then
         (cd "$e" && sha256sum f07-v1203.txt >> evidence-sha256.txt)
     fi
-    if [ "$f07_high" = 1 ]; then
+    if [ "$f07_high" = 1 ] && [ "$f07_combined" = 0 ]; then
         (cd "$e" && sha256sum f07h-v1204.txt >> evidence-sha256.txt)
     fi
     if [ "$f07_concurrent" = 1 ]; then
         (cd "$e" && sha256sum f07p-v1205.txt >> evidence-sha256.txt)
+    fi
+    if [ "$f07_combined" = 1 ]; then
+        (cd "$e" && sha256sum f07c-v1206.txt >> evidence-sha256.txt)
     fi
     echo "v1160: explicit 256K KCC DSK/D6FS physical-OOM release-media evidence PASS: $e"
 fi
