@@ -99,11 +99,19 @@ def main():
             for source, note in sorted(KNOWN_NOTES))
         baseline += '\n' + LEGACY_WARNING
         baseline += '\nd6fsck: selected superblock 0 seq=1 state=CLEAN\n'
-        require(check_log(baseline, 'self-test', 'disabled'),
+        baseline_notes = check_log(baseline, 'self-test', 'disabled')
+        require(baseline_notes,
                 'known diagnostic baseline not accepted')
         clean = baseline.replace(LEGACY_WARNING + '\n', '')
-        require(check_log(clean, 'self-test', 'disabled'),
+        clean_notes = check_log(clean, 'self-test', 'disabled')
+        require(clean_notes,
                 'modern explicit-layout diagnostic baseline rejected')
+        optional_media = {('legacy', 'd6fsr2')}
+        require(set(baseline_notes) - optional_media ==
+                set(clean_notes) - optional_media,
+                'approved old/modern media diagnostic normalization failed')
+        require(set(baseline_notes) != set(clean_notes),
+                'media-layout negative control did not change diagnostics')
         for mutant in (
                 '[Warning] silent code generation error',
                 'compiler: error: unexpected error',
@@ -120,16 +128,22 @@ def main():
             'usage: daimos-oom-build-diagnostics-v1190.py '
             'ANDROID_EVIDENCE_TAR LINUX_EVIDENCE_TAR')
     reference = None
+    optional_media = {('legacy', 'd6fsr2')}
     for pathname in sys.argv[1:]:
         with tarfile.open(pathname, 'r:gz') as archive:
             for mode in ('disabled', 'enabled'):
                 check_profile(archive, mode)
                 notes = check_log(member(archive, mode + '/build.log'),
                                   Path(pathname).name, mode)
-                known = set(notes)
+                # The v1192 explicit-zero D6FS layout suppresses the
+                # approved legacy-layout warning. Do not treat a host
+                # using that safer modern media as a different compiler
+                # or assembler. All actual tool diagnostics must still
+                # match exactly across both hosts and both OOM policies.
+                known = set(notes) - optional_media
                 if reference is not None:
                     require(known == reference,
-                            'diagnostic classes differ across hosts/policies')
+                            'tool diagnostic classes differ across hosts/policies')
                 else:
                     reference = known
                 print('v1190: %s %s known diagnostic classes=%d '

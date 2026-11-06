@@ -1,3 +1,32 @@
+## 2026-11-07 v1275: exact-revision E13 cross-host PASS and F10 media-note audit
+
+Two independently built 256K KCC DSK/D6FS release-media OOM pairs
+PASS on Android aarch64 and Linux x86_64 with identical DAIMOS
+`226e7a5f` and testkit `ee9d92b` sources. Both default-disabled
+(requester BRK returns -1) and disposable-enabled (only PID 3 retired)
+policies PASS real OOM, held provider, protected process and resource
+cleanup checks. Independent simulator binary hashes differ; KCORE
+low ends agree exactly (`023503` OOM OFF, `023521` disposable ON).
+Original evidence SHA256: Android
+`c87799ba1ecda40f07bbbf718d5ca20e0d5be896549df3be80d075ed0c8990ef`,
+Linux `a59d9b90338a0c23fd084fb7153160bd4068fd4233eabfcf7cd0205fb8b6a720`.
+
+The v1190 build-diagnostic audit originally demanded identical media
+warnings, despite explicitly accepting either legacy D6FSR2 or modern
+explicit-reservation layouts. Linux reports the approved legacy
+layout warning, Android does not. v1275 normalizes ONLY that
+preapproved optional layout note across hosts; the 12 compiler and
+assembler diagnostic classes remain exactly identical, all unexpected
+notes remain fatal. Self-test/three unsafe tool-note mutants and all
+four actual full build logs PASS with zero unexplained diagnostics.
+
+An exact-source F02/P0-D complete fault-injection matrix PASSes on
+Linux. An additional exact-candidate F03 regression run subsequently
+encountered an unexplained early guest UUO in v1112 failed-RUN after
+v1110 pair PASSed; this is NOT accepted, needs root-cause diagnosis.
+E13/F11 approval and production OOM remain blocked until independent
+coverage and full release matrix are reconciled. F07 v1274 is CLOSED.
+
 ## 2026-11-07 v1274: F07 full 64-slot/descriptor/physical-OOM acceptance PASS
 
 A fresh 256K KCC DSK/D6FS PDP-6 guest built from clean DAIMOS
