@@ -11,6 +11,10 @@ import sys
 
 
 SLOTS = 64
+ROLES = {
+    1: 'INIT', 2: 'WITNESS', 3: 'REQUESTER',
+    4: 'GATEWAY', 5: 'SPINNER', 6: 'HOLDER',
+}
 
 
 def load(address_text, simulator_text):
@@ -54,10 +58,11 @@ def main():
     values = load(Path(sys.argv[1]).read_text(),
                   Path(sys.argv[2]).read_text(errors='replace'))
     print('v1253: diagnostic-only per-slot scheduler/swap provenance')
-    print('slot-0 idle dispatches: %d' % values['f07u_idle'])
-    print('slot  dispatched  swap_requests')
+    print('slot-0 idle selections: %d' % values['f07u_idle'])
+    print('slot  role        dispatched  swap_requests')
     for slot, dispatched, requested in summary(values):
-        print('%4d %11d %14d' % (slot, dispatched, requested))
+        role = ROLES.get(slot, 'EXTRA' if 7 <= slot <= 24 else 'OTHER')
+        print('%4d  %-9s %11d %14d' % (slot, role, dispatched, requested))
     print('NOTE: a stopped guest is not a completed F07 acceptance')
 
 
