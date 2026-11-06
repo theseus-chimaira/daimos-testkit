@@ -200,7 +200,7 @@ if [ "$held_provider" = 1 ]; then
 fi
 if [ "$protected" = 1 ]; then
     python3 "$self/daimos-oom-protected-v1159.py" \
-        "$work/source/system/kernel"
+        "$work/source/system/kernel" "$f07_swapslots"
 fi
 if [ "$f07_peak" = 1 ]; then
     python3 "$self/daimos-f07-mm-peak-v1203.py" \
@@ -620,7 +620,7 @@ PY
 fi
 if [ "$protected" = 1 ]; then
     python3 "$self/daimos-oom-protected-verify-v1159.py" \
-        "$work/addresses" "$work/simh.out" "$enable"
+        "$work/addresses" "$work/simh.out" "$enable" "$f07_swapslots"
 fi
 if [ "$f07_peak" = 1 ]; then
     python3 "$self/daimos-f07-mm-peak-verify-v1203.py" \

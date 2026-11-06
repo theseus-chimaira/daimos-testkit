@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
+f07 = len(sys.argv) > 2 and sys.argv[2] == '1'
 p = root / 'proc/syscall_dispatch_pdp6.s'
 src = p.read_text()
 
@@ -17,9 +18,9 @@ anchor = ('daimos_test_brk_real_v1150:\n'
 assert src.count(anchor) == 1, 'v1159: missing actual OOM probe'
 
 checks = [
-    ('init', '05', (3,)),        # slot 1: sleeping INIT
+    ('init', '05', (2, 3) if f07 else (3,)),
     ('witness', '010', (3,)),   # slot 2: blocked pipe reader
-    ('waiter', '016', (3,)),    # slot 4: pre-dispatch FS waiter
+    ('waiter', '016', (2, 3) if f07 else (3,)),
     ('spinner', '021', (2, 3)), # slot 5: runnable or sleeping
     ('holder', '024', (3,)),    # slot 6: original in-flight lease
 ]

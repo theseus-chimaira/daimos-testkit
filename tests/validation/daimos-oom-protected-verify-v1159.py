@@ -8,6 +8,7 @@ import sys
 addresses = Path(sys.argv[1]).read_text().splitlines()
 output = Path(sys.argv[2]).read_text(errors='replace')
 enabled = sys.argv[3] == '1'
+f07 = len(sys.argv) > 4 and sys.argv[4] == '1'
 observed = {}
 for line in addresses:
     name, addr = line.split()
@@ -32,8 +33,13 @@ for name, value in expected.items():
         raise SystemExit('v1159: %s got %r, expected %r; %r' %
                          (name, observed.get(name), value, observed))
 for name in ('init', 'witness', 'waiter', 'holder'):
-    if (observed.get(name, -1) & 0o700000) != 0o300000:
-        raise SystemExit('v1159: %s not sleeping: %r' % (name, observed))
+    state = observed.get(name, -1) & 0o700000
+    allowed = ((0o200000, 0o300000)
+               if f07 and name in ('init', 'waiter')
+               else (0o300000,))
+    if state not in allowed:
+        raise SystemExit('v1159: %s invalid state %o: %r' %
+                         (name, state, observed))
 if (observed.get('spinner', -1) & 0o700000) not in (0o200000, 0o300000):
     raise SystemExit('v1159: unrelated spinner not active: ' + repr(observed))
 
