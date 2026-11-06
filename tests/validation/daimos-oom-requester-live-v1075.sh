@@ -23,6 +23,7 @@ release_media=${V1160_RELEASE_MEDIA:-0}
 residency=${V1174_TEST_RESIDENCY:-0}
 f07_peak=${V1203_TEST_F07_PEAK:-0}
 f07_high=${V1204_TEST_F07_HIGH:-0}
+f07_concurrent=${V1205_TEST_CONCURRENT:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -89,6 +90,15 @@ case "$f07_high" in
 esac
 if [ "$f07_high" = 1 ] && [ "$f07_peak" != 1 ]; then
     echo 'v1204: requires v1203 atomic MM snapshot' >&2
+    exit 2
+fi
+case "$f07_concurrent" in
+    0|1) ;;
+    *) echo 'v1205: invalid F07 concurrent-process mode' >&2; exit 2 ;;
+esac
+if [ "$f07_concurrent" = 1 ] && {
+    [ "$f07_peak" != 1 ] || [ "$f07_high" != 0 ]; }; then
+    echo 'v1205: requires v1203 snapshot, without v1204 artificial extents' >&2
     exit 2
 fi
 if [ "$f07_peak" = 1 ] && {
@@ -186,6 +196,10 @@ if [ "$f07_peak" = 1 ]; then
 fi
 if [ "$f07_high" = 1 ]; then
     python3 "$self/daimos-f07-mm-high-v1204.py" \
+        "$work/source/system/kernel"
+fi
+if [ "$f07_concurrent" = 1 ]; then
+    python3 "$self/daimos-f07-real-proc-v1205.py" \
         "$work/source/system/kernel"
 fi
 if [ "$endurance" = 1 ]; then
@@ -303,6 +317,7 @@ done
     -DV1159_TEST_PROTECTED="$protected" \
     -DV1174_TEST_RESIDENCY="$residency" \
     -DV1204_TEST_F07_HIGH="$f07_high" \
+    -DV1205_TEST_CONCURRENT="$f07_concurrent" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -394,6 +409,26 @@ PY
             test -n "$addr" || { echo "v1204: missing $sym" >&2; exit 1; }
             printf 'f07h_%s %s\n' "$name" "$addr" >> "$work/addresses"
         done
+    fi
+    if [ "$f07_concurrent" = 1 ]; then
+        python3 - "$build/kcore.map" "$work/addresses" <<'PY'
+from pathlib import Path
+import sys
+
+mapping = dict(line.split()[:2] for line in Path(sys.argv[1]).read_text().splitlines()
+               if len(line.split()) >= 2)
+with Path(sys.argv[2]).open('a') as out:
+    for name in ('samples', 'slots', 'error'):
+        sym = 'daimos_f07p_%s_v1205' % name
+        assert sym in mapping, 'v1205 missing ' + sym
+        out.write('f07p_%s %s\n' % (name, mapping[sym]))
+    for name in ('meta', 'vm', 'sched', 'brk'):
+        sym = 'daimos_f07p_%s_v1205' % name
+        assert sym in mapping, 'v1205 missing ' + sym
+        base = int(mapping[sym], 8)
+        for i in range(64):
+            out.write('f07p_%s%d %06o\n' % (name, i, base + i))
+PY
     fi
     sed -i '/^exit$/d' "$build/boot.ini"
     while read -r name addr; do
@@ -504,7 +539,7 @@ text = Path(sys.argv[2]).read_text(errors='replace')
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
-    if name.startswith('f07_') or name.startswith('f07h_'):
+    if name.startswith(('f07_', 'f07h_', 'f07p_')):
         # v1203 has a separate, strict MM-snapshot verifier. Do not
         # flood the older v1150 provider-owner counter report with
         # up to 272 captured extent words.
@@ -550,6 +585,11 @@ if [ "$f07_high" = 1 ]; then
     python3 "$self/daimos-f07-mm-high-verify-v1204.py" \
         "$work/addresses" "$work/simh.out" > "$work/f07h-v1204.txt"
     cat "$work/f07h-v1204.txt"
+fi
+if [ "$f07_concurrent" = 1 ]; then
+    python3 "$self/daimos-f07-real-proc-verify-v1205.py" \
+        "$work/addresses" "$work/simh.out" > "$work/f07p-v1205.txt"
+    cat "$work/f07p-v1205.txt"
 fi
 if [ "$residency" = 1 ]; then
     # Retain raw independent observations if the new audit fails.  The
@@ -598,6 +638,9 @@ if [ "$release_media" = 1 ]; then
     if [ "$f07_high" = 1 ]; then
         cp "$work/f07h-v1204.txt" "$e/f07h-v1204.txt"
     fi
+    if [ "$f07_concurrent" = 1 ]; then
+        cp "$work/f07p-v1205.txt" "$e/f07p-v1205.txt"
+    fi
     printf 'mode=%s\n' "$enable" > "$e/profile.txt"
     printf 'boot=dsk\nroot=disk\nrootset=1\n' >> "$e/profile.txt"
     printf 'profile=full\ncore_octal=01000000\n' >> "$e/profile.txt"
@@ -631,6 +674,9 @@ if [ "$release_media" = 1 ]; then
     fi
     if [ "$f07_high" = 1 ]; then
         (cd "$e" && sha256sum f07h-v1204.txt >> evidence-sha256.txt)
+    fi
+    if [ "$f07_concurrent" = 1 ]; then
+        (cd "$e" && sha256sum f07p-v1205.txt >> evidence-sha256.txt)
     fi
     echo "v1160: explicit 256K KCC DSK/D6FS physical-OOM release-media evidence PASS: $e"
 fi

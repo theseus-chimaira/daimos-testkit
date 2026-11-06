@@ -61,6 +61,14 @@
 #define V1204_TEST_F07_HIGH 0
 #endif
 
+#ifndef V1205_TEST_CONCURRENT
+#define V1205_TEST_CONCURRENT 0
+#endif
+
+#if V1205_TEST_CONCURRENT
+#define V1205_CHILD_COUNT 6U
+#endif
+
 #define V1156_BACKING_FILL 0777760UL
 #define V1156_BACKING_FREE 0777761UL
 
@@ -256,6 +264,10 @@ main(int argc, kword_t **argv)
         int spinner;
         unsigned int probe;
 #endif
+#if V1205_TEST_CONCURRENT
+        int extra[V1205_CHILD_COUNT];
+        unsigned int extra_index;
+#endif
 
         v1075_pressure[037777] = 01234567UL;
         if (argc == 2 && argv != 0 && argv[1] != 0 &&
@@ -367,6 +379,29 @@ main(int argc, kword_t **argv)
                 }
                 if (argv[1][1] ==
                     TEST_SIX6('S', ' ', ' ', ' ', ' ', ' ')) {
+                        for (;;) {
+                                if (dsys_sleep(2U) != 0)
+                                        (void)dsys_exit(076);
+                        }
+                }
+#endif
+#if V1205_TEST_CONCURRENT
+                if (argv[1][1] ==
+                    TEST_SIX6('C', ' ', ' ', ' ', ' ', ' ')) {
+                        kword_t original;
+                        kword_t proposed;
+
+                        /* Each additional process has its own genuine
+                         * executable, stable u-area, APR mapping and
+                         * non-APR-quantized logical break. A one-to-many
+                         * slot snapshot checks the physical mapping. */
+                        original = dsys_brk(0UL);
+                        proposed = original +
+                            (kword_t)(dsys_getpid() * 11U + 3U);
+                        if (original == (kword_t)-1L ||
+                            proposed >= 0776000UL ||
+                            dsys_brk(proposed) != proposed)
+                                (void)dsys_exit(066);
                         for (;;) {
                                 if (dsys_sleep(2U) != 0)
                                         (void)dsys_exit(076);
@@ -582,6 +617,17 @@ main(int argc, kword_t **argv)
         holder = run_child('H', 0);
         if (gateway_waiter != 4 || spinner != 5 || holder != 6)
                 fail('j');
+#if V1205_TEST_CONCURRENT
+        /* Run the extra real processes BEFORE the foreign provider is
+         * held; RUN and executable loading themselves need the gateway.
+         * Preserve v1150's exact original 1..6 slot identities. */
+        for (extra_index = 0U; extra_index < V1205_CHILD_COUNT;
+                ++extra_index) {
+                extra[extra_index] = run_child('C', 0);
+                if (extra[extra_index] != (int)(7U + extra_index))
+                        fail('n');
+        }
+#endif
         if (dsys_sleep(0400U) != 0)
                 fail('k');
 #if V1204_TEST_F07_HIGH
@@ -624,6 +670,18 @@ main(int argc, kword_t **argv)
                 SYS_EVENT_ARG((unsigned int)spinner, SYS_EVENT_TERM)) != 0)
                 fail('q');
         wait_status((unsigned int)spinner, 0400001U);
+#if V1205_TEST_CONCURRENT
+        /* Release every child through the normal TERM, private
+         * teardown, WAIT and real MM free. No synthetic slot edits. */
+        for (extra_index = 0U; extra_index < V1205_CHILD_COUNT;
+                ++extra_index) {
+                if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
+                        SYS_EVENT_ARG((unsigned int)extra[extra_index],
+                            SYS_EVENT_TERM)) != 0)
+                        fail('o');
+                wait_status((unsigned int)extra[extra_index], 0400001U);
+        }
+#endif
 #if V1204_TEST_F07_HIGH
         /* No pressure allocation survives into the final PID/VM/FILE
          * accounting checks; every base is type/owner-verified by MM. */

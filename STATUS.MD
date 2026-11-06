@@ -1,3 +1,36 @@
+## 2026-11-06 v1205: real concurrent user-process/BRK snapshot (partial F07)
+
+The disposable v1205 guest extends the v1150/v1159/v1203 256K
+DSK/D6FS physical-OOM profile with **six more real RUN children**
+before the foreign filesystem provider is held. The 12 live user
+processes keep their own executable VM images, private u-areas,
+published logical BRK values and actual MM_TYPE_PROCESS ownership.
+An allocation-free test-only probe captures up to 64 process slots
+at the same genuine BRK physical-OOM decision as the MM extent table.
+The host verifier reconciles every resident APR base/extent size,
+each exact logical BRK, owner and state; it rejects five bad fixtures.
+
+The OOM-enabled first guest PASSes with 12 resident process extents,
+31 descriptors, 231012/242427 managed words allocated (95.3%),
+11415 free words, 10377-word largest gap, 151-word actual LOW APR
+gap-prefix slack and **5499 actual logical-BRK rounding words**.
+The separately booted production-disabled guest PASSes with the
+same 12 resident user processes, 31 descriptors, 231012 allocated
+words and 5499 exact rounding words; its managed/free words are
+242441/11429, exactly 14 more than the test-enabled policy.
+All original held-provider, protected-process, requester-only OOM,
+final child TERM/WAIT and process-MM accounting assertions PASS in
+both policy profiles. Both complete physical-release-media archives
+contain raw simulator, map, compiler and checksum evidence.
+
+Two instrumentation errors found in development were fixed properly:
+reserved kernel slot 0 is not a user process, and PDP-10 AC0 is
+not a valid index register (the sampler now uses AC7). Raw failing
+guest snapshots were retained for diagnosis. No production source
+change was necessary. The full 64-slot concurrent swap stress and
+combined real-process/127-descriptor test are still outstanding;
+do not close F07 or enable production OOM from these partial results.
+
 ## 2026-11-06 v1204: high physical and descriptor pressure under held provider PASS
 
 F07 disposable `daimos-f07-mm-high-v1204` allocates 12 genuine
