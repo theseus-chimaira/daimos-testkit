@@ -25,6 +25,7 @@ assert 'pending DRM' in api['classify'](parsed)
 parsed['drm_pending'] = 0
 assert 'no matching DRM' in api['classify'](parsed)
 assert api['closest_symbol']('lower 0100\nhigher 0200\n', 0o203) == 'higher+3'
+assert 'unresolved' in api['closest_symbol']('mm_extents 024722\n', 0o33402)
 for broken_addr, broken_dump in ((addr + addr.splitlines()[0] + '\n', dump),
                                  (addr.replace('f07wait_calls', 'unknown'), dump),
                                  (addr, dump + dump.splitlines()[0] + '\n')):

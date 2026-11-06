@@ -54,6 +54,12 @@ def classify(values):
 
 
 def closest_symbol(map_text, address):
+    # KINIT is linked at 030000 and subsequent removable MRES packages
+    # are dynamically relocated. A KCORE .bss symbol below the runtime
+    # address is NOT the caller's code symbol. The fixed KCORE map alone
+    # cannot resolve such a PUSHJ return address.
+    if address >= 0o30000:
+        return 'outside fixed KCORE text; relocated caller unresolved'
     matches = []
     for line in map_text.splitlines():
         fields = line.split()
