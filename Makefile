@@ -2184,3 +2184,7 @@ test-daimos-procinfo-zombie-v354: check-prefix
 	@PATH="$(PDP10_TOOLS_BIN):$$PATH" PDP10_PREFIX="$(PDP10_PREFIX)" \
 	 TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 	 sh tests/validation/daimos-procinfo-zombie-v354.sh
+
+.PHONY: test-daimos-f07-requester-stage-v1259
+test-daimos-f07-requester-stage-v1259:
+	@TMPDIR='$(TMPDIR)' python3 tests/validation/daimos-f07-requester-stage-test-v1259.py

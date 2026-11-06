@@ -319,6 +319,19 @@ incs=
 for sub in boot core drivers fs ipc mm modules proc storage; do
     incs="$incs -I$DAIMOS_REPO/system/kernel/$sub"
 done
+# v1259: optional disposable user-side BRK entry/exit trace. A copied
+# fixture keeps diagnostics out of the original test source and kernel.
+requester_source="$self/daimos-oom-requester-live-v1075.c"
+if [ "${V1259_REQUESTER_STAGE_TRACE:-0}" = 1 ]; then
+    if [ "${V1207_TEST_SWAPSLOTS:-0}" != 1 ]; then
+        echo 'v1259: requires V1207_TEST_SWAPSLOTS=1' >&2
+        exit 2
+    fi
+    cp "$self/../test_sixbit.h" "$work/test_sixbit.h"
+    python3 "$self/daimos-f07-requester-stage-v1259.py" \
+        "$requester_source" "$work/user/init-v1259.c"
+    requester_source="$work/user/init-v1259.c"
+fi
 # shellcheck disable=SC2086
 "$cc" -std=c89 -Os -DV1075_TEST_OOM_ENABLED="$enable" \
     -DV1110_TEST_NEGATIVES="$negatives" \
@@ -336,7 +349,7 @@ done
     -DV1204_TEST_F07_HIGH="$f07_high" \
     -DV1205_TEST_CONCURRENT="$f07_concurrent" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
-    -S "$self/daimos-oom-requester-live-v1075.c" -o "$work/user/init.s"
+    -S "$requester_source" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
 libgcc=$("$cc" -print-libgcc-file-name)
 "$dlink" -b 020 -o "$work/user/init.dxr" -M "$work/user/init.map" \
@@ -469,6 +482,22 @@ if [ "$rc" -ne 0 ]; then
     exit 1
 fi
 text=$(tr -d '\r\n' < "$work/simh.out")
+if [ "${V1259_REQUESTER_STAGE_TRACE:-0}" = 1 ]; then
+    case "$text" in
+        *'&='*)
+            if [ "$enable" != 0 ]; then
+                echo 'v1259: enabled OOM BRK unexpectedly returned' >&2
+                exit 1
+            fi ;;
+        *'&'*)
+            if [ "$enable" != 1 ]; then
+                echo 'v1259: disabled OOM BRK never returned' >&2
+                exit 1
+            fi ;;
+        *) echo 'v1259: requester never entered BRK' >&2; exit 1 ;;
+    esac
+    text=$(printf '%s' "$text" | tr -d '&=')
+fi
 prefix=
 if [ "$mm_fragment" = 1 ]; then prefix=F; fi
 if [ "$mm_slots" = 1 ]; then prefix=M; fi
