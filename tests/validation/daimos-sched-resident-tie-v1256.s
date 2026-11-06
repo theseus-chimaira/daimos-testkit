@@ -54,6 +54,19 @@ check_both_swap_v1256:
         pushj   17,select_v1256
         caie    1,5
         jrst    fail_fatal_v1256
+
+        ; v1257: corrupted/no-u-area metadata may not fetch FDCTL from
+        ; unrelated low memory. A sentinel there deliberately contains
+        ; the fatal bit; the ordinary disk candidate still loses a tie.
+        setzm   __uarea5+024
+        setzm   __ptable+017
+        move    2,[044000,,010000]
+        movem   2,__ptable+012
+        movei   2,4
+        movem   2,024
+        pushj   17,select_v1256
+        caie    1,3
+        jrst    fail_guard_v1257
         setz    1,
         popj    17,
 
@@ -81,6 +94,9 @@ fail_disk_v1256:
         popj    17,
 fail_fatal_v1256:
         movei   1,6
+        popj    17,
+fail_guard_v1257:
+        movei   1,7
         popj    17,
 
         .data

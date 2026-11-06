@@ -26,6 +26,15 @@ if 'addi    2,0400\n' not in source[start:end]:
 Path(sys.argv[2]).write_text(source[:start] +
                               'proc_select_rank_locality_v1256:\n' +
                               source[end:])
+guard = ('''        trnn    3,0400000
+        jrst    proc_select_rank_disk_v1257
+        hlrz    3,3
+        jumpe   3,proc_select_rank_disk_v1257
+''')
+if source.count(guard) != 1:
+    raise SystemExit('v1257: the stable-u-area guard is missing')
+Path(sys.argv[2]).with_name('selector-no-guard.s').write_text(
+    source.replace(guard, '        hlrz    3,3\n', 1))
 PY
 
 run_case()
@@ -46,4 +55,5 @@ run_case()
 }
 run_case resident-locality-v1256 0 "$work/selector.s"
 run_case resident-old-v1256 1 "$work/selector-old.s"
-echo 'v1256: native resident tie, strict priority, all-resident/disk, fatal and old mutant PASS'
+run_case resident-no-guard-v1257 7 "$work/selector-no-guard.s"
+echo 'v1257: native resident tie, priority, fatal, invalid-uarea and two old mutants PASS'
