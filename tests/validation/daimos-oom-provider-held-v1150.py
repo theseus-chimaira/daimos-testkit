@@ -12,6 +12,7 @@ import sys
 
 root = Path(sys.argv[1])
 enabled = sys.argv[2] == '1'
+f07 = os.environ.get('V1207_TEST_SWAPSLOTS') == '1'
 
 
 def patch(rel, old, new):
@@ -180,14 +181,29 @@ daimos_test_brk_real_v1150:
         setom   daimos_test_error_v1150
 daimos_test_brk_waiter_v1150:
         move    6,proc_table
-        hrrz    7,016(6)             ; slot 4, scheduler word RH event
+''' + ('''        ; F07: PID 4 already contended, but may be runnable when
+        ; the physical requester fault finally occurs. A sleeping
+        ; gateway must still own the exact provider wait event.
+        hlrz    7,016(6)
+        andi    7,0700000
+        caie    7,0200000            ; RUN
+        jrst    daimos_test_gateway_sleep_v1264
+        jrst    daimos_test_gateway_done_v1264
+daimos_test_gateway_sleep_v1264:
+        caie    7,0300000            ; SLEEP
+        setom   daimos_test_error_v1150
+        hrrz    7,016(6)
+        caie    7,fs_provider_wait_event_v917
+        setom   daimos_test_error_v1150
+daimos_test_gateway_done_v1264:
+''' if f07 else '''        hrrz    7,016(6)             ; slot 4, scheduler word RH event
         caie    7,fs_provider_wait_event_v917
         setom   daimos_test_error_v1150
         hlrz    7,016(6)
         andi    7,0700000
         caie    7,0300000            ; SLEEP
         setom   daimos_test_error_v1150
-        hrrz    7,024(6)             ; slot 6, private hold event
+''') + '''        hrrz    7,024(6)             ; slot 6, private hold event
         caie    7,daimos_test_hold_event_v1150
         setom   daimos_test_error_v1150
 daimos_test_brk_done_v1150:''')
