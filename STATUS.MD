@@ -1,3 +1,22 @@
+## 2026-11-06 v1253: per-slot scheduler/swap diagnostics prepared (F07 OPEN)
+
+The v1252 full 256K guest resumed due timers but still made no
+requester WAIT progress before an operator interrupt. Aggregate swap
+counters cannot distinguish repeated successful slot-0 exchanges from
+starvation of the actual requester (PID 3). v1253 supplies a strictly
+disposable, bounded 64-slot dispatch counter and a separate 64-slot
+nonresident swap-selection counter, plus one slot-0 selection count.
+All hooks are in the copied native proc_pdp6.s; there is no production
+scheduler, swap, or OOM policy change and no output from interrupt
+context. The decoder checks exact per-slot addresses and rejects
+missing/repeated simulator observations. The source-injection host test,
+native PDP-6 assembly, and two missing-hook negative mutants PASS.
+
+The optional v1253 switch is wired into the ongoing dirty v1075 full-
+guest diagnostic harness, which is not an accepted exact-revision F07
+candidate. No live v1253 F07 guest result has been accepted yet.
+E13/F07/F11 remain OPEN, 59/64 OOM gates, production requester OOM OFF.
+
 ## 2026-11-06 v1252-r1: 18-child guest advances through timers; F07 OPEN
 
 The 256K KCC DSK/D6FS guest (production OOM OFF) acknowledged all
