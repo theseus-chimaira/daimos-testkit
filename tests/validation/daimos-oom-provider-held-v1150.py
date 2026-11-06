@@ -212,8 +212,8 @@ daimos_test_error_v1150: .block 1
 # handshake entirely in the disposable v1207 fixture and independent of
 # the established six-process v1150 control.
 if os.environ.get('V1207_TEST_SWAPSLOTS') == '1':
-    fixture = Path(__file__).with_name('daimos-f07-provider-order-v1258.py')
-    spec = importlib.util.spec_from_file_location('f07_provider_order_v1257',
+    fixture = Path(__file__).with_name('daimos-f07-provider-order-v1259.py')
+    spec = importlib.util.spec_from_file_location('f07_provider_order_v1259',
                                                    fixture)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
