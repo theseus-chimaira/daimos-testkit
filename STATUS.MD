@@ -1,3 +1,26 @@
+## 2026-11-06 v1253: 18-child guest PID scheduling trace (F07 OPEN)
+
+The 256K KCC DSK/D6FS guest ran with disposable, native-assembled
+per-slot dispatch and normal swap-request counters. It admitted all
+18 additional RUN children and reached `^@%*` but neither the
+requester WAIT checkpoint nor any child reap. Controlled SIMH stop
+after about 12 minutes preserved full build, map and raw counter data.
+INIT PID 1 was dispatched 2,125 times (16 swap requests), requester
+PID 3 21 times (seven swap requests), spinner PID 5 3,103 times
+(16 swap requests). Extras PID 13..24 each logged 145 dispatches and
+zero swap requests, unlike PIDs 7..12 which each had one dispatch.
+This excludes *complete* requester starvation but does not prove its
+progress, nor explain the common extra-child dispatch count.
+Source-only injection/negative controls and native PDP-6 execution
+of both counter hooks PASS. The exact copied guest had unaccepted
+v1208/v1211 swap experiments, so no production F07 acceptance.
+
+Archive: `$TMPDIR/daimos-f07-v1253-dispatch-evidence-r1.tar.gz`;
+SHA256 `5a18fec660cb2f955d06ce482fe8edbe44f52128710613e52f40845553066f1a`.
+An independent follow-up is sampling descriptor RUN/SLEEP states via
+the preexisting disposable v1238 probe. E13/F07/F11 remain OPEN,
+59/64, production OOM disabled.
+
 ## 2026-11-06 v1253: per-slot scheduler/swap diagnostics prepared (F07 OPEN)
 
 The v1252 full 256K guest resumed due timers but still made no
