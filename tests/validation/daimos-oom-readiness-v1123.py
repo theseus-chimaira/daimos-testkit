@@ -16,6 +16,7 @@ counts = {"S": 8, "A": 4, "B": 7, "C": 4,
           "D": 16, "E": 13, "F": 13, "X": 8}
 sections = set("SABCDEF")
 post_signoff = {"F12", "F13"}
+retired = {"F05"}  # Static 16K fit is tracked outside OOM acceptance.
 pattern = re.compile(r"(?m)^- \[([ x])\] ([SABCDEF X][0-9]{2}): ")
 
 
@@ -31,7 +32,7 @@ def scan(todo):
         found[ident] = mark == "x"
     required = {key + "%02d" % i
                 for key, total in counts.items()
-                for i in range(1, total + 1)}
+                for i in range(1, total + 1)} - retired
     if set(found) != required:
         raise ValueError("missing=" + str(sorted(required - set(found))) +
                          " unexpected=" + str(sorted(set(found) - required)))
@@ -59,6 +60,7 @@ for mutant in (
     todo[:start] + todo[start:].replace("- [x] S01:", "- [!] S01:", 1),
     todo.replace("- [ ] F12:", "- [x] F12:", 1),
     todo.replace("- [ ] F13:", "- [x] F13:", 1),
+    todo[:start] + "- [x] F05: retired gate resurrected\n" + todo[start:],
 ):
     try:
         scan(mutant)
@@ -74,9 +76,11 @@ optional = sorted(k for k, passed in found.items()
                   if k.startswith("X") and not passed)
 for prefix in "SABCDEFX":
     passed = sum(found[prefix + "%02d" % i]
-                 for i in range(1, counts[prefix] + 1))
+                 for i in range(1, counts[prefix] + 1)
+                 if prefix + "%02d" % i not in retired)
     print("v1123: %s %d/%d checked%s" %
-          (prefix, passed, counts[prefix],
+          (prefix, passed, counts[prefix] -
+           sum(k.startswith(prefix) for k in retired),
            " (XIP feature excluded)" if prefix == "X" else ""))
 print("v1123: mandatory OPEN=" + str(len(mandatory)) +
       " optional-XIP OPEN=" + str(len(optional)))
