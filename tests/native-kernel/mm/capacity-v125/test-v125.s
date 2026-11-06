@@ -1,4 +1,4 @@
-/* Native PDP-6 bounded reclaim policy and failure atomicity. */
+/* Native PDP-6 bounded feasible reclaim, capacity and failure atomicity. */
 .text
 .globl main
 main:
@@ -15,7 +15,8 @@ main:
         setzm swap_calls
         movei 1,077777
         movem 1,chosen
-        ; Request more than the entire arena, retry must be bounded.
+        ; v1260: more than the entire arena is physically impossible.
+        ; Return NOMEM without invoking *any* reclaim callback.
         movei 1,05000
         movei 2,1
         movei 3,2
@@ -27,12 +28,14 @@ main:
         sub 17,[2,,2]
         came 1,[-1]
         jrst fail_1
-        move 1,fs_calls
-        caie 1,2
+        skipn fs_calls
+        jrst impossible_fs_clear_v1260
         jrst fail_2
-        move 1,swap_calls
-        caie 1,1
+impossible_fs_clear_v1260:
+        skipn swap_calls
+        jrst impossible_swap_clear_v1260
         jrst fail_3
+impossible_swap_clear_v1260:
         move 1,chosen
         caie 1,077777
         jrst fail_4
