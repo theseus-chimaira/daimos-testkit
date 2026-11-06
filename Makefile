@@ -1360,6 +1360,10 @@ test-daimos-f07-dispatch-tally-v1253: check-prefix
 		PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
 		sh tests/validation/daimos-f07-dispatch-native-v1253.sh
 
+.PHONY: test-daimos-f07-provider-snapshot-v1254
+test-daimos-f07-provider-snapshot-v1254:
+	@python3 tests/validation/daimos-f07-provider-report-test-v1254.py
+
 test-daimos-drm236-minit: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
