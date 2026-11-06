@@ -2,6 +2,7 @@
 """Cross-check each resident PDP-6 process VM with real MM/BRK state."""
 
 import json
+import os
 from pathlib import Path
 import re
 import runpy
@@ -22,6 +23,8 @@ def verify_slots(snapshot, proc):
     high = proc['slots']
     if high < 13 or high > 64:
         raise ValueError('not enough live real process slots')
+    if os.environ.get('V1271_TEST_FULL_SLOTS') == '1' and high != 64:
+        raise ValueError('full-slot test failed to fill process table')
 
     extents = {}
     for index in range(mm['extent_count']):
@@ -38,6 +41,12 @@ def verify_slots(snapshot, proc):
     resident = 0
     rounded_waste = 0
     processes = []
+    if os.environ.get('V1271_TEST_FULL_SLOTS') == '1':
+        last_extra = 63
+    elif os.environ.get('V1207_TEST_SWAPSLOTS') == '1':
+        last_extra = 24
+    else:
+        last_extra = 12
     for slot in range(high):
         # Slot zero is the kernel scheduler context, not a user
         # process and not an MM_TYPE_PROCESS owner. Its saved VM word
@@ -62,7 +71,7 @@ def verify_slots(snapshot, proc):
         initial = (brk >> 18) & HALF
         if meta & 0o400000 and (brk == 0 or not 0 < initial <= logical):
             raise ValueError('missing or malformed live logical BRK')
-        if 7 <= slot <= 12 and logical - initial != slot * 11 + 3:
+        if 7 <= slot <= last_extra and logical - initial != slot * 11 + 3:
             raise ValueError('extra child never published its distinct BRK')
         if base and words:
             if slot not in extents:
@@ -83,6 +92,8 @@ def verify_slots(snapshot, proc):
 
     if live < 12 or resident < 6:
         raise ValueError('insufficient real process concurrency')
+    if os.environ.get('V1271_TEST_FULL_SLOTS') == '1' and live != 63:
+        raise ValueError('not all 63 user slots live at physical OOM')
     if len(extents) != resident or resident != mm['process_extents']:
         raise ValueError('process/MM live owner totals disagree')
     if not all(0 <= p['apr_rounding_words'] < ALIGN for p in processes):

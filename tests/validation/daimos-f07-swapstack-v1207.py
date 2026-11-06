@@ -70,8 +70,14 @@ p.write_text(source)
 
 swap_path = Path(sys.argv[1]) / 'proc/proc_swap_pdp6.s'
 swap_source = swap_path.read_text()
-clean_baseline = os.environ.get('V1266_CLEAN_BASELINE') == '1'
 fallback_anchor = 'proc_swap_service_reclaim_v1208:'
+mode = os.environ.get('V1266_CLEAN_BASELINE')
+assert mode in (None, '0', '1'), 'v1266: invalid swap probe selection'
+# Ordinary F07 runs must work against the accepted clean production
+# source. An explicit comparison mode still fails closed if the source
+# does not match the requested branch of the experiment.
+clean_baseline = ((fallback_anchor not in swap_source)
+                  if mode is None else mode == '1')
 if clean_baseline:
     assert fallback_anchor not in swap_source, \
         'v1266: clean comparison unexpectedly has v1208 fallback'

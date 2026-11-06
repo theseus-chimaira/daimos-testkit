@@ -73,9 +73,19 @@
 #define V1262_TEST_BATCH_TERM 0
 #endif
 
+#ifndef V1271_TEST_FULL_SLOTS
+#define V1271_TEST_FULL_SLOTS 0
+#endif
+
 #if V1205_TEST_CONCURRENT
 #if V1207_TEST_SWAPSLOTS
+#if V1271_TEST_FULL_SLOTS
+/* PID 1..6 are existing users, 7..63 fill every remaining slot.
+ * Slot 0 is the kernel; 63 user PIDs exhaust the 64-slot table. */
+#define V1205_CHILD_COUNT 57U
+#else
 #define V1205_CHILD_COUNT 18U
+#endif
 #else
 #define V1205_CHILD_COUNT 6U
 #endif

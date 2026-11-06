@@ -1,3 +1,22 @@
+## 2026-11-07 v1271: full 64-slot F07 stress fixture (qualification running)
+
+A new opt-in `V1271_TEST_FULL_SLOTS=1` mode attempts 57 extra real
+RUN children in addition to slots 1..6, filling the 64 configured
+slots including kernel slot 0. Each child has its own real RUN/BRK,
+acknowledgment, TERM, WAIT and teardown; no descriptor is synthesized.
+The existing 24-user stress remains the default. The 64-slot verifier
+requires `proc_high_slot=64`, 63 live user descriptors, and distinct
+logical BRK deltas for *every* child slot 7..63. The normal swap mode
+now also checks all 18 children (not merely the first six).
+The clean production SWAP MRES is auto-detected by the disposable
+probe, retaining the explicit v1266 comparison guard when requested.
+Both C89 guest modes compile; the 24-slot archived physical guest
+passes strengthened process verification; its incorrect 64-slot
+reinterpretation fails; v1266 negative mutations and v1207 native
+host tests pass. A real 64-slot guest is being qualified separately.
+**No F07/E13/F11 release gate is closed by these preparation checks.**
+Production OOM remains disabled.
+
 ## 2026-11-07 v1270: preserve historical F07 diagnostic probes
 
 The 27 previously untracked diagnostic-only F07 files (v1075-2000s,

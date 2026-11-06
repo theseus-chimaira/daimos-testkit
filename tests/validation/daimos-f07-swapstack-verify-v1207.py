@@ -43,8 +43,11 @@ def verify_swapstack(snapshot, proc, counters):
         raise ValueError('incorrect 256K process-slot capacity')
     if counters['swap_active'] != 1:
         raise ValueError('swap service not active during OOM')
-    if mm['live_process_slots'] != 24:
-        raise ValueError('expected exactly 24 live process slots')
+    expected_slots = (63 if os.environ.get('V1271_TEST_FULL_SLOTS') == '1'
+                      else 24)
+    if mm['live_process_slots'] != expected_slots:
+        raise ValueError('expected exactly %d live process slots' %
+                         expected_slots)
     if mm['nonresident_or_swap_processes'] < 1:
         raise ValueError('no nonresident user process observed')
     if counters['swap_blocks'] < 1:

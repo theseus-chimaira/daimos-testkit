@@ -27,6 +27,9 @@ f07_concurrent=${V1205_TEST_CONCURRENT:-0}
 f07_combined=${V1206_TEST_COMBINED:-0}
 f07_swapslots=${V1207_TEST_SWAPSLOTS:-0}
 batch_term=${V1262_TEST_BATCH_TERM:-0}
+full_slots=${V1271_TEST_FULL_SLOTS:-0}
+extra_count=18
+if [ "$full_slots" = 1 ]; then extra_count=57; fi
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -119,6 +122,15 @@ if [ "$batch_term" != 0 ] && [ "$batch_term" != 1 ]; then
 fi
 if [ "$batch_term" = 1 ] && [ "$f07_swapslots" != 1 ]; then
     echo 'v1262: batch termination requires swap-slot F07 mode' >&2
+    exit 2
+fi
+case "$full_slots" in
+    0|1) ;;
+    *) echo 'v1271: invalid 64-slot mode' >&2; exit 2 ;;
+esac
+if [ "$full_slots" = 1 ] && {
+    [ "$f07_swapslots" != 1 ] || [ "$batch_term" != 1 ]; }; then
+    echo 'v1271: 64-slot mode requires swap and batch TERM modes' >&2
     exit 2
 fi
 if [ "$f07_concurrent" = 1 ] && {
@@ -486,6 +498,7 @@ fi
     -DV1205_TEST_CONCURRENT="$f07_concurrent" \
     -DV1207_TEST_SWAPSLOTS="$f07_swapslots" \
     -DV1262_TEST_BATCH_TERM="$batch_term" \
+    -DV1271_TEST_FULL_SLOTS="$full_slots" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$requester_source" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -892,14 +905,14 @@ if [ "$f07_swapslots" = 1 ]; then
     # Each '+' comes only after a distinct RUN child reports its real BRK.
     # Keep the original v1075 terminal markers byte-for-byte strict.
     admitted=$(printf '%s' "$text" | tr -cd '+' | wc -c | tr -d '[:space:]')
-    if [ "$admitted" -ne 18 ]; then
-        echo "v1207: only $admitted/18 RUN children acknowledged" >&2
+    if [ "$admitted" -ne "$extra_count" ]; then
+        echo "v1207: only $admitted/$extra_count RUN children acknowledged" >&2
         tail -25 "$work/simh.out" >&2
         exit 1
     fi
     reaped=$(printf '%s' "$text" | tr -cd '~' | wc -c | tr -d '[:space:]')
-    if [ "$reaped" -ne 18 ]; then
-        echo "v1207: only $reaped/18 RUN children reaped" >&2
+    if [ "$reaped" -ne "$extra_count" ]; then
+        echo "v1207: only $reaped/$extra_count RUN children reaped" >&2
         tail -25 "$work/simh.out" >&2
         exit 1
     fi
