@@ -1,3 +1,18 @@
+## 2026-11-06 v1252: software PI6 deferred-timer service PASS (F07 OPEN)
+
+The source-backed PDP-6 native v1252 regression executes the actual
+proc_sched_resched_choose, proc_timer_service and proc_runq_add leaves.
+After slot-0 synchronous swap I/O, software PI6 must service a timer
+frontier marked DUE before choosing the next runnable process. The new
+test verifies wakeup and run-queue insertion, and a second scenario
+preserves an active but not-due timer. Its negative mutant removes the
+timer hook and demonstrably leaves the sleeping job blocked. The
+existing timer-frontier and v884 reaper native tests also PASS.
+
+Full 18-child F07 RUN/swap/WAIT guest acceptance is still pending;
+v1208/v1211 remain experimental. E13/F07/F11 OPEN, 59/64 OOM checks,
+production OOM OFF. No size-optimization work is required for v1252.
+
 ## 2026-11-06 v1206: simultaneous real-process and MM-descriptor pressure (partial F07)
 
 The disposable v1206 test composes v1205's 12 genuine user

@@ -748,6 +748,12 @@ test-daimos-proc-timer-frontier: check-prefix
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		tests/validation/daimos-proc-timer-frontier-v1.sh
 
+.PHONY: test-daimos-f07-software-timer-v1252
+test-daimos-f07-software-timer-v1252: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		sh tests/validation/daimos-f07-software-timer-v1252.sh
+
 test-daimos-multiuser-kernel-auth:
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
