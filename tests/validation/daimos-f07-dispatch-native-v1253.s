@@ -9,6 +9,9 @@ main:
         pushj   17,proc_sched_restore_selected
         movei   1,3
         pushj   17,proc_sched_restore_selected
+        ; Invalid negative selection is not an array index.
+        seto    1,
+        pushj   17,proc_sched_restore_selected
         setz    1,
         pushj   17,proc_sched_restore_selected
 

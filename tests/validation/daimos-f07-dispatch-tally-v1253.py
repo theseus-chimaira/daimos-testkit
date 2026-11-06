@@ -26,6 +26,7 @@ def inject(root):
         ; AC6 is scratch; actual user/exec ACs are restored afterwards.
         move    6,1
         jumpe   6,daimos_f07u_idle_v1253
+        jumpl   6,daimos_f07u_selected_v1253
         caige   6,0100
         aos     daimos_f07u_dispatch_v1253(6)
         jrst    daimos_f07u_selected_v1253
