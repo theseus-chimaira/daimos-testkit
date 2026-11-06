@@ -19,6 +19,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
   echo '.equ PROC_SWAP_BACKING_OFFSET,0406'
   echo '.equ PROC_FDCTL_OFFSET,024'
   echo '.equ PROC_USER_MAP_BIT,02'
+  echo '.equ PROC_FATAL_CLOSE_BIT,04'
   echo '.equ PROC_SWAP_TEXT_SHIFT,026'
   echo '.equ PROC_SWAP_TEXT_MASK,037777'
   echo '.equ EXEC_USER_ORIGIN,020'
