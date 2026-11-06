@@ -95,4 +95,4 @@ if blockers:
 else:
     print("v1123: pre-enable checklist complete; independent review "
           "required before F12, then run post-enable tests and F13")
-print("v1123: checklist inventory and five unsafe mutations PASS")
+print("v1273: checklist inventory and six unsafe mutations PASS")
