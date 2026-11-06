@@ -25,6 +25,8 @@ f07_peak=${V1203_TEST_F07_PEAK:-0}
 f07_high=${V1204_TEST_F07_HIGH:-0}
 f07_concurrent=${V1205_TEST_CONCURRENT:-0}
 f07_combined=${V1206_TEST_COMBINED:-0}
+f07_swapslots=${V1207_TEST_SWAPSLOTS:-0}
+batch_term=${V1262_TEST_BATCH_TERM:-0}
 case "$enable" in
     0|1) ;;
     *) echo 'v1075: invalid V1075_TEST_OOM_ENABLED' >&2; exit 2 ;;
@@ -101,6 +103,24 @@ case "$f07_combined" in
     0|1) ;;
     *) echo 'v1206: invalid combined F07 mode' >&2; exit 2 ;;
 esac
+case "$f07_swapslots" in
+    0|1) ;;
+    *) echo 'v1207: invalid swap-slot F07 mode' >&2; exit 2 ;;
+esac
+if [ "$f07_swapslots" = 1 ] && {
+    [ "$f07_concurrent" != 1 ] || [ "$f07_peak" != 1 ] ||
+    [ "$f07_combined" != 0 ] || [ "$f07_high" != 0 ]; }; then
+    echo 'v1207: requires v1203/v1205 real processes without synthetic pressure' >&2
+    exit 2
+fi
+if [ "$batch_term" != 0 ] && [ "$batch_term" != 1 ]; then
+    echo 'v1262: invalid batch termination mode' >&2
+    exit 2
+fi
+if [ "$batch_term" = 1 ] && [ "$f07_swapslots" != 1 ]; then
+    echo 'v1262: batch termination requires swap-slot F07 mode' >&2
+    exit 2
+fi
 if [ "$f07_concurrent" = 1 ] && {
     [ "$f07_peak" != 1 ] ||
     { [ "$f07_high" != 0 ] && [ "$f07_combined" != 1 ]; }; }; then
@@ -218,6 +238,122 @@ fi
 if [ "$f07_concurrent" = 1 ]; then
     python3 "$self/daimos-f07-real-proc-v1205.py" \
         "$work/source/system/kernel"
+fi
+if [ "$f07_swapslots" = 1 ]; then
+    if [ "${V1225_IDLE_STACK_EXPERIMENT:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-idle-stack-v1225.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1228_RUN_CAUSE_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-run-cause-v1228.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1229_EXEC_STAGE_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-exec-stage-v1229.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1230_EXEC_READ_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-exec-read-v1230.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1231_D6FS_READ_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-d6fs-read-v1231.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1232_FCB_GATE_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-fcb-gate-v1232.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1233_FCB_TYPE_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-fcb-type-v1233.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1234_CACHE_FCB_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-cache-fcb-v1234.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1235_CACHE_AT_FCB_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-cache-at-fcb-v1235.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1236_SWAP_WORKSPACE_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-swap-workspace-v1236.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1232_D6FS_FCB_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-d6fs-fcb-v1232.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1233_D6FS_BACKING_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-d6fs-backing-compare-v1233.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1234_BCACHE_HIT_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-bcache-hit-v1234.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1235_FCB_FREEZE_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-fcb-hit-freeze-v1235.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1236_D6FS_FETCH_STAGES_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-d6fs-fetch-stages-v1236.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1253_DISPATCH_TALLY_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-dispatch-tally-v1253.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1238_SCHEDULER_SNAPSHOT_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-scheduler-snapshot-v1238.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1250_SLOT0_WAIT_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-slot0-wait-v1250.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1240_SWAP_RECORD_PROBE:-0}" = 1 ]; then
+        if [ "${V1238_SCHEDULER_SNAPSHOT_PROBE:-0}" != 1 ]; then
+            echo 'v1240: requires v1238 scheduler snapshot' >&2
+            exit 2
+        fi
+        python3 "$self/daimos-f07-swap-record-v1240.py" \
+            "$work/source/system/kernel"
+    fi
+    python3 "$self/daimos-f07-swapstack-v1207.py" \
+        "$work/source/system/kernel"
+    if [ "${V1214_INVALID_UUO_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-invalid-uuo-v1214.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1242_INVALID_OWNER_PROBE:-0}" = 1 ]; then
+        if [ "${V1214_INVALID_UUO_PROBE:-0}" != 1 ]; then
+            echo 'v1242: requires v1214 first invalid-UUO halt' >&2
+            exit 2
+        fi
+        python3 "$self/daimos-f07-invalid-owner-v1242.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1212_FINALIZER_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-finalizer-probe-v1212.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1217_OWNER_BRANCH_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-owner-branch-v1217.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1218_SWAP_META_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-swap-meta-v1218.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1219_SWAP_ALLOCATOR_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-swap-allocator-v1219.py" \
+            "$work/source/system/kernel"
+    fi
+    if [ "${V1220_UAREA_LIFETIME_PROBE:-0}" = 1 ]; then
+        python3 "$self/daimos-f07-uarea-lifetime-v1220.py" \
+            "$work/source/system/kernel"
+    fi
 fi
 if [ "$endurance" = 1 ]; then
     python3 "$self/daimos-oom-endurance-v1151.py" \
@@ -348,6 +484,8 @@ fi
     -DV1174_TEST_RESIDENCY="$residency" \
     -DV1204_TEST_F07_HIGH="$f07_high" \
     -DV1205_TEST_CONCURRENT="$f07_concurrent" \
+    -DV1207_TEST_SWAPSLOTS="$f07_swapslots" \
+    -DV1262_TEST_BATCH_TERM="$batch_term" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$requester_source" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"
@@ -375,6 +513,7 @@ PATH="$PDP10_PREFIX/bin:$PATH" "${MAKE:-make}" \
     BOOT_PROFILE=full BOOT_CORE_WORDS=01000000 SIMH_CPU_KWORDS=256 \
     SIMH_DCS0_PORT="$port" SIMH_GE0_PORT="$((port + 10000))" \
     SYSTEM_INIT_DXR="$work/user/init.dxr" SIMH_DPY_MODE=HEADLESS \
+    PROC_STACK_WATERMARK="$f07_swapslots" \
     > "$work/build.log" 2>&1 || {
         tail -90 "$work/build.log" >&2
         exit 1
@@ -460,6 +599,230 @@ with Path(sys.argv[2]).open('a') as out:
             out.write('f07p_%s%d %06o\n' % (name, i, base + i))
 PY
     fi
+    if [ "$f07_swapslots" = 1 ]; then
+        python3 - "$build/kcore.map" "$work/addresses" <<'PY'
+from pathlib import Path
+import sys
+mapping = dict(row.split()[:2] for row in Path(sys.argv[1]).read_text().splitlines()
+               if len(row.split()) >= 2)
+with Path(sys.argv[2]).open('a') as out:
+    for label, sym in (
+            ('swap_blocks', 'daimos_f07s_swap_blocks_v1207'),
+            ('slot_capacity', 'daimos_f07s_slot_capacity_v1207'),
+            ('swap_active', 'daimos_f07s_swap_active_v1207'),
+            ('samples', 'daimos_f07s_samples_v1207'),
+            ('error', 'daimos_f07s_error_v1207'),
+            ('stack_peak', 'daimos_f07s_stack_peak_v1207'),
+            ('idle_peak', 'daimos_f07s_idle_peak_v1207'),
+            ('final_swap_blocks', 'proc_swap_blocks_used'),
+            ('final_backstore_used', 'backstore_blocks_used'),
+            ('final_swap_active', 'backstore_enabled'),
+            ('final_process_high_slot', 'proc_high_slot'),
+            ('final_process_current_slot', 'proc_current_slot'),
+            ('final_mm_extent_count', 'mm_extent_count')):
+        assert sym in mapping, 'v1207 missing ' + sym
+        out.write('f07s_%s %s\n' % (label, mapping[sym]))
+    # Diagnostic-only state: observe the actual scheduler state when a
+    # slow or deadlocked guest is interrupted; never infer a PASS from it.
+    for label, sym in (
+            ('diag_sched_cursor', 'proc_sched_cursor'),
+            ('diag_swap_backoff', 'proc_swap_pressure_ticks'),
+            ('diag_runq_head', 'proc_runq_head'),
+            ('diag_timer_clock', 'proc_timer_clock'),
+            ('diag_timer_next', 'proc_timer_next'),
+            ('diag_sched_kick', 'proc_sched_kick'),
+            ('diag_last_reap_tick', 'proc_finish_last_tick_v881')):
+        if sym in mapping:
+            out.write('f07s_%s %s\n' % (label, mapping[sym]))
+    if __import__('os').environ.get('V1214_INVALID_UUO_PROBE') == '1':
+        for label, sym in (
+                ('diag_invalid_word', 'mach_invalid_uuo_word'),
+                ('diag_invalid_pc', 'mach_invalid_uuo_pc'),
+                ('diag_file_table', 'file_table'),
+                ('diag_owner_ptr', 'proc_current_ptr'),
+                ('diag_owner_table', 'proc_table'),
+                ('diag_kernel_sp', 'mach_kernel_sp'),
+                ('diag_user_sp', 'mach_user_sp')):
+            assert sym in mapping, 'v1214 missing native UUO diagnostic ' + sym
+            out.write('f07s_%s %s\n' % (label, mapping[sym]))
+    if __import__('os').environ.get('V1242_INVALID_OWNER_PROBE') == '1':
+        for name in ('faults', 'slot', 'process_ptr', 'meta', 'vm', 'sched',
+                     'uarea', 'ctx_pc', 'ctx_ksp', 'fdctl', 'saved_backing',
+                     'swap_record', 'syscall_save', 'user_sp', 'kernel_sp',
+                     'private_peak', 'idle_peak'):
+            sym = 'daimos_f07i_%s_v1242' % name
+            assert sym in mapping, 'v1242 missing invalid-UUO sample ' + sym
+            out.write('f07i_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1217_OWNER_BRANCH_PROBE') == '1':
+        for name in ('slot', 'files', 'ptr', 'meta', 'vm', 'sched',
+                     'no_slot', 'no_file'):
+            sym = 'daimos_f07o_%s_v1217' % name
+            assert sym in mapping, 'v1217 missing native owner diagnostic ' + sym
+            out.write('f07o_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1218_SWAP_META_PROBE') == '1':
+        for name in ('out_calls', 'out_slot', 'out_before', 'out_after',
+                     'out_result', 'in_calls', 'in_slot', 'in_before',
+                     'in_after', 'in_result'):
+            sym = 'daimos_f07m_%s_v1218' % name
+            assert sym in mapping, 'v1218 missing swap transaction sample ' + sym
+            out.write('f07m_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1219_SWAP_ALLOCATOR_PROBE') == '1':
+        for name in ('calls', 'error', 'owner', 'requested', 'extents',
+                     'low_fit', 'low_base_or_free', 'high_fit',
+                     'high_base_or_free', 'meta'):
+            sym = 'daimos_f07a_%s_v1219' % name
+            assert sym in mapping, 'v1219 missing MM error snapshot ' + sym
+            out.write('f07a_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1220_UAREA_LIFETIME_PROBE') == '1':
+        for name in ('calls', 'pid1_calls', 'owner', 'before', 'after',
+                     'sched', 'current', 'released'):
+            sym = 'daimos_f07u_%s_v1220' % name
+            assert sym in mapping, 'v1220 missing u-area lifetime ' + sym
+            out.write('f07u_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1228_RUN_CAUSE_PROBE') == '1':
+        for name in ('stage', 'result', 'slot', 'count'):
+            sym = 'daimos_f07r_%s_v1228' % name
+            assert sym in mapping, 'v1228 missing RUN admission ' + sym
+            out.write('f07r_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1229_EXEC_STAGE_PROBE') == '1':
+        for name in ('phase', 'calls'):
+            sym = 'daimos_f07e_%s_v1229' % name
+            assert sym in mapping, 'v1229 missing EXEC stage ' + sym
+            out.write('f07e_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1230_EXEC_READ_PROBE') == '1':
+        for name in ('calls', 'vnode', 'offset', 'destination',
+                     'requested', 'returned'):
+            sym = 'daimos_f07v_%s_v1230' % name
+            assert sym in mapping, 'v1230 missing VFS payload read ' + sym
+            out.write('f07v_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1231_D6FS_READ_PROBE') == '1':
+        for name in ('provider_calls', 'requested', 'vnode',
+                     'provider_bad_fcb', 'reader_fail', 'block_io_fail',
+                     'position', 'done', 'target', 'provider_result'):
+            sym = 'daimos_f07d_%s_v1231' % name
+            assert sym in mapping, 'v1231 missing D6FS read sample ' + sym
+            out.write('f07d_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1232_FCB_GATE_PROBE') == '1':
+        for name in ('reason', 'index', 'limit', 'block', 'block_fail',
+                     'decode_fail', 'type_fail', 'fcb_calls'):
+            sym = 'daimos_f07c_%s_v1232' % name
+            assert sym in mapping, 'v1232 missing FCB gate ' + sym
+            out.write('f07c_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1233_FCB_TYPE_PROBE') == '1':
+        for name in ('raw_meta', 'decoded_type', 'decoded_flags',
+                     'decoded_size', 'fcb_copy', 'reader', 'type_samples'):
+            sym = 'daimos_f07t_%s_v1233' % name
+            assert sym in mapping, 'v1233 missing FCB type ' + sym
+            out.write('f07t_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1234_CACHE_FCB_PROBE') == '1':
+        for name in ('last_key', 'cache_path', 'fcb_source_meta',
+                     'workspace_meta', 'fcb_index', 'fcb_block'):
+            sym = 'daimos_f07b_%s_v1234' % name
+            assert sym in mapping, 'v1234 missing FCB cache ' + sym
+            out.write('f07b_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1235_CACHE_AT_FCB_PROBE') == '1':
+        for name in ('fcb_key', 'fcb_cache_path', 'fcb_workspace_tag'):
+            sym = 'daimos_f07h_%s_v1235' % name
+            assert sym in mapping, 'v1235 missing cache-at-FCB ' + sym
+            out.write('f07h_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1236_SWAP_WORKSPACE_PROBE') == '1':
+        for name in ('scratch_calls', 'read_before', 'read_after',
+                     'read_block', 'read_status', 'read_meta',
+                     'fcb_before', 'fcb_after', 'fcb_block',
+                     'fcb_status', 'fcb_meta'):
+            sym = 'daimos_f07w_%s_v1236' % name
+            assert sym in mapping, 'v1236 missing shared workspace ' + sym
+            out.write('f07w_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1232_D6FS_FCB_PROBE') == '1':
+        for name in ('reader_calls', 'reader_index', 'reader_limit',
+                     'reader_base', 'index_reject', 'block_reject',
+                     'decode_reject', 'type_reject', 'last_type',
+                     'fcb_calls'):
+            sym = 'daimos_f07c_%s_v1232' % name
+            assert sym in mapping, 'v1232 missing FCB sample ' + sym
+            out.write('f07c_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1233_D6FS_BACKING_PROBE') == '1':
+        for name in ('rejects', 'index', 'block', 'cached_meta',
+                     'disk_meta', 'backing_status', 'decoded_type'):
+            sym = 'daimos_f07b_%s_v1233' % name
+            assert sym in mapping, 'v1233 missing backing comparison ' + sym
+            out.write('f07b_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1234_BCACHE_HIT_PROBE') == '1':
+        for name in ('calls', 'key', 'mode', 'raw_word'):
+            sym = 'daimos_f07k_%s_v1234' % name
+            assert sym in mapping, 'v1234 missing cache observation ' + sym
+            out.write('f07k_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1235_FCB_FREEZE_PROBE') == '1':
+        for name in ('hits', 'key', 'mode', 'raw_word'):
+            sym = 'daimos_f07h_%s_v1235' % name
+            assert sym in mapping, 'v1235 missing frozen FCB observation ' + sym
+            out.write('f07h_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1236_D6FS_FETCH_STAGES_PROBE') == '1':
+        for name in ('reads', 'status', 'before_read', 'after_read',
+                     'after_store', 'zero_after_read'):
+            sym = 'daimos_f07x_%s_v1236' % name
+            assert sym in mapping, 'v1236 missing D6FS fetch stage ' + sym
+            out.write('f07x_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1238_SCHEDULER_SNAPSHOT_PROBE') == '1':
+        for name in ('services', 'swap_request', 'selector_swap',
+                     'selector_ready', 'selector_resident', 'selector_none',
+                     'idle', 'timer', 'cursor', 'current', 'runq', 'high_slot',
+                     'process_table', 'rt_owner', 'pid1_meta', 'pid1_vm',
+                     'pid1_sched'):
+            sym = 'daimos_f07q_%s_v1238' % name
+            assert sym in mapping, 'v1238 missing scheduling probe ' + sym
+            out.write('f07q_%s %s\n' % (name, mapping[sym]))
+        sym = 'daimos_f07q_slots_v1238'
+        assert sym in mapping, 'v1238 missing descriptor snapshot'
+        base = int(mapping[sym], 8)
+        for i in range(0o140):
+            out.write('f07q_slot%03o %06o\n' % (i, base + i))
+    if __import__('os').environ.get('V1250_SLOT0_WAIT_PROBE') == '1':
+        for name in ('calls', 'event', 'event_value', 'sp', 'caller',
+                     'drm_active', 'drm_pending', 'storage_state',
+                     'storage_iowd', 'sched_cursor', 'current_slot',
+                     'timer_clock', 'swap_backoff', 'pi_state', 'saved_ac0'):
+            sym = 'daimos_f07w_%s_v1250' % name
+            assert sym in mapping, 'v1250 missing slot-0 wait probe ' + sym
+            out.write('f07wait_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1253_DISPATCH_TALLY_PROBE') == '1':
+        sym = 'daimos_f07u_idle_count_v1253'
+        assert sym in mapping, 'v1253 missing idle counter'
+        out.write('f07u_idle %s\n' % mapping[sym])
+        for name in ('dispatch', 'swapreq'):
+            sym = 'daimos_f07u_%s_v1253' % name
+            assert sym in mapping, 'v1253 missing bounded slot array ' + sym
+            base = int(mapping[sym], 8)
+            for slot in range(64):
+                out.write('f07u_%s%02o %06o\n' % (name, slot, base + slot))
+    if __import__('os').environ.get('V1240_SWAP_RECORD_PROBE') == '1':
+        for name in ('record_base', 'pid1_record', 'pid5_record',
+                     'pid1_backing', 'pid5_backing', 'reject_state',
+                     'reject_vm', 'reject_record', 'reject_transition',
+                     'pop_clear'):
+            sym = 'daimos_f07z_%s_v1240' % name
+            assert sym in mapping, 'v1240 missing swap record probe ' + sym
+            out.write('f07z_%s %s\n' % (name, mapping[sym]))
+    for name in ('pressure', 'fallback', 'victim_search',
+                 'reclaim_ok', 'reclaim_fail', 'swapout_ok',
+                 'swapout_fail', 'swapin_ok', 'swapin_pressure',
+                 'swapin_fail', 'cooldown', 'exchanged', 'restored'):
+        sym = 'daimos_f07s_%s_v1209' % name
+        assert sym in mapping, 'v1209 missing diagnostic counter ' + sym
+        out.write('f07s_diag_%s %s\n' % (name, mapping[sym]))
+    if __import__('os').environ.get('V1212_FINALIZER_PROBE') == '1':
+        for name in ('exit_calls', 'exit_slot', 'exit_ptr', 'exit_meta',
+                     'written_uarea', 'written_marker', 'finish_owner',
+                     'prevm_fail', 'vm_done', 'uarea_defer', 'hup_fail',
+                     'finish_fail', 'exit_fail', 'fatal_no_owner',
+                     'bad_slot', 'bad_status', 'bad_descriptor',
+                     'bad_meta', 'bad_marker', 'fatal_slot',
+                     'fatal_ptr', 'fatal_files'):
+            sym = 'daimos_f07f_%s_v1212' % name
+            assert sym in mapping, 'v1212 missing diagnostic ' + sym
+            out.write('f07f_%s %s\n' % (name, mapping[sym]))
+PY
+    fi
     sed -i '/^exit$/d' "$build/boot.ini"
     while read -r name addr; do
         printf 'examine %s\n' "$addr" >> "$build/boot.ini"
@@ -467,9 +830,32 @@ PY
     printf 'exit\n' >> "$build/boot.ini"
 fi
 
+if [ "${V1226_SIMH_HISTORY:-0}" = 1 ]; then
+    # Debug-only hardware instruction ring. Capture the direct caller of
+    # proc_swap_storage_invariant_v30 without modifying any guest state.
+    python3 - "$build/boot.ini" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+text = p.read_text()
+assert text.count('go 020\n') == 1
+text = text.replace('go 020\n',
+                    'set cpu history=256\ngo 020\nshow cpu history=80\n', 1)
+p.write_text(text)
+PY
+fi
+
+if [ "${V1209_BUILD_ONLY:-0}" = 1 ]; then
+    # Explicit diagnostic mode: keep this separately built disposable
+    # complete guest for interactive SIMH state capture. This never
+    # claims a PASS, and production source/boot images stay untouched.
+    echo "v1209: diagnostic-only built guest: $work"
+    exit 0
+fi
 printf 'v1075: booting patched disposable guest; production unchanged\n'
 guest_timeout=90s
 if [ "$endurance" = 1 ]; then guest_timeout=360s; fi
+if [ "$f07_swapslots" = 1 ]; then guest_timeout=900s; fi
 set +e
 (cd "$build" && TERM=dumb SDL_VIDEODRIVER=dummy \
     SDL_AUDIODRIVER=dummy timeout -k 2s "$guest_timeout" stdbuf -o0 -e0 \
@@ -477,6 +863,9 @@ set +e
 rc=$?
 set -e
 if [ "$rc" -ne 0 ]; then
+    if [ "$f07_swapslots" = 1 ]; then
+        echo "v1207: milestone stream (diagnostic only): $(sed -n '/^</p' "$work/simh.out" | tr -cd '+~^@%*?{}|')" >&2
+    fi
     tail -65 "$work/simh.out" >&2
     echo "v1075: SIMH exit $rc" >&2
     exit 1
@@ -497,6 +886,24 @@ if [ "${V1259_REQUESTER_STAGE_TRACE:-0}" = 1 ]; then
         *) echo 'v1259: requester never entered BRK' >&2; exit 1 ;;
     esac
     text=$(printf '%s' "$text" | tr -d '&=')
+fi
+if [ "$f07_swapslots" = 1 ]; then
+    # Distinguish genuine slow disk swapping from an admission deadlock.
+    # Each '+' comes only after a distinct RUN child reports its real BRK.
+    # Keep the original v1075 terminal markers byte-for-byte strict.
+    admitted=$(printf '%s' "$text" | tr -cd '+' | wc -c | tr -d '[:space:]')
+    if [ "$admitted" -ne 18 ]; then
+        echo "v1207: only $admitted/18 RUN children acknowledged" >&2
+        tail -25 "$work/simh.out" >&2
+        exit 1
+    fi
+    reaped=$(printf '%s' "$text" | tr -cd '~' | wc -c | tr -d '[:space:]')
+    if [ "$reaped" -ne 18 ]; then
+        echo "v1207: only $reaped/18 RUN children reaped" >&2
+        tail -25 "$work/simh.out" >&2
+        exit 1
+    fi
+    text=$(printf '%s' "$text" | tr -d '+~^@%*?{}|')
 fi
 prefix=
 if [ "$mm_fragment" = 1 ]; then prefix=F; fi
@@ -585,7 +992,7 @@ text = Path(sys.argv[2]).read_text(errors='replace')
 seen = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     name, addr = line.split()
-    if name.startswith(('f07_', 'f07h_', 'f07p_')):
+    if name.startswith(('f07_', 'f07h_', 'f07p_', 'f07s_')):
         # v1203 has a separate, strict MM-snapshot verifier. Do not
         # flood the older v1150 provider-owner counter report with
         # up to 272 captured extent words.
@@ -638,6 +1045,11 @@ if [ "$f07_concurrent" = 1 ]; then
     python3 "$self/daimos-f07-real-proc-verify-v1205.py" \
         "$work/addresses" "$work/simh.out" > "$work/f07p-v1205.txt"
     cat "$work/f07p-v1205.txt"
+fi
+if [ "$f07_swapslots" = 1 ]; then
+    python3 "$self/daimos-f07-swapstack-verify-v1207.py" \
+        "$work/addresses" "$work/simh.out" > "$work/f07s-v1207.txt"
+    cat "$work/f07s-v1207.txt"
 fi
 if [ "$f07_combined" = 1 ]; then
     python3 "$self/daimos-f07-combined-verify-v1206.py" \
@@ -694,6 +1106,9 @@ if [ "$release_media" = 1 ]; then
     if [ "$f07_concurrent" = 1 ]; then
         cp "$work/f07p-v1205.txt" "$e/f07p-v1205.txt"
     fi
+    if [ "$f07_swapslots" = 1 ]; then
+        cp "$work/f07s-v1207.txt" "$e/f07s-v1207.txt"
+    fi
     if [ "$f07_combined" = 1 ]; then
         cp "$work/f07c-v1206.txt" "$e/f07c-v1206.txt"
     fi
@@ -733,6 +1148,9 @@ if [ "$release_media" = 1 ]; then
     fi
     if [ "$f07_concurrent" = 1 ]; then
         (cd "$e" && sha256sum f07p-v1205.txt >> evidence-sha256.txt)
+    fi
+    if [ "$f07_swapslots" = 1 ]; then
+        (cd "$e" && sha256sum f07s-v1207.txt >> evidence-sha256.txt)
     fi
     if [ "$f07_combined" = 1 ]; then
         (cd "$e" && sha256sum f07c-v1206.txt >> evidence-sha256.txt)

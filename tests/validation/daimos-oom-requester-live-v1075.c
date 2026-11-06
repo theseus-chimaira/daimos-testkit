@@ -65,8 +65,20 @@
 #define V1205_TEST_CONCURRENT 0
 #endif
 
+#ifndef V1207_TEST_SWAPSLOTS
+#define V1207_TEST_SWAPSLOTS 0
+#endif
+
+#ifndef V1262_TEST_BATCH_TERM
+#define V1262_TEST_BATCH_TERM 0
+#endif
+
 #if V1205_TEST_CONCURRENT
+#if V1207_TEST_SWAPSLOTS
+#define V1205_CHILD_COUNT 18U
+#else
 #define V1205_CHILD_COUNT 6U
+#endif
 #endif
 
 #define V1156_BACKING_FILL 0777760UL
@@ -124,6 +136,9 @@ v1150_pipe(int *read_fd, int *write_fd)
 #if V1158_TEST_COMBINED
 static int v1158_ack_writer;
 #endif
+#if V1207_TEST_SWAPSLOTS
+static int v1207_ack_writer;
+#endif
 
 static void
 fail(int ch)
@@ -133,6 +148,19 @@ fail(int ch)
         (void)dsys_halt();
         for (;;) { }
 }
+
+#if V1207_TEST_SWAPSLOTS
+/* Emit the exact rejected slot and RUN result only on test failure. */
+static void
+v1207_print_octal(kword_t value)
+{
+        int shift;
+
+        for (shift = 33; shift >= 0; shift -= 3)
+                (void)dsys_writechar(1,
+                    (int)('0' + ((value >> shift) & 7UL)));
+}
+#endif
 
 #if V1151_TEST_ENDURANCE
 /* Only the failure path prints diagnostic counters; normal test output
@@ -200,10 +228,20 @@ run_child(int mode, int input_fd)
         block[V1075_MAP_OFF + 1U] = SYS_RUN_FD_MAP(1U, 1U);
         block[V1075_MAP_OFF + 2U] = SYS_RUN_FD_MAP(2U, 2U);
 #if V1150_TEST_HELD_PROVIDER
-        if (mode == 'O') {
+        if (mode == 'O'
+#if V1207_TEST_SWAPSLOTS
+            || mode == 'C'
+#endif
+           ) {
                 req->fdmap_count = 4UL;
                 block[V1075_MAP_OFF + 3U] = SYS_RUN_FD_MAP(3U,
-                    (unsigned int)v1150_ack_writer);
+                    (unsigned int)(mode == 'O' ? v1150_ack_writer
+#if V1207_TEST_SWAPSLOTS
+                        : v1207_ack_writer
+#else
+                        : v1150_ack_writer
+#endif
+                        ));
         } else {
                 /* RUN V2 length must match the three actual FD maps;
                  * the extra O-only storage is not part of this request. */
@@ -263,10 +301,20 @@ main(int argc, kword_t **argv)
         int gateway_waiter;
         int spinner;
         unsigned int probe;
+#if V1207_TEST_SWAPSLOTS
+        int provider_start_r;
+        int provider_start_w;
+#endif
 #endif
 #if V1205_TEST_CONCURRENT
         int extra[V1205_CHILD_COUNT];
         unsigned int extra_index;
+#if V1207_TEST_SWAPSLOTS
+        int extra_ack_r;
+        int extra_ack_w;
+        int extra_hold_r;
+        int extra_hold_w;
+#endif
 #endif
 
         v1075_pressure[037777] = 01234567UL;
@@ -358,6 +406,15 @@ main(int argc, kword_t **argv)
                 if (argv[1][1] ==
                     TEST_SIX6('H', ' ', ' ', ' ', ' ', ' ')) {
                         int fd;
+#if V1207_TEST_SWAPSLOTS
+                        kword_t gate;
+                        /* Admission is much slower than the original
+                         * ten-tick delay. Do not lose the foreign FS
+                         * holder while starting the other processes. */
+                        if (dsys_read_words(0, &gate, 1U) != 1 ||
+                            gate != 'X')
+                                (void)dsys_exit(074);
+#endif
 
                         if (dsys_sleep(010U) != 0)
                                 (void)dsys_exit(074);
@@ -369,6 +426,15 @@ main(int argc, kword_t **argv)
                 if (argv[1][1] ==
                     TEST_SIX6('G', ' ', ' ', ' ', ' ', ' ')) {
                         int fd;
+#if V1207_TEST_SWAPSLOTS
+                        kword_t gate;
+                        /* Preserve the original v1150 pre-dispatch
+                         * sleep and FILE access after simultaneous RUN
+                         * admission, not during the six-minute startup. */
+                        if (dsys_read_words(0, &gate, 1U) != 1 ||
+                            gate != 'X')
+                                (void)dsys_exit(075);
+#endif
 
                         if (dsys_sleep(0200U) != 0)
                                 (void)dsys_exit(075);
@@ -402,10 +468,30 @@ main(int argc, kword_t **argv)
                             proposed >= 0776000UL ||
                             dsys_brk(proposed) != proposed)
                                 (void)dsys_exit(066);
+#if V1207_TEST_SWAPSLOTS
+                        /* Handshake after the real BRK, before blocking.
+                         * The parent cannot count an unstarted child as
+                         * resident concurrency or a swap victim. */
+                        word = dsys_getpid();
+                        if (dsys_write_words(3, &word, 1U) != 1 ||
+                            dsys_close(3) != 0)
+                                (void)dsys_exit(067);
+#endif
+#if V1207_TEST_SWAPSLOTS
+                        /* Unlike a periodic sleep, an empty pipe read
+                         * stays blocked until the parent explicitly
+                         * terminates the child. Repeated timer wakeups
+                         * otherwise cause unnecessary swap-in/out churn
+                         * while the later children are being admitted. */
+                        if (dsys_read_words(0, &word, 1U) != 0)
+                                (void)dsys_exit(076);
+                        (void)dsys_exit(077);
+#else
                         for (;;) {
                                 if (dsys_sleep(2U) != 0)
                                         (void)dsys_exit(076);
                         }
+#endif
                 }
 #endif
 #if V1120_TEST_PID_REUSE
@@ -449,6 +535,13 @@ main(int argc, kword_t **argv)
             dsys_meminfo(&before) != 0 ||
             before.total_words <= V1075_BRK_REQUEST)
                 fail('0');
+#if V1207_TEST_SWAPSLOTS
+    /* The disk-backed swap pool is installed by KINIT, but deliberately
+     * disabled until PID 1 explicitly activates it via STORAGECTL.
+     * This is the actual production activation API, not a test override. */
+    if (dsys_storagectl(SYS_STORAGECTL_SWAP) != 0)
+            fail('Y');
+#endif
 #if V1174_TEST_RESIDENCY
     {
         /* Report the REAL boot-time SYS_MEMINFO resident immediate.
@@ -612,24 +705,103 @@ main(int argc, kword_t **argv)
             dsys_close(ack_r) != 0)
                 fail('i');
         /* Complete every RUN before the provider lease is occupied. */
-        gateway_waiter = run_child('G', 0);
+#if V1207_TEST_SWAPSLOTS
+        if (v1150_pipe(&provider_start_r, &provider_start_w) != 0)
+                fail('c');
+#endif
+        gateway_waiter = run_child('G',
+#if V1207_TEST_SWAPSLOTS
+            provider_start_r
+#else
+            0
+#endif
+            );
         spinner = run_child('S', 0);
-        holder = run_child('H', 0);
+        holder = run_child('H',
+#if V1207_TEST_SWAPSLOTS
+            provider_start_r
+#else
+            0
+#endif
+            );
         if (gateway_waiter != 4 || spinner != 5 || holder != 6)
                 fail('j');
 #if V1205_TEST_CONCURRENT
         /* Run the extra real processes BEFORE the foreign provider is
          * held; RUN and executable loading themselves need the gateway.
          * Preserve v1150's exact original 1..6 slot identities. */
+#if V1207_TEST_SWAPSLOTS
+        /* A shared parent-owned write endpoint holds all real children
+         * on an ordinary blocking PIPE read. No test-only kernel sleep
+         * hook, synthetic VM descriptor, or extra permanent state. */
+        if (v1150_pipe(&extra_hold_r, &extra_hold_w) != 0)
+                fail('h');
+        /* Give each child a separate acknowledgment pipe. Keeping a
+         * parent-side writer open across all children can deadlock the
+         * reader if the child is retired during RUN/BRK before writing:
+         * there would be no final writer close to deliver EOF. */
+#endif
         for (extra_index = 0U; extra_index < V1205_CHILD_COUNT;
                 ++extra_index) {
-                extra[extra_index] = run_child('C', 0);
-                if (extra[extra_index] != (int)(7U + extra_index))
+#if V1207_TEST_SWAPSLOTS
+                if (v1150_pipe(&extra_ack_r, &extra_ack_w) != 0)
+                        fail('m');
+                v1207_ack_writer = extra_ack_w;
+#endif
+                extra[extra_index] = run_child('C',
+#if V1207_TEST_SWAPSLOTS
+                    extra_hold_r
+#else
+                    0
+#endif
+                    );
+#if V1207_TEST_SWAPSLOTS
+                if (dsys_close(extra_ack_w) != 0)
+                        fail('x');
+#endif
+                if (extra[extra_index] != (int)(7U + extra_index)) {
+#if V1207_TEST_SWAPSLOTS
+                        (void)dsys_writechar(1, ':');
+                        v1207_print_octal((kword_t)extra_index);
+                        (void)dsys_writechar(1, '/');
+                        v1207_print_octal((kword_t)extra[extra_index]);
+#endif
                         fail('n');
+                }
+#if V1207_TEST_SWAPSLOTS
+                if (dsys_read_words(extra_ack_r, &word, 1U) != 1 ||
+                    word != (kword_t)extra[extra_index] ||
+                    dsys_close(extra_ack_r) != 0)
+                        fail('a');
+                /* Observable progress for the slow real-swap stress
+                 * guest. The harness counts all 18 acknowledgments before
+                 * removing these test-only characters from the ordinary
+                 * v1075 requester/witness marker comparison. */
+                (void)dsys_writechar(1, '+');
+#endif
         }
+#if V1207_TEST_SWAPSLOTS
+        if (dsys_close(extra_hold_r) != 0)
+                fail('b');
+        /* Let H and G start their original delays only now, while all
+         * 24 process slots exist. Both consume an independent pipe
+         * word and retain their original actual provider requests. */
+        word = 'X';
+        if (dsys_write_words(provider_start_w, &word, 1U) != 1 ||
+            dsys_write_words(provider_start_w, &word, 1U) != 1 ||
+            dsys_close(provider_start_r) != 0 ||
+            dsys_close(provider_start_w) != 0)
+                fail('d');
+        /* Stage-only console markers distinguish an idle/swap deadlock
+         * from progress through the original provider/OOM/WAIT phases. */
+        (void)dsys_writechar(1, '^');
+#endif
 #endif
         if (dsys_sleep(0400U) != 0)
                 fail('k');
+#if V1207_TEST_SWAPSLOTS
+        (void)dsys_writechar(1, '@');
+#endif
 #if V1204_TEST_F07_HIGH
         /* The provider owner and gateway waiter are already sleeping
          * on their original private stacks. Fill REAL MM extents only
@@ -642,12 +814,18 @@ main(int argc, kword_t **argv)
         if (dsys_write_words(release_w, &word, 1U) != 1 ||
             dsys_close(release_w) != 0)
                 fail('l');
+#if V1207_TEST_SWAPSLOTS
+        (void)dsys_writechar(1, '%');
+#endif
         /* A later INIT sleep releases the held provider only after
          * the real BRK error and repeated FILE-close failures. */
         for (probe = 0U; probe < 3U; ++probe) {
-                if (dsys_sleep(0100U) != 0)
-                        fail('p');
+            if (dsys_sleep(0100U) != 0)
+                fail('p');
         }
+#if V1207_TEST_SWAPSLOTS
+        (void)dsys_writechar(1, '*');
+#endif
 #else
         requester = run_child('O', 0);
 #endif
@@ -655,6 +833,9 @@ main(int argc, kword_t **argv)
                 fail('4');
         wait_status((unsigned int)requester,
             V1075_TEST_OOM_ENABLED ? V1075_OOM_STATUS : 070U);
+#if V1207_TEST_SWAPSLOTS
+        (void)dsys_writechar(1, '?');
+#endif
 #if V1159_TEST_PROTECTED
         /* INIT itself must still be executing, and the pipe witness
          * must not have received a termination event during OOM. */
@@ -665,22 +846,53 @@ main(int argc, kword_t **argv)
 #endif
 #if V1150_TEST_HELD_PROVIDER
         wait_status((unsigned int)holder, 064U);
+#if V1207_TEST_SWAPSLOTS
+        (void)dsys_writechar(1, '{');
+#endif
         wait_status((unsigned int)gateway_waiter, 063U);
+#if V1207_TEST_SWAPSLOTS
+        (void)dsys_writechar(1, '}');
+#endif
         if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
                 SYS_EVENT_ARG((unsigned int)spinner, SYS_EVENT_TERM)) != 0)
                 fail('q');
         wait_status((unsigned int)spinner, 0400001U);
+#if V1207_TEST_SWAPSLOTS
+        (void)dsys_writechar(1, '|');
+#endif
 #if V1205_TEST_CONCURRENT
         /* Release every child through the normal TERM, private
          * teardown, WAIT and real MM free. No synthetic slot edits. */
+#if V1262_TEST_BATCH_TERM
+        /* Queue all TERM events before waiting for any child. This keeps
+         * the real fatal/PIPE unwind and individual WAIT checks, but
+         * avoids forcing one full swap/dispatch cycle per event. */
         for (extra_index = 0U; extra_index < V1205_CHILD_COUNT;
                 ++extra_index) {
                 if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
                         SYS_EVENT_ARG((unsigned int)extra[extra_index],
                             SYS_EVENT_TERM)) != 0)
                         fail('o');
-                wait_status((unsigned int)extra[extra_index], 0400001U);
         }
+#endif
+        for (extra_index = 0U; extra_index < V1205_CHILD_COUNT;
+                ++extra_index) {
+#if !V1262_TEST_BATCH_TERM
+                if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
+                        SYS_EVENT_ARG((unsigned int)extra[extra_index],
+                            SYS_EVENT_TERM)) != 0)
+                        fail('o');
+#endif
+                wait_status((unsigned int)extra[extra_index], 0400001U);
+#if V1207_TEST_SWAPSLOTS
+                /* Record exact normal TERM/WAIT reaping progress. */
+                (void)dsys_writechar(1, '~');
+#endif
+        }
+#if V1207_TEST_SWAPSLOTS
+        if (dsys_close(extra_hold_w) != 0)
+                fail('f');
+#endif
 #endif
 #if V1204_TEST_F07_HIGH
         /* No pressure allocation survives into the final PID/VM/FILE
@@ -697,6 +909,12 @@ main(int argc, kword_t **argv)
         if (dsys_close(writer) != 0)
                 fail('6');
         wait_status((unsigned int)witness, V1075_WITNESS_STATUS);
+#if V1207_TEST_SWAPSLOTS
+        /* All real user processes except INIT have now been WAITed.
+         * Disable swap only after the pipe witness can swap back in. */
+        if (dsys_storagectl(0U) != 0)
+                fail('B');
+#endif
         if (dsys_meminfo(&after) != 0 ||
             after.process_slots_used != before.process_slots_used ||
             after.process_words != before.process_words ||
