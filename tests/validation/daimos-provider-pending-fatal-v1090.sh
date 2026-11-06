@@ -21,13 +21,16 @@ assert 'fs_provider_lock_probe_v1090:' in gate
 assert 'tlne    1,016' in gate and 'trne    1,01' in gate
 assert 'trne    1,04' in gate
 assert 'evt_def_fs_check_v1090:' in event
-assert 'tlne    5,PROC_WAIT_CHILD_LH' in event
+assert 'caie    6,PROC_WAIT_INTR_LH' in event
+assert 'caie    6,PROC_WAIT_EVENT_LH' in event
 assert 'pushj   17,proc_runq_add' in event
 assert 'hrrz    6,5' in event
 (work / 'source.s').write_text(
     '.text\n.equ PROC_FDCTL_OFFSET,024\n'
     '.equ PROC_WAIT_EVENT_LH,020000\n'
     '.equ PROC_WAIT_CHILD_LH,040000\n'
+    '.equ PROC_WAIT_INTR_LH,060000\n'
+    '.equ PROC_WAIT_LH_MASK,060000\n'
     '.equ PROC_STATE_LH_MASK,0700000\n'
     '.equ PROC_STATE_SLEEP,0300000\n'
     '.globl fs_provider_reg_call\n.globl fs_memfs_service_jump\n'
@@ -43,8 +46,8 @@ bad_wake = source.replace('        pushj   17,proc_runq_add',
                           '        move    1,010', 1)
 assert bad_wake != source
 (work / 'unsafe-wake.s').write_text(bad_wake)
-bad_class = source.replace('        tlne    5,PROC_WAIT_CHILD_LH',
-                           '        tlnn    5,PROC_WAIT_CHILD_LH', 1)
+bad_class = source.replace('        caie    6,PROC_WAIT_INTR_LH',
+                           '        caie    6,PROC_WAIT_CHILD_LH', 1)
 assert bad_class != source
 (work / 'unsafe-class.s').write_text(bad_class)
 bad_owner = source.replace('        trne    1,04',

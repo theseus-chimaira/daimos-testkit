@@ -1796,6 +1796,12 @@ test-daimos-provider-pending-fatal-v1090: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-provider-pending-fatal-v1090.sh
 
+.PHONY: test-daimos-pipe-fatal-wait-v1261
+test-daimos-pipe-fatal-wait-v1261: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-pipe-fatal-wait-v1261.sh
+
 .PHONY: test-daimos-provider-pending-live-v1091
 test-daimos-provider-pending-live-v1091: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

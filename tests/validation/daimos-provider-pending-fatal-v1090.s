@@ -143,22 +143,23 @@ stopped_not_woken_v1090:
         jrst    fail_v1090
 
 interrupted_v1090:
-        ; WAIT_INTR shares the WAIT_EVENT class bit. Matching the exact
-        ; event-address RH is not enough: never cancel an INTR waiter.
+        ; v1261: WAIT_INTR is safe to interrupt after a fatal event.
+        ; The owner unwinds the private wait frame before termination.
         movei   0,4
         movem   0,stage_v1090
         setzm   target_ctl_v1090
+        setzm   runq_count_v1090
         movei   0,fs_provider_wait_event_v917
         hrli    0,0360000             ; SLEEP + WAIT_INTR
         movem   0,target_desc_v1090+2
         pushj   17,send_term_v1090
         jumpn   1,fail_v1090
-        skipn   runq_count_v1090
-        jrst    interrupted_not_woken_v1090
+        move    0,runq_count_v1090
+        caie    0,1
         jrst    fail_v1090
-interrupted_not_woken_v1090:
+interrupted_woken_v1261:
         move    0,target_desc_v1090+2
-        camn    0,[0360000,,fs_provider_wait_event_v917]
+        camn    0,[0200000,,0]
         jrst    child_wait_v1090
         jrst    fail_v1090
 
@@ -167,6 +168,7 @@ child_wait_v1090:
         movei   0,5
         movem   0,stage_v1090
         setzm   target_ctl_v1090
+        setzm   runq_count_v1090
         movei   0,fs_provider_wait_event_v917
         hrli    0,0340000             ; SLEEP + WAIT_CHILD
         movem   0,target_desc_v1090+2
