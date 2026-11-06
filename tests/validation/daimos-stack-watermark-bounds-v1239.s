@@ -25,7 +25,7 @@ main:
         movei   1,__private_area
         pushj   17,proc_stack_watermark_scan
         move    1,proc_stack_highwater
-        caie    1,0316
+        caie    1,0315
         jrst    test_fail_private_full
 
         movei   1,__private_area+0100

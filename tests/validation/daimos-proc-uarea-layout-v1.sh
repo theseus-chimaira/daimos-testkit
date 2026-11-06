@@ -26,7 +26,7 @@ fdctl=`c_define PROC_FDCTL_OFFSET`
 cwd=`c_define PROC_FILE_CWD_OFFSET`
 table=`c_define PROC_FILE_TABLE_OFFSET`
 cred=`c_define PROC_CRED_OFFSET`
-fdmount=`c_define PROC_FDMOUNT_OFFSET`
+finalize=`c_define PROC_FINALIZE_OFFSET`
 umaskshift=`c_define PROC_UMASK_SHIFT`
 stack=`c_define PROC_USTACK_BASE`
 atable=`a_equ PROC_FILE_TABLE_OFFSET`
@@ -38,27 +38,27 @@ kstack=`a_equ PROC_KSTACK_WORDS`
 [ "$cwd" = 0025 ] || { echo "$tag: unexpected cwd offset=$cwd" >&2; exit 1; }
 [ "$table" = 0026 ] || { echo "$tag: unexpected table offset=$table" >&2; exit 1; }
 [ "$cred" = 0066 ] || { echo "$tag: unexpected credential offset=$cred" >&2; exit 1; }
-[ "$fdmount" = 0067 ] || { echo "$tag: unexpected mount-extension offset=$fdmount" >&2; exit 1; }
+[ "$finalize" = 067 ] || { echo "$tag: unexpected finalizer offset=$finalize" >&2; exit 1; }
 [ "$umaskshift" = 9 ] || { echo "$tag: unexpected packed umask shift=$umaskshift" >&2; exit 1; }
 [ "$stack" = 0070 ] || { echo "$tag: unexpected stack offset=$stack" >&2; exit 1; }
 [ "$atable" = 026 ] || { echo "$tag: assembly table offset=$atable" >&2; exit 1; }
 [ "$astack" = 070 ] || { echo "$tag: assembly stack offset=$astack" >&2; exit 1; }
-[ "$kstack" = 0316 ] || { echo "$tag: assembly stack words=$kstack" >&2; exit 1; }
+[ "$kstack" = 0315 ] || { echo "$tag: assembly stack words=$kstack" >&2; exit 1; }
 [ "$file_nfile" = 16 ] || { echo "$tag: FILE_NFILE=$file_nfile" >&2; exit 1; }
 
 # 0000-0023 is exactly 0024 words of overlaid scheduler/syscall context:
 # AC0..AC17, one shared user/kernel PI return word, KSP, saved user SP, and
 # the sleeping syscall's JSR word.  FDCTL occupies 0024, CWD 0025, sixteen
-# two-word descriptors 0026-0065, credentials/umask 0066, and a dedicated
-# 32-bit mount-ID extension bitmap 0067. The
+# two-word descriptors 0026-0065, credentials/umask 0066, and the
+# deferred-finalizer marker 0067. The
 # stack begins at 0070.  Word 0406 retains executable backing metadata while
-# swapped, and word 0407 holds the process break; the stack remains 0316 words.
+# swapped, and word 0407 holds the process break; the stack remains 0315 words.
 [ $((0$cwd)) -eq $((0$fdctl + 1)) ] || exit 1
 [ $((0$table)) -eq $((0$cwd + 1)) ] || exit 1
 [ $((0$cred)) -eq $((0$table + file_nfile * 2)) ] || exit 1
-[ $((0$fdmount)) -eq $((0$cred + 1)) ] || exit 1
-[ $((0$stack)) -eq $((0$fdmount + 1)) ] || exit 1
-[ $((0$uarea - 0$stack - 2)) -eq $((00316)) ] || exit 1
+[ $((0$finalize)) -eq $((0$cred + 1)) ] || exit 1
+[ $((0$stack)) -eq $((0$finalize + 1)) ] || exit 1
+[ $((0$uarea - 0$stack - 3)) -eq $((00315)) ] || exit 1
 grep -A1 '^#define PROC_SWAP_BACKING_OFFSET' "$ph" | \
     grep -q '0406UL' || {
         echo "$tag: swap backing is not at 0406" >&2
@@ -69,7 +69,7 @@ grep -q '^#define PROC_BRK_OFFSET[[:space:]]*0407UL' "$ph" || {
         exit 1
 }
 grep -A1 '^#define PROC_KSTACK_WORDS' "$ph" | \
-    grep -q 'PROC_SWAP_BACKING_OFFSET - PROC_USTACK_BASE' || {
+    grep -q 'PROC_SWAP_BACKING_OFFSET - PROC_USTACK_BASE - 1UL' || {
         echo "$tag: C stack bound does not exclude swap backing word" >&2
         exit 1
 }
@@ -94,7 +94,7 @@ if grep -q 'PROC_PID_MASK\|PROC_PID(' "$ph"; then
 fi
 
 pl="$DAIMOS_REPO/system/kernel/proc/proc_late.c"
-ex="$DAIMOS_REPO/system/kernel/proc/exec.c"
+ex="$DAIMOS_REPO/system/kernel/proc/proc_run.s"
 si="$DAIMOS_REPO/system/kernel/proc/syscall_info.s"
 if grep -q 'PROC_PID_MASK' "$pl" "$ex"; then
         echo "$tag: process creation stores redundant PID state" >&2
@@ -105,4 +105,4 @@ grep -q 'pid is the process-table slot' "$si" || {
         exit 1
 }
 
-printf '%s\n' "$tag: PASS (context=0024 fdctl=1 cwd=1 file=0040 cred+umask=1 fd-mount-bitmap=1 stack=0316 swap=1 break=1 total=0410 octal words)"
+printf '%s\n' "$tag: PASS (context=0024 fdctl=1 cwd=1 file=0040 cred+umask=1 finalize=1 stack=0315 swap=1 break=1 total=0410 octal words)"

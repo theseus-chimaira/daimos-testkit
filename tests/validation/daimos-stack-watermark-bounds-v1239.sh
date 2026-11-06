@@ -10,11 +10,11 @@ source_file="$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s"
 # This executes the actual conditionalized production watermark leaves.
 # Each constant must be exactly the value checked by the native fixture.
 grep -q '^        .equ    KERNEL_IDLE_STACK_WORDS,0400$' "$source_file"
-grep -q '^        .equ    PROC_KSTACK_WORDS,0316$' "$source_file"
+grep -q '^        .equ    PROC_KSTACK_WORDS,0315$' "$source_file"
 grep -q '^#define KERNEL_IDLE_STACK_WORDS   00400UL$' \
     "$DAIMOS_REPO/system/kernel/boot/kinit.h"
 {
-    printf '.text\n.equ PROC_USTACK_BASE,070\n.equ PROC_KSTACK_WORDS,0316\n.equ KERNEL_IDLE_STACK_WORDS,0400\n.globl proc_stack_watermark_scan\n.globl kernel_idle_stack_watermark_scan\n'
+    printf '.text\n.equ PROC_USTACK_BASE,070\n.equ PROC_KSTACK_WORDS,0315\n.equ KERNEL_IDLE_STACK_WORDS,0400\n.globl proc_stack_watermark_scan\n.globl kernel_idle_stack_watermark_scan\n'
     sed -n '/^proc_stack_watermark_scan:$/,/^\.endif$/p' "$source_file" | sed '$d'
 } > "$work/stack-leaves.s"
 

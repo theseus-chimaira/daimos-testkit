@@ -1157,6 +1157,11 @@ test-daimos-stack-watermark-bounds-v1239: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		TMPDIR='$(TMPDIR)' sh tests/validation/daimos-stack-watermark-bounds-v1239.sh
 
+.PHONY: test-daimos-uarea-canary-boundary-v1243
+test-daimos-uarea-canary-boundary-v1243: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		TMPDIR='$(TMPDIR)' sh tests/validation/daimos-uarea-canary-boundary-v1243.sh
+
 .PHONY: test-daimos-swap-exchange-backing-v1241
 test-daimos-swap-exchange-backing-v1241: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
