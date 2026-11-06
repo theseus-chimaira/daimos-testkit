@@ -12,7 +12,9 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
  echo '.globl proc_swap_exchange_overlap_v772'
  echo '.globl proc_swap_exchange_tails_v773'
  echo '.globl proc_swap_exchange_transfer_v774'
- sed -n '/^proc_swap_exchange_sector_v771:$/,/^\/\* Return the complete/p' "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" | sed '$d'
+ echo '.globl fs_zero_words'
+ sed -n '/^proc_swap_exchange_sector_v771:$/,/^; int proc_swap_exchange_checked_v783(/p' "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" | sed '$d'
+ sed -n '/^fs_zero_words:$/,/^        \.globl  fs_zero_block_workspace/p' "$DAIMOS_REPO/system/kernel/fs/fs_mres.s" | sed '$d'
 
 } > "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step \

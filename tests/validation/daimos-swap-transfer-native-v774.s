@@ -39,6 +39,9 @@ finish:
         jrst 4,0
         .globl bcache_workspace_invalidate
 bcache_workspace_invalidate: popj 17,
+        .globl proc_swap_storage_invariant_v30
+; Isolated swap leaf: any production fail-stop invariant is a test failure.
+proc_swap_storage_invariant_v30: halt .
         .globl backstore_read
 backstore_read:
         lsh 1,7
