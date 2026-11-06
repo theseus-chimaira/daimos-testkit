@@ -1330,6 +1330,12 @@ test-daimos-drm236-online: check-prefix
 		TMPDIR="$(TMPDIR)" DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
 		tests/validation/daimos-drm236-online-v1.sh
 
+.PHONY: test-daimos-drm236-pi-registers-v1247
+test-daimos-drm236-pi-registers-v1247: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		sh tests/validation/daimos-drm236-pi-registers-v1247.sh
+
 test-daimos-drm236-minit: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
