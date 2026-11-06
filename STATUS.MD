@@ -1,3 +1,23 @@
+## 2026-11-07 v1270: preserve historical F07 diagnostic probes
+
+The 27 previously untracked diagnostic-only F07 files (v1075-2000s,
+v1207, v1212-v1250) are now versioned rather than left in the working
+tree. All Python files passed AST syntax parsing and both shell runners
+passed `sh -n`. These are historical fault-isolation fixtures, not new
+production features or a claim that each injection case has current
+full-system acceptance. Their opt-in flags remain off by default.
+
+Both clean and experimental v1266 swap probes plus v1263/v1264
+protection and v1207 accounting native/host tests PASS. The final
+256K clean committed-source 24-process guest v1269 passes the full
+900-second F07 workload; SHA256 evidence is documented in DAIMOS.
+The optional v1208/v1211 swap runtime experiment was discarded from
+production after a clean guest passed without it. Its exact reversible
+source diff is archived in DAIMOS `design/`, not installed in KCORE or
+SWAP MRES. No no-equal-partner failure case has established a reason
+to add the 16-word SWAP MRES growth. F07 remains open for 64-slot
+and combined descriptor pressure qualification.
+
 ## 2026-11-06 v1264: successful 24-process F07 stress run (gate still open)
 
 The fresh PDP-6 256K KCC/DSK/D6FS guest reached the expected `KWP` HALT within the original 900-second limit: 18 additional RUN children admitted, true disk swap under 24 live user slots, requester-only physical OOM, held provider lease and gateway contention, every child terminated and individually reaped. The v1150/v1159 owner/protected-slot probes and v1203/v1205/v1207 independent MM/process/swap/stack verifiers PASS. The original provider error is zero. Batch TERM v1262 queues the same 18 TERM events before the 18 normal WAIT/status/teardown checks. Provider mode v1264 and protected mode v1263 retain strict expectations in standalone tests; their native mutant controls PASS.
