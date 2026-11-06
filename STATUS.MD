@@ -1,3 +1,30 @@
+## 2026-11-07 v1274: F07 full 64-slot/descriptor/physical-OOM acceptance PASS
+
+A fresh 256K KCC DSK/D6FS PDP-6 guest built from clean DAIMOS
+`226e7a5f` and disposable testkit `027fc3f` completed within the
+original 900-second limit: 57 additional RUN/BRK acknowledgments,
+physical requester-only OOM, original foreign FS lease and gateway
+cleanup, all 57 normal TERM/WAIT/reaps, witness survival, exact final
+VM/FILE/backing cleanup and expected `KWP` HALT. The kernel's
+production requester-OOM switch remains OFF.
+
+At the single real physical-OOM snapshot: 64 configured process slots,
+63 live user processes, 55 resident APR extents and 8 nonresident/swap
+processes, 127/136 real MM descriptors, 239576/242085 managed words
+allocated, 2509 free, 31642 exact APR-rounding words, 128-word shared
+FS workspace, 180/206-word private and 63/256-word idle stack peaks.
+Every real child (slots 7..63) published its distinct logical BRK.
+
+The tightened v1205/v1207 verifiers require all expected real u-areas,
+near-full MM/descriptor occupancy and original provider ownership;
+`daimos-f07-64slot-host-v1274.py` validates the real evidence and
+rejects 13 unsafe mutations. The old 24-process evidence still passes
+its unchanged requirements. All evidence manifests verify.
+Archive `$TMPDIR/daimos-f07-64slot-acceptance-v1274-r1.tar.gz`, SHA256
+`0fb22920bfd9f66c155ef3bb61f8db0c0f146f80f89bbc3e6e1b3406d9599e1b`.
+This closes the bounded S07/S08-profile F07 quantitative acceptance,
+NOT E13/F11/F12/F13 or production OOM activation.
+
 ## 2026-11-07 v1272: bound 64-slot guest VM footprint (qualification running)
 
 The first v1271 64-slot guest reached 18/57 extra RUN acknowledgments

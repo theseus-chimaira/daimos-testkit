@@ -58,9 +58,12 @@ def verify_slots(snapshot, proc):
         sched = proc['sched%d' % slot]
         brk = proc['brk%d' % slot]
         state = (sched >> 33) & 7
-        # Slots 1..12 must still exist, including six new user
-        # processes, when the original requester hits physical OOM.
-        if 1 <= slot <= 12 and (state in (0, 4) or not meta & 0o400000):
+        # Every expected user slot must retain its stable executive
+        # u-area while the requester sees physical OOM. Earlier F07
+        # probes checked only the first twelve, silently permitting
+        # an invalid or missing late child's u-area metadata.
+        if 1 <= slot <= last_extra and \
+                (state in (0, 4) or not meta & 0o400000):
             raise ValueError('expected live process slot lost: %d' % slot)
         if state in (0, 4):
             continue

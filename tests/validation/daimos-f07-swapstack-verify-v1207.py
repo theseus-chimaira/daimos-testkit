@@ -43,11 +43,29 @@ def verify_swapstack(snapshot, proc, counters):
         raise ValueError('incorrect 256K process-slot capacity')
     if counters['swap_active'] != 1:
         raise ValueError('swap service not active during OOM')
-    expected_slots = (63 if os.environ.get('V1271_TEST_FULL_SLOTS') == '1'
-                      else 24)
+    full_slots = os.environ.get('V1271_TEST_FULL_SLOTS') == '1'
+    expected_slots = 63 if full_slots else 24
     if mm['live_process_slots'] != expected_slots:
         raise ValueError('expected exactly %d live process slots' %
                          expected_slots)
+    if full_slots:
+        # Real process/u-area allocation must nearly saturate both the
+        # 136-entry MM extent table and physical RAM while the foreign
+        # provider still owns its 128-word serialized workspace. This
+        # guards F07 against a nominally full PID table with no actual
+        # descriptor, APR or provider pressure.
+        physical = mm['mm']
+        if physical['extent_count'] < 125 or \
+                physical['descriptor_headroom'] > 11:
+            raise ValueError('full-slot descriptor pressure too low')
+        if physical['allocated_words'] < 235000 or \
+                physical['free_words'] > 4096:
+            raise ValueError('full-slot physical MM pressure too low')
+        if physical['shared_provider_workspace_words'] != 128 or \
+                physical['provider_owner_lease'] != 7 << 18:
+            raise ValueError('full-slot provider workspace not owned')
+        if mm['resident_process_extents'] < 50:
+            raise ValueError('too few real resident process extents')
     if mm['nonresident_or_swap_processes'] < 1:
         raise ValueError('no nonresident user process observed')
     if counters['swap_blocks'] < 1:
@@ -87,8 +105,9 @@ def main():
     proc = read_values(sys.argv[1], sys.argv[2], 'f07p_')
     counters = read_values(sys.argv[1], sys.argv[2], 'f07s_')
     result = verify_swapstack(mm, proc, counters)
-    print('v1207: 24 real processes, live disk swap, exact VM/BRK and '
-          'private/idle stack watermarks PASS')
+    print('v1207: %d real user processes, live disk swap, exact VM/BRK '
+          'and private/idle stack watermarks PASS' %
+          result['real_process_slots'])
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
