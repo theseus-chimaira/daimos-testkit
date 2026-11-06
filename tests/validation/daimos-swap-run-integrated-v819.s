@@ -248,7 +248,7 @@ __publish_req: .word __a
  .word 1
  .word 2
  .word 02000
-__a: .word 0200000
+__a: .word __a_uarea,,0600000
  .word 04000,,02000
 __b: .word __pure_uarea,,0600000
  .word 04000,,0
@@ -285,6 +285,7 @@ __bitmap: .word 01400
  .data
 __pure_ram: .block 0200
 __pure_uarea: .block 0410
+__a_uarea: .block 0410
 .globl vfs_mount_root_base
 vfs_mount_root_base: .word __mounts
 .globl vfs_mount_limit

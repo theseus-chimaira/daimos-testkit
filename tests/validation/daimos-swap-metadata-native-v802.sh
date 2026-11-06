@@ -6,7 +6,7 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 work=$(mktemp -d "$TMPDIR/daimos-metadata-v802.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
- printf '.text\n.equ MM_TYPE_PROCESS,1\n.equ MM_PIN_FIELD,03770000000\n.equ MM_PIN_ONE,010000000\n.equ PROC_TRANSITION_RH,0200000\n.globl mm_process_transfer_pinned\n.globl mm_unpin\n.globl proc_swap_exchange_records_v786\n.globl proc_swap_exchange_account_v787\n.globl proc_swap_exchange_publish_v788\n'
+ printf '.text\n.equ MM_TYPE_PROCESS,1\n.equ MM_PIN_FIELD,03770000000\n.equ MM_PIN_ONE,010000000\n.equ PROC_TRANSITION_RH,0200000\n.equ PROC_UAREA_RH,0400000\n.equ PROC_SWAP_BACKING_OFFSET,0406\n.globl mm_process_transfer_pinned\n.globl mm_unpin\n.globl proc_swap_exchange_records_v786\n.globl proc_swap_exchange_account_v787\n.globl proc_swap_exchange_publish_v788\n'
  sed -n '/^proc_swap_exchange_records_v786:$/,/^; Commit a prepared, already-transferred exchange/p' "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" | sed '$d'
  sed -n '/^mm_find_base:$/,/^; int mm_is_pinned/p' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
  sed -n '/^mm_process_transfer_pinned:$/,/^; int mm_process_shrink_pinned/p' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'

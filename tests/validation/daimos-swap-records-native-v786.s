@@ -3,6 +3,8 @@
 main:
         movei 17,__stack-1
         hrli 17,-0400
+        movei 1,01234
+        movem 1,__b_uarea+0406
         movei 1,__req
         pushj 17,proc_swap_exchange_records_v786
         jumpn 1,fail1
@@ -17,6 +19,13 @@ main:
         move 1,__br
         caie 1,01234
         jrst fail5
+        move 1,__a_uarea+0406
+        caie 1,01234
+        jrst fail
+        skipn __b_uarea+0406
+        jrst check_second_v1241
+        jrst fail
+check_second_v1241:
         movei 1,__req
         pushj 17,proc_swap_exchange_records_v786
         camn 1,[-1]
@@ -46,9 +55,9 @@ __req:  .word __a
         .word 012
         .word 3
         .word 01234
-__a:    .word 0
+__a:    .word __a_uarea,,0400000
         .word 04000,,02000
-__b:    .word 0
+__b:    .word __b_uarea,,0400000
         .word 06000,,0
 __ar:   .word 01234
 __br:   .word 2,,012
@@ -56,3 +65,9 @@ __br:   .word 2,,012
         .globl __test_exit
 __test_exit: .block 1
 __stack: .block 0400
+__a_uarea: .block 0410
+__b_uarea: .block 0410
+        .text
+        .globl backstore_free
+backstore_free: setz 1,
+        popj 17,

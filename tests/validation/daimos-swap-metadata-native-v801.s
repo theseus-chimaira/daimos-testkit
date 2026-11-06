@@ -3,6 +3,8 @@
 main:
  movei 17,__stack-1
  hrli 17,-0400
+ movei 1,01234
+ movem 1,__b_uarea+0406
  movei 1,__records_req
  pushj 17,proc_swap_exchange_records_v786
  jumpn 1,fail
@@ -23,6 +25,13 @@ main:
  move 1,__b_record
  caie 1,01234
  jrst fail
+ move 1,__a_uarea+0406
+ caie 1,01234
+ jrst fail
+ skipn __b_uarea+0406
+ jrst metadata_backing_ok_v1241
+ jrst fail
+metadata_backing_ok_v1241:
  move 1,proc_swap_blocks_used
  caie 1,5
  jrst fail
@@ -78,9 +87,9 @@ __publish_req: .word __a
  .word 1
  .word 2
  .word 02000
-__a: .word 0200000
+__a: .word __a_uarea,,0600000
  .word 04000,,02000
-__b: .word 0200000
+__b: .word __b_uarea,,0600000
  .word 06000,,0
 __a_record: .word 01234
 __b_record: .word 010,,2
@@ -95,3 +104,5 @@ __modes: .word 020
 __test_exit: .block 1
 __unpins: .block 1
 __stack: .block 0400
+__a_uarea: .block 0410
+__b_uarea: .block 0410

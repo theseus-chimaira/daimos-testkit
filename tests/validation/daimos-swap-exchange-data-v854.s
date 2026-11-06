@@ -71,6 +71,30 @@ restore_backing:
 restore_bitmap:
  movei 1,0400
  iorm 1,__bitmap
+ ; v1241: an outgoing A with a dirty saved-backing slot cannot be
+ ; exchanged. The transaction must reject before the first disk write.
+ movei 1,0777
+ movem 1,__a_uarea+0406
+ movei 1,__run_req
+ pushj 17,proc_swap_exchange_run_v790
+ camn 1,[-1]
+ jrst restore_a_backing_v1241
+ jrst fail_entry
+restore_a_backing_v1241:
+ setzm __a_uarea+0406
+ ; A must have an original executable backing record to save.
+ setzm __a_record
+ movei 1,__run_req
+ pushj 17,proc_swap_exchange_run_v790
+ camn 1,[-1]
+ jrst restore_a_record_v1241
+ jrst fail_entry
+restore_a_record_v1241:
+ movei 1,01234
+ movem 1,__a_record
+ move 1,__disk
+ caie 1,0400
+ jrst fail_disk
  ; v824: A writable span starts inside 04000 words but three sectors
  ; would extend beyond it. This must fail before any disk write.
  move 4,__prepare
@@ -147,6 +171,15 @@ verify_pure:
  move 1,__b_record
  came 1,__pure_req
  jrst fault_6
+ ; The outgoing A's original executable backing must survive swap-out,
+ ; and incoming B's saved backing must be consumed exactly once.
+ move 1,__a_uarea+0406
+ caie 1,01234
+ jrst fault_13
+ skipn __pure_uarea+0406
+ jrst check_backing_swap_v1241
+ jrst fault_14
+check_backing_swap_v1241:
  move 1,backstore_blocks_used
  caie 1,3
  jrst fault_7
@@ -248,7 +281,7 @@ __publish_req: .word __a
  .word 1
  .word 2
  .word 02000
-__a: .word 0200000
+__a: .word __a_uarea,,0600000
  .word 04000,,02000
 __b: .word __pure_uarea,,0600000
  .word 04000,,0
@@ -285,6 +318,7 @@ __bitmap: .word 01400
  .data
 __pure_ram: .block 0200
 __pure_uarea: .block 0410
+__a_uarea: .block 0410
 .globl vfs_mount_root_base
 vfs_mount_root_base: .word __mounts
 .globl vfs_mount_limit
@@ -416,6 +450,10 @@ fault_10: movei 1,022
 fault_11: movei 1,023
  jrst done
 fault_12: movei 1,024
+ jrst done
+fault_13: movei 1,025
+ jrst done
+fault_14: movei 1,026
  jrst done
 
 .data
