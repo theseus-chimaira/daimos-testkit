@@ -1340,6 +1340,10 @@ test-daimos-drm236-pi-registers-v1247: check-prefix
 test-daimos-f07-pi-map-probe-v1249:
 	@python3 tests/validation/daimos-f07-pi-map-probe-test-v1249.py
 
+.PHONY: test-daimos-f07-slot0-wait-probe-v1250
+test-daimos-f07-slot0-wait-probe-v1250:
+	@python3 tests/validation/daimos-f07-slot0-wait-report-test-v1250.py
+
 test-daimos-drm236-minit: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
