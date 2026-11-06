@@ -1370,6 +1370,11 @@ test-daimos-f07-dispatch-tally-v1253: check-prefix
 test-daimos-f07-provider-snapshot-v1254:
 	@python3 tests/validation/daimos-f07-provider-report-test-v1254.py
 
+.PHONY: test-daimos-f07-provider-order-v1258
+test-daimos-f07-provider-order-v1258:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' TMPDIR='$(TMPDIR)' \
+		python3 tests/validation/daimos-f07-provider-order-test-v1258.py
+
 test-daimos-drm236-minit: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }

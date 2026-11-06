@@ -1,7 +1,9 @@
 #!/bin/sh
-# Diagnostic-only PDP-6 provider/DRM state and resumable SIMH checkpoint.
+# Diagnostic-only PDP-6 provider/DRM state and read-only SIMH checkpoint.
 # The wrapper never patches the kernel source; use fresh guest media. SIMH
 # may write mounted device images during a run.
+# Do not resume a checkpoint taken during active disk I/O: the saved CPU/RAM
+# state does not guarantee that an in-flight hardware completion is resumed.
 set -eu
 : "${F07_GUEST_BUILD:?}" "${PDP10_PREFIX:?}"
 export TMPDIR=${TMPDIR:-$HOME/tmp}
@@ -74,7 +76,7 @@ rc=$?
 set -e
 printf 'v1254: simulator exit: %d\n' "$rc"
 test -s "$out/guest-v1254.sav" || {
-    echo 'v1254: no resumable CPU/memory checkpoint was created' >&2
+    echo 'v1254: no read-only CPU/memory checkpoint was created' >&2
     exit 1
 }
 if grep -aFq '?RT' "$out/simh-v1254.log" || \
