@@ -119,7 +119,20 @@
 #define V1075_WITNESS_STATUS 052U
 #define V1075_OOM_STATUS 1U
 
-static volatile kword_t v1075_pressure[040000];
+#if V1271_TEST_FULL_SLOTS
+/* The original INIT image carries a 16K-word BSS pressure array.
+ * Cloning it 57 times exceeds the configured swap-region capacity
+ * before the 64-slot descriptor limit can be measured. Preserve the
+ * real BSS integrity sentinel, but use one APR quantum in this
+ * distinct maximum-slot fixture. Actual swapping and physical OOM
+ * remain mandatory checks in the snapshot and final accounting. */
+#define V1075_PRESSURE_WORDS 02000
+#define V1075_PRESSURE_LAST 01777
+#else
+#define V1075_PRESSURE_WORDS 040000
+#define V1075_PRESSURE_LAST 037777
+#endif
+static volatile kword_t v1075_pressure[V1075_PRESSURE_WORDS];
 static kword_t v1075_path[] = {
         12UL,
         TEST_SIX6('/', 'S', 'Y', 'S', 'T', 'E'),
@@ -327,7 +340,7 @@ main(int argc, kword_t **argv)
 #endif
 #endif
 
-        v1075_pressure[037777] = 01234567UL;
+        v1075_pressure[V1075_PRESSURE_LAST] = 01234567UL;
         if (argc == 2 && argv != 0 && argv[1] != 0 &&
             argv[1][0] == 1UL) {
                 if (argv[1][1] ==
@@ -928,7 +941,7 @@ main(int argc, kword_t **argv)
         if (dsys_meminfo(&after) != 0 ||
             after.process_slots_used != before.process_slots_used ||
             after.process_words != before.process_words ||
-            v1075_pressure[037777] != 01234567UL)
+            v1075_pressure[V1075_PRESSURE_LAST] != 01234567UL)
                 fail('7');
 
 #if V1156_TEST_DISK_FULL

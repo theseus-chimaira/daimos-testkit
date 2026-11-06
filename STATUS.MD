@@ -1,3 +1,21 @@
+## 2026-11-07 v1272: bound 64-slot guest VM footprint (qualification running)
+
+The first v1271 64-slot guest reached 18/57 extra RUN acknowledgments
+at approximately seven minutes while still making forward progress.
+It was deliberately stopped rather than misreported as deadlocked:
+cloning the original 16K-word INIT BSS 57 times puts more than the
+configured swap backing at risk and makes the unchanged 900-second
+24-process timeout inappropriate for this different workload.
+
+The v1272 64-slot-only fixture now keeps a real BSS corruption sentinel
+in a 1K-word array; the original v1075/v1207 16K-word pressure array
+remains unchanged in every other mode. The actual 64-slot guest must
+still pass true RUN/BRK, 63 live user slots, nonzero real disk swap,
+physical requester-only OOM, 57 individual TERM/WAIT/reaps, exact
+MM/FILE/backing cleanup and original private/idle stack watermarks.
+The two C89 modes compile; no production code is changed. The fresh
+v1272 full-system guest is currently under verification, not accepted.
+
 ## 2026-11-07 v1271: full 64-slot F07 stress fixture (qualification running)
 
 A new opt-in `V1271_TEST_FULL_SLOTS=1` mode attempts 57 extra real
