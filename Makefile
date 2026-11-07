@@ -1,3 +1,10 @@
+.PHONY: test-daimos-swap-postflight-replay-v1311
+test-daimos-swap-postflight-replay-v1311: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 V1311_GUEST_DIR="$${V1311_GUEST_DIR:?set V1311_GUEST_DIR to an existing complete 256K guest}" \
+	 sh tests/validation/daimos-swap-postflight-replay-v1311.sh
+
 .PHONY: test-daimos-simh-swap-live-sampler-v1306
 test-daimos-simh-swap-live-sampler-v1306:
 	@python3 tests/validation/daimos-simh-swap-live-sampler-v1306-selftest.py

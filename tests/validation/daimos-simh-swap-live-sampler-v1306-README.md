@@ -64,7 +64,27 @@ with two read-only PC/timer snapshots.
 
 The standalone `test-daimos-swap-no-partner-v1304-preflight` target
 checks the generated disposable guest runner's shell syntax without
-building an image.  The 24K-BSS physical guest has not yet completed
-with the live sampler enabled.  In particular, none of the available
-real F07 runs has observed a swap-in allocator error or no-partner
-cooldown; the kernel liveness question remains OPEN.
+building an image.
+
+## Completed guest and offline postflight replay (v1311)
+
+The original v1308 live-sampled 24K-BSS physical guest finished all
+18 RUN/TERM/WAIT lifetimes and HALT with 51 successful swap-ins and
+no allocation pressure or cooldown.  Its original runner returned
+nonzero because its already-running older sampler emitted interactive
+`sim> ` prefixes on the post-HALT counter lines.  The v1309 prompt
+formatting correction was committed after that sampler was loaded;
+it passed a separate end-to-end PTY protocol test.
+
+For retained v1308 evidence, set `V1311_GUEST_DIR` to the original
+guest folder and use the opt-in Make target
+`test-daimos-swap-postflight-replay-v1311`. This leaves the original
+data intact, creates a copy with only the SIMH prompt prefixes
+removed, and invokes the **unchanged original v1075 postflight checks**.
+All provider, witness, real MM, process, swap/stack and media evidence
+checks PASS on that copied recording. A disposable corrupted provider
+owner counter is rejected. This is an evidence-validation replay,
+not a second full guest run or a no-partner liveness PASS.
+
+No full-system F07 run has yet exercised a real swap-in allocator
+pressure failure and no viable exchange partner. That question is OPEN.

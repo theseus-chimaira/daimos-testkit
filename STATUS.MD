@@ -1,3 +1,37 @@
+## 2026-11-07 v1311: full 24K guest completed; PTY postflight replay
+
+The first v1308 256K PDP-6 live-sampled 24K-BSS guest emitted all
+15 periodic v1306 snapshots, admitted all 18 pressure children,
+performed all 18 TERM/WAIT reaps, completed requester OOM/provider
+milestones, and reached HALT. The final linked source counters show
+51 successful swap-outs and 51 successful swap-ins, zero swap-in MM
+allocation failures, exchanges, fatal failures, and cooldowns.
+
+The original runner exited nonzero after the v1075 requester-only OOM
+PASS, because its already-running v1306 revision prefixed SIMH's
+post-HALT `examine` output with interactive `sim> ` prompts. Its v1150
+provider parser rejected the address formatting, not the kernel
+counter values. This was corrected in testkit v1309 `3fa4792` and
+verified with a PTY full-postflight protocol selftest; that fix was
+committed after the running simulator had already imported its older
+sampler source. Do not misstate v1308 as a direct full-runner PASS.
+
+New v1311 replays the **unchanged original v1075 postflight checks**
+from the original testkit source against a separate copy of the guest
+log with only line-leading `sim> ` prefixes removed. The immutable
+original guest log remains available. Recorded output then passes
+v1150 provider ownership/retry, v1159 protected processes, v1203
+physical MM, v1205 actual-process APR/BRK, v1207 real swapping and
+stack bounds, and v1160 release-media SHA256 evidence. A separate
+disposable negative fixture changing the one real v1150 `armed`
+counter from -1 to 0 is rejected as an invalid owner/oom condition.
+
+This is verified completed guest behavior with an offline diagnostic
+postflight replay, NOT another completed direct SIMH runner acceptance.
+The genuine full-system no-eligible-exchange-partner swap-in liveness
+case still was not exercised and remains OPEN. Production DAIMOS
+kernel source remains unchanged. All test fixtures are testkit-only.
+
 ## 2026-11-07 v1308: live SIMH swap-pressure observability
 
 Current production DAIMOS `f78145db` remains untouched.  The native
