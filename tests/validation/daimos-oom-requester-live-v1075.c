@@ -333,6 +333,11 @@ main(int argc, kword_t **argv)
         int gateway_waiter;
         int spinner;
         unsigned int probe;
+#if V1279_TEST_PROVIDER_BARRIER
+        kword_t v1279_holder;
+        kword_t v1279_waiter;
+        kword_t v1279_spinner;
+#endif
 #if V1207_TEST_SWAPSLOTS
         int provider_start_r;
         int provider_start_w;
@@ -839,9 +844,14 @@ main(int argc, kword_t **argv)
          * actual contention and independent spinner progress do not
          * occur within the bounded interval. No production hook. */
         for (probe = 0U; probe < 01000U; ++probe) {
-                if (dsys_brk(0777766UL) != 0UL &&
-                    dsys_brk(0777764UL) != 0UL &&
-                    dsys_brk(0777765UL) >= 5UL)
+                v1279_holder = dsys_brk(0777766UL);
+                v1279_waiter = dsys_brk(0777764UL);
+                v1279_spinner = dsys_brk(0777765UL);
+                /* Reject -1/error and impossible counter values even
+                 * if a diagnostic branch were accidentally omitted. */
+                if (v1279_holder == 1UL &&
+                    v1279_waiter >= 1UL && v1279_waiter < 0100000UL &&
+                    v1279_spinner >= 5UL && v1279_spinner < 0100000UL)
                         break;
                 if (dsys_sleep(010U) != 0)
                         fail('p');

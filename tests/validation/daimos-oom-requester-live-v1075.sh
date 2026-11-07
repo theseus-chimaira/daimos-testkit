@@ -28,7 +28,9 @@ f07_combined=${V1206_TEST_COMBINED:-0}
 f07_swapslots=${V1207_TEST_SWAPSLOTS:-0}
 batch_term=${V1262_TEST_BATCH_TERM:-0}
 full_slots=${V1271_TEST_FULL_SLOTS:-0}
-provider_barrier=${V1279_TEST_PROVIDER_BARRIER:-0}
+# Maximum-slot acceptance must observe real provider contention rather
+# than infer it from a fixed sleep. Smaller fixtures retain their ABI.
+provider_barrier=${V1279_TEST_PROVIDER_BARRIER:-$full_slots}
 extra_count=18
 if [ "$full_slots" = 1 ]; then extra_count=57; fi
 case "$enable" in
@@ -141,6 +143,10 @@ esac
 if [ "$provider_barrier" = 1 ] && {
     [ "$full_slots" != 1 ] || [ "$held_provider" != 1 ]; }; then
     echo 'v1279: barrier requires full-slot held-provider mode' >&2
+    exit 2
+fi
+if [ "$full_slots" = 1 ] && [ "$provider_barrier" != 1 ]; then
+    echo 'v1280: full-slot acceptance requires actual provider contention' >&2
     exit 2
 fi
 if [ "$f07_concurrent" = 1 ] && {
