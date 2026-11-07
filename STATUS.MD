@@ -1,3 +1,25 @@
+## 2026-11-07 v1325: 8K booted owner-pressure admission rejection classified
+
+The v1322 genuine 256K PDP-6 F07 guest reached 18 extra 24K-word
+child admissions and entered the additional, test-only 8K MM owner
+reservation. The actual `mm_alloc_aligned_noreclaim` call refused
+that allocation; INIT emitted `!t` and HALTed. Its post-HALT
+`f07h_error` is 36-bit -1, with `f07h_prepared=0`, `f07h_count=0`,
+`f07h_freed=0`. All swap-in MM failure, swap-service cooldown and
+exchange counters remain zero. This was **test setup exhaustion**,
+not a reproduced swap-in no-partner condition or a production bug.
+
+The new strict v1325 postmortem verifier requires those exact
+source-linked counters and terminal markers and rejects altered
+owner/error/pressure/cooldown values. Its Makefile target PASSes.
+SHA256-verified raw evidence:
+`$TMPDIR/daimos-swap-owner8k-rejection-v1325-evidence-r1.tar.gz`,
+SHA256 `bf5304eb2ce0de91d463b8137c601e9c77f4223bea7cf67ebb3a3e4582800e31`.
+
+The separate v1323 1K owner-tagged fixture was already running when
+v1325 postmortem was completed. It has no full-system no-partner
+acceptance yet. No production kernel source or RAM size changes.
+
 ## 2026-11-07 v1320: native production DEVICE backing gateway integration
 
 The v1319 PDP-6 native test extends the accepted v1317 production
