@@ -1,3 +1,7 @@
+.PHONY: test-daimos-simh-swap-live-sampler-v1326
+test-daimos-simh-swap-live-sampler-v1326: check-prefix
+	@python3 tests/validation/daimos-simh-swap-live-sampler-v1326-selftest.py
+
 .PHONY: test-daimos-swap-owner-postmortem-v1325
 test-daimos-swap-owner-postmortem-v1325: check-prefix
 	@: "$${V1325_ADDRESSES:?set full-guest address manifest}"
