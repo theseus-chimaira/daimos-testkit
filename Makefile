@@ -1637,6 +1637,14 @@ test-daimos-oom-disk-pi6-v1154: check-prefix
 	 sh tests/validation/daimos-oom-disk-pi6-v1154.sh
 
 .PHONY: test-daimos-p10fold-local-section-v1141
+.PHONY: test-daimos-fold-plan-fields-v1277
+test-daimos-fold-plan-fields-v1277: check-prefix
+	@PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 P10FOLD="$${P10FOLD:-$(PDP10_PREFIX)/bin/p10fold}" \
+	 DLINK="$${DLINK:-$(PDP10_PREFIX)/bin/dlink}" \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-fold-plan-fields-v1277.sh
+
 .PHONY: test-daimos-fatal-exec-physical-uarea-v1142
 test-daimos-fatal-exec-physical-uarea-v1142: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

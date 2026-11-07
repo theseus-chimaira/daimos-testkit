@@ -1,3 +1,29 @@
+## 2026-11-07 v1277: host linker/folder bug uncovered by OOM F11
+
+The current frozen Linux v1112 failed-RUN physical guest initially
+halted at PC zero after `<` on DAIMOS `226e7a5f`, but identical
+Android guest and historical DAIMOS `96e6c695` passed. An isolated
+37-commit Linux source bisect identified the first bad revision as
+`4dcaca20` (v1257 scheduler u-area locality guard). The native
+v1141 cross-object-local-relocation test then proved the Linux host
+still used an October 13 `p10fold` binary incorrectly folding two
+distinct LOCAL TEXT targets. A clean rebuild from current DAIMOS
+tools source restored correct relocation and v1112 PASS without
+touching the production kernel. The Linux and Android INIT executables
+were byte-identical throughout, and corrected KCORE low endpoints
+both equal `023267` octal for this test.
+
+v1277 adds an exact six-column fold-plan regression: a valid empty
+plan is accepted by both `dlink` and `p10fold`, while seven malformed
+or empty/extra-field plans are rejected by each with typed diagnostics.
+Combined with the existing v1141 relocation and v1257 native selector
+tests, the clean rebuilt Linux and Android tools PASS. The Linux
+update was installed from a versioned `local.tar.gz` into
+`$PDP10_PREFIX`, preserving the old binaries before replacement.
+The current release source F11 integration matrix still must be rerun
+with this corrected host toolchain. No production OOM enablement is
+implied by the host fix.
+
 ## 2026-11-07 v1275: exact-revision E13 cross-host PASS and F10 media-note audit
 
 Two independently built 256K KCC DSK/D6FS release-media OOM pairs
