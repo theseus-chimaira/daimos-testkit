@@ -27,6 +27,13 @@ mm_code = (section(mm, 'mm_extent_insert:\n', '\n; AC1=base.') +
            section(mm, 'mm_alloc_aligned_noreclaim:\n',
                    '\n; Move one process extent') +
            section(mm, 'mm_compact:\n', '\n; int mm_alloc(words') +
+           # v1260 added a real, read-only arena-capacity preflight
+           # referenced by the production aligned allocator. Extract
+           # that exact native leaf, not a fabricated constant-success
+           # stub: the isolated v1113 fixture must retain production
+           # MM error typing and its false-OOM negative controls.
+           section(mm, 'mm_arena_fits_v1260:\n',
+                   '\n; int mm_alloc_aligned(words,align,type,owner,preference,basep)\nmm_alloc_aligned:') +
            section(mm, 'mm_alloc_aligned:\n', '\n; int mm_free('))
 vm_code = section(vm, 'vm_space_brk_current:\n',
                   '\n/**\n * @brief Allocate and clear one aligned')
@@ -38,6 +45,7 @@ sc_code = sc_code.replace(gate, gate[:-1] + '1')
 header = ('.text\n.globl native_sys_brk\n.globl vm_space_brk_current\n'
           '.globl mm_alloc_aligned\n.globl mm_alloc_aligned_noreclaim\n'
           '.globl mm_find_fit\n.globl mm_compact\n'
+          '.globl mm_arena_fits_v1260\n'
           '.equ MM_TYPE_PROCESS,1\n.equ MM_ALLOC_LOW,0\n'
           '.equ MM_ERR_FRAGMENTED,-2\n.equ MM_TYPE_KERNEL_DYNAMIC,3\n'
           '.equ PROC_NO_SLOT,0400\n.equ VM_EXTENT_ALIGN_WORDS,02000\n')

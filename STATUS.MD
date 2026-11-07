@@ -1,3 +1,23 @@
+## 2026-11-07 v1278: retain native v1260 MM arena leaf in F04 BRK fixture
+
+The exact-source Linux F04/v1113 real MM/VM/BRK test failed during
+native image linking with `undefined symbol: mm_arena_fits_v1260`.
+The v1260 production allocator now calls this real aligned-arena
+feasibility function before reclamation; the old v1113 test extracted
+the allocator but omitted its new native leaf. The kernel did not
+execute and no BRK/MM failure was demonstrated by that build error.
+
+The v1278 native test fixture now extracts the **actual production**
+`mm_arena_fits_v1260` implementation along with the unchanged full
+allocator, compactor, VM BRK and fatal-enabled dispatch. It does not
+stub or assume the preflight succeeds, and the original three unsafe
+typed-cause mutants remain mandatory. Android native v1113 now PASSes
+all real -2/-3 MM/VM/BRK paths and three mutants; the independent
+v1260 alignment/no-reclaim test with two mutants also PASSes. The
+exact Linux F04 suite still requires re-execution with corrected
+testkit and the newly installed Linux v1277 linker tools. No
+production DAIMOS/MM source or OOM policy changed.
+
 ## 2026-11-07 v1277: host linker/folder bug uncovered by OOM F11
 
 The current frozen Linux v1112 failed-RUN physical guest initially
