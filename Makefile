@@ -1,3 +1,9 @@
+.PHONY: test-daimos-swap-real-mm-no-partner-v1313
+test-daimos-swap-real-mm-no-partner-v1313: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-swap-real-mm-no-partner-v1313.sh
+
 .PHONY: test-daimos-swap-postflight-replay-v1311
 test-daimos-swap-postflight-replay-v1311: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

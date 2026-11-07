@@ -1,3 +1,37 @@
+## 2026-11-07 v1314: actual MM allocation-pressure / no-partner native test
+
+The v1313 36-bit PDP-6 test extracts the unchanged production MM
+find-fit, noreclaim allocator, bounded allocator, arena capacity
+filter, compaction and free leaves, plus the actual slot-0 swap
+service. A physically occupied 010000-octal-word arena cannot fit
+the pending 02000-word process image. Actual MM returns typed
+MM_ERR_NOMEM (-1), after two filesystem reclaim attempts and one
+process reclaim attempt; these deliberately refuse to free the
+fixed kernel-dynamic extent. The unmodified slot-0 service scans
+three exchange candidates, rejects all, preserves disk-backed
+ownership, sets the 0100-octal cooldown and does NOT terminate the
+waiting process. Independently freeing the occupied extent through
+the production `mm_free` permits a subsequent real allocator
+success, correct process extent owner 2 and READY_ONCE dispatch.
+
+The native test models the disk transfer and candidate admission
+with separate stubs. It is therefore **not** a booted full-system
+no-partner forward-progress acceptance; timed cooldown aging,
+physical backstore reads, complete restore transaction and rollback
+are still pending full-guest evidence. It does not establish that
+the ordinary 256K F07 workload reaches no-partner pressure.
+
+The positive native test and four executable negative mutants PASS:
+pressure error collapse, skipped filesystem reclaim, skipped
+process reclaim and lost cooldown all fail their assertions.
+Neighboring v1300/v1301/v756, v1111 and v1260 checks PASS on the
+same production source. No production DAIMOS kernel changes.
+
+Versioned raw native evidence (positive, four rejects, source,
+symbol map and SHA256 manifests):
+`$TMPDIR/daimos-swap-real-mm-no-partner-v1314-evidence-r1.tar.gz`,
+SHA256 `c30cccf491176a4488ffcf8933dff0b0485ce85dc198c3d10db60e06c884ed92`.
+
 ## 2026-11-07 v1311: full 24K guest completed; PTY postflight replay
 
 The first v1308 256K PDP-6 live-sampled 24K-BSS guest emitted all
