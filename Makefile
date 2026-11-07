@@ -1,3 +1,24 @@
+.PHONY: test-daimos-simh-swap-live-sampler-v1306
+test-daimos-simh-swap-live-sampler-v1306:
+	@python3 tests/validation/daimos-simh-swap-live-sampler-v1306-selftest.py
+
+.PHONY: test-daimos-swap-no-partner-v1304-preflight
+test-daimos-swap-no-partner-v1304-preflight:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1304_PREPARE_ONLY=1 \
+	 sh tests/validation/daimos-swap-no-partner-fullguest-v1304.sh
+
+.PHONY: test-daimos-swap-no-partner-physical-v1303
+test-daimos-swap-no-partner-physical-v1303:
+	@python3 tests/validation/daimos-swap-no-partner-physical-v1303.py \
+	 --self-test
+
+.PHONY: test-daimos-swap-no-partner-fullguest-v1304
+test-daimos-swap-no-partner-fullguest-v1304: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-swap-no-partner-fullguest-v1304.sh
+
 .PHONY: test-daimos-swap-no-partner-v1301
 test-daimos-swap-no-partner-v1301: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

@@ -1,3 +1,35 @@
+## 2026-11-07 v1308: live SIMH swap-pressure observability
+
+Current production DAIMOS `f78145db` remains untouched.  The native
+256K KCC PDP-6 F07 requester-only OOM guest with 16K-word process BSS
+completed with 18 RUN/TERM/WAIT children and 41 successful swap-ins;
+read-only v1209/v1219 probes recorded **zero** swap-in MM allocation
+failures, exchange requests and no-partner cooldowns.  A distinct
+24K-word-BSS disposable guest admitted all 18 children and yielded
+49 swap-outs/33 swap-ins with no failure or cooldown at a controlled
+pre-cleanup interrupt; that older v1304 r1 run was NOT a guest PASS.
+These facts do not establish no-partner liveness.
+
+v1303 now provides a source-linked physical no-partner evidence
+classifier, optional diagnostic-only partial-snapshot mode (exit 3),
+positive synthetic classification and five negative mutations.
+v1304 makes the 24K-BSS pressure image in a disposable source copy,
+retaining production MM/swap semantics and the original full-guest
+acceptance checks.  Its distinct full guest has a bounded 1800s
+budget and can be prepared without compiling via the preflight target.
+
+v1306 adds a read-only PTY-based SIMH live sampler.  It interrupts
+the CPU at an operator-selected interval, examines the actual linked
+PC, scheduler/timer, swap, cooldown, backing and MM-failure counters,
+then resumes the CPU.  It retains the guest-only console transcript
+separately from the full debugger trace, executes normal post-HALT
+diagnostics, restores the original boot.ini unchanged and fails closed
+when counters cannot be sampled.  Stub protocol, missing-symbol
+negative control and a real two-sample PDP-6 smoke PASS.  Short
+stop-after-samples runs explicitly do NOT qualify as full guest PASS.
+The opt-in long v1308 24K guest was running under 15 periodic samples
+at this documentation checkpoint; completion is not yet certified.
+
 ## 2026-11-07 v1302: swap-in no-partner current-source regression
 
 The accepted DAIMOS v1298 production OOM tree (`283b54dc`) passed a
