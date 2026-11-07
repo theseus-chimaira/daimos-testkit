@@ -1,3 +1,9 @@
+.PHONY: test-daimos-swap-physical-pinned-v1329-preflight
+test-daimos-swap-physical-pinned-v1329-preflight: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1329_PREPARE_ONLY=1 \
+	 sh tests/validation/daimos-swap-no-partner-fullguest-v1329.sh
+
 .PHONY: test-daimos-swap-resident-pins-v1326-preflight
 test-daimos-swap-resident-pins-v1326-preflight: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
