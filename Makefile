@@ -1,3 +1,9 @@
+.PHONY: test-daimos-swap-physical-owner-v1321-preflight
+test-daimos-swap-physical-owner-v1321-preflight: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1321_PREPARE_ONLY=1 \
+	 sh tests/validation/daimos-swap-no-partner-fullguest-v1321.sh
+
 .PHONY: test-daimos-swap-in-device-gateway-v1319
 test-daimos-swap-in-device-gateway-v1319: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
