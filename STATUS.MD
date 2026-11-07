@@ -1,3 +1,24 @@
+## 2026-11-07 v1338: isolate independent releaser poll before liveness acceptance
+
+The previously staged v1336 booted 256K guest reached a real slot-0
+MM_ERR_NOMEM/no-partner cooldown (one event), after 18 additional
+admissions, with 34 successful swap-outs and 18 swap-ins. Its
+independent user release witness did NOT appear during 18 live
+samples. PI6 time advanced and the cooldown expired, but further
+swap progress and normal HALT did not occur. This intentionally
+interrupted guest is **not** a release, cleanup or full-guest PASS.
+
+The versioned v1338 diagnostic fixture adds three read-only BSS
+counters to the disposable kernel only: number of spinner cooldown
+queries, last actual observed cooldown value, and number of entries
+to the exact MM-owner release path. The v1338 sampler also reads
+the original test owner count/prepared/freed/error, saved spinner
+pin base, release count and release-pressure witness by source-linked
+addresses. The real PI6 scheduler, MM/BRK, swap service and disk I/O
+remain unchanged. Source-injection, syntax and generated-runner
+preflight PASS. Its booted full guest requires separate evidence;
+no current diagnostic sample alone can close swap liveness.
+
 ## 2026-11-07 v1336: booted real-MM no-partner pressure independently verified
 
 The retained **unfinished** 256K KCC PDP-6 v1335 live SIMH trace
