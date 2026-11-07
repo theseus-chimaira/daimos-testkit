@@ -1,3 +1,22 @@
+## 2026-11-07 v1333: optional read-only live PDP-6 process descriptors
+
+The versioned v1332 SIMH sampler extends the accepted prompt-safe
+v1326 host utility with opt-in `--kcore-map` inspection of the real
+`proc_table`, `proc_high_slot` and `proc_current_slot` linked words.
+It reads the physical three-word process descriptors without
+writing kernel memory, deriving RUN/SLEEP/WAIT state, residency,
+process image extent size and descriptor flags for each live slot.
+The original 29 linked swap/MM counters and early-HALT/postflight
+validation remain unchanged when the optional map is omitted.
+
+The v1332 scripted PTY self-test PASSes actual descriptor decoding,
+normal early HALT, raw/guest prompt separation and rejection of
+missing symbols, truncated final postflight and malformed inputs.
+The previous v1326 self-test also PASSes on the same checkout.
+This is diagnostic instrumentation only, not real no-partner
+full-system acceptance. No production DAIMOS source or resident
+memory is modified.
+
 ## 2026-11-07 v1325: 8K booted owner-pressure admission rejection classified
 
 The v1322 genuine 256K PDP-6 F07 guest reached 18 extra 24K-word
