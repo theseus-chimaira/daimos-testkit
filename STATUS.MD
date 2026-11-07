@@ -1,3 +1,30 @@
+## 2026-11-07 v1336: independent user-MM release fixture (preflight)
+
+The booted v1327 early-owner run recorded 93 typed physical
+MM_ERR_NOMEM swap-in failures, 93 genuine no-partner cooldowns,
+zero exchanges, 54 normal swap-outs and 37 normal swap-ins after
+17 extra child admissions. Its INIT could not free the four real
+8K-word MM owner extents while it was waiting for the next RUN/ACK.
+The test was intentionally interrupted, not accepted as liveness.
+Exact original linked traces and source are archived at
+`$TMPDIR/daimos-swap-early-owner-pressure-v1335-evidence-r1.tar.gz`,
+SHA256 `6da56d34d55108c1105910e26a675b7c46caa05d54b120ab7166c7bfae2b3a65`.
+
+The versioned v1336 fixture now pins the existing resident spinner
+slot 5 using production `mm_pin`, then polls the actual production
+cooldown counter from user mode through a test-only read-only BRK.
+Once a real cooldown appears, that independent process frees the
+four typed test-owner MM extents through production `mm_free` and
+releases its own pin through production `mm_unpin`. Exact physical
+trigger, release count, pin/base and backing witnesses are checked
+by `daimos-swap-independent-release-verify-v1336.py`. This avoids
+inventing an MM error or freeing memory from a kernel timer.
+The source injector passed direct production PDP-6 assembly, and
+the generated 256K guest runner preflight PASSed. Booted end-to-end
+recovery is **NOT ACCEPTED** until a real guest reaches HALT, all
+owner/pin counters clear, and all backing is freed. Production KCORE
+and MRES source and permanent RAM remain unchanged.
+
 ## 2026-11-07 v1334: early 32K real-MM owner full-guest fixture (partial)
 
 The versioned v1327 disposable 256K F07 guest moves four genuine

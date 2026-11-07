@@ -1,3 +1,9 @@
+.PHONY: test-daimos-swap-independent-release-v1336-preflight
+test-daimos-swap-independent-release-v1336-preflight: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1336_PREPARE_ONLY=1 \
+	 sh tests/validation/daimos-swap-independent-release-v1336.sh
+
 .PHONY: test-daimos-swap-physical-pinned-v1329-preflight
 test-daimos-swap-physical-pinned-v1329-preflight: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
