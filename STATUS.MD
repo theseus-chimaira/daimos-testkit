@@ -1,3 +1,18 @@
+## 2026-11-07 v1334: early 32K real-MM owner full-guest fixture (partial)
+
+The versioned v1327 disposable 256K F07 guest moves four genuine
+8K-word MM_TYPE_KERNEL_DYNAMIC owner-075 extents to the stage with
+only six original resident user processes, before the 18 additional
+24K-BSS RUN admissions. It retains the unchanged production
+`mm_alloc_aligned_noreclaim`, `mm_free`, process scheduler and swap
+sources, with strict v1203 physical-MM, v1327 owner-release and
+v1303 no-partner final evidence requirements. Source injection and
+generated-runner preflight PASS; the first live PDP-6 guest entered
+additional child RUN with no early allocation rejection. No final
+MM-pressure, no-partner, exchange or leak-free acceptance is claimed
+from these intermediate observations. See
+`tests/validation/daimos-swap-early-owner-v1334-README.md`.
+
 ## 2026-11-07 v1333: optional read-only live PDP-6 process descriptors
 
 The versioned v1332 SIMH sampler extends the accepted prompt-safe
