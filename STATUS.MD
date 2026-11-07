@@ -1,3 +1,43 @@
+## 2026-11-07 v1317: production swap-in native commit and rollback
+
+The native v1316/v1317 test now extracts the entire actual production
+`proc_swap_in` transaction and unmodified slot-0 service, as well as
+the native MM allocator/find-fit/compaction/free, MM pin/unpin, packed
+process storage mode expectation/publication, backing bitmap free,
+PI6 timekeeping and scheduler swap-pressure selection. An occupied
+010000-octal-word arena makes the first real swap-in allocation
+return typed NOMEM. All three test-controlled exchange candidates
+are rejected; the swap record remains intact and cooldown is 0100.
+After 63 actual production clock-timekeeping calls, the cooldown
+remains active and the resident scheduler path is selected. Releasing
+the independent physical owner through production `mm_free` allows
+the 64th clock tick to expire the cooldown, the scheduler to request
+another swap-in, and the unchanged `proc_swap_in` to succeed.
+
+The successful native transaction executes actual MM pin, physical
+backing-read destination placement, MM unpin, resident VM publication,
+packed DISK -> RESIDENT mode publication and real `backstore_free`
+bitmap accounting. The backing bitmap and both swap counts become
+zero; the process extent has the correct owner and no outstanding
+pins. The disk `backstore_read` itself is a test-only provider which
+writes two distinctive words into the allocated physical memory.
+Its payload is subsequently checked at both ends of the image.
+
+A separate disk-read failure returns a genuine nonzero result from
+the test provider, causing the production rollback branch to unpin
+and free the physical process extent, preserve its original disk
+record and bitmap allocation, keep the packed state DISK, clear the
+TRANSITION marker and return a single fatal TERM event. Three
+executable source mutations (lost MM rollback free, lost backing
+bitmap release, lost storage-mode publication) are rejected.
+
+This establishes a native PDP-6 production transaction under real
+MM pressure; the physical backstore device, exchange eligibility,
+hardware PI6 interrupt entry and independent user process remain
+test-controlled or untested. Thus **booted full-system 256K no-partner
+liveness is not yet accepted**, and no production kernel RAM or code
+change is justified.
+
 ## 2026-11-07 v1315: actual PI6 cooldown and scheduler selection
 
 The native real-MM physical pressure test v1313 now additionally
