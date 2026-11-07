@@ -1,3 +1,28 @@
+## 2026-11-07 v1302: swap-in no-partner current-source regression
+
+The accepted DAIMOS v1298 production OOM tree (`283b54dc`) passed a
+full 256K PDP-6 GCC/DSK/D6FS 16-child scheduler-pressure guest via
+v852 and the existing native v855 incoming, v958 rollback, v666
+late rollback and v757 scheduler-contract tests. No production
+swap source change was necessary for these observed cases.
+
+New v1300 is a current-source guard for the slot-0 swap-in pressure
+classification, all-candidate scan, disk ownership and cooldown;
+it rejects six negative mutants. New v1301 executes the actual
+slot-0 service assembly on a PDP-6 with an allocator reporting
+pressure and three exchange candidates rejected: the swapped record
+is retained, the request is consumed, 0100 retry cooldown is set,
+TERM is not generated, and separate fatal/success returns behave
+correctly. These are native no-partner control-flow tests, not a
+full-system liveness proof under actual physical exhaustion.
+
+The old v756 test expected the removed C swap-in implementation.
+It now compiles current assembly and verifies the -3..-1 resource
+pressure distinction, fatal classification and four unsafe mutants.
+All three new/repaired Makefile targets PASS. The next required
+diagnostic is a physical 256K no-eligible-partner guest with actual
+memory/backing pressure and eventual progress/cleanup acceptance.
+
 ## 2026-11-07 v1278: retain native v1260 MM arena leaf in F04 BRK fixture
 
 The exact-source Linux F04/v1113 real MM/VM/BRK test failed during

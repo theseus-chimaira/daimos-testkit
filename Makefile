@@ -1,3 +1,20 @@
+.PHONY: test-daimos-swap-no-partner-v1301
+test-daimos-swap-no-partner-v1301: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-swap-no-partner-v1301.sh
+
+.PHONY: test-daimos-swap-no-partner-contract-v1300
+test-daimos-swap-no-partner-contract-v1300:
+	@python3 tests/validation/daimos-swap-no-partner-contract-v1300.py \
+	 '$(abspath $(DAIMOS_REPO))'
+
+.PHONY: test-daimos-mm-swap-result-contract-v756
+test-daimos-mm-swap-result-contract-v756: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-mm-swap-result-contract-v756.sh
+
 .PHONY: test-daimos-f07-combined-v1206 test-daimos-f07-combined-disabled-v1206
 test-daimos-f07-combined-v1206: check-prefix
 	@test -n '$(V1206_EVIDENCE_DIR)' || { \
