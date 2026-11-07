@@ -1,3 +1,33 @@
+## 2026-11-07 v1320: native production DEVICE backing gateway integration
+
+The v1319 PDP-6 native test extends the accepted v1317 production
+`proc_swap_in`/MM/pin/storage/backstore-bitmaps fixture through
+the actual `fs_mres.s` `backstore_read` DEVICE gateway. The DSK270
+hardware endpoint alone is test-controlled. For logical backing
+blocks 1 through 8, the real bridge validates the range, translates
+DEVICE base 020 to sectors 021..030 and advances both device address
+and physical output pointer by 0200 words per sector. The fixture
+checks the translated sector numbers and both endpoint payload words.
+Production swap-in performs MM allocation, pin, unpin, resident
+publication, bitmap free and READY_ONCE; eight sector reads observed.
+
+The same native test verifies first-sector and third-sector I/O
+failure, both handled through the unchanged production swap-in
+rollback: no orphan MM extent, original DISK record and backing
+retained and exactly one TERM event. An executable mutation that
+omits the production gateway buffer advancement fails the real
+PDP-6 payload assertion. The original v1317 transaction regression
+is run before these gateway checks, and the new v1319 Makefile target
+passes twice. No production kernel source or permanent resident
+footprint has changed.
+
+The endpoint is NOT a physical DSK270 device, and scheduler work,
+exchange candidate admission and real user-process release are
+not executed as a booted 256K guest. Thus this is native gateway
+integration acceptance, NOT full-system no-partner liveness.
+Evidence: `$TMPDIR/daimos-swap-device-gateway-v1320-evidence-r1.tar.gz`;
+SHA256 `c63d3f14a09d0873bb4958bbf40de7dd61bff84c3a4cf7901d1c54e06348bbab`.
+
 ## 2026-11-07 v1317: production swap-in native commit and rollback
 
 The native v1316/v1317 test now extracts the entire actual production

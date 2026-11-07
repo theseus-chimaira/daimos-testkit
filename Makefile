@@ -1,3 +1,9 @@
+.PHONY: test-daimos-swap-in-device-gateway-v1319
+test-daimos-swap-in-device-gateway-v1319: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-swap-in-device-gateway-v1319.sh
+
 .PHONY: test-daimos-swap-in-real-transaction-v1316
 test-daimos-swap-in-real-transaction-v1316: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
