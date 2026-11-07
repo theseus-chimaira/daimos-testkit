@@ -99,6 +99,8 @@ def main():
                 raise AssertionError('missing raw debug event: ' + marker)
         if '[v1306] sample=' in output or 'sim> PC:' in output:
             raise AssertionError('debugger output polluted F07 guest text')
+        if 'sim> ' in output or '20000:\t' not in output:
+            raise AssertionError('SIMH PTY prompts polluted guest postflight')
         if ini.read_text() != 'set cpu 256K\ngo 020\nexamine 020000\nexit\n':
             raise AssertionError('original boot command file modified')
         if list(root.glob('boot-v1306-*.ini')):

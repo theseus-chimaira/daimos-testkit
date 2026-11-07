@@ -142,6 +142,7 @@ def run(args):
     capture = bytearray()
     halt_seen = False
     running_tail = b''
+    postflight_pending = bytearray()
     try:
         with open(args.log, 'wb', buffering=0) as guest, \
                 open(raw_path, 'wb', buffering=0) as output:
@@ -175,17 +176,32 @@ def run(args):
                         elif phase == 'running':
                             # Preserve the original uninterrupted guest
                             # transcript for F07's strict milestone and
-                            # final-MM assertions.  Debugger responses are
-                            # written only to the separate raw trace.
-                            guest.write(buf)
+                            # final-MM assertions.  PTY postflight results
+                            # include SIMH's interactive 'sim> ' prompt;
+                            # strip it from the guest-only transcript.
                             running_tail = (running_tail + buf)[-128:]
-                            if (b'HALT instruction, PC:' in running_tail and
-                                    not halt_seen):
+                            became_halted = (not halt_seen and
+                                b'HALT instruction, PC:' in running_tail)
+                            if became_halted:
                                 halt_seen = True
                                 # Resume the original test's postflight
                                 # examines and EXIT, retaining its resource
                                 # accounting evidence.
                                 write_all(master, post_halt.encode('ascii'))
+                            if halt_seen:
+                                postflight_pending.extend(buf)
+                                while True:
+                                    prompt = postflight_pending.find(b'sim> ')
+                                    if prompt >= 0:
+                                        guest.write(postflight_pending[:prompt])
+                                        del postflight_pending[:prompt + 5]
+                                        continue
+                                    if len(postflight_pending) > 4:
+                                        guest.write(postflight_pending[:-4])
+                                        del postflight_pending[:-4]
+                                    break
+                            else:
+                                guest.write(buf)
                 if phase == 'interrupt' and re.search(
                         rb'(?:sim>|Simulation stopped|Breakpoint, PC:)',
                         capture, re.I):
@@ -221,6 +237,9 @@ def run(args):
                     write_all(master, b'go\n')
                     raise RuntimeError('SIMH console sample did not complete')
                 if exited and not buf:
+                    if postflight_pending:
+                        guest.write(postflight_pending)
+                        postflight_pending.clear()
                     break
             if proc.returncode != 0:
                 raise RuntimeError('SIMH exited with %s' % proc.returncode)
