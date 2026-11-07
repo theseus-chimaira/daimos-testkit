@@ -1,3 +1,10 @@
+.PHONY: test-daimos-swap-timer-frontier-v1340-preflight
+test-daimos-swap-timer-frontier-v1340-preflight: check-prefix
+	@python3 tests/validation/daimos-simh-swap-live-sampler-v1340-selftest.py
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1340_PREPARE_ONLY=1 \
+	 sh tests/validation/daimos-swap-independent-trace-v1340.sh
+
 .PHONY: test-daimos-swap-independent-trace-v1338-preflight
 test-daimos-swap-independent-trace-v1338-preflight: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \

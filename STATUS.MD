@@ -1,3 +1,37 @@
+## 2026-11-07 v1340: real independent MM release, Ctrl-E output defect fixed
+
+The booted 256K v1338 PDP-6 test observed one genuine typed swap-in
+MM_ERR_NOMEM and no-partner cooldown, then a source-linked independent
+spinner query read cooldown 1 and entered the original owner release
+exactly once. All four real 8K-word MM extents were freed by production
+`mm_free` (count 0, prepared 4, freed 4, error 0) and the spinner's
+real MM pin was released (base 0, released 1). Successful swap-ins
+increased from 13 to 18 afterward, with no exchange or fatal swap-in.
+This establishes true physical pressure, independent owner release
+and immediate post-release progress in a booted guest.
+
+The guest subsequently remained stalled after the `^` milestone:
+20 live samples, 34 swap-outs, 18 swap-ins, no completed HALT or final
+zero-leak accounting. It was deliberately interrupted and **cannot**
+close full-system liveness. The next independent trace adds the real
+`proc_timer_next` value to distinguish idle/timer/scheduler issues.
+
+The original v1338 raw SIMH PTY trace contains a genuine `@%&` user
+milestone sequence directly before `Simulation stopped` after Ctrl-E.
+The guest-only stream lost those bytes because the sampler discarded
+all data between sending Ctrl-E and the simulator stop acknowledgment.
+This is a host test-harness defect, NOT evidence of missing guest
+output or a DAIMOS TTY failure. The new v1340 sampler retains the
+guest prefix BEFORE the exact debugger stop marker and still strips
+SIMH prompts after that boundary. A versioned self-test emits `@%&`
+in that race and requires its exact preservation, as well as normal
+HALT, early HALT, source-linked process data and truncated-postflight
+negative rejection. Self-test and generated v1340 guest preflight PASS.
+
+No production KCORE, MM, scheduler, swap or MRES code changed. Full
+booted end-to-end acceptance remains OPEN until real process cleanup,
+backstore release and final source-linked postflight validation pass.
+
 ## 2026-11-07 v1338: isolate independent releaser poll before liveness acceptance
 
 The previously staged v1336 booted 256K guest reached a real slot-0
