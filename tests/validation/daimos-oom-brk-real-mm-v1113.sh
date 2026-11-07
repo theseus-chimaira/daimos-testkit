@@ -9,6 +9,7 @@ work=$(mktemp -d "$TMPDIR/daimos-oom-brk-real-mm-v1113.XXXXXX")
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; else echo "v1113: $work"; fi' EXIT HUP INT TERM
 python3 - "$DAIMOS_REPO" "$work" <<'PY'
 from pathlib import Path
+import os
 import sys
 
 root = Path(sys.argv[1]) / 'system/kernel'
@@ -38,9 +39,14 @@ mm_code = (section(mm, 'mm_extent_insert:\n', '\n; AC1=base.') +
 vm_code = section(vm, 'vm_space_brk_current:\n',
                   '\n/**\n * @brief Allocate and clear one aligned')
 sc_code = section(sc, 'native_sys_brk:\n', '\n; Root may rebind')
-gate = '.equ    PROC_OOM_BRK_ENABLED_V1000,0'
-assert sc_code.count(gate) == 1
-sc_code = sc_code.replace(gate, gate[:-1] + '1')
+off = '.equ    PROC_OOM_BRK_ENABLED_V1000,0'
+on = '.equ    PROC_OOM_BRK_ENABLED_V1000,1'
+expected = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+assert expected in ('0', '1'), 'invalid production OOM expectation'
+assert sc_code.count(off) + sc_code.count(on) == 1
+gate = off if expected == '0' else on
+assert sc_code.count(gate) == 1, 'unexpected production OOM policy'
+sc_code = sc_code.replace(gate, on, 1)
 
 header = ('.text\n.globl native_sys_brk\n.globl vm_space_brk_current\n'
           '.globl mm_alloc_aligned\n.globl mm_alloc_aligned_noreclaim\n'

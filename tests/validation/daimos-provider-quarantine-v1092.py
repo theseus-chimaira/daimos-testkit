@@ -10,6 +10,8 @@ from pathlib import Path
 
 
 ROOT = Path(os.environ["DAIMOS_REPO"]) / "system/kernel"
+EXPECTED_OOM = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+assert EXPECTED_OOM in ('0', '1'), 'invalid production OOM expectation'
 FILES = {
     "gateway": (ROOT / "fs/fs_mres.s").read_text(),
     "process": (ROOT / "proc/proc_pdp6.s").read_text(),
@@ -183,7 +185,7 @@ def verify(src):
             "movem   4,1(011)", "move    1,012")
     assert "proc_control_getteardown_v886:" in proc
     assert "trne    6,PROC_FATAL_CLOSE_BIT" in proc
-    assert ".equ    PROC_OOM_BRK_ENABLED_V1000,0" in disp
+    assert (".equ    PROC_OOM_BRK_ENABLED_V1000," + EXPECTED_OOM) in disp
 
 
 verify(FILES)
@@ -245,9 +247,10 @@ MUTATIONS = (
     ("failed close commits", "file",
      "file_close_finish:\n        jumpn   1,file_close_done",
      "file_close_finish:\n        jumpe   1,file_close_done"),
-    ("OOM early activation", "syscall",
-     ".equ    PROC_OOM_BRK_ENABLED_V1000,0",
-     ".equ    PROC_OOM_BRK_ENABLED_V1000,1"),
+    ("unexpected OOM production default", "syscall",
+     ".equ    PROC_OOM_BRK_ENABLED_V1000," + EXPECTED_OOM,
+     ".equ    PROC_OOM_BRK_ENABLED_V1000," +
+     ('1' if EXPECTED_OOM == '0' else '0')),
 )
 
 for label, file_key, before, after in MUTATIONS:

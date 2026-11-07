@@ -6,6 +6,7 @@ full mandatory checklist, actual production resident MRES and exact
 final-candidate revision remain separate gates.
 """
 
+import os
 import re
 import sys
 import tarfile
@@ -41,6 +42,8 @@ def counters(addresses, simh):
 
 def inspect(path, host):
     result = {}
+    expected_policy = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+    check(expected_policy in ('0', '1'), 'invalid production OOM expectation')
     with tarfile.open(path, 'r:gz') as archive:
         for mode in ('disabled', 'enabled'):
             profile = kv(content(archive, mode, 'profile.txt'))
@@ -50,7 +53,7 @@ def inspect(path, host):
                 'profile': 'full', 'core_octal': '01000000',
                 'simulator_kwords': '256', 'compiler': 'kcc',
                 'pclk': 'REALTIME', 'wall_clock_hz': '60',
-                'production_oom': 'OFF',
+                'production_oom': ('ON' if expected_policy == '1' else 'OFF'),
             }
             for key, value in expected.items():
                 check(profile.get(key) == value,

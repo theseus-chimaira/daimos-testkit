@@ -15,14 +15,20 @@ cp -a "$DAIMOS_REPO/system/stand" "$work/source/system/stand"
 cp "$DAIMOS_REPO/VERSION" "$work/source/VERSION"
 python3 - "$work/source/system/kernel/proc/syscall_dispatch_pdp6.s" "$enable" <<'PY'
 from pathlib import Path
+import os
 import sys
 p = Path(sys.argv[1])
 s = p.read_text()
-original = '.equ    PROC_OOM_BRK_ENABLED_V1000,0'
-assert s.count(original) == 1, 'OOM option changed; audit before enabling test'
-if sys.argv[2] == '1':
-    p.write_text(s.replace(original,
-                           '.equ    PROC_OOM_BRK_ENABLED_V1000,1', 1))
+off = '.equ    PROC_OOM_BRK_ENABLED_V1000,0'
+on = '.equ    PROC_OOM_BRK_ENABLED_V1000,1'
+expected = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+assert expected in ('0', '1'), 'invalid production OOM expectation'
+assert s.count(off) + s.count(on) == 1, 'ambiguous production OOM policy'
+original = off if expected == '0' else on
+assert s.count(original) == 1, 'unexpected production OOM policy'
+desired = off if sys.argv[2] == '0' else on
+if original != desired:
+    p.write_text(s.replace(original, desired, 1))
 PY
 
 # All injection is confined to the disposable kernel. The real D6FS

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard the current pre-activation OOM and optional-XIP boundary.
+"""Guard the expected production OOM policy and optional-XIP boundary.
 
 This is a source-level scope contract, not an XIP process-lifecycle test
 or permission to enable automatic OOM termination. Negative controls
@@ -17,16 +17,19 @@ exe = (root / "proc/exec_lowmem_pdp6.s").read_text()
 vm = (root / "proc/vm_pdp6.s").read_text()
 dispatch = (root / "proc/syscall_dispatch_pdp6.s").read_text()
 memfs = (root / "fs/memfs_runtime.s").read_text()
+expected_oom = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+assert expected_oom in ('0', '1'), 'invalid production OOM expectation'
 
 
 def check(src):
     run, exe, vm, dispatch, memfs = src
     errors = []
     if not re.search(
-        r"(?m)^\s*\.equ\s+PROC_OOM_BRK_ENABLED_V1000,0\s*$",
+        r"(?m)^\s*\.equ\s+PROC_OOM_BRK_ENABLED_V1000," + expected_oom +
+        r"\s*$",
         dispatch,
     ):
-        errors.append("production requester OOM is not default OFF")
+        errors.append("production requester OOM differs from expected policy")
     if run.count("pushj   17,vm_space_startup") != 1:
         errors.append("RUN normal startup call contract changed")
     if exe.count("pushj   17,vm_space_startup") != 2:
@@ -56,8 +59,9 @@ mutants = (
     (0, "pushj   17,vm_space_startup", "pushj   17,kret_zero"),
     (1, "pushj   17,vm_space_startup", "pushj   17,kret_zero"),
     (2, "movem   3,(11)", "move    3,(11)"),
-    (3, ".equ    PROC_OOM_BRK_ENABLED_V1000,0",
-     ".equ    PROC_OOM_BRK_ENABLED_V1000,1"),
+    (3, ".equ    PROC_OOM_BRK_ENABLED_V1000," + expected_oom,
+     ".equ    PROC_OOM_BRK_ENABLED_V1000," +
+     ('1' if expected_oom == '0' else '0')),
     (4, "cain    6,027", "cain    6,026"),
     (0, "pushj   17,vm_space_startup",
      "pushj   17,memfs_xip_admit\n        pushj   17,vm_space_startup"),
@@ -68,7 +72,8 @@ for i, old, new in mutants:
     changed[i] = changed[i].replace(old, new, 1)
     assert check(changed), "v1123: unsafe scope mutation escaped detection"
 
-print("v1123: OOM remains OFF; RUN/EXEC both use writing startup; "
+print("v1283: production OOM default=" + expected_oom +
+      "; RUN/EXEC both use writing startup; "
       "MEMFS XIP admission is not wired through the ordinary "
       "process loaders; six unsafe mutations rejected PASS")
 print("v1123: scope audit only -- not scheduled XIP proof or OOM readiness")

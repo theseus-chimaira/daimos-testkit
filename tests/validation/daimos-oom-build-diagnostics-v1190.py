@@ -6,6 +6,7 @@ note allowlist is exact; it does not suppress warnings in the compiler or
 the build.  Diagnostics outside the approved list fail the audit.
 """
 
+import os
 import re
 import sys
 import tarfile
@@ -50,8 +51,11 @@ def member(archive, path):
 def check_profile(archive, mode):
     lines = member(archive, mode + '/profile.txt').splitlines()
     profile = dict(line.split('=', 1) for line in lines if '=' in line)
-    require(profile.get('production_oom') == 'OFF',
-            mode + ' has production OOM enabled')
+    expected_policy = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+    require(expected_policy in ('0', '1'), 'invalid production OOM expectation')
+    expected_status = 'ON' if expected_policy == '1' else 'OFF'
+    require(profile.get('production_oom') == expected_status,
+            mode + ' has unexpected production OOM policy')
     require(profile.get('mode') == str(int(mode == 'enabled')),
             mode + ' mismatched test-only mode')
 

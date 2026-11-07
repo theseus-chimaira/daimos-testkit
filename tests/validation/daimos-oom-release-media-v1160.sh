@@ -8,6 +8,11 @@ set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp}
 mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+case "${V1283_PRODUCTION_OOM_DEFAULT:-0}" in
+    0) production_oom=OFF ;;
+    1) production_oom=ON ;;
+    *) echo 'v1283: invalid production OOM expectation' >&2; exit 2 ;;
+esac
 if [ "${V1174_TEST_RESIDENCY:-0}" = 1 ]; then
     work=$(mktemp -d "$TMPDIR/daimos-oom-residency-v1174.XXXXXX")
 else
@@ -39,10 +44,11 @@ for mode in 0 1; do
     fi
 done
 
-cat > "$work/README.txt" <<'EOF'
+cat > "$work/README.txt" <<EOF
 E13 v1160 disk-root release-media evidence: independent disposable guests.
 256K PDP-6, KCC, DSK Stage 1, ROOT=disk, D6FS and real DSK0 media.
-Both requester OOM default-off and test-only enabled policies are recorded.
+Production requester OOM default: $production_oom (see guest profiles).
+Both disposable OOM-disabled and OOM-enabled policies are recorded.
 Files: full build.log, SIMH transcript with complete counters, actual
 boot.ini, KCORE/user INIT maps, tool and root-media SHA256, profile.
 The media itself is not copied; its SHA256 attests the built file.

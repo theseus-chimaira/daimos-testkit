@@ -9,12 +9,18 @@ work=$(mktemp -d "$TMPDIR/daimos-oom-brk-dispatch-v1000.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 python3 - "$DAIMOS_REPO/system/kernel/proc/syscall_dispatch_pdp6.s" "$work/leaf.s" <<'PY'
 from pathlib import Path
+import os
 import sys
 s=Path(sys.argv[1]).read_text()
 a=s.split('native_sys_brk:\n',1)[1].split('native_sys_ttyctl:\n',1)[0]
-assert '.equ    PROC_OOM_BRK_ENABLED_V1000,0' in a
-a=a.replace('.equ    PROC_OOM_BRK_ENABLED_V1000,0',
-            '.equ    PROC_OOM_BRK_ENABLED_V1000,1')
+off = '.equ    PROC_OOM_BRK_ENABLED_V1000,0'
+on = '.equ    PROC_OOM_BRK_ENABLED_V1000,1'
+expected = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+assert expected in ('0', '1'), 'invalid production OOM expectation'
+assert a.count(off) + a.count(on) == 1, 'ambiguous production OOM policy'
+original = off if expected == '0' else on
+assert a.count(original) == 1, 'unexpected production OOM policy'
+a = a.replace(original, on, 1)
 Path(sys.argv[2]).write_text('.text\n.globl native_sys_brk\nnative_sys_brk:\n'+a)
 PY
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \

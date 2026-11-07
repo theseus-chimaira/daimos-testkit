@@ -18,13 +18,33 @@ sections = set("SABCDEF")
 post_signoff = {"F12", "F13"}
 retired = {"F05"}  # Static 16K fit is tracked outside OOM acceptance.
 pattern = re.compile(r"(?m)^- \[([ x])\] ([SABCDEF X][0-9]{2}): ")
+HEADING = "## v1123: fine-grained production OOM enablement checklist"
+
+
+def active_block(todo):
+    if todo.count(HEADING) != 1:
+        raise ValueError("missing/duplicate v1123 checklist heading")
+    begin = todo.index(HEADING) + len(HEADING)
+    end = todo.find("\n## ", begin)
+    if end < 0:
+        end = len(todo)
+    return begin, end
+
+
+def change_active(todo, changes):
+    """Mutate only the authoritative checklist, never historical TODOs."""
+    begin, end = active_block(todo)
+    block = todo[begin:end]
+    for old, new in changes:
+        if block.count(old) != 1:
+            raise ValueError("mutation anchor not unique " + old)
+        block = block.replace(old, new, 1)
+    return todo[:begin] + block + todo[end:]
 
 
 def scan(todo):
-    begin = "## v1123: fine-grained production OOM enablement checklist"
-    if todo.count(begin) != 1:
-        raise ValueError("missing/duplicate v1123 checklist heading")
-    block = todo.split(begin, 1)[1].split("\n## ", 1)[0]
+    begin, end = active_block(todo)
+    block = todo[begin:end]
     found = {}
     for mark, ident in pattern.findall(block):
         if ident in found:
@@ -51,16 +71,23 @@ if len(sys.argv) != 2 or sys.argv[1] not in ("--audit", "--require-ready"):
 todo = (Path(os.environ["DAIMOS_REPO"]) / "TODO.MD").read_text()
 found = scan(todo)
 
-# Require the checker to reject a lost item, a duplicate, a bad mark,
-# a premature production enable and an unbacked final release.
-start = todo.index("- [x] S01:")
+# The actual switch and release gates may already be checked during
+# F12/F13, so create invalid dependency states explicitly in the
+# active checklist. Never mutate historical status summaries first.
+f11_old = "- [x] F11:" if found["F11"] else "- [ ] F11:"
+f12_old = "- [x] F12:" if found["F12"] else "- [ ] F12:"
+f13_old = "- [x] F13:" if found["F13"] else "- [ ] F13:"
 for mutant in (
-    todo[:start] + todo[start:].replace("- [x] S01:", "- [x] S00:", 1),
-    todo[:start] + "- [x] S01: duplicate\n" + todo[start:],
-    todo[:start] + todo[start:].replace("- [x] S01:", "- [!] S01:", 1),
-    todo.replace("- [ ] F12:", "- [x] F12:", 1),
-    todo.replace("- [ ] F13:", "- [x] F13:", 1),
-    todo[:start] + "- [x] F05: retired gate resurrected\n" + todo[start:],
+    change_active(todo, [("- [x] S01:", "- [x] S00:")]),
+    change_active(todo, [("- [x] S01:",
+                          "- [x] S01: duplicate\n- [x] S01:")]),
+    change_active(todo, [("- [x] S01:", "- [!] S01:")]),
+    change_active(todo, [(f11_old, "- [ ] F11:"),
+                         (f12_old, "- [x] F12:")]),
+    change_active(todo, [(f12_old, "- [ ] F12:"),
+                         (f13_old, "- [x] F13:")]),
+    change_active(todo, [("- [x] S01:",
+                          "- [x] F05: retired gate resurrected\n- [x] S01:")]),
 ):
     try:
         scan(mutant)
@@ -95,4 +122,4 @@ if blockers:
 else:
     print("v1123: pre-enable checklist complete; independent review "
           "required before F12, then run post-enable tests and F13")
-print("v1273: checklist inventory and six unsafe mutations PASS")
+print("v1284: active checklist inventory and six unsafe mutations PASS")

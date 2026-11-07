@@ -114,7 +114,9 @@ assert normal.index('pushj   17,file_close_all') < normal.index(
     'jrst    proc_exit_current')
 assert 'jumpn   1,native_sys_exit_hup_fail_v991' in normal
 brk = section(syscalls, 'native_sys_brk:', '; Root may rebind')
-assert 'PROC_OOM_BRK_ENABLED_V1000,0' in brk
+expected_oom = os.environ.get('V1283_PRODUCTION_OOM_DEFAULT', '0')
+assert expected_oom in ('0', '1'), 'invalid production OOM expectation'
+assert ('PROC_OOM_BRK_ENABLED_V1000,' + expected_oom) in brk
 assert 'native_sys_brk_oom_v1000:' in brk
 assert 'jrst    proc_fatal_close_current_v879' in brk
 assert 'camn    2,[-1]' in brk
