@@ -1,3 +1,28 @@
+## 2026-11-07 v1336: booted real-MM no-partner pressure independently verified
+
+The retained **unfinished** 256K KCC PDP-6 v1335 live SIMH trace
+contains 93 genuine typed `MM_ERR_NOMEM` swap-in allocation failures
+and 93 slot-0 no-partner cooldown events, no exchanges, no fatal
+swap-ins, 54 successful swap-outs and 37 swap-ins. Four owner-tagged
+8K MM extents occupied 32K of the actual managed physical RAM.
+`daimos-swap-live-pressure-v1336.py` now decodes the source-linked
+counter addresses directly from the raw read-only SIMH transcript
+and independently checks typed MM error, request/owner, fit and
+reclaim/cooldown consistency. Eight unsafe counter mutations fail.
+The preexisting strict v1303 full-guest verifier's `swapout_fail`
+assertion is not applied to a *live* sample: the production label
+is also entered by refused reclamation attempts and those refusals
+were observed under pressure. No final safety check was weakened.
+
+**NOT full-guest acceptance:** v1335 was interrupted with INIT
+waiting for the 18th child to acknowledge RUN. Its own test-owned
+MM reservation could not be released by that blocked owner, and
+there is no final HALT, restoration-after-release, or leak proof.
+The separately staged v1336 independent resident-spinner owner
+release fixture requires a complete, fresh guest and strict final
+postflight verification before closing that acceptance. Production
+KCORE/MM/scheduler/swap/MRES code remains unchanged.
+
 ## 2026-11-07 v1336: independent user-MM release fixture (preflight)
 
 The booted v1327 early-owner run recorded 93 typed physical

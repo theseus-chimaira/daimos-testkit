@@ -1,3 +1,12 @@
+.PHONY: test-daimos-swap-live-pressure-v1336
+test-daimos-swap-live-pressure-v1336:
+	@python3 tests/validation/daimos-swap-live-pressure-v1336.py --self-test
+	@if [ -f "$${TMPDIR:-$$HOME/tmp}/daimos-swap-early-owner-pressure-v1335-evidence-r1/guest/addresses" ]; then \
+	 python3 tests/validation/daimos-swap-live-pressure-v1336.py \
+	 "$${TMPDIR:-$$HOME/tmp}/daimos-swap-early-owner-pressure-v1335-evidence-r1/guest/addresses" \
+	 "$${TMPDIR:-$$HOME/tmp}/daimos-swap-early-owner-pressure-v1335-evidence-r1/guest/simh.out.raw-v1306.log"; \
+	 fi
+
 .PHONY: test-daimos-swap-independent-release-v1336-preflight
 test-daimos-swap-independent-release-v1336-preflight: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
