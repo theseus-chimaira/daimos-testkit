@@ -28,6 +28,7 @@ f07_combined=${V1206_TEST_COMBINED:-0}
 f07_swapslots=${V1207_TEST_SWAPSLOTS:-0}
 batch_term=${V1262_TEST_BATCH_TERM:-0}
 full_slots=${V1271_TEST_FULL_SLOTS:-0}
+provider_barrier=${V1279_TEST_PROVIDER_BARRIER:-0}
 extra_count=18
 if [ "$full_slots" = 1 ]; then extra_count=57; fi
 case "$enable" in
@@ -133,6 +134,15 @@ if [ "$full_slots" = 1 ] && {
     echo 'v1271: 64-slot mode requires swap and batch TERM modes' >&2
     exit 2
 fi
+case "$provider_barrier" in
+    0|1) ;;
+    *) echo 'v1279: invalid provider barrier mode' >&2; exit 2 ;;
+esac
+if [ "$provider_barrier" = 1 ] && {
+    [ "$full_slots" != 1 ] || [ "$held_provider" != 1 ]; }; then
+    echo 'v1279: barrier requires full-slot held-provider mode' >&2
+    exit 2
+fi
 if [ "$f07_concurrent" = 1 ] && {
     [ "$f07_peak" != 1 ] ||
     { [ "$f07_high" != 0 ] && [ "$f07_combined" != 1 ]; }; }; then
@@ -229,6 +239,10 @@ PY
 if [ "$held_provider" = 1 ]; then
     python3 "$self/daimos-oom-provider-held-v1150.py" \
         "$work/source/system/kernel" "$enable"
+fi
+if [ "$provider_barrier" = 1 ]; then
+    python3 "$self/daimos-f07-provider-barrier-v1279.py" \
+        "$work/source/system/kernel"
 fi
 if [ "$protected" = 1 ]; then
     python3 "$self/daimos-oom-protected-v1159.py" \
@@ -499,6 +513,7 @@ fi
     -DV1207_TEST_SWAPSLOTS="$f07_swapslots" \
     -DV1262_TEST_BATCH_TERM="$batch_term" \
     -DV1271_TEST_FULL_SLOTS="$full_slots" \
+    -DV1279_TEST_PROVIDER_BARRIER="$provider_barrier" \
     $incs -I"$DAIMOS_REPO/userland/libc" \
     -S "$requester_source" -o "$work/user/init.s"
 "$das" -F -C -O "$work/user/init.dobj" "$work/user/init.s"

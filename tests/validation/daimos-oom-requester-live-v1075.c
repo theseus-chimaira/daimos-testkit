@@ -77,6 +77,15 @@
 #define V1271_TEST_FULL_SLOTS 0
 #endif
 
+#ifndef V1279_TEST_PROVIDER_BARRIER
+#define V1279_TEST_PROVIDER_BARRIER 0
+#endif
+
+#if V1279_TEST_PROVIDER_BARRIER && (!V1271_TEST_FULL_SLOTS || \
+    !V1150_TEST_HELD_PROVIDER || !V1207_TEST_SWAPSLOTS)
+#error v1279 provider barrier requires full-slot, provider and swap modes
+#endif
+
 #if V1205_TEST_CONCURRENT
 #if V1207_TEST_SWAPSLOTS
 #if V1271_TEST_FULL_SLOTS
@@ -822,6 +831,24 @@ main(int argc, kword_t **argv)
 #endif
         if (dsys_sleep(0400U) != 0)
                 fail('k');
+#if V1279_TEST_PROVIDER_BARRIER
+        /* A timed delay does not certify that G actually reached the
+         * foreign provider while H still owns its lease. Under maximum
+         * swap load, wakeup and process dispatch can lag the timer.
+         * Poll only disposable read-only counters, and fail closed if
+         * actual contention and independent spinner progress do not
+         * occur within the bounded interval. No production hook. */
+        for (probe = 0U; probe < 01000U; ++probe) {
+                if (dsys_brk(0777766UL) != 0UL &&
+                    dsys_brk(0777764UL) != 0UL &&
+                    dsys_brk(0777765UL) >= 5UL)
+                        break;
+                if (dsys_sleep(010U) != 0)
+                        fail('p');
+        }
+        if (probe == 01000U)
+                fail('Y');
+#endif
 #if V1207_TEST_SWAPSLOTS
         (void)dsys_writechar(1, '@');
 #endif
