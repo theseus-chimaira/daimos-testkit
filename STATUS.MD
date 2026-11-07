@@ -1,3 +1,59 @@
+## 2026-11-07 v1315: actual PI6 cooldown and scheduler selection
+
+The native real-MM physical pressure test v1313 now additionally
+executes the unchanged production `proc_sched_pi_tick` timekeeping
+prefix, followed by the production `proc_select_rt_normal_swap_v879`
+gate. After a real MM_NOMEM result, all three rejected exchange
+partners and a preserved disk record, 63 production PI6 tick calls
+leave the 0100-octal cooldown at 1 and the scheduler selects the
+independent resident path. The 64th tick expires it and the actual
+scheduler gate raises the swap request. The independent owner was
+released with exact production `mm_free`, permitting the production
+allocator and unchanged slot-0 swap service to succeed and emit
+READY_ONCE. Five earlier mutants plus an executable scheduler-gate
+bypass are rejected (six in total). Neighboring v1300/v1301 and
+v756 regressions PASS. No production kernel changes.
+
+The native PI6 tick prefix is actual PDP-6 assembler, but is invoked
+by the test fixture, not through a hardware clock interrupt. The
+resident runnable-path marker is test-controlled, and the swap-in
+disk transfer and exchange admission are still modeled, rather than
+the production backstore/restore transaction. Full 256K-booted
+no-partner liveness remains OPEN; do not infer full acceptance.
+
+## 2026-11-07 v1315: exact PI6 cooldown and scheduler admission gate
+
+Building on accepted v1314 real-MM pressure and no-partner native
+recovery, v1315 executes the unchanged production
+`proc_sched_pi_tick` timekeeping section and
+`proc_select_rt_normal_swap_v879` scheduler gate as PDP-6
+instructions. Following real MM_ERR_NOMEM and a fully rejected
+three-candidate exchange scan, 63 real clock-prefix calls leave
+backoff 1, with scheduler gate taking the independent runnable
+process path and leaving the pending request unraised. A real typed
+`mm_free` releases the occupying physical extent. The 64th clock
+call expires the cooldown, and the production scheduler gate itself
+issues cursor 0402 (rather than the test synthesizing a swap request).
+The unchanged slot-0 service then allocates through production MM,
+publishes READY_ONCE and does not apply TERM or exchange.
+
+Six executable negative mutants are rejected, adding disabled PI6
+aging and unconditional bypass of the cooldown scheduler gate to
+the original four MM/service mutations. Neighboring v1300/1301,
+v756, v1303, v1111 and v1260 tests PASS. Production kernel code
+was not changed.
+
+The native fixture substitutes a return after the PI6 timekeeping
+section and models `proc_swap_in` disk completion and the exchange
+candidate decision. It therefore does not run real hardware PI6
+preemption, authentic backstore read/rollback or a booted independent
+process lifecycle. Full-system no-partner liveness remains OPEN.
+
+Archived PDP-6 positive and six negative reports, source and linked
+map with SHA256 verification:
+`$TMPDIR/daimos-swap-native-clock-gate-v1315-evidence-r1.tar.gz`;
+SHA256 `17f4d19c56b7776c608cfc88a0e94f0c3674cb62ce2d09094e503193ebb87134`.
+
 ## 2026-11-07 v1314: actual MM allocation-pressure / no-partner native test
 
 The v1313 36-bit PDP-6 test extracts the unchanged production MM

@@ -10,13 +10,15 @@ trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; else echo "v1313 work:
 
 python3 - "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" \
+    "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" \
     "$work/production-v1313.s" "$work" <<'PY'
 from pathlib import Path
 import sys
 
-mm, swap, target, work = (Path(x) for x in sys.argv[1:])
+mm, swap, sched, target, work = (Path(x) for x in sys.argv[1:])
 mm = mm.read_text()
 swap = swap.read_text()
+sched = sched.read_text()
 
 def leaf(text, start, end):
     assert text.count(start) == 1, 'missing unique source anchor ' + start
@@ -27,7 +29,9 @@ def leaf(text, start, end):
 parts = [
     '.text\n.globl proc_swap_mres_service_v481\n'
     '.globl mm_alloc_aligned\n.globl mm_alloc_aligned_noreclaim\n'
-    '.globl mm_free\n.globl mm_extent_insert\n',
+    '.globl mm_free\n.globl mm_extent_insert\n'
+    '.equ PROC_TIMER_DUE_LH,0200000\n'
+    '.equ PROC_TIMER_CLOCK_MASK,0377777\n',
     '\n'.join(line for line in mm.splitlines() if line.startswith('        .equ    ')) + '\n',
     leaf(mm, 'mm_delete:\n', '\n; int mm_alloc_aligned_noreclaim'),
     leaf(mm, 'mm_alloc_aligned_noreclaim:\n', '\n; Move one process extent'),
@@ -43,6 +47,22 @@ parts = [
     '.equ SYS_EVENT_TERM,1\n',
     leaf(swap, 'proc_swap_mres_service_v481:\n',
          '\nproc_swap_mres_reclaim_v481:\n'),
+    # Use the exact production PI6 timekeeping/cooldown instructions.
+    # The native fixture substitutes a return only after the original
+    # proc_sched_timer_done frontier, before hardware PI6 dispatch.
+    '.globl proc_sched_pi_tick\n' +
+    leaf(sched, 'proc_sched_pi_tick:\n', '\nproc_sched_timer_done:\n') +
+    '\nproc_sched_timer_done:\n        popj    17,\n',
+    # Production candidate gate: while backoff is nonzero choose the
+    # normal run queue, but after expiry request swap-in from slot 0.
+    '.globl proc_select_rt_normal_swap_v879\n' +
+    leaf(sched, 'proc_select_rt_normal_swap_v879:\n',
+         '\nproc_select_runq_start:\n') +
+    '\nproc_select_runq_start:\n'
+    '        aos     independent_run_v1315\n'
+    '        popj    17,\n'
+    'proc_select_none:\n'
+    '        popj    17,\n',
 ]
 joined = '\n'.join(parts)
 for label in ('mm_alloc_nr_nomem:', 'mm_alloc_aligned_pressure:',
@@ -67,6 +87,17 @@ mutants = (
      '        movem   1,proc_swap_pressure_ticks',
      '        setz    1,\n'
      '        movem   1,proc_swap_pressure_ticks'),
+    ('no-clock-aging', '        sos     proc_swap_pressure_ticks',
+     '        setz    1,'),
+    ('skip-scheduler-gate',
+     'proc_select_rt_normal_swap_v879:\n'
+     '        skipn   proc_swap_pressure_ticks\n'
+     '        jrst    proc_select_rt_swap\n'
+     '        jrst    proc_select_runq_start',
+     'proc_select_rt_normal_swap_v879:\n'
+     '        jrst    proc_select_rt_swap\n'
+     '        jrst    proc_select_rt_swap\n'
+     '        jrst    proc_select_runq_start'),
 )
 for name, old, new in mutants:
     assert joined.count(old) == 1, 'v1313 mutation anchor: ' + name
@@ -83,6 +114,8 @@ PY
     --expect fs_reclaim_calls_v1313=2 \
     --expect swap_reclaim_calls_v1313=1 \
     --expect event_calls_v1313=0 \
+    --expect proc_timer_clock=0100 \
+    --expect proc_swap_pressure_ticks=0 \
     "$self/daimos-test-crt0-v1.s" "$work/production-v1313.s" \
     "$self/daimos-swap-real-mm-no-partner-v1313.s" \
     > "$work/log" 2>&1 || {
@@ -90,11 +123,12 @@ PY
         exit 1
     }
 echo 'v1313: real production MM extent shortage, no eligible partner, '
+echo 'v1315: 63 PI6 ticks retain cooldown, 64th expires it; real MM '
 echo 'v1313: backing preserved, real MM owner free and resumed native '
 echo 'v1313: slot-0 service PASS (not a full booted guest)'
 
 for mutant in pressure-collapse no-filesystem-reclaim no-swap-reclaim \
-    lost-cooldown; do
+    lost-cooldown no-clock-aging skip-scheduler-gate; do
     if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
         --exec-mode step --start 1000 --step-limit 350000 --timeout 30 \
         --workdir "$work/unsafe-$mutant" --name "unsafe-$mutant-v1313" \
@@ -113,4 +147,4 @@ for mutant in pressure-collapse no-filesystem-reclaim no-swap-reclaim \
     }
     echo "v1313: rejected executable mutation: $mutant"
 done
-echo 'v1313: four executable allocator/scheduler mutants rejected PASS'
+echo 'v1315: six executable allocator/scheduler/clock mutants rejected PASS'

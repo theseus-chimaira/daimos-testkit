@@ -47,8 +47,34 @@ main:
         skipn   __proc_descriptors+010
         jrst    fail8_v1313
         skipn   event_calls_v1313
-        jrst    free_owner_v1313
+        jrst    age_cooldown_v1313
         jrst    fail9_v1313
+
+age_cooldown_v1313:
+        ; Clock PI6's *production* timekeeping prefix decreases the
+        ; retry delay. Do not clear it manually or use synthetic ticks.
+        movei   010,077              ; 63 of 64 actual PI6 tick calls
+tick_loop_v1313:
+        pushj   17,proc_sched_pi_tick
+        sojg    010,tick_loop_v1313
+        move    1,proc_swap_pressure_ticks
+        caie    1,1
+        jrst    fail23_v1313
+        move    1,proc_timer_clock
+        caie    1,077
+        jrst    fail24_v1313
+        move    1,proc_sched_cursor
+        caie    1,2                  ; no premature pending request
+        jrst    fail25_v1313
+        ; Exercise the unmodified production swap-pressure gate.
+        ; The available resident process can run while swap-in waits.
+        pushj   17,proc_select_rt_normal_swap_v879
+        move    1,independent_run_v1315
+        caie    1,1
+        jrst    fail28_v1315
+        move    1,proc_sched_cursor
+        caie    1,2
+        jrst    fail29_v1315
 
 free_owner_v1313:
         ; Independently free the exact occupied extent through real MM.
@@ -62,9 +88,22 @@ free_owner_v1313:
         jrst    fail11_v1313
 
 retry_v1313:
-        setzm   proc_swap_pressure_ticks
-        movei   1,0402
-        movem   1,proc_sched_cursor
+        pushj   17,proc_sched_pi_tick
+        skipn   proc_swap_pressure_ticks
+        jrst    cooldown_expired_v1313
+        jrst    fail26_v1313
+cooldown_expired_v1313:
+        move    1,proc_timer_clock
+        caie    1,0100
+        jrst    fail27_v1313
+        ; The production selector, not the fixture, raises SWAP_REQUEST.
+        pushj   17,proc_select_rt_normal_swap_v879
+        move    1,proc_sched_cursor
+        caie    1,0402
+        jrst    fail30_v1315
+        move    1,independent_run_v1315
+        caie    1,1
+        jrst    fail31_v1315
         pushj   17,proc_swap_mres_service_v481
         caie    1,01002
         jrst    fail12_v1313
@@ -149,6 +188,24 @@ fail20_v1313: movei 1,024
 fail21_v1313: movei 1,025
         popj 17,
 fail22_v1313: movei 1,026
+        popj 17,
+fail23_v1313: movei 1,027
+        popj 17,
+fail24_v1313: movei 1,030
+        popj 17,
+fail25_v1313: movei 1,031
+        popj 17,
+fail26_v1313: movei 1,032
+        popj 17,
+fail27_v1313: movei 1,033
+        popj 17,
+fail28_v1315: movei 1,034
+        popj 17,
+fail29_v1315: movei 1,035
+        popj 17,
+fail30_v1315: movei 1,036
+        popj 17,
+fail31_v1315: movei 1,037
         popj 17,
 
 ; The slot-0 service body is unchanged production assembler. Its
@@ -247,6 +304,10 @@ proc_high_slot: .word 0
 proc_sched_cursor: .word 0
         .globl proc_swap_pressure_ticks
 proc_swap_pressure_ticks: .word 0
+        .globl proc_timer_clock
+proc_timer_clock: .word 0
+        .globl proc_timer_next
+proc_timer_next: .word 0
         .globl proc_swap_records
 proc_swap_records: .word 0
         .globl proc_table
@@ -272,6 +333,8 @@ fs_reclaim_calls_v1313: .word 0
 swap_reclaim_calls_v1313: .word 0
         .globl event_calls_v1313
 event_calls_v1313: .word 0
+        .globl independent_run_v1315
+independent_run_v1315: .word 0
         .bss
 __proc_descriptors: .block 014
         .globl __test_exit
