@@ -115,12 +115,24 @@ def verify(src):
     ordered(event,
             "evt_def_record_v970:",
             "iorm    2,PROC_FDCTL_OFFSET(1)",
-            "tlne    5,PROC_WAIT_CHILD_LH",
+            "move    5,2(012)",
+            "andi    6,PROC_WAIT_LH_MASK",
+            "caie    6,PROC_WAIT_INTR_LH",
+            "jrst    evt_def_fs_class_v1261",
+            "jrst    evt_def_wake_v1261",
+            "evt_def_fs_class_v1261:",
+            "caie    6,PROC_WAIT_EVENT_LH",
             "jrst    evt_def_done_v1090",
-            "tlne    5,PROC_WAIT_EVENT_LH",
+            "evt_def_fs_check_v1090:",
             "hrrz    6,5",
             "caie    6,fs_provider_wait_event_v917",
+            "jrst    evt_def_done_v1090",
+            "evt_def_wake_v1261:",
+            "andi    6,PROC_STATE_LH_MASK",
             "caie    6,PROC_STATE_SLEEP",
+            "jrst    evt_def_done_v1090",
+            "andb    5,2(012)",
+            "move    1,010",
             "pushj   17,proc_runq_add")
     wake = section(event, "evt_def_record_v970:",
                    "proc_event_fatal_close_busy_v879:")
@@ -217,8 +229,14 @@ MUTATIONS = (
      "        jrst    proc_finish_fail",
      "        tlnn    1,PROC_WAIT_LH_MASK\n"
      "        jrst    proc_finish_fail"),
-    ("child wake", "process", "        tlne    5,PROC_WAIT_CHILD_LH",
-     "        tlnn    5,PROC_WAIT_CHILD_LH"),
+    ("child wake", "process", "        caie    6,PROC_WAIT_EVENT_LH",
+     "        caie    6,PROC_WAIT_CHILD_LH"),
+    ("interruptible PIPE wake disabled", "process",
+     "        caie    6,PROC_WAIT_INTR_LH",
+     "        caie    6,PROC_WAIT_CHILD_LH"),
+    ("stopped process enqueued", "process",
+     "        caie    6,PROC_STATE_SLEEP",
+     "        caie    6,PROC_STATE_STOP"),
     ("wrong event wake", "process",
      "        caie    6,fs_provider_wait_event_v917",
      "        caie    6,0"),
@@ -244,4 +262,4 @@ for label, file_key, before, after in MUTATIONS:
     raise AssertionError(("unsafe mutation unexpectedly accepted", label))
 
 print("v1092: P0-B provider lifetime/quarantine source contract PASS")
-print("v1092: 14 unsafe ownership, wake, retry, and OOM mutants rejected PASS")
+print("v1282: 16 unsafe ownership, wake, retry, and OOM mutants rejected PASS")
