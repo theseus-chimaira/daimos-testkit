@@ -1,3 +1,7 @@
+.PHONY: test-daimos-simh-swap-live-sampler-v1324
+test-daimos-simh-swap-live-sampler-v1324: check-prefix
+	@python3 tests/validation/daimos-simh-swap-live-sampler-v1324-selftest.py
+
 .PHONY: test-daimos-swap-physical-owner-v1323-preflight
 test-daimos-swap-physical-owner-v1323-preflight: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
