@@ -1,3 +1,11 @@
+.PHONY: test-daimos-swap-stall-waits-v1341
+test-daimos-swap-stall-waits-v1341:
+	@python3 tests/validation/daimos-swap-stall-waits-v1341-selftest.py
+
+.PHONY: test-daimos-simh-swap-live-sampler-v1342
+test-daimos-simh-swap-live-sampler-v1342:
+	@python3 tests/validation/daimos-simh-swap-live-sampler-v1342-selftest.py
+
 .PHONY: test-daimos-swap-timer-frontier-v1340-preflight
 test-daimos-swap-timer-frontier-v1340-preflight: check-prefix
 	@python3 tests/validation/daimos-simh-swap-live-sampler-v1340-selftest.py
