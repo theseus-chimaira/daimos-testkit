@@ -41,7 +41,7 @@ def root_inventory(repo, work, userland):
     # normal D6FS root list after Makefile expansion.  Quoted paths are
     # respected by the shell; printf prints one argument per output line.
     args = ["make", "-s", "-C", str(makefile),
-            "BUILD=" + str(work / "normal-build"),
+            "BUILD=" + os.environ.get("V1372_NORMAL_BUILD", str(work / "normal-build")),
             "USERLAND_BUILD_ROOT=" + str(userland),
             "KCC_REPO=" + str(Path.home() / "git/kcc"),
             "DAS_REPO=" + str(Path.home() / "git/das"),
@@ -145,7 +145,7 @@ def stage_grouped(repo, testkit, work, userland, pairs):
     return replaced
 
 
-def make_root(testkit, repo, work):
+def make_root(testkit, repo, work, extras=()):
     v1370 = Path(os.environ.get("V1370_WORK", str(
         Path(os.environ.get("TMPDIR", str(Path.home() / "tmp"))) /
         "d6codec-fullboot-v1370"))).resolve()
@@ -156,6 +156,22 @@ def make_root(testkit, repo, work):
         raise ValueError("v1370 KCC userland build missing")
     pairs = root_inventory(repo, work, userland)
     args = stage_grouped(repo, testkit, work, userland, pairs)
+    # Optional v1372 converter fixtures are appended only in the
+    # isolated test image. Never replace a normal manifest file.
+    existing = {value.split(":", 1)[0] for flag, value in args
+                if flag == "-f"}
+    for spec in extras:
+        target, host, mode, kind = spec.rsplit(":", 3)
+        allowed = ((target.startswith("/CONFIG/V1372") and
+                    mode == "644" and kind == "binwords") or
+                   (target == "/SYSTEM/EXEC/CSIX" and mode == "555" and
+                    kind == "dxr"))
+        if not allowed or target in existing or not Path(host).is_file():
+            raise ValueError("invalid v1372 root extension: " + spec)
+        existing.add(target)
+        args.append(("-f", spec))
+    if extras:
+        print("V1372_EXTRA_FILES_PASS count=%d" % len(extras), flush=True)
     target = work / "disk-pristine-v1371"
     target.mkdir(exist_ok=True)
     prefix = Path(os.environ.get("PDP10_PREFIX", str(Path.home() / "cross")))
@@ -174,7 +190,12 @@ def make_root(testkit, repo, work):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        raise SystemExit("usage: build_full_root_v1371.py DAIMOS_REPO TESTKIT_REPO WORKDIR")
+    if len(sys.argv) < 4 or (len(sys.argv) - 4) % 2:
+        raise SystemExit("usage: build_full_root_v1371.py DAIMOS_REPO TESTKIT_REPO WORKDIR [--extra-file filesystem:host:mode:type]...")
+    extras = []
+    for i in range(4, len(sys.argv), 2):
+        if sys.argv[i] != "--extra-file":
+            raise SystemExit("unexpected option " + sys.argv[i])
+        extras.append(sys.argv[i + 1])
     make_root(Path(sys.argv[2]).resolve(), Path(sys.argv[1]).resolve(),
-              Path(sys.argv[3]).resolve())
+              Path(sys.argv[3]).resolve(), extras)
