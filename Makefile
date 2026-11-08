@@ -1,3 +1,8 @@
+.PHONY: test-daimos-swap-reclaim-refusal-v1346
+test-daimos-swap-reclaim-refusal-v1346:
+	@python3 tests/validation/daimos-swap-no-partner-physical-v1303.py --self-test
+	@python3 tests/validation/daimos-swap-reclaim-refusal-v1346.py
+
 .PHONY: test-daimos-swap-slot0-evidence-v1345
 test-daimos-swap-slot0-evidence-v1345:
 	@: "$${V1345_TRACE_LOG:?set V1345_TRACE_LOG to source-linked v1344 simh-sampler.log}"

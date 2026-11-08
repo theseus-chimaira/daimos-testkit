@@ -1,3 +1,29 @@
+## 2026-11-08 v1346: corrected final swap-out refusal classification
+
+The accepted booted 256K PDP-6 v1345 source-linked trace observed
+one real swap-in MM_ERR_NOMEM and no-partner cooldown, along with
+one `proc_swap_out_fail` entry during reclaim. Production
+`proc_swap_out_fail` is also the common early exit for ineligible
+or pinned victims *before* a swap-out transaction starts. The
+original strict v1303 final checker incorrectly classified every
+entry to that label as a fatal swap-out transaction failure.
+Testkit v1346 corrects that false-positive interpretation: the
+counter is retained as a diagnostic, not a fatal-error count.
+
+The unchanged final acceptance still requires real guest HALT,
+complete original milestones, all child TERM/WAIT reaps, actual
+typed MM pressure and no-partner cooldown, balanced swap-in
+restores, zero fatal swap-in errors, and **zero final swap and
+backstore allocation counts**. A separate v1346 regression
+validates the legitimate refused victim and rejects seven unsafe
+mutations (fatal swap-in, missing cooldown, incorrect restoration,
+missing allocator evidence, fallback, and both backing leak types).
+The original v1303 selftest and v1345 physical trace classifier
+PASS unchanged. No production kernel, MRES or resident RAM change.
+
+The full non-bounded 256K v1344 follow-up guest is still in progress
+as of this note; its own strict completed postflight remains OPEN.
+
 ## 2026-11-08 v1345: booted MM and provider release subcases PASS
 
 The bounded v1344 physical 256K PDP-6 run recovered from a genuine

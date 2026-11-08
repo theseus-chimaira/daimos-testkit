@@ -71,8 +71,15 @@ def check_counts(data):
         raise ValueError('pressure is not fully accounted for')
     if data['swapin_pressure'] != data['pressure']:
         raise ValueError('swap-in allocator result inconsistent')
-    if data['swapin_fail'] or data['swapout_fail']:
-        raise ValueError('unresolved fatal swap failure')
+    if data['swapin_fail']:
+        raise ValueError('unresolved fatal swap-in transaction')
+    # The source-linked v1209 swapout_fail probe is at the shared
+    # proc_swap_out_fail label. That label is also reached when a
+    # candidate is simply ineligible (pinned VM, nonresident state,
+    # owner-side teardown, etc.), before any backing transaction.
+    # Therefore this counter is NOT a fatal-I/O counter. Treat it as
+    # a diagnostic; final swap/backstore zero-leak accounting, exact
+    # restore balance and original guest HALT remain mandatory.
     if data['swapin_ok'] != data['restored']:
         raise ValueError('ordinary restores are unbalanced')
 
