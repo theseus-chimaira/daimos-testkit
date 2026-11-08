@@ -1,3 +1,34 @@
+## 2026-11-08 v1345: booted MM and provider release subcases PASS
+
+The bounded v1344 physical 256K PDP-6 run recovered from a genuine
+no-partner swap-in `MM_ERR_NOMEM` event after releasing four actual
+8K-word MM owner extents, with the independent spinner pin cleared.
+Source-linked read-only counters show successful swap-ins increasing
+from 13 at pressure sample 15 to 18 by sample 18. The original
+guarded test-only provider-release path then observed three real
+provider-busy failures, published the holder-release event, and
+received one holder return through normal production unlock.
+
+Nine snapshots taken in the production slot-0 event wait match the
+exact active DRM236 request's completion word (`AC1 == active+2`).
+The production clock/DRM native v1079 300-tick watchdog regression
+and MINIT binding check also PASS. These observations do NOT establish
+a stuck DRM completion or production kernel defect. The v1344
+read-only sampler's original Ctrl-E regression and full disposable
+guest preflight PASS. The bounded runner intentionally stops after
+18 samples: its full-guest postflight must and does report failure.
+
+`daimos-swap-slot0-recovery-evidence-v1345.py` checks the actual
+source-linked samples and rejects six unsafe evidence mutations.
+Evidence with input source, raw SIMH, map and SHA256 manifest:
+`$TMPDIR/daimos-swap-slot0-device-recovery-v1345-evidence-r1.tar.gz`;
+SHA256 `8045c4f8f79e4893f31a0d39aaa347c8573b1619603d1ac5807f10e22d70ccd4`.
+The v1344 host wrapper's path parser is made tolerant of the genuine
+carriage-return separator preceding `v1075 work:`; this is not a
+guest or kernel fix. Full-system HALT, 18-child TERM/WAIT, original
+provider/OOM milestones and exact final backing/MM cleanup remain
+**OPEN**. Production KCORE/MM/PI6/SWAP/FS/DRM source unchanged.
+
 ## 2026-11-08 v1344: diagnose stalled slot-0 device/event wait (preflight PASS)
 
 The v1343 booted 256K PDP-6 guest remained after 26 read-only

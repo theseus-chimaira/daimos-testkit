@@ -74,7 +74,10 @@ rc=$?
 set -e
 if [ "$rc" -ne 0 ]; then
     if [ "${V1344_DIAG_STOP:-0}" = 1 ]; then
-        guest=$(sed -n 's/^v1075 work: //p' "$work/runner-v1344.log" | tail -1)
+        # SIMH guest output may precede the runner's final path marker
+        # without a newline (including a carriage-return separator).
+        guest=$(sed -n 's/.*v1075 work: //p' \
+            "$work/runner-v1344.log" | tail -1)
         test -n "$guest" && test -s "$guest/simh-sampler.log"
         grep -q 'intentionally stopped after diagnostic samples' \
             "$guest/simh.out.raw-v1306.log" || {

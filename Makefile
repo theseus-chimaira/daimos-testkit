@@ -1,3 +1,9 @@
+.PHONY: test-daimos-swap-slot0-evidence-v1345
+test-daimos-swap-slot0-evidence-v1345:
+	@: "$${V1345_TRACE_LOG:?set V1345_TRACE_LOG to source-linked v1344 simh-sampler.log}"
+	@python3 tests/validation/daimos-swap-slot0-recovery-evidence-v1345.py \
+	 "$$V1345_TRACE_LOG"
+
 .PHONY: test-daimos-swap-slot0-io-v1344-preflight
 test-daimos-swap-slot0-io-v1344-preflight: check-prefix
 	@python3 tests/validation/daimos-simh-swap-live-sampler-v1344-selftest.py
