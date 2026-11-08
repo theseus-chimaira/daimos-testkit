@@ -1,3 +1,33 @@
+## 2026-11-08 v1343: confirm and correct disposable provider-release dependency
+
+The v1342 source-linked **booted** 256K PDP-6 guest confirms the
+previously suspected test-only circular dependency. At sample 12,
+`daimos_test_real_oom_v1150=1`, the original fatal provider-busy
+counter was **12**, the holder entered once, and the actual
+provider lock remained owned. Nevertheless the disposable-only
+release flag and holder-return counter were both **zero**. The
+real process table simultaneously showed INIT slot 1 in CHILD
+wait, gateway slot 4 waiting on the FS provider, and holder slot
+6 waiting on `daimos_test_hold_event_v1150`. PI6 timer and the
+independent spinner continued to run; four physical MM owners
+and the spinner pin had already been freed correctly. The test
+was deliberately interrupted after sufficient conclusive evidence;
+it did **not** reach HALT or final cleanup acceptance.
+
+Evidence archive:
+`$TMPDIR/daimos-swap-provider-dependency-v1342-evidence-r1.tar.gz`
+SHA256 `9a286c2a48e635d19411fab3fa2cbc453c99763561608200fcf704130bbb875b`.
+
+The v1343 **disposable-only** injector lets the already-running
+spinner invoke the *same original* guarded v1150 provider-release
+routine once `real_oom` is nonzero and at least two actual fatal
+provider-busy failures exist. It does not synthesize OOM, unlock
+the FS lease, change the MM allocator, alter PI6, or bypass the
+original holder's private-stack unlock. Three deliberately broken
+injection inputs are rejected; the versioned full-guest runner
+passes source preflight. **Final guest HALT and strict postflight
+remain unverified until the v1343 full guest finishes.**
+
 ## 2026-11-08 v1341/v1342: identify post-release wait dependencies
 
 The **completed, timed-out** v1340 256K physical guest is not a

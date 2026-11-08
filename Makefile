@@ -1,3 +1,7 @@
+.PHONY: test-daimos-f07-independent-provider-release-v1343
+test-daimos-f07-independent-provider-release-v1343:
+	@python3 tests/validation/daimos-f07-independent-provider-release-v1343-selftest.py
+
 .PHONY: test-daimos-swap-stall-waits-v1341
 test-daimos-swap-stall-waits-v1341:
 	@python3 tests/validation/daimos-swap-stall-waits-v1341-selftest.py
