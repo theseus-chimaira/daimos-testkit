@@ -1,3 +1,33 @@
+## 2026-11-08 v1341/v1342: identify post-release wait dependencies
+
+The **completed, timed-out** v1340 256K physical guest is not a
+full-system acceptance. At the last of 24 read-only samples the
+PI6 clock was 0177102 octal, the timer frontier remained active
+and advanced with the clock, but swap-in and swap-out successes
+remained 18 and 34. Four typed owner MM extents were already freed
+and the independent spinner's pin was released. Guest output after
+the repaired Ctrl-E boundary includes the real `@%&*` markers.
+
+The new v1341 **offline-only** process dependency decoder reads the
+unchanged raw SIMH transcript, linked process table and kernel map.
+It finds INIT slot 1 in CHILD wait, requester slot 3 in timed SLEEP,
+gateway slot 4 waiting on `fs_provider_wait_event_v917`, spinner
+slot 5 in a two-tick sleep, and the foreign lease holder slot 6
+waiting on the disposable `daimos_test_hold_event_v1150`. The
+physical clock/timer continue to run. This is evidence of a held
+provider dependency, **not yet** evidence of a production scheduler
+or provider defect. The original test-only v1150 provider completion
+is signaled only by an INIT sleep after observing real OOM and two
+busy failures; INIT is instead blocked in CHILD wait.
+
+The v1342 versioned full-guest diagnostic retains the original
+production kernel and test fixture, but adds source-linked read-only
+sampling of the actual `real_oom`, `fatal_busy`, `release`, holder,
+provider and predispatch counters. Its PTY boundary, early-HALT,
+process-table and strict-postflight selftests PASS. The new full
+guest must establish which original test-owned release condition
+was never satisfied before any change to the fixture is justified.
+
 ## 2026-11-07 v1340: real independent MM release, Ctrl-E output defect fixed
 
 The booted 256K v1338 PDP-6 test observed one genuine typed swap-in
