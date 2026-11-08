@@ -1,3 +1,8 @@
+.PHONY: test-daimos-swap-postflight-schema-v1347
+test-daimos-swap-postflight-schema-v1347:
+	@python3 tests/validation/daimos-swap-no-partner-physical-v1303.py --self-test
+	@python3 tests/validation/daimos-swap-postflight-schema-v1347.py
+
 .PHONY: test-daimos-swap-reclaim-refusal-v1346
 test-daimos-swap-reclaim-refusal-v1346:
 	@python3 tests/validation/daimos-swap-no-partner-physical-v1303.py --self-test

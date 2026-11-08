@@ -40,10 +40,13 @@ def decode(address_file, simh_file, snapshot=False):
         if len(parts) != 2:
             raise ValueError('invalid address row')
         key, addr = parts
-        if not (key.startswith('f07s_diag_') or
-                key.startswith('f07a_') or key.startswith('f07s_final_')):
-            continue
-        if snapshot and '[v1306]' in text and key not in LIVE_KEYS:
+        # Read only this verifier's established schema. Newer read-only
+        # samplers publish additional f07s_diag_* addresses (for example
+        # the v1342 timer frontier), but those words are not necessarily
+        # present in the after-HALT postflight script. Requiring every
+        # future diagnostic as a final resource counter would reject a
+        # genuinely completed guest without checking its real invariants.
+        if key not in LIVE_KEYS:
             continue
         if key in names:
             raise ValueError('duplicate label ' + key)

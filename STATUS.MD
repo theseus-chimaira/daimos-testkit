@@ -1,3 +1,33 @@
+## 2026-11-08 v1347: completed physical 256K guest, postflight schema correction
+
+The unbounded 256K PDP-6 source-authentic v1344 follow-up guest
+actually completed after the first production slot-0 no-partner
+MM_ERR_NOMEM and independent owner-release/provider return. The
+guest emitted all 18 distinct RUN admission and 18 TERM/WAIT reap
+markers, original requester/witness `KWP`, then HALT and SIMH EXIT.
+The source-linked v1303 checker reported `MM fail=1`, 34 normal
+swap-ins, zero exchanges, one cooldown, and **zero final swap and
+backstore blocks**. Production KCORE/MM/PI6/DRM/FS/SWAP was unchanged.
+
+The old v1303 `decode()` mistakenly demanded an after-HALT value for
+every additional read-only `f07s_diag_*` sampler address, although
+the independent v1342 `f07s_diag_timer_next` field was never part
+of the fixed v1303 postflight accounting schema. Versioned v1347
+restricts final decoding to the documented fixed schema. The
+regression rejects missing and duplicate required fields while
+accepting extra optional source-linked diagnostic addresses. The
+v1346 refusal/fatal classifier regression remains PASS.
+
+**Full suite is not yet accepted:** the original v1150 held-provider
+validator observed four genuine independent spinner sleeps after
+lease/predispatch, against its strict requirement of five. All
+other recorded holder/lease/OOM/release counters are consistent:
+one holder return, one actual requester OOM, three fatal busy retries,
+and original unlock. We must ensure the spinner performs the fifth
+actual scheduled sleep before INIT sends TERM; do not reduce or fake
+the original v1150 witness threshold. A new test-only synchronized
+barrier is required before re-running the full strict guest.
+
 ## 2026-11-08 v1346: corrected final swap-out refusal classification
 
 The accepted booted 256K PDP-6 v1345 source-linked trace observed
