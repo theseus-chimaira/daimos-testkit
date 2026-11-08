@@ -1,3 +1,28 @@
+## 2026-11-08 v1344: diagnose stalled slot-0 device/event wait (preflight PASS)
+
+The v1343 booted 256K PDP-6 guest remained after 26 read-only
+samples with PC 015624 (`proc_wait_boot`), scheduler request 000404,
+27 swap-outs/9 swap-ins, zero MM failures, and no process completion.
+This is an **unaccepted** guest. The original linked address map,
+all 26 raw samples and filtered guest output were copied and SHA256
+manifest-verified before interrupting that stalled disposable run:
+`$TMPDIR/daimos-swap-slot0-wait-v1344-evidence-r1/`.
+
+The new v1344 read-only SIMH sampler additionally reads the actual
+PDP-6 AC1 event pointer, AC17 stack pointer, and linked production
+`drm236_active_request`, `drm236_pending_request`, `storage_state`,
+and `proc_sched_kick`. Its Ctrl-E-safe output, negative truncated
+postflight and early HALT regression PASS; the derived disposable
+v1343 guest and source-linked symbol-address preflight PASS.
+
+The v1344 guest is diagnostic only unless all original strict
+full-guest validators pass. Its bounded diagnostic mode explicitly
+stops after samples and never claims a successful full guest. The
+current question is whether slot-0 is waiting for a genuine pending
+drum/device event, and why the scheduler request cannot progress.
+Do **not** change production kernel, PI6, swap or device code from
+PC alone. No permanent KCORE/MRES words were added.
+
 ## 2026-11-08 v1343: confirm and correct disposable provider-release dependency
 
 The v1342 source-linked **booted** 256K PDP-6 guest confirms the

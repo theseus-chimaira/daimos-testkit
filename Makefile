@@ -1,3 +1,10 @@
+.PHONY: test-daimos-swap-slot0-io-v1344-preflight
+test-daimos-swap-slot0-io-v1344-preflight: check-prefix
+	@python3 tests/validation/daimos-simh-swap-live-sampler-v1344-selftest.py
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1344_PREPARE_ONLY=1 \
+	 sh tests/validation/daimos-swap-slot0-io-trace-v1344.sh
+
 .PHONY: test-daimos-f07-independent-provider-release-v1343
 test-daimos-f07-independent-provider-release-v1343:
 	@python3 tests/validation/daimos-f07-independent-provider-release-v1343-selftest.py
