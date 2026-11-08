@@ -1,3 +1,25 @@
+## 2026-11-08 v1350: complete grouped D6CODEC native staging baseline PASS
+
+The reproducible, versioned
+`tests/validation/daimos-d6codec-native-baseline-v1350.sh` runner
+executes every accepted native staged grouped-codec suite in isolated
+PDP-6 simulator workdirs, without touching production codec selection:
+v045 (10 PASS), v047 (3), v048 (22 malformed/boundary tests),
+v049 (1 complete DSH), v051 (1 complete darc/stack), and the
+actual staged DAIMOS kernel ABI wrapper v055 (1). All **38**
+native cases PASS. Source and production behavior remain unchanged;
+the current D6LZ36 boot/EXEC/VFS/TSFS format is still active.
+
+The versioned bundle contains individual logs, linked staging
+revisions and an independently checked SHA256 log manifest.
+`$TMPDIR/daimos-d6codec-native-baseline-v1350-evidence-r1.tar.gz`,
+SHA256 `a1052dfa875e91213faf39da2643c9b87721492d2d365c281f98ddfe13ce5ea3`.
+This completes **native staging baseline only**. The atomic grouped
+format migration, boot/EXEC/VFS/PURE/TSFS integration, exact stream
+compatibility, combined resident RAM and stack measurements, hardware
+and rollback qualification remain OPEN under the existing v054
+integration checklist. No group-format production cutover is claimed.
+
 ## 2026-11-08 v1348: real independent spinner progress barrier staged
 
 The source-linked completed v1347 256K PDP-6 guest passed its
