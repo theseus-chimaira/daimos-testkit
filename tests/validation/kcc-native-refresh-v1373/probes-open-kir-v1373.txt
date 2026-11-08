@@ -1,0 +1,8 @@
+# Separately reproduce the remaining multi-function KIR/global-symbol
+# failure after the v1373 register-argument fix. Not a success gate.
+probe known-kir-global-failure-v1373
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1373-NESTED.A7 /CONFIG/V1373-NESTED.C; ECHO NESTEDSTATUS:$?
+contains gaddress: bad Sclass 0
+contains NESTEDSTATUS:1
+timeout 230
+end

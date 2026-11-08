@@ -1,0 +1,40 @@
+probe v1373-kcc-noopt
+command /OPTION/BASE/EXEC/KCC -N -Pgnu99 -x=pdp6 -m=gas -S -O /SCRATCH/V1373-NOOPT.A7 /CONFIG/V1373.C; ECHO NSTATUS:$?
+contains NSTATUS:0
+timeout 165
+end
+probe v1373-kcc-noopt-equality
+command CMP /SCRATCH/V1373-NOOPT.A7 /CONFIG/V1373-GOLD.A7; ECHO NCOMPARE:$?
+contains NCOMPARE:0
+timeout 35
+end
+probe v1373-kcpp-noopt
+command /OPTION/BASE/LIBEXEC/KCC/KCPP -R=/SCRATCH/V1373-N.KPT /CONFIG/V1373.C; ECHO CPPSTATUS:$?
+contains CPPSTATUS:0
+timeout 75
+end
+probe v1373-kparse-noopt
+command /OPTION/BASE/LIBEXEC/KCC/KPARSE -R=/SCRATCH/V1373-N.KIR /SCRATCH/V1373-N.KPT; ECHO PARSESTATUS:$?
+contains PARSESTATUS:0
+timeout 90
+end
+probe v1373-kgen-noopt
+command /OPTION/BASE/LIBEXEC/KCC/KGEN -N -R=/SCRATCH/V1373-N.KP2 /SCRATCH/V1373-N.KIR; ECHO GENSTATUS:$?
+contains GENSTATUS:0
+timeout 130
+end
+probe v1373-kpcode-noopt
+command HEXDUMP /SCRATCH/V1373-N.KP2
+contains 104105062000
+timeout 45
+end
+probe v1373-kopt-noopt
+command /OPTION/BASE/LIBEXEC/KCC/KOPT -R=/SCRATCH/V1373-N-REPLAY.A7 /SCRATCH/V1373-N.KP2; ECHO OPTSTATUS:$?
+contains OPTSTATUS:0
+timeout 100
+end
+probe v1373-kopt-noopt-equality
+command CMP /SCRATCH/V1373-N-REPLAY.A7 /CONFIG/V1373-GOLD.A7; ECHO NREPLAY:$?
+contains NREPLAY:0
+timeout 35
+end
