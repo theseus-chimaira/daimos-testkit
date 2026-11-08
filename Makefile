@@ -1,3 +1,10 @@
+.PHONY: test-daimos-swap-spinner-witness-v1348-preflight
+test-daimos-swap-spinner-witness-v1348-preflight: check-prefix
+	@python3 tests/validation/daimos-f07-spinner-progress-gate-v1348-selftest.py
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" V1348_PREPARE_ONLY=1 \
+	 sh tests/validation/daimos-swap-spinner-witness-v1348.sh
+
 .PHONY: test-daimos-swap-postflight-schema-v1347
 test-daimos-swap-postflight-schema-v1347:
 	@python3 tests/validation/daimos-swap-no-partner-physical-v1303.py --self-test

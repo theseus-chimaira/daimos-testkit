@@ -1,3 +1,27 @@
+## 2026-11-08 v1348: real independent spinner progress barrier staged
+
+The source-linked completed v1347 256K PDP-6 guest passed its
+physical no-partner v1303 HALT/18-child/zero-backing postflight,
+but the original v1150 held-provider suite witness counted only
+four real independent spinner sleeps, against the strict minimum
+of five. Its other owner/OOM/busy/return counters were correct.
+
+The v1348 disposable guest now has an **INIT-only read-only BRK
+selector** for the original test-only `daimos_test_spinner_v1150`
+counter. Before terminating the spinner, INIT waits through real
+`dsys_sleep(010U)` scheduling until the original counter reaches
+five (or fails closed after a bounded 01000 iterations). No
+synthetic counter, process state, PI6 tick, swap return, owner MM
+free, or provider lease completion is written. The original v1150
+`spinner >= 5` postflight threshold remains unchanged.
+
+The injection selftest verifies the read-only caller/selector,
+original BRK continuation, five-sleep gate, preserved TERM/WAIT,
+and three fail-closed source-mutation controls. Generated runner
+preflight PASS. The full booted 256K guest began executing but
+had **no accepted final result** when this note was written. No
+production kernel source or permanent RAM footprint was changed.
+
 ## 2026-11-08 v1347: completed physical 256K guest, postflight schema correction
 
 The unbounded 256K PDP-6 source-authentic v1344 follow-up guest
