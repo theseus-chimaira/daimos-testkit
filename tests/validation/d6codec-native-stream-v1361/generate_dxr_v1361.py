@@ -9,8 +9,10 @@ def values(data):
             if row.strip().startswith(".word")]
 
 
-if len(sys.argv) != 3:
-    raise SystemExit("usage: generate_dxr_v1361.py v1359_fixture output_file")
+if len(sys.argv) != 4:
+    raise SystemExit("usage: generate_dxr_v1361.py v1359_fixture output_file window")
+window = int(sys.argv[3], 10)
+assert 1 <= window <= 64
 original = pathlib.Path(sys.argv[1]).read_text()
 source = values(original.split("source:\n", 1)[1].split("golden:\n", 1)[0])
 golden = values(original.split("golden:\n", 1)[1].split(".bss", 1)[0])
@@ -31,7 +33,9 @@ main:
  movem 0,4(1)
  movei 2,compressed
 refill:
- movei 3,1
+ move 3,4(1)
+ caile 3,0%o
+ movei 3,0%o
  pushj 17,d6codec_stream_v1361
  skipn 4(1)
  jrst complete
@@ -55,7 +59,7 @@ fail:
  popj 17,
 .data
 source:
-""" % len(golden)
+""" % (len(golden), window, window)
 code += "".join(" .word 0%o\n" % word for word in source)
 code += "compressed:\n"
 code += "".join(" .word 0%o\n" % word for word in golden)

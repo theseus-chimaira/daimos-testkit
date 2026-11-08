@@ -22,7 +22,7 @@ python3 "$root/tests/validation/d6codec-current-corpus-v1359/generate-v1359.py" 
   "$DAIMOS_REPO/build/system/boot/pdp6" "$corpus" >/dev/null
 python3 "$root/tests/validation/d6codec-native-stream-v1361/generate_dxr_v1361.py" \
   "$corpus/native_kcore_v1359.s" \
-  "$TMPDIR/d6codec-native-stream-v1361/test_kcore_v1361.s"
+  "$TMPDIR/d6codec-native-stream-v1361/test_kcore_v1361.s" 1
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
   --exec-mode go --start 1000 --timeout 45 \
   --workdir "$TMPDIR/d6codec-native-stream-v1361/kcore" \
