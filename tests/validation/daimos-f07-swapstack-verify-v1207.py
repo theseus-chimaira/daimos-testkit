@@ -12,6 +12,15 @@ root = Path(__file__).parent
 mm_mod = runpy.run_path(str(root / 'daimos-f07-mm-peak-verify-v1203.py'))
 proc_mod = runpy.run_path(str(root / 'daimos-f07-real-proc-verify-v1205.py'))
 
+# These are the original v1207 final/snapshot fields. Later read-only
+# samplers may add f07s_diag_* addresses that are not part of the
+# after-HALT script. Do not mistake those optional diagnostics for
+# missing mandatory swap/stack observations.
+SWAP_FIELDS = frozenset((
+    'samples', 'error', 'slot_capacity', 'swap_active', 'swap_blocks',
+    'final_swap_blocks', 'final_backstore_used', 'final_swap_active',
+    'stack_peak', 'idle_peak'))
+
 
 def read_values(addresses, simh, prefix):
     raw = Path(simh).read_text(errors='replace')
@@ -19,6 +28,8 @@ def read_values(addresses, simh, prefix):
     for line in Path(addresses).read_text().splitlines():
         name, addr = line.split()
         if not name.startswith(prefix):
+            continue
+        if prefix == 'f07s_' and name[len(prefix):] not in SWAP_FIELDS:
             continue
         hits = re.findall(r'(?m)^\s*0*%o\s*:\s*([0-7]+)'
                           % int(addr, 8), raw)

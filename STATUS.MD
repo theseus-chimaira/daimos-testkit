@@ -1,3 +1,36 @@
+## 2026-11-08 v1351: original 256K F07 + strict owner lifecycle PASS
+
+The separate, freshly booted v1349 256K KCC PDP-6 guest now PASSes
+the complete original v1075/v1150/v1207/v1336 F07 regression suite
+**and** the additional source-linked two-phase MM owner-lifetime
+verifier wired into the same after-HALT validation and evidence
+manifest. No production KCORE/MM/PI6/FS/SWAP/MRES source changed.
+
+Exactly eighteen additional child RUN/ACK and TERM/WAIT completions,
+requester-only BRK OOM, real held-provider foreign conflict/normal
+unlock, independently scheduled spinner >=5 sleeps, and HALT/EXIT
+were checked by the original suite. The v1303 physical no-partner
+postflight independently verifies one true swap-in MM_ERR_NOMEM,
+one cooldown, 34 normal swap-ins, zero exchanges and zero outstanding
+swap/backstore blocks. The additional v1349 owner-life regression
+sees four genuine 8K-word typed-owner MM allocations and resident
+spinner pin at sample 1, releases exactly once after real cooldown
+at sample 13, and final prepared=4/freed=4/count=0/error=0.
+Six negative owner-lifecycle mutations fail. The v1207 fixed mandatory
+postflight field list is retained while ignoring newer *optional*
+live-only diagnostics; two missing/duplicate required-field negatives
+are rejected. Original final provider/stack/MM/media regressions pass.
+
+Accepted immutable evidence (original real guest, linked map,
+raw/canonical SIMH stream, original runner results, owner and physical
+independent reports, reproduction fixtures and SHA256 manifest):
+`$TMPDIR/daimos-swap-complete-lifecycle-v1351-evidence-r1.tar.gz`,
+SHA256 `4ab99004129151bc475e7a5a577d39ebf336e6c290acb701696c5f1655e7e644`.
+Booted physical no-partner recovery and full original F07 acceptance
+are CLOSED for this 256K PDP-6 profile. Other hardware profiles,
+grouped codec migration, BSTORE, XIP, compressed swap and KCORE
+size optimization are distinct OPEN tracks.
+
 ## 2026-11-08 v1350: complete grouped D6CODEC native staging baseline PASS
 
 The reproducible, versioned
