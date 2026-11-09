@@ -70,6 +70,9 @@ def main():
     metadata_fixture = os.environ.get("V1405_OBJECT_METADATA_A7")
     if metadata_fixture:
         extra["/CONFIG/V1405-METADATA.A7"] = Path(metadata_fixture)
+    native_object_golden = os.environ.get("V1411_HOST_DOBJ")
+    if native_object_golden:
+        extra["/CONFIG/V1411-HOST.DOBJ"] = Path(native_object_golden)
     # Optional v1407 C89 ABI execution comparison.  These are complete
     # host-linked DXR fixtures, not input objects or scratch text.
     executable_fixture = {}
