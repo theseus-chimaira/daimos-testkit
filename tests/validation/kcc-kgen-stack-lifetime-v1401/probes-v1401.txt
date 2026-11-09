@@ -1,0 +1,88 @@
+# Each compiler invocation must return status zero; transcript alone is insufficient.
+probe v1401-minimal-kcpp
+command /OPTION/BASE/LIBEXEC/KCC/KCPP -R=/SCRATCH/V1401.MIN.KPT /CONFIG/V1373.C; ECHO MINCPP:$?
+contains MINCPP:0
+timeout 125
+end
+probe v1401-minimal-kparse
+command /OPTION/BASE/LIBEXEC/KCC/KPARSE -R=/SCRATCH/V1401.MIN.KIR /SCRATCH/V1401.MIN.KPT; ECHO MINPARSE:$?
+contains MINPARSE:0
+timeout 210
+end
+probe v1401-minimal-kgen
+command /OPTION/BASE/LIBEXEC/KCC/KGEN -R=/SCRATCH/V1401.MIN.KP2 /SCRATCH/V1401.MIN.KIR; ECHO MINGEN:$?
+contains MINGEN:0
+not_contains UUO
+not_contains Internal error
+timeout 210
+end
+probe v1401-minimal-kopt
+command /OPTION/BASE/LIBEXEC/KCC/KOPT -R=/SCRATCH/V1401.MIN.A7 /SCRATCH/V1401.MIN.KP2; ECHO MINOPT:$?
+contains MINOPT:0
+timeout 125
+end
+probe v1401-minimal-equality
+command CMP /SCRATCH/V1401.MIN.A7 /CONFIG/V1373-GOLD.A7; ECHO MINCMP:$?
+contains MINCMP:0
+timeout 65
+end
+probe v1401-minimal-noopt-kgen
+command /OPTION/BASE/LIBEXEC/KCC/KGEN -N -R=/SCRATCH/V1401.MIN.NKP /SCRATCH/V1401.MIN.KIR; ECHO MINNGEN:$?
+contains MINNGEN:0
+not_contains UUO
+timeout 210
+end
+probe v1401-minimal-noopt-kopt
+command /OPTION/BASE/LIBEXEC/KCC/KOPT -R=/SCRATCH/V1401.MIN.NA7 /SCRATCH/V1401.MIN.NKP; ECHO MINNOPT:$?
+contains MINNOPT:0
+timeout 125
+end
+probe v1401-multi-kcpp
+command /OPTION/BASE/LIBEXEC/KCC/KCPP -R=/SCRATCH/V1401.MUL.KPT /CONFIG/V1373-NESTED.C; ECHO MULCPP:$?
+contains MULCPP:0
+timeout 125
+end
+probe v1401-multi-kparse
+command /OPTION/BASE/LIBEXEC/KCC/KPARSE -R=/SCRATCH/V1401.MUL.KIR /SCRATCH/V1401.MUL.KPT; ECHO MULPARSE:$?
+contains MULPARSE:0
+timeout 210
+end
+probe v1401-multi-kgen
+command /OPTION/BASE/LIBEXEC/KCC/KGEN -R=/SCRATCH/V1401.MUL.KP2 /SCRATCH/V1401.MUL.KIR; ECHO MULGEN:$?
+contains MULGEN:0
+not_contains UUO
+not_contains bad Sclass
+timeout 210
+end
+probe v1401-multi-kopt
+command /OPTION/BASE/LIBEXEC/KCC/KOPT -R=/SCRATCH/V1401.MUL.A7 /SCRATCH/V1401.MUL.KP2; ECHO MULOPT:$?
+contains MULOPT:0
+timeout 125
+end
+probe v1401-multi-equality
+command CMP /SCRATCH/V1401.MUL.A7 /CONFIG/V1373-NESTED-GOLD.A7; ECHO MULCMP:$?
+contains MULCMP:0
+timeout 65
+end
+probe v1401-multi-noopt-kgen
+command /OPTION/BASE/LIBEXEC/KCC/KGEN -N -R=/SCRATCH/V1401.MUL.NKP /SCRATCH/V1401.MUL.KIR; ECHO MULNGEN:$?
+contains MULNGEN:0
+not_contains UUO
+timeout 210
+end
+probe v1401-multi-noopt-kopt
+command /OPTION/BASE/LIBEXEC/KCC/KOPT -R=/SCRATCH/V1401.MUL.NA7 /SCRATCH/V1401.MUL.NKP; ECHO MULNOPT:$?
+contains MULNOPT:0
+timeout 125
+end
+probe v1401-multi-driver
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1401.DRV.A7 /CONFIG/V1373-NESTED.C; ECHO DRV:$?
+contains DRV:0
+not_contains bad Sclass
+timeout 240
+end
+probe v1401-multi-driver-equality
+command CMP /SCRATCH/V1401.DRV.A7 /CONFIG/V1373-NESTED-GOLD.A7; ECHO DRVCMP:$?
+contains DRVCMP:0
+timeout 65
+end
