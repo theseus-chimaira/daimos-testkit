@@ -1,0 +1,21 @@
+probe v1404-native-c89-compile
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1403-KCC.A7 /CONFIG/V1403.C; ECHO COMPILE:$?
+contains COMPILE:0
+timeout 240
+end
+probe v1404-native-c89-direct-dxr
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1404-DIRECT.DXR /SCRATCH/V1403-KCC.A7; ECHO DIRECT:$?
+contains DIRECT:0
+timeout 190
+end
+probe v1404-native-object-explicit-rejection
+command /OPTION/BASE/EXEC/DAS -A -C -O /SCRATCH/V1404-OBJECT.DOBJ /SCRATCH/V1403-KCC.A7; ECHO OBJECT:$?
+contains OBJECT:1
+not_contains OBJECT:0
+timeout 190
+end
+probe v1404-native-object-not-created
+command CMP /SCRATCH/V1404-OBJECT.DOBJ /CONFIG/V1403-MAIN.DOBJ; ECHO NOOBJECT:$?
+not_contains NOOBJECT:0
+timeout 90
+end
