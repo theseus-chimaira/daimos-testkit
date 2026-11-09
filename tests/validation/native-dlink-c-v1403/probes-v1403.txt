@@ -1,0 +1,28 @@
+# Separately verify native KCC assembly and native DLINK host-DOBJ acceptance.
+probe v1403-native-kcc-c89
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1403-MAIN.A7 /CONFIG/V1403-MAIN.C; ECHO KCCSTATUS:$?
+contains KCCSTATUS:0
+not_contains Internal error
+timeout 220
+end
+probe v1403-native-kcc-host-equality
+command CMP /SCRATCH/V1403-MAIN.A7 /CONFIG/V1403-MAIN-GOLD.A7; ECHO ASMCMP:$?
+contains ASMCMP:0
+timeout 65
+end
+probe v1403-native-dlink-host-objects
+command /OPTION/BASE/EXEC/DLINK -O /SCRATCH/V1403-LINK.DXR -B 020 /CONFIG/V1403-CRT0.DOBJ /CONFIG/V1403-MAIN.DOBJ /CONFIG/V1403-SYSCALL.DOBJ /CONFIG/V1403-SYSH.DOBJ; ECHO LINKSTATUS:$?
+contains LINKSTATUS:0
+not_contains UUO
+timeout 190
+end
+probe v1403-native-dlink-host-equality
+command CMP /SCRATCH/V1403-LINK.DXR /CONFIG/V1403-GOLD.DXR; ECHO LINKCMP:$?
+contains LINKCMP:0
+timeout 65
+end
+probe v1403-linked-c89-exec
+command CHMOD 755 /SCRATCH/V1403-LINK.DXR; /SCRATCH/V1403-LINK.DXR; ECHO RUNSTATUS:$?
+contains RUNSTATUS:7
+timeout 70
+end
