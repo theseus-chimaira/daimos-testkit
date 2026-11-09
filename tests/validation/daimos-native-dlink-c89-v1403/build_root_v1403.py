@@ -65,6 +65,11 @@ def main():
         "/CONFIG/V1403-MAIN.DOBJ": objects / "main.dobj",
         "/CONFIG/V1403-HOST.DXR": objects / "host-v1403.dxr",
     }
+    # Optional versioned DAS1/DAS2 symbol-transport fixture.  It does
+    # not alter the accepted v1403 inventory unless explicitly supplied.
+    metadata_fixture = os.environ.get("V1405_OBJECT_METADATA_A7")
+    if metadata_fixture:
+        extra["/CONFIG/V1405-METADATA.A7"] = Path(metadata_fixture)
     present = {v.split(":", 1)[0] for opt, v in grouped if opt == "-f"}
     for target, source in extra.items():
         if target in present or not source.is_file():
