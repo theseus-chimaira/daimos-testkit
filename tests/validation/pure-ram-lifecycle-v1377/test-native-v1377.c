@@ -144,6 +144,7 @@ reload(kword_t backing, kword_t base, kword_t uarea)
         return 0;
 }
 
+#ifndef DAIMOS_TEST_FIXTURE_NO_MAIN
 int
 main(void)
 {
@@ -218,3 +219,4 @@ main(void)
                 return 11;
         return 0;
 }
+#endif
