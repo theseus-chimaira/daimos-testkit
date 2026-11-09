@@ -1,0 +1,89 @@
+# Native DAS packed ASCII7 input and unchanged default S6REC regression.
+probe v1402-ascii7
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1402-A.DXR /CONFIG/V1402-SRC.A7; ECHO A7STATUS:$?
+contains A7STATUS:0
+not_contains UUO
+timeout 140
+end
+probe v1402-ascii7-equality
+command CMP /SCRATCH/V1402-A.DXR /CONFIG/V1402-GOLD.DXR; ECHO A7CMP:$?
+contains A7CMP:0
+timeout 65
+end
+probe v1402-explicit-s6rec
+command /OPTION/BASE/EXEC/DAS -S -O /SCRATCH/V1402-S.DXR /CONFIG/V1402-SRC.S6; ECHO S6STATUS:$?
+contains S6STATUS:0
+timeout 140
+end
+probe v1402-s6rec-equality
+command CMP /SCRATCH/V1402-S.DXR /CONFIG/V1402-GOLD.DXR; ECHO S6CMP:$?
+contains S6CMP:0
+timeout 65
+end
+probe v1402-default-s6rec
+command /OPTION/BASE/EXEC/DAS -O /SCRATCH/V1402-DEF.DXR /CONFIG/V1402-SRC.S6; ECHO DEFSTATUS:$?
+contains DEFSTATUS:0
+timeout 140
+end
+probe v1402-default-s6rec-equality
+command CMP /SCRATCH/V1402-DEF.DXR /CONFIG/V1402-GOLD.DXR; ECHO DEFCMP:$?
+contains DEFCMP:0
+timeout 65
+end
+probe v1402-native-kcc-a7
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1402-KCC.A7 /CONFIG/V1373.C; ECHO KCCSTATUS:$?
+contains KCCSTATUS:0
+not_contains bad Sclass
+timeout 210
+end
+probe v1402-native-das-compiled-a7
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1402-KCC.DXR /SCRATCH/V1402-KCC.A7; ECHO KCCDAS:$?
+contains KCCDAS:0
+not_contains UUO
+timeout 170
+end
+probe v1402-native-compiled-image-equality
+command CMP /SCRATCH/V1402-KCC.DXR /CONFIG/V1402-KCC-GOLD.DXR; ECHO KCCDXRCMP:$?
+contains KCCDXRCMP:0
+timeout 65
+end
+probe v1402-quoted-ascii7
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1402-QUOTE.DXR /CONFIG/V1402-QUOTED.A7; ECHO QUOTESTATUS:$?
+contains QUOTESTATUS:0
+timeout 140
+end
+probe v1402-quoted-byte-equality
+command CMP /SCRATCH/V1402-QUOTE.DXR /CONFIG/V1402-QUOTED-GOLD.DXR; ECHO QUOTECMP:$?
+contains QUOTECMP:0
+timeout 65
+end
+probe v1402-assemble-runnable-a7
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1402-RUN.DXR /CONFIG/V1402-RUN.A7; ECHO RUNASM:$?
+contains RUNASM:0
+timeout 140
+end
+probe v1402-runnable-image-equality
+command CMP /SCRATCH/V1402-RUN.DXR /CONFIG/V1402-RUN-GOLD.DXR; ECHO RUNCMP:$?
+contains RUNCMP:0
+timeout 65
+end
+probe v1402-runnable-native-exec
+command /SCRATCH/V1402-RUN.DXR; ECHO RUNSTATUS:$?
+contains RUNSTATUS:7
+timeout 70
+end
+probe v1402-reject-spare-bit
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1402-BAD1.DXR /CONFIG/V1402-BAD-SPARE.A7; ECHO BADSPARE:$?
+contains BADSPARE:1
+timeout 125
+end
+probe v1402-reject-embedded-nul
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1402-BAD2.DXR /CONFIG/V1402-BAD-NUL.A7; ECHO BADNUL:$?
+contains BADNUL:1
+timeout 125
+end
+probe v1402-reject-trailing-words
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1402-BAD3.DXR /CONFIG/V1402-BAD-TRAIL.A7; ECHO BADTRAIL:$?
+contains BADTRAIL:1
+timeout 125
+end
