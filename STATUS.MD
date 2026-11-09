@@ -1,3 +1,28 @@
+## 2026-11-09 v1395: native KIR1 symbol corruption corrected (4/6 PASS)
+
+The `kcc-indptr-call-v1395` host regression demonstrates that the v1373
+compiler's loop-carried pointer to an array element becomes stale when a
+call within the body spills/reloads its virtual register.  An isolated
+corrected KCC now rejects that unsafe induction optimization for loop
+bodies containing function calls while retaining the exact original
+optimized assembly in the call-free case.  Both full and codegen-only
+host tests pass, and the v1373 host compiler fails the negative control.
+
+Rebuilding all five native KCC phases with the corrected host produces
+validated DXRs; a fresh full grouped D6FS image passes d6fsck and boots
+under PDP-6 SIMH. The strict `kcc-kir-global-v1390` guest regression now
+passes 4/6 checks (was 2/6): integrated multi-function KCC compiles with
+exit 0, its assembler output is byte-identical to the host reference, and
+the independent KCPP/KPARSE phases pass.  Standalone optimized and -N KGEN
+still UUO at 044572/exit 126; these remain FAIL, not PASS.
+
+Separate v1396 evidence confirms that the same standalone KGEN UUO occurs
+on the minimal single-function KIR with either v1373 or v1395 binaries.
+It also occurs with direct -X chaining, so it is not caused solely by the
+multi-function fixture, optimization mode, or direct-output selection.
+The next correctness priority is fixing standalone KGEN, followed by
+complete native assembler/linker/execution acceptance.
+
 ## 2026-11-09 v1390: strict native KIR1/KGEN regression (compiler FAIL)
 
 The independent `tests/validation/kcc-kir-global-v1390` gate reuses the
