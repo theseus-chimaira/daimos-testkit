@@ -43,7 +43,7 @@ cp "$das"/*.c "$das"/*.h "$das/Makefile" "$das/DAS.SIXMD" \
 if ! make -j2 -C "$work/das-source" \
     "NATIVE_BUILD_DIR=$work/native-das" \
     "DAIMOS_REPO=$daimos" "PDP10_PREFIX=$PDP10_PREFIX" \
-    "PDP10_KCC=$base/host/kcc" \
+    "PDP10_KCC=${V1402_HOST_KCC:-$base/host/kcc}" \
     "PDP10_DLINK=$PDP10_PREFIX/bin/dlink" \
     "NATIVE_DAS=$PDP10_PREFIX/bin/das" \
     "SIXMD_CHECK=$PDP10_PREFIX/bin/sixmd-check" native \

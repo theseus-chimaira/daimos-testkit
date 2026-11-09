@@ -1,0 +1,20 @@
+# Old compiler must exhibit the specific nested five/six-arg failure.
+probe v1407-old-kcc-stack-regression
+command /SYSTEM/EXEC/V1407OLD; ECHO OLDSTATUS:$?
+contains OLDSTATUS:5
+not_contains OLDSTATUS:7
+timeout 100
+end
+# Corrected compiler must preserve both the fifth and sixth arguments.
+probe v1407-fixed-kcc-stack-regression
+command /SYSTEM/EXEC/V1407NEW; ECHO NEWSTATUS:$?
+contains NEWSTATUS:7
+not_contains UUO
+timeout 100
+end
+probe v1410-fixed-kcc-unoptimized-regression
+command /SYSTEM/EXEC/V1410NOOPT; ECHO NOOPTSTATUS:$?
+contains NOOPTSTATUS:7
+not_contains UUO
+timeout 100
+end

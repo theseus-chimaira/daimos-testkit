@@ -70,12 +70,28 @@ def main():
     metadata_fixture = os.environ.get("V1405_OBJECT_METADATA_A7")
     if metadata_fixture:
         extra["/CONFIG/V1405-METADATA.A7"] = Path(metadata_fixture)
+    # Optional v1407 C89 ABI execution comparison.  These are complete
+    # host-linked DXR fixtures, not input objects or scratch text.
+    executable_fixture = {}
+    for env_name, target in (
+            ("V1407_BEFORE_DXR", "/SYSTEM/EXEC/V1407OLD"),
+            ("V1407_AFTER_DXR", "/SYSTEM/EXEC/V1407NEW"),
+            ("V1410_NOOPT_DXR", "/SYSTEM/EXEC/V1410NOOPT")):
+        value = os.environ.get(env_name)
+        if value:
+            executable_fixture[target] = Path(value)
     present = {v.split(":", 1)[0] for opt, v in grouped if opt == "-f"}
     for target, source in extra.items():
         if target in present or not source.is_file():
             raise ValueError("missing or duplicate DOBJ1 fixture: " + target)
         grouped.append(("-f", ":".join((
             target, str(source), "644", "binwords"))))
+    for target, source in executable_fixture.items():
+        if target in present or not source.is_file():
+            raise ValueError("missing or duplicate v1407 executable: " + target)
+        codec.unpack_original(codec.load(source))
+        grouped.append(("-f", ":".join((
+            target, str(source), "555", "dxr"))))
 
     bindir = Path(os.environ["PDP10_PREFIX"]) / "bin"
     disk = work / "disk-pristine-v1403"
