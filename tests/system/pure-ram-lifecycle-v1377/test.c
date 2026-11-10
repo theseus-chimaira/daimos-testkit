@@ -77,6 +77,24 @@ find_extent(kword_t base)
         return -1;
 }
 
+/* A real MM allocator checks half-open PHYSICAL intervals, not only
+ * descriptor base equality. In particular an inactive PURE suffix may
+ * start INSIDE the old process span; a resumed full APR image must not
+ * overlap that still-authoritative suffix or a failed reload destroys it.
+ */
+static int
+overlap_extent(kword_t base, kword_t words)
+{
+        int i;
+        for (i = 0; i < mm_extent_count; ++i) {
+                kword_t other = MM_EXTENT_BASE(&mm_extents[i]);
+                kword_t length = MM_EXTENT_WORDS(&mm_extents[i]);
+                if (base < other + length && other < base + words)
+                        return 1;
+        }
+        return 0;
+}
+
 static void
 add_extent(kword_t base, kword_t words, unsigned int type)
 {
@@ -103,11 +121,11 @@ mm_alloc_aligned_noreclaim(kword_t words, kword_t align,
         else if (type == MM_TYPE_PROCESS && words == FULL_WORDS) {
                 base = use_next_base_b ? PHYS_B : PHYS_A;
                 use_next_base_b = !use_next_base_b;
-                if (find_extent(base) >= 0)
+                if (overlap_extent(base, words))
                         base = base == PHYS_A ? PHYS_B : PHYS_A;
         } else
                 return MM_ERR_INVAL;
-        if ((base & (align - 1UL)) || find_extent(base) >= 0)
+        if ((base & (align - 1UL)) || overlap_extent(base, words))
                 return MM_ERR_NOMEM;
         add_extent(base, words, type);
         *basep = base;

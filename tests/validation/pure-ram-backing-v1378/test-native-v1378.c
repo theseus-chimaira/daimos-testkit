@@ -143,7 +143,14 @@ main(void)
             !guard_absent_v1378() ||
             (uarea[PROC_CRED_OFFSET] & PROC_SWAP_MOUNT_EXT_BIT))
                 return 9;
+#ifdef DAIMOS_TEST_INPLACE_V1382
+        /* Zero-copy PURE drop does not free a process extent; it changes
+         * the descriptor in place. Only restore and terminal discard free.
+         */
+        if (free_checks_v1378 != 2U || guard_checks_v1378 < 6U)
+#else
         if (free_checks_v1378 != 4U || guard_checks_v1378 < 8U)
+#endif
                 return 10;
         return 0;
 }
