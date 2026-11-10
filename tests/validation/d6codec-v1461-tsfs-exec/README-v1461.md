@@ -35,6 +35,10 @@ passes the build's media-validation stage.
   media, ROOT login, DSH, guest ECHO. `--guest-timeout` is
   configurable because DECtape seeks are slow. A timeout
   is never counted as a pass.
+  The full-profile 256K acceptance passed with a 240-second
+  guest-command allowance (`V1461_DSH_EXEC_PASS`); the initial
+  70-second guest-command window timed out. Total cold-boot
+  wall time was about 307 seconds.
 * `trace-failure-v1461.py`: optional nonintrusive SIMH
   breakpoint and history diagnostic for EXEC failure paths.
 * `inspect-layout-v1461.py`: inspect FILE/EXTENT metadata
