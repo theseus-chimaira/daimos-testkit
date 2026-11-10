@@ -22,7 +22,9 @@ grep -q 'int dsys_exec(struct sys_exec_v1 \*args);' "$dh" || {
 grep -q '^dsys_exec:' "$ss" || {
         echo "$tag: dsys_exec veneer missing" >&2; exit 1;
 }
-grep -q 'native_sys_exec,,pclk_time36' "$sd" || {
+# The production dispatch table uses the resident wall_time36 gateway.
+# pclk_time36 was retired earlier; assert the actual stable UUO 077 slot.
+grep -Eq '[.]word[[:space:]]+native_sys_exec,,wall_time36' "$sd" || {
         echo "$tag: EXEC not dispatched by UUO 077" >&2; exit 1;
 }
 grep -q '^exec_replace_current:' "$ex" || {

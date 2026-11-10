@@ -291,6 +291,11 @@ test_blocked_gap_v1384(void)
  */
 extern int proc_pure_prefix_plain_v1385(kword_t, kword_t, kword_t,
     kword_t);
+#ifdef DAIMOS_TEST_SHARED_IMAGE_V1387
+extern int exec_image_prefix_backing_v1386(kword_t, kword_t, kword_t,
+    kword_t);
+#define proc_pure_prefix_plain_v1385 exec_image_prefix_backing_v1386
+#endif
 static vnode_t roots_v1385[26];
 vnode_t *vfs_mount_root_base = roots_v1385;
 kword_t vfs_mount_limit = 26UL;
@@ -310,7 +315,12 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
         observed_vnode_v1385 = node;
         if (node != expected_vnode_v1385)
                 return -1;
-        if (off == 0U && count == 3U) {
+        if (off == 0U &&
+            (count == 3U
+#ifdef DAIMOS_TEST_SHARED_IMAGE_V1387
+             || count == 2U
+#endif
+             )) {
                 ++header_reads_v1385;
                 buf[0] = ((kword_t)0447062UL << 18U);
                 buf[1] = ((kword_t)TEXT << 18U) |
@@ -318,8 +328,15 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
                     (read_mode_v1385 == 2 ? EXEC_DXR_F_COMPRESSED : 0UL);
                 buf[2] = ((kword_t)TEXT << 18U) |
                     (read_mode_v1385 == 3 ? 0UL : EXEC_DXR_TEXT_TAG);
-                return 3;
+                return (int)count;
         }
+#ifdef DAIMOS_TEST_SHARED_IMAGE_V1387
+        if (off == 2U && count == 1U) {
+                buf[0] = ((kword_t)TEXT << 18U) |
+                    (read_mode_v1385 == 3 ? 0UL : EXEC_DXR_TEXT_TAG);
+                return 1;
+        }
+#endif
         if (off == 3U && count == OMIT - 020U) {
                 ++payload_reads_v1385;
                 if (buf != (kword_t *)(unsigned long)(SOURCE + 020UL))
@@ -333,6 +350,39 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
         }
         return -1;
 }
+
+#ifdef DAIMOS_TEST_SHARED_IMAGE_V1387
+/* The real shared inspector uses the provider's actual file size.
+ * The test's executable is otherwise identical to the plain v1385 case.
+ */
+int
+vfs_stat(vnode_t node, struct vfs_stat *stat)
+{
+        if (node != expected_vnode_v1385)
+                return -1;
+        stat->type = 2U;               /* regular executable */
+        stat->mode = 0U;
+        stat->reserved = 0UL;
+        stat->size_words = 3UL + (read_mode_v1385 == 2 ? 2UL :
+            (kword_t)TEXT) + (((kword_t)TEXT + 043UL) / 044UL);
+        stat->uid = 0U;
+        stat->gid = 0U;
+        stat->mtime = 0UL;
+        return 0;
+}
+
+int
+d6lz36_decode_vfs(kword_t vnode, unsigned int off,
+    unsigned int words, kword_t packed)
+{
+        (void)vnode;
+        (void)off;
+        (void)words;
+        (void)packed;
+        /* PURE_PREFIX must never invoke an unbounded full-image decoder. */
+        return -1;
+}
+#endif
 
 static int
 test_plain_loader_v1385(unsigned int mode, unsigned int mount)
