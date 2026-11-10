@@ -1,3 +1,51 @@
+## 2026-11-09 v1395: native KIR1 symbol corruption corrected (4/6 PASS)
+
+The `kcc-indptr-call-v1395` host regression demonstrates that the v1373
+compiler's loop-carried pointer to an array element becomes stale when a
+call within the body spills/reloads its virtual register.  An isolated
+corrected KCC now rejects that unsafe induction optimization for loop
+bodies containing function calls while retaining the exact original
+optimized assembly in the call-free case.  Both full and codegen-only
+host tests pass, and the v1373 host compiler fails the negative control.
+
+Rebuilding all five native KCC phases with the corrected host produces
+validated DXRs; a fresh full grouped D6FS image passes d6fsck and boots
+under PDP-6 SIMH. The strict `kcc-kir-global-v1390` guest regression now
+passes 4/6 checks (was 2/6): integrated multi-function KCC compiles with
+exit 0, its assembler output is byte-identical to the host reference, and
+the independent KCPP/KPARSE phases pass.  Standalone optimized and -N KGEN
+still UUO at 044572/exit 126; these remain FAIL, not PASS.
+
+Separate v1396 evidence confirms that the same standalone KGEN UUO occurs
+on the minimal single-function KIR with either v1373 or v1395 binaries.
+It also occurs with direct -X chaining, so it is not caused solely by the
+multi-function fixture, optimization mode, or direct-output selection.
+The next correctness priority is fixing standalone KGEN, followed by
+complete native assembler/linker/execution acceptance.
+
+## 2026-11-09 v1390: strict native KIR1/KGEN regression (compiler FAIL)
+
+The independent `tests/validation/kcc-kir-global-v1390` gate reuses the
+accepted v1373 grouped full-distribution image and asserts **actual zero
+compiler exit status**, absence of internal errors/UUOs, and exact
+host/native assembler equality on the multi-function C89 fixture.  The
+old v1378 inspection checked for the presence of status labels and could
+falsely report an all-pass result even with a failing compiler.
+
+The baseline native PDP-6 SIMH run produces **2 PASS / 4 FAIL**: KCPP and
+KPARSE succeed; native multi-function KCC returns 1 after
+`gaddress: bad Sclass 0`, host-output equality fails, and optimized and
+`-N` standalone KGEN return 126 after UUOs.  The gate correctly exits 1.
+Its retained evidence is under `$TMPDIR/kcc-kir-global-v1390`.
+
+Separate isolated KGEN diagnostic images v1383-v1388 identified local
+symbol `first` with valid readback class 17/flags 010003, then class 0
+later at the same pointer in failing codegen.  Adding instrumentation
+affected the failure, and one zero-exit variant still differed from the
+host at word 69.  This is an **unresolved compiler correctness bug**,
+not a validated repair.  No production compiler, DAIMOS kernel or media
+were installed or changed by the diagnostic gate.
+
 ## 2026-11-08 v1351: original 256K F07 + strict owner lifecycle PASS
 
 The separate, freshly booted v1349 256K KCC PDP-6 guest now PASSes
