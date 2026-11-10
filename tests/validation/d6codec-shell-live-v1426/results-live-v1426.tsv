@@ -1,0 +1,7 @@
+state	region	raw_words	nonzero_words	grouped_words	block_words	kpack_rle_words	grouped_pct	block_pct	kpack_rle_pct	sha256_source
+idle_initial	physical_sector_suffix	3200	225	246	280	263	7.69	8.75	8.22	161c9f1efdf8135d39e62e8bfb55a4f79e937690c7eaf3a7cbab99b8f2fb6888
+idle_initial	writable_only	3086	111	128	166	149	4.15	5.38	4.83	161c9f1efdf8135d39e62e8bfb55a4f79e937690c7eaf3a7cbab99b8f2fb6888
+after_commands	physical_sector_suffix	3200	435	439	532	537	13.72	16.62	16.78	12f284531eb7124fa71ce522b34cbb9b918ddf228e03a0cbb3dddbd8a97842b7
+after_commands	writable_only	3086	321	324	418	423	10.5	13.55	13.71	12f284531eb7124fa71ce522b34cbb9b918ddf228e03a0cbb3dddbd8a97842b7
+after_function	physical_sector_suffix	5248	531	524	656	677	9.98	12.5	12.9	1a4c76ab706df707ea96c5de79abd492148387adfca1339d05813e7afa7d4785
+after_function	writable_only	5134	417	408	542	563	7.95	10.56	10.97	1a4c76ab706df707ea96c5de79abd492148387adfca1339d05813e7afa7d4785

@@ -1,0 +1,7 @@
+name	codec	raw_words	compressed_words	simh_decode_instructions
+mixed_29_prefixes	d6lz	2477	2348	23603
+mixed_29_prefixes	block	2477	2320	2490
+dsh_first_2048	d6lz	2048	1850	19213
+dsh_first_2048	block	2048	1868	5039
+kcore_first_2048	d6lz	2048	1993	20181
+kcore_first_2048	block	2048	1983	2961

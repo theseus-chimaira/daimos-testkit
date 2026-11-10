@@ -1,0 +1,10 @@
+state	codec	decoded_words	simh_steps	blt_calls	blt_words	illustrative_slow_us	illustrative_words_per_s
+idle_initial	d6lz36	3200	17928	3	52	71769.6	44587
+idle_initial	grouped	3200	9055	44	3024	39778.4	80446
+idle_initial	block	3200	1684	49	3181	10474.8	305495
+after_commands	d6lz36	3200	19377	3	52	77565.6	41255
+after_commands	grouped	3200	18008	89	2841	75298.8	42497
+after_commands	block	3200	3376	97	3164	17145.6	186637
+after_function	d6lz36	5248	30637	3	52	122605.6	42804
+after_function	grouped	5248	23104	128	4800	97971.2	53567
+after_function	block	5248	5114	147	5190	26448.8	198421

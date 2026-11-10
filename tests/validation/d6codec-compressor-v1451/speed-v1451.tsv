@@ -1,0 +1,7 @@
+state	mode	raw_words	packed_words	simh_instructions	seconds_at_025_mips
+idle_initial	encode	3200	314	20335	0.0813
+idle_initial	decode	3200	314	23219	0.0929
+after_commands	encode	3200	524	20965	0.0839
+after_commands	decode	3200	524	23639	0.0946
+after_function	encode	5248	677	33826	0.1353
+after_function	decode	5248	677	38395	0.1536
