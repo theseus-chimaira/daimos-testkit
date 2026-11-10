@@ -40,6 +40,23 @@ if "$tool" -i "$image" --confirm-destructive $args >/dev/null 2>&1; then
         echo 'reformat unexpectedly succeeded' >&2; exit 1
 fi
 cmp "$image" "$work/formatted"
+# The original v1 formatter left vestigial starts on absent pools. New
+# descriptors should canonicalize them without making those old descriptors
+# unbootable: the reader still uses the count as the existence test.
+"$tool" --blank "$work/canonical" --blocks 0200
+"$tool" -i "$work/canonical" --d6fs-base 1 --d6fs-blocks 020 \
+    --d6fs-super-a 0 --d6fs-super-b 1 --backstore-blocks 0 \
+    --logstore-blocks 0 --cache-blocks 0157 --confirm-destructive \
+    >/dev/null
+python3 - "$work/canonical" <<'PY'
+import struct
+import sys
+with open(sys.argv[1], "rb") as inp:
+    words = struct.unpack("<7Q", inp.read(7 * 8))
+assert words[2] == 0, "absent BACKSTORE start not canonical"
+assert words[3] == 0, "absent LOGSTORE start not canonical"
+assert words[4] == ((0o21 << 18) | 0o157), "CACHE tail changed"
+PY
 # A descriptor containing only non-36-bit high bits is still nonempty.
 "$tool" --blank "$work/dirty-header" --blocks 0200
 printf '\200' | dd of="$work/dirty-header" bs=1 seek=7 conv=notrunc 2>/dev/null

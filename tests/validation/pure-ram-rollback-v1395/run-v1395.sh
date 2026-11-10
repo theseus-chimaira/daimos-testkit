@@ -11,8 +11,15 @@ src="$DAIMOS_REPO/system/kernel"
 include="-I$src/proc -I$src/core -I$src/mm -I$src/fs -I$src/storage -I$src/modules -I$src/drivers -I$PDP10_PREFIX/include -I$testkit/tests/validation/pure-ram-lifecycle-v1377 -I$testkit/tests/validation/pure-ram-registryfree-v1379 -I$testkit/tests/validation/pure-ram-inplace-v1381 -I$testkit/tests/validation/pure-ram-prefix-v1384"
 for spec in 'proc_pure_ram_v1381 DAIMOS_SWAPLESS_PURE_RAM_V1381' 'proc_pure_restore_v1384 DAIMOS_SWAPLESS_PREFIX_V1384'; do
     set -- $spec
-    "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
-        -D"$2"=1 $include -S "$src/proc/$1.c" -o "$work/$1.s"
+    if [ "$1" = proc_pure_ram_v1381 ]; then
+        "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
+            -D"$2"=1 -Dmm_unpin=mm_unpin_fault_v1395 \
+            -Dmm_pure_rebase_pinned_v1381=mm_pure_rebase_fault_v1397 \
+            $include -S "$src/proc/$1.c" -o "$work/$1.s"
+    else
+        "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
+            -D"$2"=1 $include -S "$src/proc/$1.c" -o "$work/$1.s"
+    fi
 done
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
     -DDAIMOS_SWAPLESS_PURE_RAM_RESTORE_V1391=1 \
@@ -35,4 +42,4 @@ done
     "$work/proc-pure-restore-v1395.s" \
     "$src/mm/mm_pure_rebase_v1381.s" "$src/mm/mm_pure_expand_v1384.s" \
     "$src/proc/proc_storage_runtime_v30.s" "$work/test-native-v1395.s"
-echo 'PASS v1395: native PURE restore rollback and finish failure isolation'
+echo 'PASS v1395/v1397: native PURE FULL and DROP MM failure isolation'

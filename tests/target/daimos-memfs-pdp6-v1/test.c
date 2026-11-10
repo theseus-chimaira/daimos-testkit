@@ -36,6 +36,8 @@ extern struct memfs memfs_mres_fs;
 extern int test_xip_vm_release_v213(kword_t base);
 extern int test_xip_mres_admit_v219(vnode_t node, kword_t *base,
     kword_t *entry);
+extern int test_memfs_chown_v1396(struct memfs *fs, vnode_t node);
+extern int test_memfs_utime_v1397(struct memfs *fs, vnode_t node);
 extern int vm_space_destroy(kword_t *vm_descriptor, unsigned int slot);
 static kword_t xip_vm_descriptor_v215[3];
 extern kword_t test_xip_instruction_template;
@@ -439,6 +441,17 @@ daimos_memfs_pdp6_test(void)
         if (!memfs_xip_owns_base(xip_base) ||
             memfs_xip_owns_base(xip_base + 1U))
                 return 0215;
+        /* A pin freezes executable identity as well as code bytes. CHMOD,
+         * CHOWN and UTIME all use the production memfs_chmod entry; none
+         * may alter the attributes of a live, shared XIP image. */
+        metadata[MEMFS_OWNER_OFFSET + 1U] = 04567UL;
+        if (memfs_chmod(xip_fs, node, 0644U) == 0 ||
+            test_memfs_chown_v1396(xip_fs, node) == 0 ||
+            test_memfs_utime_v1397(xip_fs, node) == 0 ||
+            metadata[MEMFS_OWNER_OFFSET + 1U] != 04567UL ||
+            memfs_stat(xip_fs, node, &st) != 0 || st.mode != 0555U ||
+            extent_pins != 1U || !memfs_xip_owns_base(xip_base))
+                return 0230;
 #ifdef XIP_USER_LIFECYCLE_V216
         /* The standalone harness represents one XIP process with a normal
          * three-word process descriptor.  No per-process state is added. */
@@ -470,13 +483,26 @@ daimos_memfs_pdp6_test(void)
             extent_pins != 1U || !memfs_xip_owns_base(xip_base))
                 return 0217;
         xip_unpin_injected_failure_v214 = 0;
-        if (vm_space_destroy(xip_vm_descriptor_v215, 1U) != 0 ||
-            xip_vm_descriptor_v215[1] != 0777777777777UL ||
-            extent_pins != 0U ||
-            memfs_xip_owns_base(xip_base))
-                return 0205;
+        if (vm_space_destroy(xip_vm_descriptor_v215, 1U) != 0)
+                return 0232;
+        if (xip_vm_descriptor_v215[1] != 0777777777777UL)
+                return 0233;
+        if (extent_pins != 0U)
+                return 0234;
+        if (memfs_xip_owns_base(xip_base))
+                return 0235;
         if (test_xip_vm_release_v213(xip_base) != 0)
                 return 0216;
+        /* Once the final reference is gone, normal metadata mutations
+         * work again. The pin guard is not a permanent read-only flag. */
+        if (memfs_chmod(xip_fs, node, 0644U) != 0 ||
+            test_memfs_chown_v1396(xip_fs, node) != 0 ||
+            test_memfs_utime_v1397(xip_fs, node) != 0 ||
+            metadata[MEMFS_OWNER_OFFSET + 1U] != 01234UL ||
+            memfs_stat(xip_fs, node, &st) != 0 ||
+            st.mtime != 012345670765UL ||
+            memfs_chmod(xip_fs, node, 0555U) != 0)
+                return 0231;
         xip_base = 0UL;
         if (memfs_xip_pin(xip_fs, node, &xip_base) != 0) return 0172;
         if (!xip_base) return 0173;

@@ -11,12 +11,24 @@ extern int proc_pure_ram_restore_v1391(unsigned int,
 static unsigned int fault_kind_v1395;
 static unsigned int fault_calls_v1395;
 
+/* Isolate the prepublication MM rebase failure from failure of the
+ * subsequent cleanup unpin. Do not modify the real MM assembly helper. */
+int
+mm_pure_rebase_fault_v1397(kword_t base, unsigned int owner,
+    kword_t prefix, kword_t words)
+{
+        if (fault_kind_v1395 == 5U || fault_kind_v1395 == 6U)
+                return MM_ERR_INVAL;
+        return mm_pure_rebase_pinned_v1381(base, owner, prefix, words);
+}
+
 int
 mm_unpin_fault_v1395(kword_t base)
 {
         if ((fault_kind_v1395 == 1U && base == RESTORE) ||
             (fault_kind_v1395 == 3U && base == SOURCE + OMIT) ||
-            (fault_kind_v1395 == 4U && base == RESTORE)) {
+            (fault_kind_v1395 == 4U && base == RESTORE) ||
+            (fault_kind_v1395 == 5U && base == SOURCE)) {
                 ++fault_calls_v1395;
                 return MM_ERR_BUSY;
         }
@@ -64,6 +76,10 @@ case_v1395(unsigned int kind)
         kword_t *u = (kword_t *)(unsigned long)UAREA;
         int rc;
 
+        /* The preceding case may have deliberately left a pin refusal.
+         * Prepare each fresh resident image without injected faults. */
+        fault_kind_v1395 = 0U;
+        fault_calls_v1395 = 0U;
         reset_prefix_v1384();
         if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
                 return 1;
@@ -97,15 +113,42 @@ case_v1395(unsigned int kind)
         return 0;
 }
 
+static int
+case_drop_unpin_v1397(unsigned int kind)
+{
+        struct proc *p = &process_slots[SLOT];
+        int rc;
+
+        reset_prefix_v1384();
+        fault_kind_v1395 = kind;
+        fault_calls_v1395 = 0U;
+        rc = proc_pure_ram_drop_v1381(SLOT);
+        if (rc != (kind == 5U ? MM_ERR_BUSY : MM_ERR_INVAL) ||
+            fault_calls_v1395 != (kind == 5U ? 1U : 0U) ||
+            mm_extent_count != 1 || VM_PDP6_BASE(p) != SOURCE ||
+            MM_EXTENT_BASE(&mm_extents[0]) != SOURCE ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PROCESS ||
+            MM_EXTENT_PINNED(&mm_extents[0]) != (kind == 5U ? 1U : 0U) ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT) != 0 ||
+            !PROC_TRANSITION(p))
+                return 1;
+        return 0;
+}
+
 int
 main(void)
 {
         unsigned int kind;
         int rc;
         for (kind = 1U; kind <= 4U; ++kind) {
-                rc = case_v1395(kind);
-                if (rc != 0)
-                        return (int)(kind * 0100U + (unsigned int)rc);
+            rc = case_v1395(kind);
+            if (rc != 0)
+                return (int)(kind * 0100U + (unsigned int)rc);
+        }
+        for (kind = 5U; kind <= 6U; ++kind) {
+            rc = case_drop_unpin_v1397(kind);
+            if (rc != 0)
+                return (int)(kind * 0100U + (unsigned int)rc);
         }
         return 0;
 }

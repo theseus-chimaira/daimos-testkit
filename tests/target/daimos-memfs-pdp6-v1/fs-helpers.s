@@ -48,6 +48,8 @@ vfs_current_owner:
         popj    17,
 
         .globl  pclk_time36
+        .globl  wall_time36
+wall_time36:
 pclk_time36:
 	move    1,[012345670123]       ; deterministic nonzero timestamp fixture
 	popj    17,
@@ -109,6 +111,9 @@ proc_storage_expect_v30:
         popj    17,
         .globl  proc_swap_detach
 proc_swap_detach:
+        ; vm_space_destroy requires a zero success result. Returning the
+        ; incoming slot in AC1 incorrectly simulates a failed detach.
+        setz    1,
         popj    17,
 ; Exercise the exact private VM-to-MRES operation through its real dispatcher.
 ; AC1=physical base, result 0 unknown / 1 released / -1 error.
@@ -119,6 +124,19 @@ test_xip_vm_release_v213:
 test_xip_mres_admit_v219:
         movei   6,027
         jrst    memfs_mres_dispatch
+; Invoke the real MEMFS setattr(CHOWN) branch. The fourth C register
+; contains the metadata value, while AC3 carries the sentinel operation.
+        .globl  memfs_chmod
+        .globl  test_memfs_chown_v1396
+test_memfs_chown_v1396:
+        movei   3,0100000
+        movei   4,01234
+        jrst    memfs_chmod
+        .globl  test_memfs_utime_v1397
+test_memfs_utime_v1397:
+        movei   3,0100001
+        move    4,[012345670765]
+        jrst    memfs_chmod
 test_memfs_dispatch_stat:
         movei   6,3                    ; FS_MRES_OP_STAT
         jrst    memfs_mres_dispatch

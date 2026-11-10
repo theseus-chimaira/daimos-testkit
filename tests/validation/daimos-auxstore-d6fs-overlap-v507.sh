@@ -62,6 +62,14 @@ int main(void)
     init(); buffer[5]=0; CHECK(0); /* missing partition but supers set */
     init(); buffer[5]=0; buffer[6]=0; CHECK(1); /* no D6FS is valid */
     init(); buffer[5]=pair(077700,02000); CHECK(0); /* beyond medium */
+    /* Old v1 formatter wrote the computed would-be start even for an
+     * absent region. This is a supported legacy format: length is zero. */
+    init(); buffer[2]=pair(03000,0); CHECK(1); /* legacy empty BACK */
+    init(); buffer[3]=pair(05000,0); CHECK(1); /* legacy empty LOG */
+    init(); buffer[4]=pair(06000,0); CHECK(1); /* legacy empty CACHE */
+    init(); buffer[2]=0; CHECK(1); /* canonical empty BACKSTORE */
+    init(); buffer[3]=0; CHECK(1); /* canonical empty LOGSTORE */
+    init(); buffer[4]=0; CHECK(1); /* canonical empty CACHE */
     if (errors) fprintf(stderr,"AUXST1 D6FS validation: %d failures\n",errors);
     else puts("daimos-auxstore-d6fs-overlap-v507: PASS");
     return errors != 0;
