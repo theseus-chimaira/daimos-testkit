@@ -2423,7 +2423,7 @@ test-daimos-swap-in-checked-release-v1405: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-swap-in-checked-release-v1405.sh
 
-.PHONY: test-daimos-d6codec-release-selection-v1462
-test-daimos-d6codec-release-selection-v1462:
+.PHONY: test-daimos-d6codec-release-selection-v1464
+test-daimos-d6codec-release-selection-v1464:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
-	 sh tests/validation/d6codec-release-selection-v1462.sh
+	 sh tests/validation/d6codec-release-selection-v1464.sh

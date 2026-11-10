@@ -33,9 +33,12 @@ def main():
             device_dir = work / device
             device_dir.mkdir(exist_ok=True)
             text = (src / device / "stage1.s").read_text()
-            assert "block_decompressor_v1452.inc" in text
-            if version == "v1458":
-                text = text.replace("v1452", "v1458")
+            assert "block_decompressor_v1458.inc" in text
+            if version == "v1452":
+                # After production cutover the selected Stage-1 already
+                # includes v1458. Reconstruct the older reference only
+                # inside the disposable assembly fixture.
+                text = text.replace("v1458", "v1452")
             asm = device_dir / "stage1.s"
             asm.write_text(text)
             obj = device_dir / (device + "-stage1-" + version + ".raw")
