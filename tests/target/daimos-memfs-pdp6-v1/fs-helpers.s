@@ -115,6 +115,11 @@ proc_swap_detach:
         ; incoming slot in AC1 incorrectly simulates a failed detach.
         setz    1,
         popj    17,
+        ; A late teardown error after releasing one of several backing
+        ; owners is not recoverable. The real KCORE invariant HALTs too.
+        .globl  proc_swap_storage_invariant_v30
+proc_swap_storage_invariant_v30:
+        halt    .
 ; Exercise the exact private VM-to-MRES operation through its real dispatcher.
 ; AC1=physical base, result 0 unknown / 1 released / -1 error.
 test_xip_vm_release_v213:
@@ -137,6 +142,12 @@ test_memfs_utime_v1397:
         movei   3,0100001
         move    4,[012345670765]
         jrst    memfs_chmod
+        ; Vector 020 is the production MEMFS PREPARE_UNMOUNT entry.
+        ; The provider context is supplied by the real MRES dispatcher.
+        .globl  test_memfs_prepare_unmount_v1400
+test_memfs_prepare_unmount_v1400:
+        movei   6,020
+        jrst    memfs_mres_dispatch
 test_memfs_dispatch_stat:
         movei   6,3                    ; FS_MRES_OP_STAT
         jrst    memfs_mres_dispatch

@@ -19,6 +19,10 @@ static int xip_unpin_injected_failure_v214;
 #define backing (metadata + MEMFS_BACKING_OFFSET)
 static kword_t swap_image[0200];
 static int backstore_live;
+/* Reject a free without modifying the simulated allocator. This models a
+ * checked BACKSTORE refusal, not a transfer error or a successful release. */
+static int backstore_free_refuse_v1399;
+static int backstore_verify_refuse_v1400;
 kword_t backstore_blocks;
 static kword_t put[2];
 static kword_t got[2];
@@ -38,6 +42,7 @@ extern int test_xip_mres_admit_v219(vnode_t node, kword_t *base,
     kword_t *entry);
 extern int test_memfs_chown_v1396(struct memfs *fs, vnode_t node);
 extern int test_memfs_utime_v1397(struct memfs *fs, vnode_t node);
+extern int test_memfs_prepare_unmount_v1400(void);
 extern int vm_space_destroy(kword_t *vm_descriptor, unsigned int slot);
 static kword_t xip_vm_descriptor_v215[3];
 extern kword_t test_xip_instruction_template;
@@ -141,11 +146,22 @@ backstore_alloc(kword_t blocks, kword_t reserve, kword_t *firstp)
 int
 backstore_free(kword_t first, kword_t blocks)
 {
+        if (backstore_free_refuse_v1399)
+                return -1;
         if (first == 1U && blocks == 1U && backstore_live) {
                 backstore_live = 0;
                 return 0;
         }
         return -1;
+}
+
+int
+backstore_verify_allocated_v795(kword_t first, kword_t blocks)
+{
+        if (backstore_verify_refuse_v1400 || !backstore_live ||
+            first != 1U || blocks != 1U)
+                return -1;
+        return 0;
 }
 
 int
@@ -362,6 +378,36 @@ daimos_memfs_pdp6_test(void)
         if (!pool_live || backing[1] == 0UL)
                 return 032;
 
+        /* v1399: a refused backing release must not discard the only
+         * reference or change existing data. Exercise real MEMFS WRITE,
+         * same-sector growth, relocation growth and TRUNCATE via VFS. */
+        backstore_free_refuse_v1399 = 1;
+        put[0] = 076543210123UL;
+        if (memfs_write_words(&fs, node, 0U, put, 1U) != -1 ||
+            !backstore_live || backing[1] != DATA(1U, 1U) ||
+            fs.used_words != 1U)
+                return 0240;
+        got[0] = 0UL;
+        if (memfs_read_words(&fs, node, 0U, got, 1U) != 1 ||
+            got[0] != 012345670123UL)
+                return 0241;
+        if (memfs_truncate_words(&fs, node, 2U) != -1 ||
+            !backstore_live || backing[1] != DATA(1U, 1U) ||
+            fs.used_words != 1U ||
+            (node_store[1].data & 0777777UL) != 1U)
+                return 0242;
+        if (memfs_truncate_words(&fs, node, 0201U) != -1 ||
+            !backstore_live || backing[1] != DATA(1U, 1U) ||
+            fs.used_words != 1U ||
+            (node_store[1].data & 0777777UL) != 1U)
+                return 0243;
+        if (memfs_truncate_words(&fs, node, 0U) != -1 ||
+            !backstore_live || backing[1] != DATA(1U, 1U) ||
+            fs.used_words != 1U ||
+            (node_store[1].data & 0777777UL) != 1U)
+                return 0244;
+        backstore_free_refuse_v1399 = 0;
+
         r = memfs_truncate_words(&fs, node, 0U);
         if (r != 0 || fs.used_words != 0U || pool_live || backing[1] != 0UL)
                 return 4;
@@ -527,6 +573,42 @@ daimos_memfs_pdp6_test(void)
         if (memfs_xip_unpin_base(xip_base) == 0 ||
             memfs_truncate_words(xip_fs, node, 0U) != 0 || pool_live)
                 return 0171;
+
+        /* v1400: unmount must check ALL backing owners before releasing
+         * any of them, so failed verification preserves the mounted file.
+         * Test the actual MEMFS data teardown, not a mock policy function. */
+        xip_test_mode = 0;
+        fs.pool_words = 02000U;
+        memfs_mres_fs = fs;
+        node_store[1].meta = META_REG_WRITABLE;
+        node_store[1].data = DATA(0U, 0U);
+        put[0] = 012345670123UL;
+        if (memfs_truncate_words(&fs, node, 1U) != 0 ||
+            memfs_write_words(&fs, node, 0U, put, 1U) != 1 ||
+            memfs_data_reclaim(1U) == 0UL || pool_live ||
+            backing[1] != DATA(1U, 1U))
+                return 0250;
+        backstore_verify_refuse_v1400 = 1;
+        if (memfs_data_destroy() != -1 || !backstore_live ||
+            backing[1] != DATA(1U, 1U) ||
+            (node_store[1].data & 0777777UL) != 1U)
+                return 0251;
+        if (test_memfs_prepare_unmount_v1400() != -1 || !backstore_live ||
+            backing[1] != DATA(1U, 1U) ||
+            (node_store[1].data & 0777777UL) != 1U)
+                return 0253;
+        backstore_verify_refuse_v1400 = 0;
+        /* A bad LATER node must not make the earlier, valid node's only
+         * BACKSTORE owner disappear during preflight. */
+        backing[2] = DATA(0777U, 1U);
+        if (memfs_data_destroy() != -1 || !backstore_live ||
+            backing[1] != DATA(1U, 1U) ||
+            backing[2] != DATA(0777U, 1U))
+                return 0254;
+        backing[2] = 0UL;
+        if (memfs_data_destroy() != 0 || backstore_live || pool_live ||
+            backing[1] != 0UL)
+                return 0252;
         return 0;
 }
 
