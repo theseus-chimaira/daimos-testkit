@@ -2417,3 +2417,9 @@ test-daimos-backstore-free-ownership-v1393: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-backstore-free-ownership-v1393.sh
+
+.PHONY: test-daimos-swap-in-checked-release-v1405
+test-daimos-swap-in-checked-release-v1405: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-swap-in-checked-release-v1405.sh

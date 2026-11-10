@@ -9,7 +9,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
  echo '.text'
  echo '.globl proc_swap_exchange_prepare_v781'
- sed -n '/^proc_swap_exchange_prepare_v781:$/,/^\/\* Return the complete/p' "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" | sed '$d'
+ sed -n '/^proc_swap_exchange_prepare_v781:$/,/^; int proc_swap_exchange_cancel_v782/p' "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step \
  --start 1000 --step-limit 200000 --timeout 20 --workdir "$work/run" \
