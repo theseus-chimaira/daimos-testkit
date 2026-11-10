@@ -39,8 +39,9 @@ stack-safe size gate. A full-profile DSK boot with TSFS root
 reported `INIT: RUN FAILED`, identically to a separately built
 v1452 control. Neither 48K nor TSFS-root behavior is accepted
 as a successful runtime boot. The DTC/MTC source assemblies
-and byte-exact core image comparisons passed, but device-specific
-cold boots must be accepted independently.
+and byte-exact core image comparisons passed, but DTC (180s)
+and MTC (240s) cold boots timed out before the boot banner;
+they are not accepted.
 
 Source-level integration is in the DAIMOS branch
 `d6codec-v1459-integrate-20261110`; baseline is
