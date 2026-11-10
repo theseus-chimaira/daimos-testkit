@@ -292,9 +292,13 @@ test_blocked_gap_v1384(void)
 extern int proc_pure_prefix_plain_v1385(kword_t, kword_t, kword_t,
     kword_t);
 #ifdef DAIMOS_TEST_SHARED_IMAGE_V1387
+extern kword_t proc_swap_unpack_backing(kword_t, kword_t);
 extern int exec_image_prefix_backing_v1386(kword_t, kword_t, kword_t,
     kword_t);
 #define proc_pure_prefix_plain_v1385 exec_image_prefix_backing_v1386
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+extern int exec_image_full_backing_v1389(kword_t, kword_t, kword_t);
+#endif
 #endif
 static vnode_t roots_v1385[26];
 vnode_t *vfs_mount_root_base = roots_v1385;
@@ -325,9 +329,18 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
                 buf[0] = ((kword_t)0447062UL << 18U);
                 buf[1] = ((kword_t)TEXT << 18U) |
                     EXEC_DXR_F_PURE |
-                    (read_mode_v1385 == 2 ? EXEC_DXR_F_COMPRESSED : 0UL);
-                buf[2] = ((kword_t)TEXT << 18U) |
-                    (read_mode_v1385 == 3 ? 0UL : EXEC_DXR_TEXT_TAG);
+                    ((read_mode_v1385 == 2 ||
+                      read_mode_v1385 == 4) ?
+                        EXEC_DXR_F_COMPRESSED : 0UL);
+                /* The v1386 inspector requests only TWO words here.
+                 * Writing a third would violate the VFS count contract
+                 * and corrupt adjacent caller-owned stack scratch.
+                 * The TX2 word is fetched separately at file offset 2.
+                 */
+                if (count == 3U)
+                        buf[2] = ((kword_t)TEXT << 18U) |
+                            (read_mode_v1385 == 3 ?
+                                0UL : EXEC_DXR_TEXT_TAG);
                 return (int)count;
         }
 #ifdef DAIMOS_TEST_SHARED_IMAGE_V1387
@@ -348,6 +361,18 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
                 }
                 return (int)count;
         }
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+        if (off == 3U && count == TEXT) {
+                ++payload_reads_v1385;
+                if (buf != (kword_t *)(unsigned long)(RESTORE + 020UL))
+                        return -1;
+                if (read_mode_v1385 == 1)
+                        return (int)count - 1; /* partial RAW swap read */
+                for (i = 0U; i < count; ++i)
+                        buf[i] = TEXT_PATTERN;
+                return (int)count;
+        }
+#endif
         return -1;
 }
 
@@ -375,12 +400,89 @@ int
 d6lz36_decode_vfs(kword_t vnode, unsigned int off,
     unsigned int words, kword_t packed)
 {
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+        unsigned int i;
+        kword_t *buf = (kword_t *)(unsigned long)(packed & 0777777UL);
+        if (vnode == expected_vnode_v1385 && off == 3U &&
+            words == 2U && (packed >> 18U) == TEXT &&
+            buf == (kword_t *)(unsigned long)(RESTORE + 020UL)) {
+                if (read_mode_v1385 == 4)
+                        return -1;  /* compressed FULL decode failure */
+                for (i = 0U; i < TEXT; ++i)
+                        buf[i] = TEXT_PATTERN;
+                return 0;
+        }
+#endif
         (void)vnode;
         (void)off;
         (void)words;
         (void)packed;
         /* PURE_PREFIX must never invoke an unbounded full-image decoder. */
         return -1;
+}
+#endif
+
+#if defined(DAIMOS_TEST_SHARED_IMAGE_V1387) && \
+    defined(DAIMOS_TEST_SHARED_FULL_V1390)
+/*
+ * Native raw-swap style FULL restore uses the same DXR description,
+ * provider, and payload engine as both EXEC and in-place PURE_PREFIX.
+ * The physical destination is a disjoint APR allocation; the retained
+ * writable suffix is overlaid afterwards by the real v1381 transaction.
+ */
+static int
+test_shared_full_v1390(unsigned int mode, unsigned int mount)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t *uarea = (kword_t *)(unsigned long)UAREA;
+        kword_t *dest = (kword_t *)(unsigned long)RESTORE;
+        unsigned int i;
+        kword_t state;
+        int rc, expected;
+
+        reset_prefix_v1384();
+        for (i = 0U; i < 26U; ++i)
+                roots_v1385[i] = 0UL;
+        roots_v1385[mount - 1U] = VFS_NODE(6U,
+            VFS_MOUNT_KIND(mount, 1U), 1U);
+        expected_vnode_v1385 = VFS_NODE(6U,
+            VFS_MOUNT_KIND(mount, 1U), 012345U);
+        state = ((kword_t)TEXT << PROC_SWAP_TEXT_SHIFT) |
+            (((kword_t)(mount - 1U) & PROC_SWAP_MOUNT_MASK) <<
+                PROC_SWAP_MOUNT_SHIFT) | 012345UL;
+        swap_slots[SLOT].state = state;
+        if (mount > 16U)
+                uarea[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
+        read_mode_v1385 = (int)mode;
+        payload_reads_v1385 = header_reads_v1385 = 0U;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
+                return 1;
+        PROC_SET_TRANSITION(p);
+        rc = proc_pure_ram_restore_v1381(SLOT,
+            exec_image_full_backing_v1389);
+        expected = mode == 1U || mode == 3U || mode == 4U ?
+            MM_ERR_INVAL : MM_OK;
+        if (rc != expected)
+                return 2;
+        if (expected != MM_OK) {
+                if (VM_PDP6_BASE(p) ||
+                    MM_EXTENT_BASE(&mm_extents[0]) != SOURCE + OMIT ||
+                    MM_EXTENT_TYPE(&mm_extents[0]) !=
+                        MM_TYPE_PACKED_PROCESS ||
+                    !check_suffix_v1384() ||
+                    !PROC_TRANSITION(p))
+                        return 3;
+                return 0;
+        }
+        if (VM_PDP6_BASE(p) != RESTORE ||
+            PROC_TRANSITION(p) || mm_extent_count != 1 ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PROCESS)
+                return 4;
+        for (i = 020U; i < WORDS; ++i)
+                if (dest[i] != (i < OMIT ?
+                    TEXT_PATTERN : PATTERN + i))
+                        return 5;
+        return 0;
 }
 #endif
 
@@ -480,6 +582,27 @@ main(void)
         rc = test_plain_loader_v1385(3U, 1U);
         if (rc)
                 return 01200 + rc;
+#endif
+#if defined(DAIMOS_TEST_SHARED_IMAGE_V1387) && \
+    defined(DAIMOS_TEST_SHARED_FULL_V1390)
+        rc = test_shared_full_v1390(0U, 1U);
+        if (rc)
+                return 01300 + rc;
+        rc = test_shared_full_v1390(0U, 18U);
+        if (rc)
+                return 01400 + rc;
+        rc = test_shared_full_v1390(2U, 1U);
+        if (rc)
+                return 01500 + rc;
+        rc = test_shared_full_v1390(1U, 1U);
+        if (rc)
+                return 01600 + rc;
+        rc = test_shared_full_v1390(3U, 1U);
+        if (rc)
+                return 01700 + rc;
+        rc = test_shared_full_v1390(4U, 1U);
+        if (rc)
+                return 02000 + rc;
 #endif
         return 0;
 }
