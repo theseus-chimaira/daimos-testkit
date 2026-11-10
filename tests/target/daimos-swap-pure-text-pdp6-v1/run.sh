@@ -69,6 +69,15 @@ compile_swap()
         printf '.text\n.globl backstore_verify_allocated_v795\n'
         sed -n '/^backstore_verify_allocated_v795:$/,/^; int backstore_extend(first,old_blocks,new_blocks)/p' \
             "$kernel/storage/backstore.s" | sed '$d'
+        # The production optional PURE verifier uses the SWAP-MRES-owned
+        # scratch sector, not the filesystem's potentially busy DMA buffer.
+        # Include that exact production BSS leaf only in the verify image.
+        if [ "$verify" = 1 ]; then
+            printf '.bss\n.globl proc_swap_sector_buffer_v1237\n'
+            sed -n '/^proc_swap_sector_buffer_v1237:$/,/^        \.text$/p' \
+                "$kernel/proc/proc_swap_pdp6.s" | sed '$d'
+            printf '.text\n'
+        fi
     } >"$work/swap-$mode.s"
 }
 

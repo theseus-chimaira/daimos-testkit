@@ -253,9 +253,9 @@ no_wait('MM pin/unpin', mmpin)
 
 swap_detach = part(swap, 'proc_swap_detach(int slot)',
                    '/** Pin, write, free, and atomically publish')
-for name in ('backstore_verify_allocated_v795', 'backstore_free',
-             'proc_storage_publish_v30'):
+for name in ('backstore_free', 'proc_storage_publish_v30'):
     assert name + '(' in swap_detach
+assert 'backstore_free(first, blocks) != 0' in swap_detach
 no_wait('swap detach C', swap_detach)
 assert 'backstore_read(' not in swap_detach
 assert 'backstore_write(' not in swap_detach
@@ -265,7 +265,8 @@ bitmap_verify = part(backstore, 'backstore_verify_allocated_v795:',
                      '; int backstore_extend(first,old_blocks,new_blocks)')
 for name, body in (('bitmap free', bitmap_free),
                    ('bitmap verifier', bitmap_verify)):
-    only_calls(name, body, ())
+    only_calls(name, body, ('backstore_verify_allocated_v795',)
+               if name == 'bitmap free' else ())
     no_wait(name, body)
 storage_publication = part(storage, 'proc_storage_expect_v30:',
                            '; int proc_storage_exchange_modes_v778')

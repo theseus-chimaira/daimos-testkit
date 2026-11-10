@@ -7,6 +7,12 @@ main:
  movei 2,3
  pushj 17,backstore_verify_allocated_v795
  jumpn 1,fail
+ ; Disabling new swap allocations must not reject existing bitmap owners.
+ setzm backstore_enabled
+ movei 1,1
+ movei 2,3
+ pushj 17,backstore_verify_allocated_v795
+ jumpn 1,fail
  movei 1,1
  movei 2,4
  pushj 17,backstore_verify_allocated_v795

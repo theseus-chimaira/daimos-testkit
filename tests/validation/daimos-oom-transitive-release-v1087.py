@@ -295,8 +295,7 @@ assert 'proc_swap_detach(int slot)' in swap
 swap_release = section(swap, 'proc_swap_detach(int slot)',
                        '/** Pin, write, free, and atomically publish')
 closed('swap detach', swap_release, ())
-assert swap_release.index('backstore_verify_allocated_v795(') < swap_release.index(
-    'backstore_free(first, blocks)')
+assert 'backstore_free(first, blocks) != 0' in swap_release
 assert 'proc_storage_publish_v30(' in swap_release
 assert 'proc_swap_records[slot].state = 0UL' in swap_release
 
@@ -353,7 +352,8 @@ bitmap = section(bstore, 'backstore_verify_allocated_v795:',
                  '; int backstore_extend(first,old_blocks,new_blocks)')
 closed('backstore verify', bitmap, ())
 bitmap_release = section(bstore, 'backstore_free:', '        .bss')
-closed('backstore free', bitmap_release, ())
+closed('backstore free', bitmap_release,
+       ('backstore_verify_allocated_v795',))
 
 print('v1087: BRK/APR/EXEC -> FILE/VFS/DTFS/D6FS/PIPE/DPY -> HUP graph PASS')
 print('v1087: checked error/owner transitions -> TTY/VM/XIP/MM/SWAP/WAIT PASS')

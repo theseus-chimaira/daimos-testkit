@@ -87,8 +87,7 @@ for entry in ('proc_finish_new_v881', 'proc_event_fatal_other',
     assert 'CTX_PC(' in part and '010000' in part, (
         'missing saved executive-continuation guard: ' + entry)
 
-assert 'backstore_verify_allocated_v795(first, blocks)' in text['swap']
-assert 'backstore_free(first, blocks)' in text['swap']
+assert 'backstore_free(first, blocks) != 0' in text['swap']
 assert 'proc_storage_publish_v30' in text['swap']
 assert 'proc_swap_detach(int slot)' in text['swap']
 

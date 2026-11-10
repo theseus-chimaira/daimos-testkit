@@ -138,11 +138,14 @@ backstore_alloc(kword_t blocks, kword_t reserve, kword_t *firstp)
         return 0;
 }
 
-void
+int
 backstore_free(kword_t first, kword_t blocks)
 {
-        if (first == 1U && blocks == 1U)
+        if (first == 1U && blocks == 1U && backstore_live) {
                 backstore_live = 0;
+                return 0;
+        }
+        return -1;
 }
 
 int

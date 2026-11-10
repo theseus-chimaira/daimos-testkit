@@ -35,6 +35,7 @@ setup(kword_t first, kword_t blocks, kword_t mask)
     free_calls = 0;
     publish_calls = 0;
     disk_mode = 1;
+    backstore_enabled = 1;
 }
 
 int
@@ -52,17 +53,21 @@ backstore_verify_allocated_v795(kword_t first, kword_t blocks)
     return 0;
 }
 
-void
+int
 backstore_free(kword_t first, kword_t blocks)
 {
     kword_t i;
     ++free_calls;
-    if (backstore_verify_allocated_v795(first, blocks) != 0) {
-        ++failures;
-        return;
-    }
+    /* Free is ownership-checked even when new allocations are disabled. */
+    if (!allocated || !blocks || first >= backstore_blocks ||
+        blocks > backstore_blocks - first)
+        return -1;
+    for (i = first; i < first + blocks; ++i)
+        if ((allocated & (1UL << i)) == 0UL)
+            return -1;
     for (i = first; i < first + blocks; ++i)
         allocated &= ~(1UL << i);
+    return 0;
 }
 
 int
@@ -105,17 +110,17 @@ main(void)
     check(swaps[2].state == ((010UL << 18) | 3UL),
         "missing allocation retains record");
     check(proc_swap_blocks_used == 3UL, "missing allocation retains count");
-    check(free_calls == 0 && publish_calls == 0,
-        "missing allocation no free or publication");
+    check(free_calls == 1 && publish_calls == 0,
+        "missing allocation refused free without publication");
 
     allocated = span;
     check(proc_swap_detach(2) == 0, "complete allocation detached");
     check(swaps[2].state == 0UL, "complete allocation clears record");
     check(proc_swap_blocks_used == 0UL, "complete allocation correct count");
     check(allocated == 0UL, "complete allocation releases backing bits");
-    check(free_calls == 1 && publish_calls == 1 && disk_mode == 0,
+    check(free_calls == 2 && publish_calls == 1 && disk_mode == 0,
         "complete allocation publishes state exactly once");
-    check(proc_swap_detach(2) == 0 && free_calls == 1,
+    check(proc_swap_detach(2) == 0 && free_calls == 2,
         "duplicate detach does not free again");
 
     setup(010, 3, span);
@@ -126,7 +131,7 @@ main(void)
 
     setup(037, 3, span);
     check(proc_swap_detach(2) == -1, "out-of-bounds rejected");
-    check(free_calls == 0 && swaps[2].state != 0UL,
+    check(free_calls == 1 && swaps[2].state != 0UL,
         "out-of-bounds retains backing ownership");
 
     setup(010, 0, span);
@@ -158,8 +163,16 @@ main(void)
     check(proc_swap_detach(2) == -1,
         "disk detach refuses missing backing allocation");
     check(swaps[2].state == ((010UL << 18) | 3UL) &&
-        free_calls == 0 && publish_calls == 0,
+        free_calls == 1 && publish_calls == 0,
         "disk detach leaves allocation and record untouched");
+
+    setup(010, 3, span);
+    backstore_enabled = 0;
+    check(proc_swap_detach(2) == 0,
+        "disabled new allocations must not strand live swap owners");
+    check(swaps[2].state == 0UL && proc_swap_blocks_used == 0UL &&
+        allocated == 0UL && publish_calls == 1,
+        "disabled allocation release is complete and exactly once");
 
     if (failures != 0) {
         fprintf(stderr, "v957: %d ownership failures\n", failures);

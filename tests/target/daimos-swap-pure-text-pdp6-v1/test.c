@@ -136,13 +136,15 @@ backstore_alloc(kword_t blocks, kword_t reserve, kword_t *firstp)
         return 0;
 }
 
-void
+int
 backstore_free(kword_t first, kword_t blocks)
 {
         if (first == allocated_base && blocks == allocated_blocks) {
                 allocated_blocks = 0UL;
                 backstore_blocks_used = 0UL;
+                return 0;
         }
+        return -1;
 }
 
 int

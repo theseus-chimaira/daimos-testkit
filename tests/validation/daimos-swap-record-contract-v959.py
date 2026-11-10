@@ -33,8 +33,8 @@ order(attach, 'packed = VFS_INDEX(backing);',
       'packed |= (kword_t)((mount - 1U)',
       'proc_swap_records[slot].state = packed;')
 assert 'if (VM_PDP6_BASE(p) == 0UL && state != 0UL)' in detach
-order(detach, 'backstore_verify_allocated_v795(first, blocks)',
-      'backstore_free(first, blocks);', 'proc_swap_blocks_used -= blocks;',
+order(detach, 'backstore_free(first, blocks) != 0',
+      'proc_swap_blocks_used -= blocks;',
       'proc_swap_records[slot].state = 0UL;')
 
 # On swap-out, the old resident record is saved in the owning u-area,

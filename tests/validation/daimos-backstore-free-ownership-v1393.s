@@ -10,6 +10,7 @@ main:
         movei   1,043
         movei   2,4
         pushj   17,backstore_free
+        jumpe   1,fail                 ; invalid release must report refusal
         pushj   17,check_held
         jumpn   1,fail
 
@@ -18,6 +19,7 @@ main:
         movei   1,043
         movei   2,3
         pushj   17,backstore_free
+        jumpn   1,fail                 ; disabled allocation allows cleanup
         pushj   17,check_released
         jumpn   1,fail
 
@@ -33,6 +35,7 @@ main:
         movei   1,043
         movei   2,3
         pushj   17,backstore_free
+        jumpn   1,fail                 ; valid release returns zero
         pushj   17,check_released
         jumpn   1,fail
 
@@ -40,6 +43,7 @@ main:
         movei   1,043
         movei   2,3
         pushj   17,backstore_free
+        jumpe   1,fail                 ; duplicate release must be rejected
         pushj   17,check_released
         jumpn   1,fail
         jrst    success

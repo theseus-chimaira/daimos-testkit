@@ -94,9 +94,7 @@ assert 'pushj   17,fs_provider_reg_call' in vm_release
 assert 'pushj   17,mm_free' in vm_release
 assert 'pushj   17,proc_swap_detach' in vm_release
 assert 'jumpn   1,vm_space_destroy_fail' in vm_release
-assert 'backstore_verify_allocated_v795(first, blocks)' in swap_detach
-assert swap_detach.index('backstore_verify_allocated_v795') < swap_detach.index(
-    'backstore_free(first, blocks)')
+assert 'backstore_free(first, blocks) != 0' in swap_detach
 
 assert 'pushj   17,memfs_xip_owns_base' in xip_release
 assert 'pushj   17,memfs_xip_unpin_base' in xip_release

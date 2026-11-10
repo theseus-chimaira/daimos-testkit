@@ -436,17 +436,18 @@ backstore_alloc(kword_t blocks, kword_t reserve, kword_t *firstp)
         return -1;
 }
 
-void
+int
 backstore_free(kword_t first, kword_t blocks)
 {
         kword_t i;
 
         if (blocks == 0UL || first >= backstore_blocks ||
             blocks > backstore_blocks - first)
-                return;
+                return -1;
         for (i = 0UL; i < blocks; ++i)
                 host_backstore_used[first + i] = 0U;
         backstore_blocks_used -= blocks;
+        return 0;
 }
 
 static int
