@@ -2423,3 +2423,8 @@ test-daimos-swap-in-checked-release-v1405: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-swap-in-checked-release-v1405.sh
+
+.PHONY: test-daimos-d6codec-release-selection-v1462
+test-daimos-d6codec-release-selection-v1462:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 sh tests/validation/d6codec-release-selection-v1462.sh
