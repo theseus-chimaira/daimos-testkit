@@ -1,0 +1,28 @@
+# Run in a fresh isolated root.  Check random reads before native DLINK.
+probe v1405-guest-kcc
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1405M.A7 /CONFIG/V1403.C; ECHO KCC:$?
+contains KCC:0
+timeout 230
+end
+probe v1405-native-dobj
+command /OPTION/BASE/EXEC/DAS -A -C -O /SCRATCH/V1405M.DOBJ /SCRATCH/V1405M.A7; ECHO OBJECT:$?
+contains OBJECT:0
+timeout 200
+end
+probe v1405-scratch-object-random-read
+command /OPTION/BASE/EXEC/OBJDUMP -H /SCRATCH/V1405M.DOBJ; ECHO OBJHDR:$?
+contains OBJHDR:0
+contains TEXT
+timeout 150
+end
+probe v1405-config-object-random-read
+command /OPTION/BASE/EXEC/OBJDUMP -H /CONFIG/V1403-MAIN.DOBJ; ECHO REFHDR:$?
+contains REFHDR:0
+contains TEXT
+timeout 120
+end
+probe v1405-scratch-object-exact-read
+command CMP /SCRATCH/V1405M.DOBJ /CONFIG/V1403-MAIN.DOBJ; ECHO OBJECTCMP:$?
+contains OBJECTCMP:0
+timeout 70
+end
