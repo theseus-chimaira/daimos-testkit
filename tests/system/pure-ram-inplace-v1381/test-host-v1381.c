@@ -224,6 +224,7 @@ test_inplace_discard_v1381(unsigned int format)
             PROC_SWAP_MOUNT_EXT_BIT));
 }
 
+#ifndef DAIMOS_TEST_FIXTURE_NO_MAIN_V1384
 int
 main(void)
 {
@@ -241,3 +242,4 @@ main(void)
         puts("PURE RAM v1381 zero-copy: cycles/PI/rollback/discard PASS");
         return 0;
 }
+#endif

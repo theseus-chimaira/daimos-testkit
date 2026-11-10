@@ -5,6 +5,7 @@
  */
 #include "mm_pure_rebase_v1381.h"
 
+#ifndef NATIVE_BASE_IN_V1384
 #define main retired_main_v1379
 #define proc_pure_ram_drop_v1379 proc_pure_ram_drop_v1381
 #define proc_pure_ram_restore_v1379 proc_pure_ram_restore_v1381
@@ -18,6 +19,7 @@
 #undef proc_pure_ram_discard_v1379
 #undef mm_alloc_aligned_noreclaim
 #undef mm_free
+#endif
 
 static unsigned int pi_depth_v1381;
 static unsigned int pi_disable_count_v1381;
@@ -147,6 +149,7 @@ bad_inputs_v1381(void)
         return 0;
 }
 
+#ifndef NATIVE_NO_MAIN_V1384
 int
 main(void)
 {
@@ -233,3 +236,4 @@ main(void)
                 return 10;
         return 0;
 }
+#endif
