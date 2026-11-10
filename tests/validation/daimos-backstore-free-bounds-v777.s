@@ -34,6 +34,8 @@ finish:
 backstore_blocks: .word 045
         .globl backstore_blocks_used
 backstore_blocks_used: .word 2
+        .globl backstore_enabled
+backstore_enabled: .word 1
         .globl backstore_bitmap
 backstore_bitmap: .word __bitmap
 __bitmap: .word 1

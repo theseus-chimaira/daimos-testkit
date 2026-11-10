@@ -26,5 +26,7 @@ case "$sections" in
 esac
 restore=$(printf '%s\n' "$sections" |
     sed -n 's/^sections: text=\([0-9]*\).*/\1/p')
-test "$restore" -le 359
-printf '%s\n' 'PASS exec-image-size-v1391 (unlinked bounded restore budget)'
+# v1395 adds explicit MM rollback/finalization refusal checks. The previous
+# 359-word baseline grows by nine TEXT words, with no permanent DATA/BSS.
+test "$restore" -le 368
+printf '%s\n' 'PASS exec-image-size-v1391/v1395 (unlinked safe rollback budget)'

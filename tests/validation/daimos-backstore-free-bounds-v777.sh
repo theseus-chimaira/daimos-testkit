@@ -9,6 +9,8 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
  echo '.text'
  echo '.globl backstore_free'
+ echo '.globl backstore_verify_allocated_v795'
+ sed -n '/^backstore_verify_allocated_v795:$/,/^; int backstore_extend(first,old_blocks,new_blocks)/p' "$DAIMOS_REPO/system/kernel/storage/backstore.s" | sed '$d'
  sed -n '/^backstore_free:$/,/^        \.bss/p' "$DAIMOS_REPO/system/kernel/storage/backstore.s" | sed '$d'
 } > "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step \

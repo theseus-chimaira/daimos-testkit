@@ -720,6 +720,7 @@ test_plain_loader_v1385(unsigned int mode, unsigned int mount)
 }
 #endif
 
+#ifndef DAIMOS_TEST_PURE_ROLLBACK_V1395
 int
 main(void)
 {
@@ -799,3 +800,4 @@ main(void)
 #endif
         return 0;
 }
+#endif /* DAIMOS_TEST_PURE_ROLLBACK_V1395 */

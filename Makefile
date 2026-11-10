@@ -2399,3 +2399,21 @@ test-daimos-procinfo-zombie-v354: check-prefix
 .PHONY: test-daimos-f07-requester-stage-v1259
 test-daimos-f07-requester-stage-v1259:
 	@TMPDIR='$(TMPDIR)' python3 tests/validation/daimos-f07-requester-stage-test-v1259.py
+
+.PHONY: test-daimos-pure-ram-rollback-v1395
+test-daimos-pure-ram-rollback-v1395: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/pure-ram-rollback-v1395/run-v1395.sh
+
+.PHONY: test-daimos-xip-restricted-policy-v1394
+test-daimos-xip-restricted-policy-v1394: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/xip-restricted-policy-v1394/run-v1394.sh
+
+.PHONY: test-daimos-backstore-free-ownership-v1393
+test-daimos-backstore-free-ownership-v1393: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/daimos-backstore-free-ownership-v1393.sh
