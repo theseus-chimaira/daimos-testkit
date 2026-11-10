@@ -1,0 +1,7 @@
+state	direction	simh_instructions	time_at_250k_ips_seconds
+idle_initial	encode	24658	0.0986
+idle_initial	decode	30565	0.1223
+after_commands	encode	25918	0.1037
+after_commands	decode	31615	0.1265
+after_function	encode	41400	0.1656
+after_function	decode	50926	0.2037
