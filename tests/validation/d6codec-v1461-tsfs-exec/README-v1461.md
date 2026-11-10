@@ -47,3 +47,20 @@ passes the build's media-validation stage.
 The producer and checker are **host tools**. No permanent
 KCORE words, on-disk TSFS format, decoder code, or transient
 decoder stack words are added by this change.
+
+## 2026-11-10 v1465: merged, block-only production cold boot
+
+After deleting D6LZ36 and selecting the v1458 block core in production,
+an isolated 256K KCC TSFS-root boot again passed ROOT LOGIN and DSH.
+The first attempt exhausted a 240-second guest ECHO allowance without
+reaching its returned shell prompt. The separate versioned diagnostic
+`inspect-exec-v1465.py` sampled the active simulator at PC 030775, in
+`dtc_search_wait`, rather than in the compressed-data decoder. This
+sample alone cannot establish an exclusive cause of the delay.
+
+The second independent boot of the **same** block-only image, with
+`--guest-timeout 480`, passed `V1461_COLD_BOOT_LOGIN_PASS`,
+`V1461_DSH_LOGIN_PASS` and **`V1461_DSH_EXEC_PASS`**. ECHO returned the
+expected text and the DSH `#` prompt, without changing source or the
+acceptance assertion. The longer bound accommodates observed physical
+DECtape search latency; it does not turn a timeout into a pass.
