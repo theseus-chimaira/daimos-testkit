@@ -16,6 +16,7 @@ static kword_t allocated_base;
 static unsigned int extent_pins;
 /* v214: fault-inject MM unpin to test failed VM release rollback. */
 static int xip_unpin_injected_failure_v214;
+static int mm_free_refuse_v1401;
 #define backing (metadata + MEMFS_BACKING_OFFSET)
 static kword_t swap_image[0200];
 static int backstore_live;
@@ -23,6 +24,8 @@ static int backstore_live;
  * checked BACKSTORE refusal, not a transfer error or a successful release. */
 static int backstore_free_refuse_v1399;
 static int backstore_verify_refuse_v1400;
+static int backstore_write_refuse_v1403;
+kword_t daimos_memfs_invariant_hit_v1403;
 kword_t backstore_blocks;
 static kword_t put[2];
 static kword_t got[2];
@@ -43,6 +46,9 @@ extern int test_xip_mres_admit_v219(vnode_t node, kword_t *base,
 extern int test_memfs_chown_v1396(struct memfs *fs, vnode_t node);
 extern int test_memfs_utime_v1397(struct memfs *fs, vnode_t node);
 extern int test_memfs_prepare_unmount_v1400(void);
+#ifdef MEMFS_PROBE_DATA_FREE_V1402
+extern int test_memfs_data_free_v1402(kword_t base, kword_t words);
+#endif
 extern int vm_space_destroy(kword_t *vm_descriptor, unsigned int slot);
 static kword_t xip_vm_descriptor_v215[3];
 extern kword_t test_xip_instruction_template;
@@ -181,6 +187,8 @@ backstore_write(kword_t first, kword_t blocks, const kword_t *buf)
 {
         unsigned int i;
 
+        if (backstore_write_refuse_v1403)
+                return -1;
         if (!backstore_live || first != 1U || blocks != 1U || buf == 0)
                 return -1;
         for (i = 0U; i < 0200U; ++i)
@@ -191,6 +199,8 @@ backstore_write(kword_t first, kword_t blocks, const kword_t *buf)
 int
 mm_free(kword_t base, unsigned int type, unsigned int owner)
 {
+        if (mm_free_refuse_v1401)
+                return MM_ERR_BUSY;
         if (!pool_live || base != allocated_base || extent_pins ||
             type != MM_TYPE_KERNEL_DYNAMIC || owner != 011U)
                 return MM_ERR_INVAL;
@@ -228,7 +238,35 @@ daimos_memfs_pdp6_test(void)
         kword_t xip_base;
         kword_t xip_entry;
         kword_t xip_header[2];
+#ifdef MEMFS_PROBE_DATA_FREE_V1402
+        kword_t freed_base_v1402;
+#endif
         struct memfs *xip_fs;
+
+#ifdef MEMFS_FATAL_V1403
+        /* Newly allocated BACKSTORE may fail on write. If its cleanup free
+         * ALSO refuses, there is no persistent owner for that reservation.
+         * Real KCORE must stop at the invariant, never resume eviction. */
+        fs.nodes = node_store;
+        fs.pool_words = 02000U;
+        fs.used_words = 0U;
+        pool_live = 0;
+        backstore_live = 0;
+        backstore_blocks = 1U;
+        memfs_mres_fs = fs;
+        memfs_data_init(&fs, fs.pool_words);
+        node_store[1].meta = META_REG_WRITABLE;
+        node_store[1].data = DATA(0U, 0U);
+        node = VFS_NODE(MEMFS_PROVIDER, MEMFS_KIND_NODE, 1U);
+        put[0] = 012345670123UL;
+        if (memfs_truncate_words(&fs, node, 1U) != 0 ||
+            memfs_write_words(&fs, node, 0U, put, 1U) != 1)
+                return 0264;
+        backstore_write_refuse_v1403 = 1;
+        backstore_free_refuse_v1399 = 1;
+        (void)memfs_data_reclaim(1U);
+        return 0265; /* returning would strand the untracked reservation */
+#endif
 
         fs.nodes = node_store;
         fs.pool_words = 0200U;
@@ -254,10 +292,25 @@ daimos_memfs_pdp6_test(void)
         r = memfs_truncate_words(&fs, child, 1U);
         if (r != 0) return 0141;
         if (!pool_live || fs.used_words != 2U) return 0142;
+#ifdef MEMFS_PROBE_DATA_FREE_V1402
+        freed_base_v1402 = node_store[1].data >> 18U;
+#endif
         r = memfs_truncate_words(&fs, node, 0U);
         if (r != 0 || !pool_live || fs.used_words != 1U) return 0143;
+#ifdef MEMFS_PROBE_DATA_FREE_V1402
+        /* The released sector is no longer owned by this file. A second
+         * free must refuse without touching the neighbouring live sector. */
+        if (test_memfs_data_free_v1402(freed_base_v1402, 1U) != -1 ||
+            !pool_live || fs.used_words != 1U)
+                return 0262;
+#endif
         r = memfs_truncate_words(&fs, child, 0U);
         if (r != 0 || pool_live || fs.used_words != 0U) return 0144;
+#ifdef MEMFS_PROBE_DATA_FREE_V1402
+        if (test_memfs_data_free_v1402(freed_base_v1402, 1U) != -1 ||
+            pool_live)
+                return 0263;
+#endif
         node_store[1].meta = 0UL;
         node_store[1].data = 0UL;
         node_store[2].meta = 0UL;
@@ -407,6 +460,20 @@ daimos_memfs_pdp6_test(void)
             (node_store[1].data & 0777777UL) != 1U)
                 return 0244;
         backstore_free_refuse_v1399 = 0;
+
+        /* v1401: an MM free refusal during TRUNCATE must keep the live
+         * chunk descriptor and old node data. The checked BACKSTORE free
+         * may already have succeeded, but resident RAM is authoritative. */
+        mm_free_refuse_v1401 = 1;
+        if (memfs_truncate_words(&fs, node, 0U) != -1 || !pool_live ||
+            (node_store[1].data & 0777777UL) != 1U ||
+            fs.used_words != 1U || backing[1] != 0UL || backstore_live)
+                return 0260;
+        got[0] = 0UL;
+        if (memfs_read_words(&fs, node, 0U, got, 1U) != 1 ||
+            got[0] != 012345670123UL)
+                return 0261;
+        mm_free_refuse_v1401 = 0;
 
         r = memfs_truncate_words(&fs, node, 0U);
         if (r != 0 || fs.used_words != 0U || pool_live || backing[1] != 0UL)

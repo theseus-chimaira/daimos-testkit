@@ -119,6 +119,9 @@ proc_swap_detach:
         ; owners is not recoverable. The real KCORE invariant HALTs too.
         .globl  proc_swap_storage_invariant_v30
 proc_swap_storage_invariant_v30:
+        .globl  daimos_memfs_invariant_hit_v1403
+        movei   1,1
+        movem   1,daimos_memfs_invariant_hit_v1403
         halt    .
 ; Exercise the exact private VM-to-MRES operation through its real dispatcher.
 ; AC1=physical base, result 0 unknown / 1 released / -1 error.

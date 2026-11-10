@@ -16,13 +16,35 @@ inc="$kernel/fs"
 mm="$kernel/mm"
 storage="$kernel/storage"
 
-"$cc" -std=c99 -Os -I"$PDP10_PREFIX/include" -I"$inc" -I"$mm" -I"$storage" -I"$kernel/core" -S "$here/test.c" -o "$work/test.s"
+"$cc" -std=c99 -Os -DMEMFS_PROBE_DATA_FREE_V1402=1 \
+    -I"$PDP10_PREFIX/include" -I"$inc" -I"$mm" -I"$storage" \
+    -I"$kernel/core" -S "$here/test.c" -o "$work/test.s"
 awk '/^vm_space_destroy:/{copy=1} /^vm_space_load_file:/{copy=0} copy {print}' \
     "$kernel/proc/vm_pdp6.s" > "$work/vm-destroy-v215.s"
 sed -i '1i\        .text\n        .globl vm_space_destroy' "$work/vm-destroy-v215.s"
+# Make one normally private release leaf visible only to this source-linked
+# test. Production MEMFS retains its private symbol and original ABI.
+{
+    cat "$inc/memfs_data_pdp6.s"
+    printf '\n.text\n.globl test_memfs_data_free_v1402\n'
+    printf 'test_memfs_data_free_v1402: jrst memfs_data_free\n'
+} > "$work/memfs-data-v1402.s"
 PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
     --machine pdp6 --mode deposit --exec-mode go --timeout 10 \
     --workdir "$work/run" --name daimos-memfs-pdp6-v1 \
     --expect daimos_memfs_pdp6_result=0 --report "$work/report.txt" \
-    "$here/start.s" "$work/test.s" "$inc/memfs_data_pdp6.s" "$inc/memfs_runtime.s" \
+    "$here/start.s" "$work/test.s" "$work/memfs-data-v1402.s" "$inc/memfs_runtime.s" \
+    "$here/fs-helpers.s" "$work/vm-destroy-v215.s" "$kernel/core/ret.s"
+
+# A separate native PDP-6 image verifies the fatal-invariant branch. The
+# ordinary success image above must still finish with result zero.
+"$cc" -std=c99 -Os -DMEMFS_FATAL_V1403=1 \
+    -I"$PDP10_PREFIX/include" -I"$inc" -I"$mm" -I"$storage" \
+    -I"$kernel/core" -S "$here/test.c" -o "$work/test-fatal-v1403.s"
+PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
+    --machine pdp6 --mode deposit --exec-mode go --timeout 10 \
+    --workdir "$work/fatal" --name daimos-memfs-fatal-v1403 \
+    --expect daimos_memfs_invariant_hit_v1403=1 \
+    "$here/start.s" "$work/test-fatal-v1403.s" \
+    "$work/memfs-data-v1402.s" "$inc/memfs_runtime.s" \
     "$here/fs-helpers.s" "$work/vm-destroy-v215.s" "$kernel/core/ret.s"
