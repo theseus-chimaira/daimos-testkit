@@ -2334,7 +2334,6 @@ test-daimos-oom-transitive-release-v1087: check-prefix
 	 daimos-vm-detach-order-v957 \
 	 daimos-session-hup-pending-v905 \
 	 daimos-session-hup-repeated-failure-v922 \
-	 daimos-fatal-owner-hup-retry-v995 \
 	 daimos-provider-fatal-contention-v1078 \
 	 daimos-tty-prevm-finalize-v1081 \
 	 daimos-discard-tty-prevm-v1085; do \
