@@ -42,6 +42,10 @@ as a successful runtime boot. The DTC/MTC source assemblies
 and byte-exact core image comparisons passed, but DTC (180s)
 and MTC (240s) cold boots timed out before the boot banner;
 they are not accepted.
+Original v1452 DTC and MTC Stage-1 read-in tapes, substituted
+into the same v1459 media, likewise failed to reach a banner
+within 75 seconds. This is an early-boot control, not proof
+of successful baseline cold boot.
 
 Source-level integration is in the DAIMOS branch
 `d6codec-v1459-integrate-20261110`; baseline is
