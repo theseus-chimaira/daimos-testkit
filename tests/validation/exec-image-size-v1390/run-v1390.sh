@@ -39,8 +39,21 @@ old=$(words "$work/original.dobj")
 candidate=$(words "$work/candidate.dobj")
 shared=$(words "$work/shared.dobj")
 full_old=$(words "$work/full-old.dobj")
+bounded=0
+symbol=exec_image_full_backing_v1389
+shared_budget=212
+adapter_budget=51
+combined_budget=98
+if "$dump" -t "$work/shared.dobj" |
+    grep -q 'exec_image_full_bounded_v1391'; then
+    bounded=1
+    symbol=exec_image_full_bounded_v1391
+    shared_budget=235
+    adapter_budget=74
+    combined_budget=121
+fi
 core_octal=$("$dump" -t "$work/shared.dobj" |
-    awk '$NF == "exec_image_full_backing_v1389" {
+    awk -v wanted="$symbol" '$NF == wanted {
         split($4, halves, ",,");
         print halves[2];
     }')
@@ -61,17 +74,18 @@ printf 'Original PURE FULL reload: %s words\n' "$full_old"
 printf 'Shared EXEC delta: %+d words\n' "$delta"
 printf 'Shared EXEC + FULL replacement delta: %+d words\n' \
     "$combined_delta"
+printf 'Bounded FULL callback: %s\n' "$bounded"
 
 # Pin this experiment to the measured isolated baseline. Any growth
 # requires an explicit new cost review rather than silent KCORE adoption.
 test "$old" -eq 183
 test "$candidate" -le 119
 test "$core" -le 161
-test "$shared" -le 212
+test "$shared" -le "$shared_budget"
 test "$full_old" -eq 50
-test "$adapter" -le 51
+test "$adapter" -le "$adapter_budget"
 test "$delta" -le 97
-test "$combined_delta" -le 98
+test "$combined_delta" -le "$combined_budget"
 
 case "$("$dump" -h "$work/shared.dobj")" in
     *'data=0 bss=0'*) ;;

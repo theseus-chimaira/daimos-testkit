@@ -297,7 +297,11 @@ extern int exec_image_prefix_backing_v1386(kword_t, kword_t, kword_t,
     kword_t);
 #define proc_pure_prefix_plain_v1385 exec_image_prefix_backing_v1386
 #ifdef DAIMOS_TEST_SHARED_FULL_V1390
-extern int exec_image_full_backing_v1389(kword_t, kword_t, kword_t);
+/* The source-linked v1391 FULL transaction passes actual MM APR words. */
+extern int exec_image_full_bounded_v1391(kword_t, kword_t, kword_t,
+    kword_t);
+extern int proc_pure_ram_restore_v1391(unsigned int,
+    int (*)(kword_t, kword_t, kword_t, kword_t));
 #endif
 #endif
 static vnode_t roots_v1385[26];
@@ -310,6 +314,50 @@ vnode_t expected_vnode_v1385;
 vnode_t observed_vnode_v1385;
 kword_t observed_mount_ext_v1385;
 kword_t observed_plain_rc_v1385;
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+static unsigned int compressed_calls_v1391;
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+/* Force a realistic optimized straight-line symbolic store with a
+ * conditional mount-extension update. Each observation is checked.
+ */
+kword_t fold_state_v1392;
+kword_t fold_first_v1392;
+kword_t fold_cred_v1392;
+kword_t fold_ready_v1392;
+kword_t fold_drop_v1392;
+kword_t fold_loader_key_v1392;
+kword_t fold_loader_base_v1392;
+kword_t fold_loader_uarea_v1392;
+kword_t fold_loader_capacity_v1392;
+kword_t fold_loader_result_v1392;
+kword_t fold_result_v1392;
+kword_t fold_callback_vnode_v1392;
+kword_t fold_callback_expected_v1392;
+kword_t fold_callback_creds_v1392;
+kword_t fold_callback_payload_v1392;
+kword_t fold_callback_extent_v1392;
+unsigned int fold_calls_v1392;
+kword_t fold_unpacked_v1392;
+kword_t fold_loader_count_v1392;
+kword_t fold_loader_initial_capacity_v1392;
+kword_t fold_loader_initial_result_v1392;
+static int
+fold_loader_v1392(kword_t backing, kword_t base, kword_t uarea,
+    kword_t capacity)
+{
+        int result;
+        ++fold_calls_v1392;
+        fold_loader_key_v1392 = backing;
+        fold_loader_base_v1392 = base;
+        fold_loader_uarea_v1392 = uarea;
+        fold_loader_capacity_v1392 = capacity;
+        result = exec_image_full_bounded_v1391(backing, base, uarea,
+            capacity);
+        fold_loader_result_v1392 = (kword_t)result;
+        return result;
+}
+#endif
+#endif
 
 int
 vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
@@ -327,11 +375,24 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
              )) {
                 ++header_reads_v1385;
                 buf[0] = ((kword_t)0447062UL << 18U);
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+                buf[1] = ((kword_t)
+                    ((read_mode_v1385 == 5 || read_mode_v1385 == 6) ?
+                        WORDS + 1U :
+                        (read_mode_v1385 == 7 ? WORDS - 020U :
+                         TEXT)) << 18U) |
+                    EXEC_DXR_F_PURE |
+                    ((read_mode_v1385 == 2 ||
+                      read_mode_v1385 == 4 ||
+                      read_mode_v1385 == 6) ?
+                        EXEC_DXR_F_COMPRESSED : 0UL);
+#else
                 buf[1] = ((kword_t)TEXT << 18U) |
                     EXEC_DXR_F_PURE |
                     ((read_mode_v1385 == 2 ||
                       read_mode_v1385 == 4) ?
                         EXEC_DXR_F_COMPRESSED : 0UL);
+#endif
                 /* The v1386 inspector requests only TWO words here.
                  * Writing a third would violate the VFS count contract
                  * and corrupt adjacent caller-owned stack scratch.
@@ -372,6 +433,15 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
                         buf[i] = TEXT_PATTERN;
                 return (int)count;
         }
+        if (read_mode_v1385 == 7 && off == 3U &&
+            count == WORDS - 020U) {
+                ++payload_reads_v1385;
+                if (buf != (kword_t *)(unsigned long)(RESTORE + 020UL))
+                        return -1;
+                for (i = 0U; i < count; ++i)
+                        buf[i] = i < TEXT ? TEXT_PATTERN : PATTERN + i;
+                return (int)count;
+        }
 #endif
         return -1;
 }
@@ -383,13 +453,27 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
 int
 vfs_stat(vnode_t node, struct vfs_stat *stat)
 {
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+        kword_t initialized;
+#endif
         if (node != expected_vnode_v1385)
                 return -1;
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+        initialized = (read_mode_v1385 == 5 ||
+            read_mode_v1385 == 6) ? WORDS + 1UL :
+            (read_mode_v1385 == 7 ? WORDS - 020UL : TEXT);
+#endif
         stat->type = 2U;               /* regular executable */
         stat->mode = 0U;
         stat->reserved = 0UL;
+#ifdef DAIMOS_TEST_SHARED_FULL_V1390
+        stat->size_words = 3UL + (read_mode_v1385 == 2 ||
+            read_mode_v1385 == 4 || read_mode_v1385 == 6 ?
+            2UL : initialized) + ((initialized + 043UL) / 044UL);
+#else
         stat->size_words = 3UL + (read_mode_v1385 == 2 ? 2UL :
             (kword_t)TEXT) + (((kword_t)TEXT + 043UL) / 044UL);
+#endif
         stat->uid = 0U;
         stat->gid = 0U;
         stat->mtime = 0UL;
@@ -403,6 +487,7 @@ d6lz36_decode_vfs(kword_t vnode, unsigned int off,
 #ifdef DAIMOS_TEST_SHARED_FULL_V1390
         unsigned int i;
         kword_t *buf = (kword_t *)(unsigned long)(packed & 0777777UL);
+        ++compressed_calls_v1391;
         if (vnode == expected_vnode_v1385 && off == 3U &&
             words == 2U && (packed >> 18U) == TEXT &&
             buf == (kword_t *)(unsigned long)(RESTORE + 020UL)) {
@@ -439,6 +524,7 @@ test_shared_full_v1390(unsigned int mode, unsigned int mount)
         unsigned int i;
         kword_t state;
         int rc, expected;
+        kword_t end_guard = 012345670123UL;
 
         reset_prefix_v1384();
         for (i = 0U; i < 26U; ++i)
@@ -451,20 +537,63 @@ test_shared_full_v1390(unsigned int mode, unsigned int mount)
             (((kword_t)(mount - 1U) & PROC_SWAP_MOUNT_MASK) <<
                 PROC_SWAP_MOUNT_SHIFT) | 012345UL;
         swap_slots[SLOT].state = state;
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        fold_state_v1392 = state;
+        fold_first_v1392 = swap_slots[SLOT].state;
+#endif
         if (mount > 16U)
                 uarea[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        fold_cred_v1392 = swap_slots[SLOT].state;
+#endif
         read_mode_v1385 = (int)mode;
         payload_reads_v1385 = header_reads_v1385 = 0U;
+        compressed_calls_v1391 = 0U;
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        observed_vnode_v1385 = 0UL;
+        fold_loader_count_v1392 = 0UL;
+        fold_loader_initial_capacity_v1392 = 0UL;
+        fold_loader_initial_result_v1392 = 0UL;
+#endif
+#ifndef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        dest[WORDS] = end_guard; /* guard just beyond the APR extent */
+#endif
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        fold_ready_v1392 = swap_slots[SLOT].state;
+#endif
         if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
                 return 1;
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        fold_drop_v1392 = swap_slots[SLOT].state;
+#endif
+#ifndef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        if (swap_slots[SLOT].state != state)
+                return 7; /* KCC must use fixed array slot, not AC1 */
+#endif
         PROC_SET_TRANSITION(p);
-        rc = proc_pure_ram_restore_v1381(SLOT,
-            exec_image_full_backing_v1389);
-        expected = mode == 1U || mode == 3U || mode == 4U ?
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        rc = proc_pure_ram_restore_v1391(SLOT, fold_loader_v1392);
+        fold_result_v1392 = (kword_t)rc;
+        fold_callback_vnode_v1392 = observed_vnode_v1385;
+        fold_callback_expected_v1392 = expected_vnode_v1385;
+        fold_callback_creds_v1392 = uarea[PROC_CRED_OFFSET];
+        fold_callback_payload_v1392 = (kword_t)payload_reads_v1385;
+        fold_callback_extent_v1392 = mm_extents[0].span;
+        fold_unpacked_v1392 = 0UL;
+#else
+        rc = proc_pure_ram_restore_v1391(SLOT,
+            exec_image_full_bounded_v1391);
+#endif
+        expected = mode == 1U || mode == 3U || mode == 4U ||
+            mode == 5U || mode == 6U ?
             MM_ERR_INVAL : MM_OK;
         if (rc != expected)
                 return 2;
         if (expected != MM_OK) {
+                if ((mode == 5U || mode == 6U) &&
+                    (payload_reads_v1385 != 0U ||
+                     compressed_calls_v1391 != 0U))
+                        return 6;    /* header must fail before payload */
                 if (VM_PDP6_BASE(p) ||
                     MM_EXTENT_BASE(&mm_extents[0]) != SOURCE + OMIT ||
                     MM_EXTENT_TYPE(&mm_extents[0]) !=
@@ -472,6 +601,10 @@ test_shared_full_v1390(unsigned int mode, unsigned int mount)
                     !check_suffix_v1384() ||
                     !PROC_TRANSITION(p))
                         return 3;
+#ifndef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+                if (dest[WORDS] != end_guard)
+                        return 8;
+#endif
                 return 0;
         }
         if (VM_PDP6_BASE(p) != RESTORE ||
@@ -482,6 +615,45 @@ test_shared_full_v1390(unsigned int mode, unsigned int mount)
                 if (dest[i] != (i < OMIT ?
                     TEXT_PATTERN : PATTERN + i))
                         return 5;
+#ifndef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        if (dest[WORDS] != end_guard)
+                return 8;
+#endif
+        return 0;
+}
+
+/* Explicit capacity guard cases must reject before reading a single
+ * payload word or invoking the full decompressor.
+ */
+static int
+test_bad_full_capacity_v1391(void)
+{
+        static const kword_t capacities[] = { 0UL, 01777UL, 01000000UL };
+        unsigned int i;
+        kword_t backing;
+
+        reset_prefix_v1384();
+        roots_v1385[0] = VFS_NODE(6U, VFS_MOUNT_KIND(1U, 1U), 1U);
+        expected_vnode_v1385 = VFS_NODE(6U,
+            VFS_MOUNT_KIND(1U, 1U), 012345U);
+        backing = ((kword_t)TEXT << PROC_SWAP_TEXT_SHIFT) | 012345UL;
+        read_mode_v1385 = 0;
+        for (i = 0U; i < sizeof(capacities) /
+            sizeof(capacities[0]); ++i) {
+                payload_reads_v1385 = 0U;
+                compressed_calls_v1391 = 0U;
+                if (exec_image_full_bounded_v1391(backing, RESTORE,
+                    UAREA, capacities[i]) != -1 ||
+                    payload_reads_v1385 || compressed_calls_v1391)
+                        return 1;
+        }
+        payload_reads_v1385 = 0U;
+        if (exec_image_full_bounded_v1391(backing, RESTORE + 1UL,
+            UAREA, WORDS) != -1 || payload_reads_v1385)
+                return 2;
+        if (exec_image_full_bounded_v1391(backing, 0776000UL,
+            UAREA, 04000UL) != -1 || payload_reads_v1385)
+                return 3;
         return 0;
 }
 #endif
@@ -591,6 +763,15 @@ main(void)
         rc = test_shared_full_v1390(0U, 18U);
         if (rc)
                 return 01400 + rc;
+#ifdef DAIMOS_TEST_KCC_SYMBOL_FOLD_V1392
+        if (fold_state_v1392 != fold_first_v1392 ||
+            fold_state_v1392 != fold_cred_v1392 ||
+            fold_state_v1392 != fold_ready_v1392 ||
+            fold_state_v1392 != fold_drop_v1392 ||
+            fold_state_v1392 != fold_loader_key_v1392 ||
+            fold_loader_capacity_v1392 != WORDS)
+                return 01477;
+#endif
         rc = test_shared_full_v1390(2U, 1U);
         if (rc)
                 return 01500 + rc;
@@ -603,6 +784,18 @@ main(void)
         rc = test_shared_full_v1390(4U, 1U);
         if (rc)
                 return 02000 + rc;
+        rc = test_shared_full_v1390(5U, 1U);
+        if (rc)
+                return 02100 + rc;  /* plain oversized DXR */
+        rc = test_shared_full_v1390(6U, 18U);
+        if (rc)
+                return 02200 + rc;  /* compressed oversized DXR */
+        rc = test_shared_full_v1390(7U, 18U);
+        if (rc)
+                return 02300 + rc;  /* initialized image exactly fits */
+        rc = test_bad_full_capacity_v1391();
+        if (rc)
+                return 02400 + rc;
 #endif
         return 0;
 }

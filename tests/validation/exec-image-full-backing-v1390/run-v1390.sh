@@ -4,26 +4,29 @@
 set -eu
 : "${DAIMOS_REPO:?}"
 PDP10_PREFIX=${PDP10_PREFIX:-$HOME/cross}
+KCC_BIN_V1392=${KCC_BIN_V1392:-$PDP10_PREFIX/bin/kcc}
 TMPDIR=${TMPDIR:-$HOME/tmp}
 export TMPDIR PDP10_PREFIX
 testkit=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)
 work="$TMPDIR/exec-image-full-backing-v1390-native"
 mkdir -p "$work"
 include="-I$DAIMOS_REPO/system/kernel/proc -I$DAIMOS_REPO/system/kernel/core -I$DAIMOS_REPO/system/kernel/mm -I$DAIMOS_REPO/system/kernel/fs -I$DAIMOS_REPO/system/kernel/storage -I$DAIMOS_REPO/system/kernel/modules -I$DAIMOS_REPO/system/kernel/drivers -I$PDP10_PREFIX/include -I$testkit/tests/validation/pure-ram-lifecycle-v1377 -I$testkit/tests/validation/pure-ram-registryfree-v1379 -I$testkit/tests/validation/pure-ram-inplace-v1381"
-for src in proc_pure_ram_v1381 proc_pure_restore_v1384; do
+for src in proc_pure_ram_v1381 proc_pure_restore_v1384 proc_pure_ram_restore_v1391; do
     case "$src" in
         proc_pure_ram_v1381) flag=DAIMOS_SWAPLESS_PURE_RAM_V1381 ;;
-        *) flag=DAIMOS_SWAPLESS_PREFIX_V1384 ;;
+        proc_pure_restore_v1384) flag=DAIMOS_SWAPLESS_PREFIX_V1384 ;;
+        *) flag=DAIMOS_SWAPLESS_PURE_RAM_RESTORE_V1391 ;;
     esac
-    "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
+    "$KCC_BIN_V1392" -Pgnu99 -O -x=pdp6 -m=gas \
         -D"$flag"=1 $include \
         -S "$DAIMOS_REPO/system/kernel/proc/$src.c" \
         -o "$work/$src.s"
 done
-"$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
+"$KCC_BIN_V1392" -Pgnu99 -O -x=pdp6 -m=gas \
     -DDAIMOS_TEST_PLAIN_DXR_V1385=1 \
     -DDAIMOS_TEST_SHARED_IMAGE_V1387=1 \
     -DDAIMOS_TEST_SHARED_FULL_V1390=1 $include \
+    ${DAIMOS_KCC_SYMBOL_TEST_FLAG_V1392:-} \
     -S "$testkit/tests/validation/pure-ram-prefix-v1384/test-native-v1384.c" \
     -o "$work/test-native-v1390.s"
 {
@@ -44,6 +47,7 @@ done
     "$DAIMOS_REPO/system/kernel/proc/exec_image_common_v1386.s" \
     "$work/proc_pure_ram_v1381.s" \
     "$work/proc_pure_restore_v1384.s" \
+    "$work/proc_pure_ram_restore_v1391.s" \
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_rebase_v1381.s" \
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_expand_v1384.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" \

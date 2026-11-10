@@ -4,6 +4,7 @@
 set -eu
 : "${DAIMOS_REPO:?}"
 PDP10_PREFIX=${PDP10_PREFIX:-$HOME/cross}
+KCC_BIN_V1392=${KCC_BIN_V1392:-$PDP10_PREFIX/bin/kcc}
 TMPDIR=${TMPDIR:-$HOME/tmp}
 export TMPDIR PDP10_PREFIX
 testkit=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)
@@ -15,12 +16,12 @@ for src in proc_pure_ram_v1381 proc_pure_restore_v1384; do
         proc_pure_ram_v1381) flag=DAIMOS_SWAPLESS_PURE_RAM_V1381 ;;
         *) flag=DAIMOS_SWAPLESS_PREFIX_V1384 ;;
     esac
-    "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
+    "$KCC_BIN_V1392" -Pgnu99 -O -x=pdp6 -m=gas \
         -D"$flag"=1 $include \
         -S "$DAIMOS_REPO/system/kernel/proc/$src.c" \
         -o "$work/$src.s"
 done
-"$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
+"$KCC_BIN_V1392" -Pgnu99 -O -x=pdp6 -m=gas \
     -DDAIMOS_TEST_PLAIN_DXR_V1385=1 \
     -DDAIMOS_TEST_SHARED_IMAGE_V1387=1 $include \
     -S "$testkit/tests/validation/pure-ram-prefix-v1384/test-native-v1384.c" \
