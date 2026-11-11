@@ -934,15 +934,25 @@ if [ "${V1259_REQUESTER_STAGE_TRACE:-0}" = 1 ]; then
 fi
 if [ "$f07_swapslots" = 1 ]; then
     # Distinguish genuine slow disk swapping from an admission deadlock.
-    # Each '+' comes only after a distinct RUN child reports its real BRK.
+    # Count milestones only AFTER the F07 user program's initial '<'
+    # marker, never in the SIMH banner. A simulator built from a dirty
+    # checkout prints a commit suffix such as '+uncommitted-changes',
+    # which is not a process acknowledgment. The final HALT/examine
+    # transcript is likewise emulator output, not F07 child output.
     # Keep the original v1075 terminal markers byte-for-byte strict.
-    admitted=$(printf '%s' "$text" | tr -cd '+' | wc -c | tr -d '[:space:]')
+    guest_milestones=${text#*<}
+    if [ "$guest_milestones" = "$text" ]; then
+        echo 'v1496: missing real F07 user-output start marker' >&2
+        exit 1
+    fi
+    guest_milestones=${guest_milestones%%HALT instruction*}
+    admitted=$(printf '%s' "$guest_milestones" | tr -cd '+' | wc -c | tr -d '[:space:]')
     if [ "$admitted" -ne "$extra_count" ]; then
         echo "v1207: only $admitted/$extra_count RUN children acknowledged" >&2
         tail -25 "$work/simh.out" >&2
         exit 1
     fi
-    reaped=$(printf '%s' "$text" | tr -cd '~' | wc -c | tr -d '[:space:]')
+    reaped=$(printf '%s' "$guest_milestones" | tr -cd '~' | wc -c | tr -d '[:space:]')
     if [ "$reaped" -ne "$extra_count" ]; then
         echo "v1207: only $reaped/$extra_count RUN children reaped" >&2
         tail -25 "$work/simh.out" >&2
