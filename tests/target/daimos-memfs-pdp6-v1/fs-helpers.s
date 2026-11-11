@@ -100,6 +100,7 @@ fs_mres_context_vector_dispatch:
         .globl  memfs_mres_dispatch
         .globl  test_xip_vm_release_v213
         .globl  test_xip_mres_admit_v219
+        .globl  test_xip_mres_safe_admit_v1468
         .globl  fs_provider_reg_call
 fs_provider_reg_call:
         caie    7,4
@@ -131,6 +132,10 @@ test_xip_vm_release_v213:
 ; AC1=vnode, AC2=&base, AC3=&entry: no direct MEMFS call by KCORE.
 test_xip_mres_admit_v219:
         movei   6,027
+        jrst    memfs_mres_dispatch
+; Production strict, write-free admission entry. No fixture-only shortcut.
+test_xip_mres_safe_admit_v1468:
+        movei   6,030
         jrst    memfs_mres_dispatch
 ; Invoke the real MEMFS setattr(CHOWN) branch. The fourth C register
 ; contains the metadata value, while AC3 carries the sentinel operation.

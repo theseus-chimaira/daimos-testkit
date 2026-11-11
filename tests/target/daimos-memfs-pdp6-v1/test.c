@@ -43,6 +43,8 @@ extern struct memfs memfs_mres_fs;
 extern int test_xip_vm_release_v213(kword_t base);
 extern int test_xip_mres_admit_v219(vnode_t node, kword_t *base,
     kword_t *entry);
+extern int test_xip_mres_safe_admit_v1468(vnode_t node, kword_t *base,
+    kword_t *entry);
 extern int test_memfs_chown_v1396(struct memfs *fs, vnode_t node);
 extern int test_memfs_utime_v1397(struct memfs *fs, vnode_t node);
 extern int test_memfs_prepare_unmount_v1400(void);
@@ -648,6 +650,88 @@ daimos_memfs_pdp6_test(void)
             !memfs_xip_is_pinned(1U)) return 0167;
         if (memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U ||
             memfs_xip_is_pinned(1U) || memfs_xip_any_pinned()) return 0170;
+        /* v1468: Strict operation rejects the format-only diagnostic image
+         * (02001 words) while leaving the caller's outputs unchanged. */
+        metadata[MEMFS_OWNER_OFFSET + 1U] = 0UL;
+        xip_base = 07654UL;
+        xip_entry = 07654UL;
+#ifdef MEMFS_XIP_FATAL_V1468
+        /* An MM refusal while undoing the provisional pin is fatal: no VM
+         * yet exists to own a retryable reference. The test must HALT. */
+        xip_unpin_injected_failure_v214 = 1;
+        (void)test_xip_mres_safe_admit_v1468(node, &xip_base,
+            &xip_entry);
+        return 0247;
+#endif
+        if (test_xip_mres_safe_admit_v1468(node, &xip_base,
+            &xip_entry) == 0 || xip_base != 07654UL ||
+            xip_entry != 07654UL || extent_pins != 0U ||
+            memfs_xip_any_pinned()) return 0240;
+
+        /* The strict v1394 profile: exact 04000-word APR image, header,
+         * MOVEI AC2,immediate, UUO 040 EXIT, zero everywhere else. */
+        /* The dedicated 02001-word MM extent cannot grow in place to
+         * 04000 words. Release it before allocating the strict test image;
+         * do not bypass the allocator's single-live-extent constraint. */
+        if (memfs_chmod(xip_fs, node, 0644U) != 0 ||
+            memfs_truncate_words(xip_fs, node, 0U) != 0 ||
+            memfs_truncate_words(xip_fs, node, 04000U) != 0)
+                return 0241;
+        xip_header[0] = 054506000000UL;
+        xip_header[1] = (MEMFS_XIP_PURE_FLAG << 18U) | 020UL;
+        put[0] = 040000000000UL;
+        if (memfs_write_words(xip_fs, node, 0U, xip_header, 2U) != 2 ||
+            memfs_write_words(xip_fs, node, 020U,
+            &test_xip_instruction_template, 1U) != 1 ||
+            memfs_write_words(xip_fs, node, 021U, put, 1U) != 1 ||
+            memfs_chmod(xip_fs, node, 0555U) != 0)
+                return 0242;
+        if (test_xip_mres_safe_admit_v1468(node, &xip_base,
+            &xip_entry) != 0 || xip_entry != 020U ||
+            (xip_base & 01777U) != 0U || extent_pins != 1U ||
+            !memfs_xip_owns_base(xip_base)) return 0243;
+        if (memfs_write_words(xip_fs, node, 021U, put, 1U) >= 0 ||
+            memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U)
+                return 0244;
+
+        /* Changing only the EXIT word must make the entire raw image fail;
+         * rejection cannot leave an MM pin or half-publish the outputs. */
+        if (memfs_chmod(xip_fs, node, 0644U) != 0)
+                return 0245;
+        put[0] = 0UL;
+        if (memfs_write_words(xip_fs, node, 021U, put, 1U) != 1 ||
+            memfs_chmod(xip_fs, node, 0555U) != 0)
+                return 0245;
+        xip_base = 07654UL;
+        xip_entry = 07654UL;
+        if (test_xip_mres_safe_admit_v1468(node, &xip_base,
+            &xip_entry) == 0 || xip_base != 07654UL ||
+            xip_entry != 07654UL || extent_pins != 0U ||
+            memfs_xip_any_pinned()) return 0246;
+        if (memfs_chmod(xip_fs, node, 0644U) != 0)
+                return 0250;
+        put[0] = 040000000000UL;
+        if (memfs_write_words(xip_fs, node, 021U, put, 1U) != 1)
+                return 0250;
+        /* Nonzero data in the last APR word is forbidden even though it is
+         * not executed; this prevents later writable-data or code tricks. */
+        put[0] = 1UL;
+        if (memfs_write_words(xip_fs, node, 03777U, put, 1U) != 1 ||
+            memfs_chmod(xip_fs, node, 0555U) != 0)
+                return 0251;
+        if (test_xip_mres_safe_admit_v1468(node, &xip_base,
+            &xip_entry) == 0 || extent_pins != 0U ||
+            memfs_xip_any_pinned()) return 0252;
+        if (memfs_chmod(xip_fs, node, 0644U) != 0)
+                return 0253;
+        put[0] = 0UL;
+        if (memfs_write_words(xip_fs, node, 03777U, put, 1U) != 1 ||
+            memfs_chmod(xip_fs, node, 0555U) != 0)
+                return 0253;
+        if (test_xip_mres_safe_admit_v1468(node, &xip_base,
+            &xip_entry) != 0 || extent_pins != 1U ||
+            memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U)
+                return 0254;
         if (memfs_xip_unpin_base(xip_base) == 0 ||
             memfs_truncate_words(xip_fs, node, 0U) != 0 || pool_live)
                 return 0171;

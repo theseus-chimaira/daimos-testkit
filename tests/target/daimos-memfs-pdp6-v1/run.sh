@@ -48,3 +48,17 @@ PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
     "$here/start.s" "$work/test-fatal-v1403.s" \
     "$work/memfs-data-v1402.s" "$inc/memfs_runtime.s" \
     "$here/fs-helpers.s" "$work/vm-destroy-v215.s" "$kernel/core/ret.s"
+
+# v1468: a rejected, pinned raw-XIP candidate has no VM owner. If MM
+# refuses the provisional unpin, production must halt at the storage
+# ownership invariant rather than return with an untracked pin.
+"$cc" -std=c99 -Os -DMEMFS_XIP_FATAL_V1468=1 \
+    -I"$PDP10_PREFIX/include" -I"$inc" -I"$mm" -I"$storage" \
+    -I"$kernel/core" -S "$here/test.c" -o "$work/test-fatal-v1468.s"
+PDP10_PREFIX="$PDP10_PREFIX" "$p10run" \
+    --machine pdp6 --mode deposit --exec-mode go --timeout 10 \
+    --workdir "$work/xip-fatal-v1468" --name daimos-memfs-xip-fatal-v1468 \
+    --expect daimos_memfs_invariant_hit_v1403=1 \
+    "$here/start.s" "$work/test-fatal-v1468.s" \
+    "$work/memfs-data-v1402.s" "$inc/memfs_runtime.s" \
+    "$here/fs-helpers.s" "$work/vm-destroy-v215.s" "$kernel/core/ret.s"
