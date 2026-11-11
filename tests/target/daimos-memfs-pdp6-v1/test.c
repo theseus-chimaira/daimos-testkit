@@ -52,7 +52,11 @@ extern int test_memfs_prepare_unmount_v1400(void);
 extern int test_memfs_data_free_v1402(kword_t base, kword_t words);
 #endif
 extern int vm_space_destroy(kword_t *vm_descriptor, unsigned int slot);
+extern int vm_space_startup(kword_t *vm_descriptor, const kword_t *records,
+    kword_t argc_envc, kword_t *startup);
 static kword_t xip_vm_descriptor_v215[3];
+static kword_t xip_startup_result_v1469[4];
+static kword_t xip_dummy_records_v1469[1];
 extern kword_t test_xip_instruction_template;
 extern kword_t test_xip_execute_word(kword_t address);
 #ifdef XIP_USER_APR_TEST_V209
@@ -690,6 +694,33 @@ daimos_memfs_pdp6_test(void)
             &xip_entry) != 0 || xip_entry != 020U ||
             (xip_base & 01777U) != 0U || extent_pins != 1U ||
             !memfs_xip_owns_base(xip_base)) return 0243;
+        /* v1469: production VM startup must never write startup metadata
+         * into shared MEMFS RAM. The return vector lives in kernel RAM. */
+        xip_vm_descriptor_v215[1] = (04000UL << 18U) | xip_base;
+        xip_startup_result_v1469[0] = 1UL;
+        xip_startup_result_v1469[1] = 1UL;
+        xip_startup_result_v1469[2] = 1UL;
+        xip_startup_result_v1469[3] = 1UL;
+        if (vm_space_startup(xip_vm_descriptor_v215,
+            xip_dummy_records_v1469, 0UL, xip_startup_result_v1469) != 0 ||
+            xip_startup_result_v1469[0] != 0UL ||
+            xip_startup_result_v1469[1] != 0UL ||
+            xip_startup_result_v1469[2] != 0UL ||
+            xip_startup_result_v1469[3] != 02000UL ||
+            ((kword_t *)(unsigned long)xip_base)[020U] !=
+              test_xip_instruction_template ||
+            ((kword_t *)(unsigned long)xip_base)[021U] !=
+              040000000000UL ||
+            ((kword_t *)(unsigned long)xip_base)[02000U] != 0UL ||
+            extent_pins != 1U) return 0255;
+        if (vm_space_startup(xip_vm_descriptor_v215,
+            xip_dummy_records_v1469, (1UL << 18U),
+            xip_startup_result_v1469) == 0 ||
+            vm_space_startup(xip_vm_descriptor_v215,
+            xip_dummy_records_v1469, 1UL,
+            xip_startup_result_v1469) == 0 ||
+            ((kword_t *)(unsigned long)xip_base)[02000U] != 0UL ||
+            extent_pins != 1U) return 0256;
         if (memfs_write_words(xip_fs, node, 021U, put, 1U) >= 0 ||
             memfs_xip_unpin_base(xip_base) != 0 || extent_pins != 0U)
                 return 0244;
