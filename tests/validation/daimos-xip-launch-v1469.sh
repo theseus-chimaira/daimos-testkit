@@ -25,7 +25,7 @@ incs="$incs -I$DAIMOS_REPO/userland/libc -I$PDP10_PREFIX/include"
 "$das" -F -C -O "$obj/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"
 "$cc" -std=c89 -Os $incs -S "$DAIMOS_REPO/userland/libc/u.c" -o "$obj/u.s"
 "$das" -F -C -O "$obj/u.dobj" "$obj/u.s"
-"$cc" -std=c89 -Os ${XIP_V1472_TEST_CFLAGS:-} $incs -S "$self/$tag.c" -o "$obj/test.s"
+"$cc" -std=c89 -Os ${XIP_V1472_TEST_CFLAGS:-} ${XIP_V1473_TEST_CFLAGS:-} $incs -S "$self/$tag.c" -o "$obj/test.s"
 "$das" -F -C -O "$obj/test.dobj" "$obj/test.s"
 libgcc=$($cc -print-libgcc-file-name)
 "$dlink" -b 020 -o "$obj/test.dxr" -M "$obj/test.map" \
@@ -58,6 +58,10 @@ end
 PROBES
 if [ "${XIP_V1472_FAULT_MODE:-0}" = 1 ]; then
     sed -i '/^contains XIP-RUN-PASS$/a contains XIP-UAREA-FAULT-PASS' \
+        "$work/probes.txt"
+fi
+if [ "${XIP_V1473_PRESSURE_MODE:-0}" = 1 ]; then
+    sed -i '/^contains XIP-RUN-PASS$/a contains XIP-PRESSURE-PASS' \
         "$work/probes.txt"
 fi
 

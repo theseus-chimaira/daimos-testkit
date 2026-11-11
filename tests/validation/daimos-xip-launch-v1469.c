@@ -141,6 +141,77 @@ xip_run_v1469(unsigned int argc)
         return dsys_run(block);
 }
 
+#ifdef XIP_PRESSURE_V1473
+/* A full-profile 128K PDP-6 has 32 process slots, while 192K/256K
+ * machines have 48/64. Exercise almost the complete available table,
+ * with distinct u-areas and a common pinned MEMFS executable. No user
+ * memory is written by the certified two-instruction image itself. */
+#define XIP_PRESSURE_LIMIT_V1473  56U
+#define XIP_PRESSURE_ROUNDS_V1473 3U
+
+static int
+xip_pressure_v1473(void)
+{
+        struct sys_meminfo before;
+        struct sys_meminfo after;
+        struct sys_meminfo occupied;
+        kword_t status;
+        int children[XIP_PRESSURE_LIMIT_V1473];
+        unsigned int count;
+        unsigned int round;
+        unsigned int i;
+        int pid;
+
+        if (dsys_meminfo(&before) != 0 ||
+            before.process_slots_total <= before.process_slots_used + 3U)
+                return xip_fail_v1469("PRESSURE-MEMINFO", -1);
+        count = (unsigned int)(before.process_slots_total -
+            before.process_slots_used - 2U);
+        if (count > XIP_PRESSURE_LIMIT_V1473)
+                count = XIP_PRESSURE_LIMIT_V1473;
+        if (count < 12U)
+                return xip_fail_v1469("PRESSURE-SLOTS", (int)count);
+
+        for (round = 0U; round < XIP_PRESSURE_ROUNDS_V1473; ++round) {
+                for (i = 0U; i < count; ++i) {
+                        pid = xip_run_v1469(0U);
+                        if (pid <= 1)
+                                return xip_fail_v1469("PRESSURE-RUN", pid);
+                        children[i] = pid;
+                }
+                if (dsys_meminfo(&occupied) != 0 ||
+                    occupied.process_slots_used !=
+                        before.process_slots_used + count)
+                        return xip_fail_v1469("PRESSURE-COUNT", (int)round);
+                /* These short XIP programs may already have exited and
+                 * become zombies, retaining process slots but NOT pins.
+                 * Do not infer live MEMFS pins from occupied slots.
+                 * The proven-pinned unmount test is in v1472 below. */
+
+                for (i = 0U; i < count; ++i) {
+                        status = 0UL;
+                        if (dsys_wait((unsigned int)children[i],
+                            &status, 0U) != children[i] ||
+                            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+                            SYS_WAIT_STATUS_VALUE(status) != 0U)
+                                return xip_fail_v1469("PRESSURE-WAIT", (int)i);
+                }
+                if (dsys_meminfo(&after) != 0 ||
+                    after.process_slots_used != before.process_slots_used ||
+                    after.process_words != before.process_words ||
+                    after.memfs_used_words != before.memfs_used_words)
+                        return xip_fail_v1469("PRESSURE-LEAK", (int)round);
+                if (dsys_chmod(xip_path_v1469, 0644U) != 0 ||
+                    dsys_chmod(xip_path_v1469, 0555U) != 0 ||
+                    xip_check_file_v1469() != 0)
+                        return xip_fail_v1469("PRESSURE-RELEASE", (int)round);
+        }
+        (void)u_puts(1, "XIP-PRESSURE-PASS");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
+
 static int
 xip_exec_v1469(unsigned int argc)
 {
@@ -258,6 +329,7 @@ xip_uarea_fault_v1472(void)
         int pid;
         int wait_result;
         kword_t status;
+        kword_t temp_path[U_PATH_WORDS];
 
         if (dsys_meminfo(&before) != 0)
                 return xip_fail_v1469("UAREA-INFO-BEFORE", -1);
@@ -279,6 +351,12 @@ xip_uarea_fault_v1472(void)
                 return xip_fail_v1469("UAREA-NO-DEFERRED-VM", pending);
         if (dsys_chmod(xip_path_v1469, 0644U) == 0)
                 return xip_fail_v1469("UAREA-PIN-DROPPED", pending);
+        /* The failed CHMOD proves that the owner still has a MEMFS pin.
+         * Unlike ordinary queued XIP children, this injected SIDL owner
+         * cannot exit and lose its pin before the unmount request. */
+        if (u_s6_pack(temp_path, U_PATH_WORDS, "/TEMP") != 0 ||
+            dsys_unmount(temp_path) == 0)
+                return xip_fail_v1469("UAREA-PINNED-UNMOUNT", pending);
         status = 0UL;
         wait_result = dsys_wait((unsigned int)pending, &status,
             SYS_WAIT_NOHANG);
@@ -343,6 +421,10 @@ main(int argc, kword_t **argv)
                 return 1;
         if (xip_check_file_v1469() != 0)
                 return 1;
+#ifdef XIP_PRESSURE_V1473
+        if (xip_pressure_v1473() != 0)
+                return 1;
+#endif
 #ifdef XIP_UAREA_FAULT_V1472
         if (xip_uarea_fault_v1472() != 0)
                 return 1;
