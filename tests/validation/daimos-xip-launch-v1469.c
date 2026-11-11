@@ -167,8 +167,41 @@ xip_snapshot_v1477(void)
                 return xip_fail_v1469("SNAP-PATH", -1);
         /* /TEMP exists on the D6FS root even when MOUNTALL fails. Do not
          * mistake a file persisted there for a MEMFS snapshot. */
-        if (dsys_meminfo(&mem) != 0 ||
-            mem.memfs_capacity_words == 0UL)
+        if (dsys_meminfo(&mem) != 0)
+                return xip_fail_v1469("SNAP-NO-MEMFS", -1);
+#ifdef XIP_SNAPSHOT_CORRUPT_V1485
+        {
+                /* Probe the mount itself, not MEMINFO's stale capacity:
+                 * the pre-fix snapshot failure left the singleton record
+                 * allocated despite no published MEMFS mount. Duplicate
+                 * mount is refused on boot one; the repaired cleanup
+                 * allows a new volatile mount after boot-two rejection. */
+                kword_t mount_path[U_PATH_WORDS];
+                if (u_s6_pack(mount_path, U_PATH_WORDS, "/TEMP") != 0)
+                        return xip_fail_v1469("SNAP-CORRUPT-PATH", -1);
+                if (dsys_memfs_mount(mount_path, 4096U, SYS_MOUNT_RW) == 0) {
+                        kword_t recovered_status;
+                        int recovered_pid;
+                        if (dsys_meminfo(&mem) != 0 ||
+                            mem.memfs_capacity_words == 0UL ||
+                            xip_create_v1469() != 0 ||
+                            xip_check_file_v1469() != 0)
+                                return xip_fail_v1469("SNAP-CORRUPT-RECOVERY", -1);
+                        recovered_pid = xip_run_v1469(0U);
+                        recovered_status = 0UL;
+                        if (recovered_pid <= 1 ||
+                            dsys_wait((unsigned int)recovered_pid,
+                                &recovered_status, 0U) != recovered_pid ||
+                            SYS_WAIT_STATUS_KIND(recovered_status) != SYS_WAIT_EXITED ||
+                            SYS_WAIT_STATUS_VALUE(recovered_status) != 0U)
+                                return xip_fail_v1469("SNAP-CORRUPT-RUN", recovered_pid);
+                        (void)u_puts(1, "XIP-SNAPSHOT-CORRUPT-RECOVERED");
+                        (void)u_crlf(1);
+                        return 0;
+                }
+        }
+#endif
+        if (mem.memfs_capacity_words == 0UL)
                 return xip_fail_v1469("SNAP-NO-MEMFS", -1);
         if (dsys_stat(path, &st) == 0) {
                 if (st.type != VFS_TYPE_REG ||

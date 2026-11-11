@@ -24,6 +24,7 @@ printf '# DAIMOS FSTAB V1 - V1477 SNAPSHOT TEST\nMEMFS:/TEMP:4096:PERSIST\n' > "
 # boot's persistent state ambiguous and can hide snapshot mount defects.
 rm -rf "$work/guest/build/system/boot/pdp6/drum"
 XIP_V1469_WORK="$work/guest" XIP_V1469_KEEP=1 \
+XIP_V1474_REMOUNT_MODE="${XIP_V1485_CORRUPT_MODE:-0}" \
 XIP_V1477_TEST_CFLAGS="-DXIP_SNAPSHOT_V1477=1 ${XIP_V1478_TEST_CFLAGS:-}" \
 XIP_V1477_FSTAB_TEXT="$work/fstab-v1477.txt" \
 XIP_V1477_IMAGE_ONLY=1 \
@@ -38,13 +39,17 @@ for n in 1 2; do
         1) marker=XIP-SNAPSHOT-WRITTEN ;;
         2) marker=XIP-SNAPSHOT-RESTORED ;;
     esac
+    if [ "$n" = 2 ] && [ "${XIP_V1485_CORRUPT_MODE:-0}" = 1 ]; then
+        python3 "$self/daimos-memfs-snapshot-corrupt-v1485.py" \
+            "$work/auxstore-v1477.inspect" "$boot/drum/dsk0.dsk"
+        marker=XIP-SNAPSHOT-CORRUPT-RECOVERED
+    fi
     cat > "$work/boot-$n.probes" <<EOF
 probe memfs-persistent-boot-$n
 command /CONFIG/XIP1469.TEST; ECHO STATUS:\$?
 contains $marker
 contains STATUS:0
 not_contains XIP-FAIL-
-not_contains INIT: MOUNTALL FAILED
 end
 probe orderly-halt-$n
 command HALT
@@ -65,7 +70,12 @@ EOF
     grep -Eq "^MEM[[:space:]]+$size K" "$log"
     grep -Eq '^MEMFS[[:space:]]+LOADED' "$log"
     grep -Fq "$marker" "$log"
-    if grep -Fq 'INIT: MOUNTALL FAILED' "$log"; then
+    if [ "$n" = 2 ] && [ "${XIP_V1485_CORRUPT_MODE:-0}" = 1 ]; then
+        grep -Fq 'INIT: MOUNTALL FAILED' "$log" || {
+            echo 'v1485: corrupt metadata unexpectedly accepted' >&2
+            exit 1
+        }
+    elif grep -Fq 'INIT: MOUNTALL FAILED' "$log"; then
         echo "v1477: persistent MEMFS failed to mount on cold boot $n" >&2
         exit 1
     fi
