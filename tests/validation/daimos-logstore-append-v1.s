@@ -3,7 +3,7 @@
         .globl __test_exit
         .globl logstore_mres_dispatch
         .globl logstore_mres_state
-        .globl logstore_backend_read_jump
+        .globl logstore_backend_read_call
         .globl logstore_backend_write_jump
         .globl kret_neg1
         .globl proc_wait_event
@@ -12,7 +12,7 @@
 main:
         ; Patch the production backend jump slots to this in-memory oracle.
         movei   1,test_read
-        hrrm    1,logstore_backend_read_jump
+        hrrm    1,logstore_backend_read_call
         movei   1,test_write
         hrrm    1,logstore_backend_write_jump
 
@@ -31,6 +31,7 @@ main:
         setzm   wake_count
         setzm   wait_count
         setzm   logstore_mres_state+5
+        setom   logstore_mres_state+6  ; modern LOGSTORE requires INIT enable
 
         ; Caller supplies timestamp, packed metadata, and two payload words.
         move    1,[012345670123]

@@ -141,6 +141,106 @@ xip_run_v1469(unsigned int argc)
         return dsys_run(block);
 }
 
+#ifdef XIP_SNAPSHOT_V1477
+/* Snapshot test runs the same executable on two independent cold boots.
+ * It never destroys or overwrites the first boot's persistent image
+ * during the second boot's verification. All strings and data are ASCII
+ * or 36-bit words and remain compatible with KCC/C89. */
+static const kword_t xip_snapshot_payload_v1477[3] = {
+        012345670123UL, 076543210765UL, 055225522552UL
+};
+static int
+xip_snapshot_v1477(void)
+{
+        kword_t path[U_PATH_WORDS];
+        kword_t contents[3];
+        kword_t status;
+        struct sys_meminfo mem;
+        struct vfs_stat st;
+        int fd;
+        int pid;
+        unsigned int i;
+
+        if (u_s6_pack(xip_path_v1469, U_PATH_WORDS,
+                "/TEMP/XIPSAFE") != 0 ||
+            u_s6_pack(path, U_PATH_WORDS, "/TEMP/SNAPDATA") != 0)
+                return xip_fail_v1469("SNAP-PATH", -1);
+        /* /TEMP exists on the D6FS root even when MOUNTALL fails. Do not
+         * mistake a file persisted there for a MEMFS snapshot. */
+        if (dsys_meminfo(&mem) != 0 ||
+            mem.memfs_capacity_words == 0UL)
+                return xip_fail_v1469("SNAP-NO-MEMFS", -1);
+        if (dsys_stat(path, &st) == 0) {
+                if (st.type != VFS_TYPE_REG ||
+                    st.size_words != 3UL ||
+                    xip_check_file_v1469() != 0)
+                        return xip_fail_v1469("SNAP-RESTORE-STAT", -1);
+                fd = dsys_open(path, SYS_O_RDONLY);
+                if (fd < 0)
+                        return xip_fail_v1469("SNAP-RESTORE-OPEN", fd);
+                if (dsys_read_words(fd, contents, 3U) != 3 ||
+                    dsys_close(fd) != 0)
+                        return xip_fail_v1469("SNAP-RESTORE-READ", -1);
+                for (i = 0U; i < 3U; ++i)
+                        if (contents[i] != xip_snapshot_payload_v1477[i])
+                                return xip_fail_v1469("SNAP-RESTORE-DATA",
+                                    (int)i);
+                pid = xip_run_v1469(0U);
+                if (pid <= 1)
+                        return xip_fail_v1469("SNAP-RESTORE-RUN", pid);
+                status = 0UL;
+                if (dsys_wait((unsigned int)pid, &status, 0U) != pid ||
+                    SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+                    SYS_WAIT_STATUS_VALUE(status) != 0U)
+                        return xip_fail_v1469("SNAP-RESTORE-WAIT", pid);
+#ifdef XIP_SNAPSHOT_FAULT_V1478
+                /* The isolated one-shot write hook is reset by each cold
+                 * boot. Consume and verify that boot's refused HALT here
+                 * so the shell can safely retry the real publication. */
+                if (dsys_halt() != -1)
+                        return xip_fail_v1469("SNAP-RESTORE-HALT", -1);
+                (void)u_puts(1, "XIP-SNAPSHOT-HALT-REFUSED");
+                (void)u_crlf(1);
+#endif
+                (void)u_puts(1, "XIP-SNAPSHOT-RESTORED");
+                (void)u_crlf(1);
+                return 0;
+        }
+        if (xip_create_v1469() != 0 ||
+            xip_check_file_v1469() != 0)
+                return xip_fail_v1469("SNAP-CREATE-XIP", -1);
+        fd = dsys_open(path, SYS_O_WRONLY | SYS_O_CREAT | SYS_O_TRUNC);
+        if (fd < 0)
+                return xip_fail_v1469("SNAP-CREATE-OPEN", fd);
+        if (dsys_write_words(fd,
+                (kword_t *)xip_snapshot_payload_v1477, 3U) != 3 ||
+            dsys_close(fd) != 0)
+                return xip_fail_v1469("SNAP-CREATE-WRITE", -1);
+        if (xip_check_file_v1469() != 0 ||
+            dsys_meminfo(&mem) != 0 ||
+            mem.memfs_used_words < 04000UL)
+                return xip_fail_v1469("SNAP-NO-OWNER", -1);
+        pid = xip_run_v1469(0U);
+        status = 0UL;
+        if (pid <= 1 ||
+            dsys_wait((unsigned int)pid, &status, 0U) != pid ||
+            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+            SYS_WAIT_STATUS_VALUE(status) != 0U)
+                return xip_fail_v1469("SNAP-FIRST-RUN", pid);
+        (void)u_puts(1, "XIP-SNAPSHOT-WRITTEN");
+        (void)u_crlf(1);
+#ifdef XIP_SNAPSHOT_FAULT_V1478
+        /* A test-only storage refusal must prevent HALT. The enclosing
+         * shell issues a second HALT after the one-shot fault clears. */
+        if (dsys_halt() != -1)
+                return xip_fail_v1469("SNAP-HALT-ACCEPTED", -1);
+        (void)u_puts(1, "XIP-SNAPSHOT-HALT-REFUSED");
+        (void)u_crlf(1);
+#endif
+        return 0;
+}
+#endif
+
 #ifdef XIP_REMOUNT_V1474
 /* Repeated real VFS/MEMFS lifetime through the public root-only syscalls.
  * No stale vnode from the retired mount may be accepted on the new one.
@@ -492,6 +592,11 @@ main(int argc, kword_t **argv)
         int shared_pids[3];
         kword_t status;
 
+#ifdef XIP_SNAPSHOT_V1477
+        (void)argc;
+        (void)argv;
+        return xip_snapshot_v1477();
+#endif
         if (argc == 1 && argv != 0 && argv[0] != 0 &&
             argv[0][1] == TEST_SIX6('N', ' ', ' ', ' ', ' ', ' ')) {
                 i = xip_unprivileged_v1469();

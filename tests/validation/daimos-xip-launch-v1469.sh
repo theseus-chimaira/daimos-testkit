@@ -45,7 +45,7 @@ else
 fi
 "$cc" -std=c89 -Os $incs -S "$DAIMOS_REPO/userland/libc/u.c" -o "$obj/u.s"
 "$das" -F -C -O "$obj/u.dobj" "$obj/u.s"
-"$cc" -std=c89 -Os ${XIP_V1472_TEST_CFLAGS:-} ${XIP_V1473_TEST_CFLAGS:-} ${XIP_V1474_TEST_CFLAGS:-} $incs -S "$self/$tag.c" -o "$obj/test.s"
+"$cc" -std=c89 -Os ${XIP_V1472_TEST_CFLAGS:-} ${XIP_V1473_TEST_CFLAGS:-} ${XIP_V1474_TEST_CFLAGS:-} ${XIP_V1477_TEST_CFLAGS:-} $incs -S "$self/$tag.c" -o "$obj/test.s"
 "$das" -F -C -O "$obj/test.dobj" "$obj/test.s"
 libgcc=$($cc -print-libgcc-file-name)
 "$dlink" -b 020 -o "$obj/test.dxr" -M "$obj/test.map" \
@@ -103,9 +103,10 @@ xip_simh_cpu_kwords=${XIP_V1470_SIMH_CPU_KWORDS:-256}
 PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
     make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
-    KERNEL_DIR="${XIP_V1475_KERNEL_DIR:-${XIP_V1472_KERNEL_DIR:-$DAIMOS_REPO/system/kernel}}" \
+    KERNEL_DIR="${XIP_V1478_KERNEL_DIR:-${XIP_V1475_KERNEL_DIR:-${XIP_V1472_KERNEL_DIR:-$DAIMOS_REPO/system/kernel}}}" \
     HOST_TOOLS="$host_tools" DAS_REPO="${DAS_REPO:-$DAIMOS_REPO/../das}" \
     KCC_REPO="${KCC_REPO:-$DAIMOS_REPO/../kcc}" \
+    SYSTEM_FSTAB_TEXT="${XIP_V1477_FSTAB_TEXT:-$DAIMOS_REPO/userland/config/fstab}" \
     BOOT_PROFILE=full COMPILER=kcc \
     BOOT_CORE_WORDS="$xip_boot_core_words" \
     SIMH_CPU_KWORDS="$xip_simh_cpu_kwords" \
@@ -116,6 +117,11 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
         printf 'XIP image build failure; evidence: %s\n' "$work" >&2
         exit 1
     }
+
+if [ "${XIP_V1477_IMAGE_ONLY:-0}" = 1 ]; then
+    echo "PASS v1477: persistent MEMFS image built (no SIMH boot yet)"
+    exit 0
+fi
 
 # Test-only observation after HALT: the simulator's noninteractive dofile
 # reads the actual fixed-KCORE counters and then closes normally.  Both
