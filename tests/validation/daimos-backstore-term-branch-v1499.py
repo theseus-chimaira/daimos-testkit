@@ -113,7 +113,7 @@ daimos_v1499_post_done:
             ('proc_finish_slot:', 'finish'),
             ('proc_finish_prevm_fail_v1081:', 'prevm_refused')):
         proc = replace_once(proc, label + '\n', label + '\n'
-            '        skipn   daimos_v1499_active\n'
+            '        skipe   daimos_v1499_active\n'
             '        aos     daimos_v1499_' + counter + '\n')
 
     data += '\n; v1499 DISPOSABLE TWO-EVENT TRACE; no production RAM.\n'

@@ -15,9 +15,17 @@ finalizer entry, PREVM release refusal, and FILE close refusal.
 
 Counters and snapshots exist only in the copied guest's fixed BSS;
 they are absent from production KCORE. The observer uses AC4..AC7
-outside the event's AC1/AC2 API, and `AOS`/`SKIPN` guards only within
+outside the event's AC1/AC2 API, and `AOS`/`SKIPE` guards only within
 the event path. No on-disk payload, owner record, bitmap release
 decision or scheduler failure dispatch is modified.
+
+The initial v1499 physical run contained a diagnostic polarity error:
+`SKIPN` counted event branches while the trace was *inactive*.
+Consequently the early physical foreign/deferred branch counters are
+invalid, although the direct pre/post event snapshots and the real
+event count are unaffected. The corrected injector uses `SKIPE` to
+count only when active; an independent v1502 PDP-6 executable test
+checks both polarities before another physical qualification run.
 
 To run:
 
