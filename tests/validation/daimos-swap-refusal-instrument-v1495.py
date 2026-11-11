@@ -49,14 +49,27 @@ def inject(kernel):
         '        pushj   17,proc_event_apply\n'
         '        aos     daimos_v1495_event_returned\n'
         '        pushj   17,daimos_v1494_term_witness\n')
-    swap = replace_once(swap,
-        'daimos_v1494_term_witness:\n'
-        '        push    17,4\n'
-        '        push    17,5\n'
-        '        push    17,6\n'
+    # The v1494 committed fixture used -3(17), while the local
+    # corrective experiment used -4(17). The diagnostic must work from
+    # either exact version and explicitly normalize to the corrected
+    # stack address without silently accepting an arbitrary source edit.
+    stack_prefix = ('daimos_v1494_term_witness:\n'
+                    '        push    17,4\n'
+                    '        push    17,5\n'
+                    '        push    17,6\n')
+    old_stack = stack_prefix + (
+        '        move    4,-3(17)               ; service\'s pending slot\n')
+    new_stack = stack_prefix + (
         '        ; PUSHJ saved the return PC above the service\'s pending slot;\n'
         '        ; three additional PUSH instructions put that slot at -4(17).\n'
-        '        move    4,-4(17)               ; service\'s pending slot\n',
+        '        move    4,-4(17)               ; service\'s pending slot\n')
+    if swap.count(new_stack) == 1 and swap.count(old_stack) == 0:
+        before = new_stack
+    elif swap.count(old_stack) == 1 and swap.count(new_stack) == 0:
+        before = old_stack
+    else:
+        raise AssertionError('v1495: unexpected v1494 TERM stack witness')
+    swap = replace_once(swap, before,
         'daimos_v1494_term_witness:\n'
         '        aos     daimos_v1495_witness_enter\n'
         '        push    17,4\n'
