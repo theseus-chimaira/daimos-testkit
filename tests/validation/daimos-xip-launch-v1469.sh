@@ -5,6 +5,19 @@ set -eu
 : "${DAIMOS_REPO:?set DAIMOS_REPO}"
 : "${TMPDIR:?set TMPDIR}"
 
+# v1479: XIP requires MEMFS, which is disabled below 96K. Do not build
+# low-memory XIP guests; 32K/48K release tests are non-XIP only.
+xip_guard_kwords=${XIP_V1470_SIMH_CPU_KWORDS:-256}
+case "$xip_guard_kwords" in
+    ''|*[!0-9]*)
+        echo 'XIP requires a numeric physical memory size in Kwords' >&2
+        exit 2 ;;
+esac
+if [ "$xip_guard_kwords" -lt 96 ]; then
+    echo 'XIP requires MEMFS and at least 96K physical memory' >&2
+    exit 2
+fi
+
 tag=daimos-xip-launch-v1469
 self=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 work="${XIP_V1469_WORK:-$TMPDIR/$tag-$$}"
