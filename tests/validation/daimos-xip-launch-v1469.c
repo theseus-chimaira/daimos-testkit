@@ -141,6 +141,89 @@ xip_run_v1469(unsigned int argc)
         return dsys_run(block);
 }
 
+#ifdef XIP_REMOUNT_V1474
+/* Repeated real VFS/MEMFS lifetime through the public root-only syscalls.
+ * No stale vnode from the retired mount may be accepted on the new one.
+ * The original driver continues with the final newly created XIP file. */
+#define XIP_REMOUNT_ROUNDS_V1474 3U
+static int
+xip_remount_v1474(void)
+{
+        struct sys_meminfo before;
+        struct sys_meminfo after;
+        struct sys_meminfo absent;
+        struct vfs_stat st;
+        kword_t temp_path[U_PATH_WORDS];
+        kword_t status;
+        unsigned int round;
+        int pid;
+
+        if (u_s6_pack(temp_path, U_PATH_WORDS, "/TEMP") != 0 ||
+            dsys_meminfo(&before) != 0)
+                return xip_fail_v1469("REMOUNT-SETUP", -1);
+        for (round = 0U; round < XIP_REMOUNT_ROUNDS_V1474; ++round) {
+                pid = xip_run_v1469(0U);
+                if (pid <= 1)
+                        return xip_fail_v1469("REMOUNT-RUN", pid);
+                status = 0UL;
+                if (dsys_wait((unsigned int)pid, &status, 0U) != pid ||
+                    SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+                    SYS_WAIT_STATUS_VALUE(status) != 0U)
+                        return xip_fail_v1469("REMOUNT-WAIT", (int)round);
+                /* Verify that the singleton does not permit duplicate
+                 * mounts before any of its resources are released. */
+                if (dsys_memfs_mount(temp_path, 4096U, SYS_MOUNT_RW) == 0)
+                        return xip_fail_v1469("REMOUNT-DUP", (int)round);
+#ifdef XIP_UNMOUNT_FAULT_V1475
+                if (round == 0U) {
+                        /* A test-only data-destroy preflight refusal must
+                         * leave the old MEMFS mount and XIP image intact. */
+                        if (dsys_unmount(temp_path) != -1 ||
+                            dsys_meminfo(&after) != 0 ||
+                            after.memfs_used_words != before.memfs_used_words ||
+                            after.memfs_capacity_words != before.memfs_capacity_words ||
+                            after.resident_words != before.resident_words ||
+                            xip_check_file_v1469() != 0)
+                                return xip_fail_v1469("REMOUNT-REFUSAL", (int)round);
+                        pid = xip_run_v1469(0U);
+                        status = 0UL;
+                        if (pid <= 1 ||
+                            dsys_wait((unsigned int)pid, &status, 0U) != pid ||
+                            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+                            SYS_WAIT_STATUS_VALUE(status) != 0U)
+                                return xip_fail_v1469("REMOUNT-RETRY-RUN", (int)round);
+                        (void)u_puts(1, "XIP-REMOUNT-REFUSAL-PASS");
+                        (void)u_crlf(1);
+                }
+#endif
+                if (dsys_unmount(temp_path) != 0)
+                        return xip_fail_v1469("REMOUNT-UNMOUNT", (int)round);
+                if (dsys_stat(xip_path_v1469, &st) == 0 ||
+                    dsys_meminfo(&absent) != 0 ||
+                    absent.memfs_used_words != 0UL ||
+                    absent.memfs_capacity_words != 0UL)
+                        return xip_fail_v1469("REMOUNT-STALE", (int)round);
+                if (dsys_memfs_mount(temp_path, 4096U, SYS_MOUNT_RW) != 0)
+                        return xip_fail_v1469("REMOUNT-MOUNT", (int)round);
+                if (dsys_stat(xip_path_v1469, &st) == 0)
+                        return xip_fail_v1469("REMOUNT-OLD-NODE", (int)round);
+                if (xip_create_v1469() != 0 ||
+                    xip_check_file_v1469() != 0)
+                        return xip_fail_v1469("REMOUNT-RECREATE", (int)round);
+                if (dsys_meminfo(&after) != 0 ||
+                    after.process_slots_used != before.process_slots_used ||
+                    after.process_words != before.process_words ||
+                    after.memfs_used_words != before.memfs_used_words ||
+                    after.memfs_capacity_words != before.memfs_capacity_words ||
+                    after.resident_words != before.resident_words)
+                        return xip_fail_v1469("REMOUNT-MM-LEAK", (int)round);
+        }
+        (void)u_puts(1, "XIP-REMOUNT-PASS");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
+
 #ifdef XIP_PRESSURE_V1473
 /* A full-profile 128K PDP-6 has 32 process slots, while 192K/256K
  * machines have 48/64. Exercise almost the complete available table,
@@ -421,6 +504,10 @@ main(int argc, kword_t **argv)
                 return 1;
         if (xip_check_file_v1469() != 0)
                 return 1;
+#ifdef XIP_REMOUNT_V1474
+        if (xip_remount_v1474() != 0)
+                return 1;
+#endif
 #ifdef XIP_PRESSURE_V1473
         if (xip_pressure_v1473() != 0)
                 return 1;

@@ -23,13 +23,20 @@ incs="$incs -I$DAIMOS_REPO/userland/libc -I$PDP10_PREFIX/include"
 
 "$das" -F -C -O "$obj/crt0.dobj" "$DAIMOS_REPO/userland/libc/crt0.s"
 "$das" -F -C -O "$obj/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"
+if [ "${XIP_V1474_REMOUNT_MODE:-0}" = 1 ]; then
+    "$das" -F -C -O "$obj/memfs-mount-v1474.dobj" \
+        "$DAIMOS_REPO/userland/init/memfs_mount.s"
+    xip_extra_veneer="$obj/memfs-mount-v1474.dobj"
+else
+    xip_extra_veneer=
+fi
 "$cc" -std=c89 -Os $incs -S "$DAIMOS_REPO/userland/libc/u.c" -o "$obj/u.s"
 "$das" -F -C -O "$obj/u.dobj" "$obj/u.s"
-"$cc" -std=c89 -Os ${XIP_V1472_TEST_CFLAGS:-} ${XIP_V1473_TEST_CFLAGS:-} $incs -S "$self/$tag.c" -o "$obj/test.s"
+"$cc" -std=c89 -Os ${XIP_V1472_TEST_CFLAGS:-} ${XIP_V1473_TEST_CFLAGS:-} ${XIP_V1474_TEST_CFLAGS:-} $incs -S "$self/$tag.c" -o "$obj/test.s"
 "$das" -F -C -O "$obj/test.dobj" "$obj/test.s"
 libgcc=$($cc -print-libgcc-file-name)
 "$dlink" -b 020 -o "$obj/test.dxr" -M "$obj/test.map" \
-    "$obj/crt0.dobj" "$obj/syscall.dobj" "$obj/u.dobj" \
+    "$obj/crt0.dobj" "$obj/syscall.dobj" $xip_extra_veneer "$obj/u.dobj" \
     "$obj/test.dobj" "$libgcc"
 
 # D6FS_EXTRA_ARGS is a command-line list, not a Makefile file dependency.
@@ -64,6 +71,15 @@ if [ "${XIP_V1473_PRESSURE_MODE:-0}" = 1 ]; then
     sed -i '/^contains XIP-RUN-PASS$/a contains XIP-PRESSURE-PASS' \
         "$work/probes.txt"
 fi
+if [ "${XIP_V1474_REMOUNT_MODE:-0}" = 1 ]; then
+    sed -i '/^contains XIP-RUN-PASS$/a contains XIP-REMOUNT-PASS' \
+        "$work/probes.txt"
+fi
+
+if [ "${XIP_V1475_FAULT_MODE:-0}" = 1 ]; then
+    sed -i '/^contains XIP-RUN-PASS$/a contains XIP-REMOUNT-REFUSAL-PASS' \
+        "$work/probes.txt"
+fi
 
 host_tools="${DAIMOS_HOST_TOOLS:-$PDP10_PREFIX/bin}"
 # v1470: memory-specific full-profile XIP acceptance. MEMFS is not
@@ -74,7 +90,7 @@ xip_simh_cpu_kwords=${XIP_V1470_SIMH_CPU_KWORDS:-256}
 PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
     make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
-    KERNEL_DIR="${XIP_V1472_KERNEL_DIR:-$DAIMOS_REPO/system/kernel}" \
+    KERNEL_DIR="${XIP_V1475_KERNEL_DIR:-${XIP_V1472_KERNEL_DIR:-$DAIMOS_REPO/system/kernel}}" \
     HOST_TOOLS="$host_tools" DAS_REPO="${DAS_REPO:-$DAIMOS_REPO/../das}" \
     KCC_REPO="${KCC_REPO:-$DAIMOS_REPO/../kcc}" \
     BOOT_PROFILE=full COMPILER=kcc \
@@ -116,6 +132,14 @@ path.write_text(source[:-5] + checks + 'exit\n')
 (build / 'v1472-count-addresses').write_text(
     ''.join(key + ' ' + values[key] + '\n' for key in sorted(values)))
 PY
+fi
+
+# v1475's symbol is MRES-relative, not a fixed KCORE physical address.
+# Require the disposable MRES to contain it; guest outcomes prove the
+# one-time refusal occurred without guessing the relocated address.
+if [ "${XIP_V1475_FAULT_MODE:-0}" = 1 ]; then
+    python3 "$self/daimos-xip-unmount-canary-v1476.py" \
+        "$build/system/boot/pdp6/memfs-mres.map"
 fi
 
 "$self/../../tools/daimos-simh-harness-v6.sh" \
