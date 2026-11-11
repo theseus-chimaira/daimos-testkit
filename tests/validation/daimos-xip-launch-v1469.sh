@@ -25,7 +25,7 @@ incs="$incs -I$DAIMOS_REPO/userland/libc -I$PDP10_PREFIX/include"
 "$das" -F -C -O "$obj/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"
 "$cc" -std=c89 -Os $incs -S "$DAIMOS_REPO/userland/libc/u.c" -o "$obj/u.s"
 "$das" -F -C -O "$obj/u.dobj" "$obj/u.s"
-"$cc" -std=c89 -Os $incs -S "$self/$tag.c" -o "$obj/test.s"
+"$cc" -std=c89 -Os ${XIP_V1472_TEST_CFLAGS:-} $incs -S "$self/$tag.c" -o "$obj/test.s"
 "$das" -F -C -O "$obj/test.dobj" "$obj/test.s"
 libgcc=$($cc -print-libgcc-file-name)
 "$dlink" -b 020 -o "$obj/test.dxr" -M "$obj/test.map" \
@@ -56,6 +56,10 @@ command HALT
 terminal eof
 end
 PROBES
+if [ "${XIP_V1472_FAULT_MODE:-0}" = 1 ]; then
+    sed -i '/^contains XIP-RUN-PASS$/a contains XIP-UAREA-FAULT-PASS' \
+        "$work/probes.txt"
+fi
 
 host_tools="${DAIMOS_HOST_TOOLS:-$PDP10_PREFIX/bin}"
 # v1470: memory-specific full-profile XIP acceptance. MEMFS is not
@@ -66,6 +70,7 @@ xip_simh_cpu_kwords=${XIP_V1470_SIMH_CPU_KWORDS:-256}
 PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
     make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
+    KERNEL_DIR="${XIP_V1472_KERNEL_DIR:-$DAIMOS_REPO/system/kernel}" \
     HOST_TOOLS="$host_tools" DAS_REPO="${DAS_REPO:-$DAIMOS_REPO/../das}" \
     KCC_REPO="${KCC_REPO:-$DAIMOS_REPO/../kcc}" \
     BOOT_PROFILE=full COMPILER=kcc \
@@ -78,6 +83,36 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
         printf 'XIP image build failure; evidence: %s\n' "$work" >&2
         exit 1
     }
+
+# Test-only observation after HALT: the simulator's noninteractive dofile
+# reads the actual fixed-KCORE counters and then closes normally.  Both
+# counters live only in the isolated v1472 fault-injected KCORE copy.
+if [ "${XIP_V1472_FAULT_MODE:-0}" = 1 ]; then
+    python3 - "$build/system/boot/pdp6" <<'PY'
+from pathlib import Path
+import sys
+
+build = Path(sys.argv[1])
+values = {}
+for line in (build / 'kcore.map').read_text().splitlines():
+    parts = line.split()
+    if len(parts) >= 2 and parts[0] in (
+        'daimos_test_uarea_failed_v1472',
+        'daimos_test_unpin_rejected_v1472'):
+        values[parts[0]] = parts[1]
+if len(values) != 2:
+    raise SystemExit('v1472: test-only KCORE counters absent')
+path = build / 'boot.ini'
+source = path.read_text()
+if not source.endswith('exit\n'):
+    raise SystemExit('v1472: no SIMH boot.ini exit command')
+checks = ''.join('examine ' + values[key] + '\n'
+                 for key in sorted(values))
+path.write_text(source[:-5] + checks + 'exit\n')
+(build / 'v1472-count-addresses').write_text(
+    ''.join(key + ' ' + values[key] + '\n' for key in sorted(values)))
+PY
+fi
 
 "$self/../../tools/daimos-simh-harness-v6.sh" \
     --daimos-repo "$DAIMOS_REPO" \

@@ -241,6 +241,88 @@ xip_run_unprivileged_v1469(void)
         return 0;
 }
 
+#ifdef XIP_UAREA_FAULT_V1472
+/* Full kernel image, with the allocator/u-area failure injected only in
+ * its isolated test copy. Real MEMFS certifies and pins the image first.
+ * The first rollback retains its pin while two test-only unpin attempts
+ * fail; slot zero then finishes the original unpublished child. */
+static int
+xip_uarea_fault_v1472(void)
+{
+        struct sys_meminfo before;
+        struct sys_meminfo after;
+        unsigned int slot;
+        unsigned int i;
+        int pending;
+        int detail;
+        int pid;
+        int wait_result;
+        kword_t status;
+
+        if (dsys_meminfo(&before) != 0)
+                return xip_fail_v1469("UAREA-INFO-BEFORE", -1);
+        if (xip_run_v1469(0U) != -1)
+                return xip_fail_v1469("UAREA-NOT-REFUSED", -1);
+
+        pending = -1;
+        for (slot = 1U; slot <= 32U; ++slot) {
+                detail = dsys_procctl(SYS_PROCCTL_GETTEARDOWN,
+                    slot | SYS_TEARDOWN_DETAIL_FLAG);
+                if (detail >= 0 &&
+                    SYS_TEARDOWN_STAGE(detail) == SYS_TEARDOWN_RUN_VM &&
+                    SYS_TEARDOWN_RETRY_TICKS(detail) != 0U) {
+                        pending = (int)slot;
+                        break;
+                }
+        }
+        if (pending < 2)
+                return xip_fail_v1469("UAREA-NO-DEFERRED-VM", pending);
+        if (dsys_chmod(xip_path_v1469, 0644U) == 0)
+                return xip_fail_v1469("UAREA-PIN-DROPPED", pending);
+        status = 0UL;
+        wait_result = dsys_wait((unsigned int)pending, &status,
+            SYS_WAIT_NOHANG);
+        if (wait_result > 0)
+                return xip_fail_v1469("UAREA-ZOMBIE", pending);
+
+        for (i = 0U; i < 220U; ++i) {
+                detail = dsys_procctl(SYS_PROCCTL_GETTEARDOWN,
+                    (unsigned int)pending);
+                if (detail == -1)
+                        break;
+                if (SYS_TEARDOWN_STAGE(detail) != SYS_TEARDOWN_RUN_VM ||
+                    dsys_sleep(1U) != 0)
+                        return xip_fail_v1469("UAREA-RETRY", detail);
+        }
+        if (i == 220U)
+                return xip_fail_v1469("UAREA-TIMEOUT", pending);
+        if (dsys_wait((unsigned int)pending, &status,
+            SYS_WAIT_NOHANG) != -1)
+                return xip_fail_v1469("UAREA-LATE-ZOMBIE", pending);
+        if (dsys_chmod(xip_path_v1469, 0644U) != 0 ||
+            dsys_chmod(xip_path_v1469, 0555U) != 0)
+                return xip_fail_v1469("UAREA-LEAK", pending);
+        if (dsys_meminfo(&after) != 0 ||
+            after.process_slots_used != before.process_slots_used ||
+            after.process_words != before.process_words)
+                return xip_fail_v1469("UAREA-ACCOUNTING", pending);
+
+        pid = xip_run_v1469(0U);
+        if (pid <= 1)
+                return xip_fail_v1469("UAREA-RECOVERY-RUN", pid);
+        status = 0UL;
+        if (dsys_wait((unsigned int)pid, &status, 0U) != pid ||
+            SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
+            SYS_WAIT_STATUS_VALUE(status) != 0U)
+                return xip_fail_v1469("UAREA-RECOVERY-WAIT", pid);
+        if (xip_check_file_v1469() != 0)
+                return 1;
+        (void)u_puts(1, "XIP-UAREA-FAULT-PASS");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
+
 int
 main(int argc, kword_t **argv)
 {
@@ -261,6 +343,10 @@ main(int argc, kword_t **argv)
                 return 1;
         if (xip_check_file_v1469() != 0)
                 return 1;
+#ifdef XIP_UAREA_FAULT_V1472
+        if (xip_uarea_fault_v1472() != 0)
+                return 1;
+#endif
         for (i = 0; i < 3; ++i) {
                 pid = xip_run_v1469(0U);
                 if (pid <= 1)
