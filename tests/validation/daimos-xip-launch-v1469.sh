@@ -58,11 +58,19 @@ end
 PROBES
 
 host_tools="${DAIMOS_HOST_TOOLS:-$PDP10_PREFIX/bin}"
+# v1470: memory-specific full-profile XIP acceptance. MEMFS is not
+# available on the lowmem profile, so 128K/192K/256K runs use the same
+# full resident module selection and the physical core-size-specific image.
+xip_boot_core_words=${XIP_V1470_BOOT_CORE_WORDS:-01000000}
+xip_simh_cpu_kwords=${XIP_V1470_SIMH_CPU_KWORDS:-256}
 PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
     make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
     HOST_TOOLS="$host_tools" DAS_REPO="${DAS_REPO:-$DAIMOS_REPO/../das}" \
     KCC_REPO="${KCC_REPO:-$DAIMOS_REPO/../kcc}" \
+    BOOT_PROFILE=full COMPILER=kcc \
+    BOOT_CORE_WORDS="$xip_boot_core_words" \
+    SIMH_CPU_KWORDS="$xip_simh_cpu_kwords" \
     BOOT=dsk ROOT=disk ROOTSET=1 \
     D6FS_EXTRA_ARGS="-f /CONFIG/XIP1469.TEST:$obj/test.dxr:555:dxr" \
     > "$work/image-build.log" 2>&1 || {
@@ -76,5 +84,16 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
     --dofile "$build/system/boot/pdp6/boot.ini" \
     --pty-run "$work/pty-run" --login ROOT --probes "$work/probes.txt" \
     --work-dir "$work/run" --boot-timeout 60 --timeout 90
+
+log="$work/run/simh.log"
+# v1470: simulator configuration alone does not prove actual physical
+# memory. Require the KINIT-detected installed size in the guest transcript
+# as well as the live MEMFS mount and the full XIP lifecycle probe above.
+if ! grep -Eq "^MEM[[:space:]]+$xip_simh_cpu_kwords K" "$log" ||
+    ! grep -Eq '^MEMFS[[:space:]]+LOADED' "$log"; then
+    echo "FAIL: guest did not detect ${xip_simh_cpu_kwords}K and load MEMFS" >&2
+    tail -45 "$log" >&2
+    exit 1
+fi
 
 printf '%s\n' 'PASS v1469: 3 serial + 3 queued XIP RUN/WAIT, malformed/nonroot/argc refusal, EXEC rollback and commit'
