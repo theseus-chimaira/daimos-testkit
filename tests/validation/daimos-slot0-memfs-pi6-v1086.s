@@ -111,6 +111,9 @@ memfs_mres_mount:
         .globl memfs_mres_xip_admit
 memfs_mres_xip_admit:
         halt .
+        .globl memfs_mres_xip_safe_admit_v1468
+memfs_mres_xip_safe_admit_v1468:
+        halt .                  ; this fixture never admits an image
         .globl memfs_mres_space
 memfs_mres_space:
         halt .

@@ -101,6 +101,13 @@ done_v1108:
 xip_service_v1086:
         aos __dispatch_calls
         caie 6,026
+        jrst xip_query_service_v1471
+        jumpe 7,xip_service_valid_v1086
+xip_query_service_v1471:
+        ; VM teardown v1471 performs a read-only ownership check before
+        ; backing detach. The old physical-only v1108 fixture still uses
+        ; only operation 026 and retains its previous dispatch count.
+        caie 6,031
         jrst fail_service_v1086
         jumpe 7,xip_service_valid_v1086
 fail_service_v1086:
@@ -114,6 +121,9 @@ memfs_mres_mount:
         .globl memfs_mres_xip_admit
 memfs_mres_xip_admit:
         halt .
+        .globl memfs_mres_xip_safe_admit_v1468
+memfs_mres_xip_safe_admit_v1468:
+        halt .                  ; no XIP admission in release fixture
         .globl memfs_mres_space
 memfs_mres_space:
         halt .

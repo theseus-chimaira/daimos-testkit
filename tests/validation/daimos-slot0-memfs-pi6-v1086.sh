@@ -95,13 +95,13 @@ leaf = Path(sys.argv[1]).read_text()
 work = Path(sys.argv[2])
 mutants = {
     'unsafe-mm-fallback': (
-        '        jrst    vm_space_destroy_fail\n'
-        'vm_space_destroy_maybe_process:',
-        '        jrst    vm_space_destroy_maybe_process\n'
-        'vm_space_destroy_maybe_process:'),
+        '        caie    1,1\n'
+        '        jrst    vm_space_destroy_xip_detach_fail_v1471',
+        '        caie    1,1\n'
+        '        jrst    vm_space_destroy_maybe_process'),
     'unsafe-vm-commit': (
-        '        jumpn   1,vm_space_destroy_fail  ; keep VM and swap record retryable',
-        '        jumpe   1,vm_space_destroy_fail  ; unsafe VM commit'),
+        '        jumpn   1,vm_space_destroy_xip_detach_fail_v1471',
+        '        jumpe   1,vm_space_destroy_xip_detach_fail_v1471'),
 }
 for name, (before, after) in mutants.items():
     if leaf.count(before) != 1:

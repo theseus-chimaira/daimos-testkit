@@ -24,9 +24,10 @@ check_ref_v1109:
         jrst    check_no_commit_v1109
         jrst    fail_3_v1109
 check_no_commit_v1109:
-        skipn   __detach_v1109
-        jrst    check_no_fallback_v1109
+        move    1,__detach_v1109
+        caie    1,1                    ; v1471 detaches first, then unpins
         jrst    fail_4_v1109
+        jrst    check_no_fallback_v1109
 check_no_fallback_v1109:
         skipn   __fallback_v1109
         jrst    repair_v1109
@@ -54,14 +55,14 @@ check_mm_v1109:
         jrst    fail_10_v1109
 check_detach_v1109:
         move    1,__detach_v1109
-        caie    1,1
+        caie    1,2                    ; retry is idempotent for resident XIP
         jrst    fail_11_v1109
         skipn   __fallback_v1109
         jrst    check_provider_v1109
         jrst    fail_12_v1109
 check_provider_v1109:
         move    1,__dispatch_calls
-        caie    1,2
+        caie    1,4                    ; two query/release transactions
         jrst    fail_13_v1109
         move    1,fs_provider_ready
         camn    1,[3,,0]
