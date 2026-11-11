@@ -550,6 +550,17 @@ daimos_memfs_pdp6_test(void)
         if (memfs_write_words(xip_fs, node, 1U, &xip_header[1], 1U) != 1 ||
             memfs_chmod(xip_fs, node, 0555U) != 0)
                 return 0226;
+        /* v1467: a valid, nonwritable executable is not a trusted raw XIP
+         * source if the MEMFS inode belongs to an ordinary user.  Reject
+         * before MM pinning, without publishing either output argument. */
+        metadata[MEMFS_OWNER_OFFSET + 1U] = 1UL << 9U;
+        xip_base = 0777UL;
+        xip_entry = 0777UL;
+        if (test_xip_mres_admit_v219(node, &xip_base, &xip_entry) == 0 ||
+            xip_base != 0777UL || xip_entry != 0777UL ||
+            extent_pins != 0U || memfs_xip_any_pinned())
+                return 0236;
+        metadata[MEMFS_OWNER_OFFSET + 1U] = 0UL;
         if (test_xip_mres_admit_v219(node, &xip_base, &xip_entry) != 0 ||
             xip_entry != 020UL || extent_pins != 1U ||
             (xip_base & 01777U))
