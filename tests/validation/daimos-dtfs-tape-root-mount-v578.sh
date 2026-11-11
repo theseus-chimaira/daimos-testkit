@@ -3,7 +3,6 @@ set -eu
 
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
 : "${DAIMOS_REPO:?DAIMOS_REPO must be set}"
-: "${PDP10_TOOLS_REPO:?PDP10_TOOLS_REPO must be set}"
 : "${TMPDIR:?TMPDIR must be set}"
 
 make_cmd=${MAKE:-make}
@@ -12,6 +11,11 @@ tag=daimos-dtfs-tape-root-mount-v578
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 work="$TMPDIR/$tag-$$"
 build=${DAIMOS_TSFS_PREBUILT_BUILD:-$work/build}
+# v1491: the old separate host-tools `build` target was retired.  Use
+# the installed production TSFS producer from the required PDP10_PREFIX;
+# avoid building or linking an obsolete second producer into this test.
+mktsfs="$PDP10_PREFIX/bin/mktsfs"
+test -x "$mktsfs" || { echo "$tag: missing installed mktsfs" >&2; exit 1; }
 pty="$work/pty-run"
 tcp="$work/tcp-run"
 cty_in="$work/cty.in"
@@ -46,7 +50,6 @@ mkdir -p "$work/media"
 "$host_cc" -std=c99 -O2 -Wall -Wextra -o "$tcp" \
         "$(dirname "$0")/../../tools/tcp-run-v1.c"
 
-"$make_cmd" -C "$PDP10_TOOLS_REPO" build BUILD_ROOT="$build" >/dev/null
 : >"$work/empty"
 cat > "$work/manifest" <<EOF
 D /SYSTEM
@@ -56,7 +59,7 @@ F /README $work/empty
 D /DOC
 F /DOC/INDEX $work/empty
 EOF
-"$build/tools/host/mktsfs" -n 3 -i 1:2345 -g 7 \
+"$mktsfs" -n 3 -i 1:2345 -g 7 \
         -m "$work/manifest" -o "$work/media/member" >/dev/null
 
 # Boot from tape so the resident TSFS provider is actually installed.
@@ -66,7 +69,7 @@ if [ -z "${DAIMOS_TSFS_PREBUILT_BUILD:-}" ]; then
                 BUILD="$build" USERLAND_BUILD_ROOT="$build" \
                 ROOT=tape BOOT=ptr \
                 PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
-                HOST_TOOLS="$build/tools/host" \
+                HOST_TOOLS="$PDP10_PREFIX/bin" \
                 SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
 fi
 # Add test-only directory records to the actual TSFS root media.  No
@@ -79,7 +82,7 @@ F /DOC/INDEX $work/empty 0444 0 0
 F /SYSTEM/EXEC/HELLO $work/empty 0555 0 0
 D /MOUNT/DT0 0755 0 0
 EOF
-"$build/tools/host/mktsfs" -n 3 -i 1:1 -g 1 \
+"$mktsfs" -n 3 -i 1:1 -g 1 \
     -m "$work/root-v577.manifest" -o "$work/media/root-v577" >/dev/null
 cp "$work/media/root-v5770.dta" "$build/media/dtc0.tap"
 cp "$work/media/root-v5771.dta" "$build/media/dtc1.tap"
