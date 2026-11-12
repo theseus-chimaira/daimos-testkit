@@ -49,11 +49,28 @@ def summary(number, pc, values):
         ' spinner=%d' % values['spinner'])
 
 ''' + old, 1)
-# The earlier v1508 adaptive sample count is kept. Request additional
-# fault-on samples for a stronger independent progress measurement.
+# A clean v1508 checkout has the original fixed sample limit; a parallel
+# in-progress v1508 sampler may already have an adaptive fault horizon.
+# Support both exact source shapes without modifying that other work.
+# Keep the absolute sampler --timeout; the extra count is diagnostic only.
 old = 'args.count = max(args.count, taken + 3)'
-assert sampler.count(old) == 1
-sampler = sampler.replace(old, 'args.count = max(args.count, taken + 5)', 1)
+if sampler.count(old) == 1:
+    sampler = sampler.replace(old,
+        'args.count = max(args.count, taken + 5)', 1)
+else:
+    assert sampler.count(old) == 0, 'ambiguous adaptive sampler'
+    anchor = '                        if args.stop_after_samples and taken == args.count:\n'
+    assert sampler.count(anchor) == 1, 'v1509 sampler stop gate moved'
+    guard = (
+        '                        # v1509: stop only after sufficient actual\n'
+        '                        # fault-on samples; no fake guest success.\n'
+        '                        if args.stop_after_samples:\n'
+        '                            if not values[\'v1494_faults\']:\n'
+        '                                args.count = max(args.count, taken + 4)\n'
+        '                            elif \'v1509_first_fault_sample\' not in locals():\n'
+        '                                v1509_first_fault_sample = taken\n'
+        '                                args.count = max(args.count, taken + 5)\n')
+    sampler = sampler.replace(anchor, guard + anchor, 1)
 target_sampler.write_text(sampler)
 runner = dest.read_text()
 old = str(original_sampler)

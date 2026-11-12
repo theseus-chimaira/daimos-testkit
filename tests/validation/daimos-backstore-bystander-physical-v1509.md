@@ -121,3 +121,14 @@ the fault-on interval. Genuine hardware DEVICE/media failure,
 lost-media reconstruction, and terminal reclamation of the failed
 private executive owner remain OPEN. No production KCORE source,
 process state, ABI or permanent RAM growth in v1509.
+
+### Clean-checkout reproduction
+
+The v1509 generator accepts both the committed v1508 sampler (fixed
+sample horizon) and the locally extended v1508 sampler (adaptive
+fault horizon) without requiring modifications to v1508 itself.
+Both runner preparation paths completed successfully. The clean-base
+generated Python sampler passed compilation and included the real
+post-fault adaptive 5-sample extension. This prevents unrelated,
+uncommitted v1508 work from becoming a hidden prerequisite to running
+the committed v1509 physical diagnostic.
