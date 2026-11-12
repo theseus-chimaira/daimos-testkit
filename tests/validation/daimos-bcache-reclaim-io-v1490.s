@@ -177,6 +177,8 @@ kconst_2_2: .word 2,,2
         .bss
         .globl bcache_state
         .globl bcache_workspace_tag
+        .globl dtfs_cache_mount
+dtfs_cache_mount: .block 1
 alloc_calls_v1490: .block 1
 free_calls_v1490: .block 1
 read_calls_v1490: .block 1

@@ -77,12 +77,12 @@ import sys
 
 source = Path(sys.argv[1]).read_text()
 old = ('        pushj   17,bcache_invalidate_all\n'
-       '        jrst    dtfs_dtc_write_jump')
+       '        pushj   17,dtfs_dtc_write_jump')
 if source.count(old) != 1:
     raise ValueError('DTC invalidation gate missing')
 Path(sys.argv[2]).write_text(source.replace(
     old, '        pushj   17,bcache_reclaim\n'
-         '        jrst    dtfs_dtc_write_jump', 1))
+         '        pushj   17,dtfs_dtc_write_jump', 1))
 PY
 if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 300000 \
