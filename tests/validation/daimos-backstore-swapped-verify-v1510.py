@@ -25,8 +25,12 @@ def slot11_states(text):
             continue
         number = re.search(r"\bsample=(\d+)\b", line)
         matched = re.search(r"\bslot11=([A-Z]+)/([DR]):", line)
-        if not number or not matched:
-            raise AssertionError("missing physical slot-011 process state")
+        if not number:
+            raise AssertionError("missing physical process-table sample index")
+        # Early boot snapshots can precede admission of PID 011. Require
+        # its mapped state in *every fault-on* sample below, not before RUN.
+        if not matched:
+            continue
         index = int(number.group(1))
         if index in mapping:
             raise AssertionError("duplicate slot-011 process sample")
