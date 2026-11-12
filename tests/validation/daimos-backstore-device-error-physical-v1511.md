@@ -88,3 +88,76 @@ refusals. That attempt is explicitly REJECTED as a test-setup error,
 not a production regression. The corrected v1511 instruments the
 real DRM descriptor/PI2 path and must pass an independent full guest
 before receiving scoped acceptance.
+
+## Physically accepted Type-167/236 PI2 error boundary
+
+The corrected v1511 ran a full disposable 256K KCC PDP-6 F07
+guest with the source-linked Type-236 DRM request PI2 observer.
+The guest completed 36 SIMH read-only snapshots, including 13
+fault-on samples 24..36; it was deliberately sample-stopped, not
+allowed to falsely HALT with a permanently held DISK owner.
+The strict physical v1511 verifier **PASSED** on the finalized
+guest console and sampler, with **two** selected real DRM PI2
+error-path completions and **25** later checked-release refusals.
+The original slot-0 failed-service witness ends at exactly 27,
+matching PI2 errors plus refused frees, never treating a physical
+read failure as a backing bitmap failure.
+
+Selected process: octal slot `010`, original BACKSTORE run first
+`02350`, count `0330`, exact authoritative swap record
+`002350000330` at every fault-on snapshot. The bitmap remained
+allocated; source-linked MM unpin/rollback preserved nonresident
+VM, stable u-area, v1507 retry marker and pending TERM. There
+were zero false READY_ONCE publications, repairs, owner-side
+fatal close, finish or zombie. DRM controller error accounting
+`mfsdev_storage_errors+5` recorded exactly the same two failures.
+
+| Sample | PI6 clock (decimal) | PI2 DRM errors | Checked free refusals | PID 5 SLEEP | PID 011 real restored SLEEP |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 24 | 36238 | 1 | 1 | 58 | 0 |
+| 25 | 37753 | 2 | 3 | 162 | 0 |
+| 26 | 39278 | 2 | 5 | 239 | 0 |
+| 27 | 40795 | 2 | 7 | 305 | 0 |
+| 28 | 42313 | 2 | 9 | 371 | 0 |
+| 29 | 43832 | 2 | 11 | 437 | 0 |
+| 30 | 45351 | 2 | 13 | 484 | 0 |
+| 31 | 46869 | 2 | 14 | 518 | 34 |
+| 32 | 48388 | 2 | 16 | 584 | 100 |
+| 33 | 49906 | 2 | 19 | 674 | 190 |
+| 34 | 51427 | 2 | 21 | 749 | 265 |
+| 35 | 52944 | 2 | 23 | 815 | 331 |
+| 36 | 54466 | 2 | 25 | 881 | 397 |
+
+The healthy slot `011` was genuinely swapped, then restored by
+an actual checked ordinary `proc_swap_mres_service_v481` success
+before sample 31, and executed **397 real user SLEEP syscalls**
+by sample 36. Resident PID 5 also made independent physical
+progress to 881 SLEEP entries. The original bad owner remained
+intact through the entire 18,228-tick fault-on observation window.
+The strict verifier self-test rejected eleven unsafe evidence
+variants; the v1511 source-instrumentation self-test rejected five
+malformed bridge/DRM sites. The older native source-linked
+v1079/v1080 watchdog/queue and v1247 PI-register tests also PASS.
+
+### Evidence fingerprints (SHA256)
+
+Guest: `$TMPDIR/daimos-oom-requester-live-v1075.3YVnE1`.
+Runner: `$TMPDIR/daimos-swap-no-partner-v1304.vjhHP1`.
+
+```
+addresses          1cb94c0d0d98abdcbafff9355450c726c76f77a5ae02cfc06177e98fdfe86705
+simh-sampler.log   2f8189e1fdb9bdc97789c1cb7a870b0ba68a8006397bf02a76e6665a5342a77d
+simh.out           771f1422a9250053b4422bcf4fadf51c8ba00171cc3a788d8e7151706c3f73dd
+build.log          86b410c00089a0398a4ca6d031607d957faf2382d4beb1a9b1455907aa7577db
+kcore.map          761b847e05fbd35f64fa90781dbe483d80d455c6522842688f1f953478a8ba58
+```
+
+**Scoped ACCEPTED:** real Type-167/236 runtime descriptor,
+real PI2 error publication and accounting, original BACKSTORE
+read-failure rollback and independent healthy user restoration.
+The test intentionally injects the controller's existing error
+branch at a genuine hardware completion, not broken magnetic
+media, persistent device disappearance, lost completion/PI6
+timeout, write failure, or terminal reclamation. Those remain
+separate OPEN gates. Production KCORE is unchanged (no new
+resident words, process status or ABI changes).
