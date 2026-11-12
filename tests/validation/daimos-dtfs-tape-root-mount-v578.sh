@@ -62,18 +62,29 @@ EOF
 "$mktsfs" -n 3 -i 1:2345 -g 7 \
         -m "$work/manifest" -o "$work/media/member" >/dev/null
 
-# Boot from tape so the resident TSFS provider is actually installed.
+# The v1524 negative-policy variant boots an independent D6FS root with
+# ROOT=auto. DTFS/TSFS is LINKED but is NOT installed for a disk-selected
+# root by minit: this variant tests physical MKFS/FSCK and mount refusal.
+# The original v578 tape-root acceptance is unchanged otherwise.
+if [ "${DAIMOS_DTFS_DISK_ROOT_V1524:-0}" = 1 ]; then
+        build_root=auto
+        build_boot=dsk
+else
+        build_root=tape
+        build_boot=ptr
+fi
 if [ -z "${DAIMOS_TSFS_PREBUILT_BUILD:-}" ]; then
         PATH="$PDP10_PREFIX/bin:$PATH" \
                 "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \
                 BUILD="$build" USERLAND_BUILD_ROOT="$build" \
-                ROOT=tape BOOT=ptr \
+                ROOT="$build_root" BOOT="$build_boot" \
                 PDP10_PREFIX="$PDP10_PREFIX" PROC_BOOT_USERS=1 \
                 HOST_TOOLS="$PDP10_PREFIX/bin" \
                 SIMH_DCS0_PORT="$dcs_port" SIMH_GE0_PORT="$ge_port" >/dev/null
 fi
 # Add test-only directory records to the actual TSFS root media.  No
 # secondary-mount command or retired MOUNT.TSFS binary is involved.
+if [ "${DAIMOS_DTFS_DISK_ROOT_V1524:-0}" != 1 ]; then
 cp "$build/tsfs-root.manifest" "$work/root-v577.manifest"
 cat >> "$work/root-v577.manifest" <<EOF
 D /DOC 0555 0 0
@@ -87,6 +98,7 @@ EOF
 cp "$work/media/root-v5770.dta" "$build/media/dtc0.tap"
 cp "$work/media/root-v5771.dta" "$build/media/dtc1.tap"
 cp "$work/media/root-v5772.dta" "$build/media/dtc2.tap"
+fi
 if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ]; then
         # V1523's physical lifecycle test needs a complete 578-block
         # DTC3 medium. A zero-byte simulator attachment has no DECtape
@@ -103,6 +115,24 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ]; then
 fi
 "$self/../lib/daimos-simh-headless.sh" "$build/boot.ini" \
         "$build/boot.headless.ini" "$dcs_port" "$ge_port"
+if [ "${DAIMOS_TSFS_DTC_DEBUG_V1524:-0}" = 1 ]; then
+        # Diagnostic-only Type-551 trace. Set up before the bootstrap
+        # GO command; a command appended after GO would never execute.
+        python3 - "$build/boot.headless.ini" "$work/dtc-v1524.debug" <<'PY'
+from pathlib import Path
+import sys
+ini, debug = (Path(value) for value in sys.argv[1:])
+text = ini.read_text()
+lines = text.splitlines(keepends=True)
+assert sum(line.strip() == 'break 060' for line in lines) == 1
+with ini.open('w') as output:
+    for line in lines:
+        if line.strip() == 'break 060':
+            output.write('set debug ' + str(debug) + '\n')
+            output.write('set DTC debug=DETAIL\n')
+        output.write(line)
+PY
+fi
 
 mkfifo "$cty_in" "$dcs_in"
 exec 3<>"$cty_in"
@@ -185,9 +215,46 @@ send_slow 'FSCK.DTFS -O NATIVE /DEV/DTC3'
 wait_new "$dcs_out" 'FSCK.DTFS NATIVE OK' "$start" || \
     fail_logs 'secondary native DTFS failed validation'
 wait_new "$dcs_out" '# ' "$start" || fail_logs 'secondary DTFS check did not return'
+if tail -c "+$((start + 1))" "$dcs_out" | grep -F 'FSCK.DTFS:' >/dev/null; then
+        fail_logs 'secondary FSCK returned a command error'
+fi
 start=`log_size "$dcs_out"`
 send_slow 'MOUNT.DTFS /DEV/DTC3 /MOUNT/DT0'
 wait_new "$dcs_out" '# ' "$start" || fail_logs 'DTFS mount did not return'
+if [ "${DAIMOS_EXPECT_DTFS_PROVIDER_REFUSAL_V1524:-0}" = 1 ]; then
+        # Disk-selected auto-root does not install the DTFS MRES.
+        # This is a negative-policy oracle, never a mount PASS.
+        if ! tail -c "+$((start + 1))" "$dcs_out" |
+            grep -F 'MOUNT.DTFS: /MOUNT/DT0' >/dev/null; then
+                fail_logs 'missing expected disk-root DTFS MRES refusal'
+        fi
+        start=`log_size "$dcs_out"`
+        send_slow 'MOUNT'
+        wait_new "$dcs_out" '# ' "$start" ||
+            fail_logs 'negative-control mount inventory did not return'
+        if tail -c "+$((start + 1))" "$dcs_out" |
+            grep -F 'MOUNT:' >/dev/null; then
+                fail_logs 'negative-control FSINFO/MOUNT inventory failed'
+        fi
+        if tail -c "+$((start + 1))" "$dcs_out" |
+            grep -F 'DTFS /MOUNT/DT0' >/dev/null; then
+                fail_logs 'unexpected DTFS mount published in negative case'
+        fi
+        printf '%s\n' "$tag: PASS (disk root: physical MKFS/FSCK; DTFS MRES correctly absent)"
+        exit 0
+fi
+if tail -c "+$((start + 1))" "$dcs_out" | grep -F 'MOUNT.DTFS:' >/dev/null; then
+        fail_logs 'MOUNT.DTFS returned an actual error'
+fi
+start=`log_size "$dcs_out"`
+send_slow 'MOUNT'
+wait_new "$dcs_out" 'DTFS /MOUNT/DT0' "$start" ||
+    fail_logs 'DTFS mount absent from FSINFO/MOUNT inventory'
+wait_new "$dcs_out" '# ' "$start" ||
+    fail_logs 'mounted DTFS inventory did not return'
+if tail -c "+$((start + 1))" "$dcs_out" | grep -F 'MOUNT:' >/dev/null; then
+        fail_logs 'mounted DTFS inventory returned a command error'
+fi
 start=`log_size "$dcs_out"`
 send_slow 'STAT /MOUNT/DT0'
 wait_new "$dcs_out" '/MOUNT/DT0 TYPE 1' "$start" || \
@@ -220,6 +287,19 @@ fi
 start=`log_size "$dcs_out"`
 send_slow 'UNMOUNT /MOUNT/DT0'
 wait_new "$dcs_out" '# ' "$start" || fail_logs 'secondary native DTFS unmount did not return'
+if tail -c "+$((start + 1))" "$dcs_out" | grep -F 'UNMOUNT:' >/dev/null; then
+        fail_logs 'final UNMOUNT command refused'
+fi
+start=`log_size "$dcs_out"`
+send_slow 'MOUNT'
+wait_new "$dcs_out" '# ' "$start" ||
+    fail_logs 'post-unmount inventory did not return'
+if tail -c "+$((start + 1))" "$dcs_out" | grep -F 'MOUNT:' >/dev/null; then
+        fail_logs 'post-unmount FSINFO/MOUNT inventory failed'
+fi
+if tail -c "+$((start + 1))" "$dcs_out" | grep -F 'DTFS /MOUNT/DT0' >/dev/null; then
+        fail_logs 'DTFS mount remained published after unmount'
+fi
 start=`log_size "$dcs_out"`
 send_slow 'ECHO DTFSMOUNTOK'
 wait_new "$dcs_out" DTFSMOUNTOK "$start" || fail_logs 'DSH did not resume after helper exit'
