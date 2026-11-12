@@ -29,7 +29,12 @@ main:
         move    1,[700002,,4]
         movem   1,v15_media_table+2
         ; Logical members 0,1,2 -> physical DTC 4,1,7.
-        movei   1,0714
+        ; V1516 handoff packs physical-root mask (units 1,4,7) in
+        ; previously unused bits 24..31.  Ordinary TSFS extent reads must
+        ; still extract ONLY each original three-bit physical selector.
+        movei   1,0222
+        lsh     1,030
+        iori    1,0714
         movem   1,v15_shape_table+2
         ; EXTENT table: physical DTC7, two records, block 5.
         move    1,[700002,,5]

@@ -13,10 +13,21 @@ cat > "$work/kconst.s" <<'ASM'
         .globl kconst_2_2
         .globl kconst_5_5
         .globl kconst_7_7
+        .globl vfs_namespace_root
+        .globl vfs_mount_limit
+        .globl d6codec_decode_buffer_v1458
 kconst_1_1: .word 1,,1
 kconst_2_2: .word 2,,2
 kconst_5_5: .word 5,,5
 kconst_7_7: .word 7,,7
+; Standalone TSFS runtime also exports the optional v1516 root query.
+vfs_namespace_root: .word 0
+vfs_mount_limit: .word 4
+        .text
+; An unexpected compressed extent is a test failure, not a fake success.
+d6codec_decode_buffer_v1458:
+        seto    1,
+        popj    17,
 ASM
 PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode go \
