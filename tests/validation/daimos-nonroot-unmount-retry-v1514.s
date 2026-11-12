@@ -14,6 +14,7 @@
         .globl vfs_sync
         .globl fs_provider_reg_call
         .globl file_unlock_mount
+        .globl file_mount_busy_v1523
         .globl kret_zero
         .globl kret_neg1
         .globl __test_exit
@@ -100,6 +101,7 @@ fail_v1514:
 
 pipe_fifo_mount_busy:
 proc_swap_mount_busy:
+file_mount_busy_v1523:
         setz    1,
         popj    17,
 

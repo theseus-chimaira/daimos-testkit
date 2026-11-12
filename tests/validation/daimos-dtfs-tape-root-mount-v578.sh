@@ -87,6 +87,20 @@ EOF
 cp "$work/media/root-v5770.dta" "$build/media/dtc0.tap"
 cp "$work/media/root-v5771.dta" "$build/media/dtc1.tap"
 cp "$work/media/root-v5772.dta" "$build/media/dtc2.tap"
+if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ]; then
+        # V1523's physical lifecycle test needs a complete 578-block
+        # DTC3 medium. A zero-byte simulator attachment has no DECtape
+        # block marks and makes target MKFS search an absent geometry.
+        # Prepare a complete physical transport image. The target MKFS
+        # below performs the actual native filesystem formatting so
+        # this test does not depend on host image-format compatibility.
+        # Only the disposable test medium is replaced.
+        test -x "$PDP10_PREFIX/bin/mkdtfs" || \
+            fail_logs 'v1523: installed native mkdtfs is missing'
+        rm -f "$build/media/dtc3.tap"
+        "$PDP10_PREFIX/bin/mkdtfs" -o "$build/media/dtc3.tap" || \
+            fail_logs 'v1523: could not prepare physical DTC3 geometry'
+fi
 "$self/../lib/daimos-simh-headless.sh" "$build/boot.ini" \
         "$build/boot.headless.ini" "$dcs_port" "$ge_port"
 
@@ -164,7 +178,8 @@ start=`log_size "$dcs_out"`
 # With a DTC-selected root, DTFS MRES is installed.  Exercise a real
 # native-format secondary DECtape rather than obsolete MOUNT.TSFS.
 send_slow 'MKFS.DTFS -O NATIVE /DEV/DTC3'
-wait_new "$dcs_out" '# ' "$start" || fail_logs 'secondary DTFS format did not return'
+wait_new "$dcs_out" '# ' "$start" || \
+    fail_logs 'secondary DTFS format did not return'
 start=`log_size "$dcs_out"`
 send_slow 'FSCK.DTFS -O NATIVE /DEV/DTC3'
 wait_new "$dcs_out" 'FSCK.DTFS NATIVE OK' "$start" || \
@@ -177,6 +192,31 @@ start=`log_size "$dcs_out"`
 send_slow 'STAT /MOUNT/DT0'
 wait_new "$dcs_out" '/MOUNT/DT0 TYPE 1' "$start" || \
     fail_logs 'secondary native DTFS mount root stat failed'
+if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ]; then
+        # V1523: the real DSH keeps cwd in its stable process u-area.
+        # An external UNMOUNT child inherits that cwd; neither it nor
+        # any other process may permit the live mount slot to be retired.
+        start=`log_size "$dcs_out"`
+        send_slow 'CD /MOUNT/DT0'
+        wait_new "$dcs_out" '# ' "$start" || \
+            fail_logs 'v1523 CD into mounted DTFS did not finish'
+        start=`log_size "$dcs_out"`
+        send_slow 'PWD'
+        wait_new "$dcs_out" '/MOUNT/DT0' "$start" || \
+            fail_logs 'v1523 shell cwd did not enter secondary DTFS'
+        wait_new "$dcs_out" '# ' "$start" || \
+            fail_logs 'v1523 shell cwd verification did not return'
+        start=`log_size "$dcs_out"`
+        send_slow 'UNMOUNT /MOUNT/DT0'
+        wait_new "$dcs_out" 'UNMOUNT: /MOUNT/DT0' "$start" || \
+            fail_logs 'v1523 unmount incorrectly retired a busy cwd mount'
+        wait_new "$dcs_out" '# ' "$start" || \
+            fail_logs 'v1523 busy UNMOUNT did not return'
+        start=`log_size "$dcs_out"`
+        send_slow 'CD /'
+        wait_new "$dcs_out" '# ' "$start" || \
+            fail_logs 'v1523 shell did not leave mounted DTFS'
+fi
 start=`log_size "$dcs_out"`
 send_slow 'UNMOUNT /MOUNT/DT0'
 wait_new "$dcs_out" '# ' "$start" || fail_logs 'secondary native DTFS unmount did not return'
