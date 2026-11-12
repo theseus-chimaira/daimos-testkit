@@ -12,6 +12,7 @@
         .globl  mm_free
         .globl  fs_backing_direct_read
         .globl  fs_backing_direct_write
+        .globl  fs_backing_read
         .globl  d6fs_mres_vector
         .globl  d6fs_active_reader
         .globl  d6fs_reader_slots
@@ -157,6 +158,13 @@ fs_backing_direct_read:
         popj    17,
 fs_backing_direct_write:
         setz    1,
+        popj    17,
+
+; The extracted runtime dispatch now also references the common D6FS
+; block-read adapter, but this mount-handoff oracle never performs a
+; filesystem read. Reject an accidental call rather than hiding it.
+fs_backing_read:
+        seto    1,
         popj    17,
 
         .data
