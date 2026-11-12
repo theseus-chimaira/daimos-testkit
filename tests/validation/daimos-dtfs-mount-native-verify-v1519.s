@@ -15,6 +15,9 @@
         .globl  kret_zero
         .globl  kconst_1_1
         .globl  kconst_2_2
+        .globl  kconst_3_3
+        .globl  tsfs_file_shape_base
+        .globl  tsfs_extent_media_base
         .globl  __test_exit
 
 main:
@@ -31,7 +34,7 @@ main:
         pushj   17,try_mount_v1519
         jumpn   1,fail_v1519
         move    4,raw_reads_v1519
-        caie    4,1
+        caie    4,2                   ; directory + legacy block zero
         jrst    fail_v1519
         move    4,published_v1519
         caie    4,1
@@ -122,7 +125,7 @@ check_offline_v1519:
         caie    4,2
         jrst    fail_v1519
         move    4,raw_reads_v1519
-        caie    4,7
+        caie    4,011                 ; two physical reads on valid mount
         jrst    fail_v1519
         setz    1,
         popj    17,
@@ -196,14 +199,21 @@ test_raw_read_v1519:
         aos     raw_reads_v1519
         caie    1,3
         jrst    physical_fail_v1519
-        caie    2,0144
-        jrst    physical_fail_v1519
         caie    3,fs_block_workspace
         jrst    physical_fail_v1519
         skipn   media_online_v1519
         jrst    physical_fail_v1519
         move    4,3
+        caie    2,0144
+        jrst    physical_identity_v1519
         hrli    4,media_dir_v1519
+        jrst    physical_copy_v1519
+physical_identity_v1519:
+        jumpe   2,physical_identity_copy_v1519
+        jrst    physical_fail_v1519
+physical_identity_copy_v1519:
+        hrli    4,media_id_v1519
+physical_copy_v1519:
         move    5,3
         addi    5,0177
         blt     4,(5)
@@ -234,9 +244,15 @@ kret_zero:
         .data
 kconst_1_1: .word 1,,1
 kconst_2_2: .word 2,,2
+kconst_3_3: .word 3,,3
 dtfs_cache_mount: .word 0
+tsfs_file_shape_base: .word shape_slabs_v1519
+tsfs_extent_media_base: .word extent_slabs_v1519
         .bss
 media_dir_v1519: .block 0200
+media_id_v1519: .block 0200
+shape_slabs_v1519: .block 010
+extent_slabs_v1519: .block 010
 fs_block_workspace: .block 0200
 bcache_state: .block 1
 bcache_workspace_tag: .block 1

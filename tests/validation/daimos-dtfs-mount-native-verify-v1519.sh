@@ -44,7 +44,12 @@ for needle in ('pushj   17,dtfs_dtc_read_jump',
 
 mutations = (
     ('skip-physical-verification',
-     'pushj   17,dtfs_dtc_read_jump', 'pushj   17,kret_zero'),
+     'movei   2,0144                  ; native directory block\n'
+     '        movei   3,fs_block_workspace\n'
+     '        pushj   17,dtfs_dtc_read_jump',
+     'movei   2,0144                  ; native directory block\n'
+     '        movei   3,fs_block_workspace\n'
+     '        pushj   17,kret_zero'),
     ('skip-cache-invalidation',
      'pushj   17,bcache_invalidate_all', 'pushj   17,kret_zero'),
     ('wrong-magic-check',
