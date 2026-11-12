@@ -20,6 +20,15 @@
         .globl  test_raw_read_v1518
         .globl  test_raw_write_v1518
         .globl  __test_exit
+        .globl  dtfs_identity_revalidate_v1522
+        .globl  vfs_mount_root_base
+        .globl  vfs_mount_limit
+
+; V1518 tests only the original physical-failure/clean-cache ABI.
+; Its 128-word media stub does not implement v1522 DTVOL1; the separate
+; v1522 native test exercises the genuine revalidation helper and flags.
+dtfs_identity_revalidate_v1522:
+        jrst    kret_zero
 
 main:
         setzm   dtfs_cache_mount
@@ -211,6 +220,8 @@ kconst_2_2: .word 2,,2
 dtfs_dir: .word dtfs_dir_words_v1518
 dtfs_media_base: .word dtfs_media_words_v1518
 dtfs_cache_mount: .word 0
+vfs_mount_root_base: .word 0
+vfs_mount_limit: .word 0
 dtfs_media_words_v1518: .block 4
 
         .bss

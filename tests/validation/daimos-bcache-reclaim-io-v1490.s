@@ -11,6 +11,9 @@
         .globl kconst_2_2
         .globl fs_block_workspace
         .globl __test_exit
+        .globl vfs_mount_root_base
+        .globl vfs_mount_limit
+        .globl dtfs_media_base
 
 main:
         movei   1,01234
@@ -179,6 +182,11 @@ kconst_2_2: .word 2,,2
         .globl bcache_workspace_tag
         .globl dtfs_cache_mount
 dtfs_cache_mount: .block 1
+; V1490 tests the original cache/write ABI only. No VFS mount exists in
+; this fixture, so the v1522 mounted-error classifier has no target.
+vfs_mount_root_base: .word 0
+vfs_mount_limit: .word 0
+dtfs_media_base: .word 0
 alloc_calls_v1490: .block 1
 free_calls_v1490: .block 1
 read_calls_v1490: .block 1

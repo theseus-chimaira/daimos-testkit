@@ -54,8 +54,8 @@ for name, old, new in (
          'setzm   dtfs_cache_mount\n        pushj   17,bcache_invalidate_all',
          'setzm   dtfs_cache_mount\n        pushj   17,kret_zero'),
         ('preserve-dir-write-error',
-         '        setzm   dtfs_cache_mount\ndtfs_dtc_write_done_v1518:',
-         '        jrst    dtfs_dtc_write_done_v1518\ndtfs_dtc_write_done_v1518:'),
+         '        setzm   dtfs_cache_mount\n        push    17,1',
+         '        jrst    dtfs_dtc_write_done_v1518\n        push    17,1'),
         ('skip-write-cache-invalidation',
          'dtfs_dtc_write:\n        ; Invalidate',
          'dtfs_dtc_write:\n        jrst    dtfs_dtc_write_jump\n        ; Invalidate')):

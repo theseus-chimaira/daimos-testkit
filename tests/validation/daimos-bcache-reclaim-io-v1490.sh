@@ -76,12 +76,14 @@ from pathlib import Path
 import sys
 
 source = Path(sys.argv[1]).read_text()
-old = ('        pushj   17,bcache_invalidate_all\n'
+old = ('        push    17,1                   ; preserve physical unit across I/O\n'
+       '        pushj   17,bcache_invalidate_all\n'
        '        pushj   17,dtfs_dtc_write_jump')
 if source.count(old) != 1:
     raise ValueError('DTC invalidation gate missing')
 Path(sys.argv[2]).write_text(source.replace(
-    old, '        pushj   17,bcache_reclaim\n'
+    old, '        push    17,1                   ; preserve physical unit across I/O\n'
+         '        pushj   17,bcache_reclaim\n'
          '        pushj   17,dtfs_dtc_write_jump', 1))
 PY
 if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
