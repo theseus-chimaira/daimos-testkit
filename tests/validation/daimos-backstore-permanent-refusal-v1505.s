@@ -20,6 +20,12 @@ again_v1505:
         jrst    fail_v1505
 refused_v1505:
         aos     attempt_count_v1505
+        ; The current (still nonresident) owner has its own retry epoch.
+        move    1,__uarea+067
+        tlne    1,040000
+        jrst    retry_owned_v1507
+        jrst    fail_v1505
+retry_owned_v1507:
         move    1,proc_sched_cursor
         caie    1,2                  ; no false READY_ONCE
         jrst    fail_v1505
@@ -82,6 +88,11 @@ repair_v1505:
 success_v1505:
         movei   1,3
         movem   1,stage_v1505
+        ; A real successful restore must retire the retry marker even
+        ; without an intervening scheduler tick or selection.
+        move    1,__uarea+067
+        tlne    1,040000
+        jrst    fail_v1505
         move    1,proc_sched_cursor
         caie    1,01002             ; exact READY_ONCE after success
         jrst    fail_v1505
@@ -164,6 +175,8 @@ proc_high_slot: .word 0
 proc_sched_cursor: .word 0
         .globl proc_swap_pressure_ticks
 proc_swap_pressure_ticks: .word 0
+        .globl proc_timer_clock
+proc_timer_clock: .word 0
         .globl attempt_count_v1505
 attempt_count_v1505: .word 0
 stage_v1505: .word 010

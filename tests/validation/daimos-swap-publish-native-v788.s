@@ -3,6 +3,11 @@
 main:
         movei 17,__stack-1
         hrli 17,-0400
+        ; Both transaction descriptors have real u-areas, not a null
+        ; synthetic base. The successful incoming owner must lose its
+        ; transient retry tag as part of exchange publication.
+        move 1,[040000,,1]
+        movem 1,__buarea+067
         movei 1,__req
         pushj 17,proc_swap_exchange_publish_v788
         jumpn 1,fail
@@ -14,6 +19,9 @@ main:
         jrst fail
         move 1,__b
         trne 1,0200000
+        jrst fail
+        move 1,__buarea+067
+        tlne 1,040000
         jrst fail
         setz 1,
         jrst done
@@ -43,10 +51,12 @@ __req:  .word __a
         .word 1
         .word 2
         .word 02000
-__a:    .word 0200000
-__b:    .word 0200000
+__a:    .word __auarea,,0600000
+__b:    .word __buarea,,0600000
         .bss
         .globl __test_exit
 __test_exit: .block 1
 __order: .block 1
+__auarea: .block 0410
+__buarea: .block 0410
 __stack: .block 0400

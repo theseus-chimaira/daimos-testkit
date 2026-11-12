@@ -4,12 +4,12 @@ set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp}
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 work=$(mktemp -d "$TMPDIR/daimos-exchange-data-v854.XXXXXX")
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; else echo "v854 work: $work"; fi' EXIT HUP INT TERM
 {
  printf '.equ PROC_SWAP_MOUNT_SHIFT,022\n.equ EXEC_DXR_F_COMPRESSED,0100000\n.globl proc_swap_reload_pure\n.globl proc_swap_unpack_backing\n'
  printf '.globl blockset_direct_configure\n.globl backstore_read\n.globl backstore_write\n'
  printf '.globl proc_swap_exchange_preflight_v791\n.globl proc_swap_exchange_live_v794\n'
- printf '.equ PROC_SWAP_TEXT_SHIFT,026\n.equ PROC_SWAP_TEXT_MASK,037777\n.equ EXEC_USER_ORIGIN,020\n.equ PROC_UAREA_RH,0400000\n.equ PROC_SWAP_BACKING_OFFSET,0406\n'
+ printf '.equ PROC_SWAP_TEXT_SHIFT,026\n.equ PROC_SWAP_TEXT_MASK,037777\n.equ EXEC_USER_ORIGIN,020\n.equ PROC_UAREA_RH,0400000\n.equ PROC_SWAP_BACKING_OFFSET,0406\n.equ PROC_FINALIZE_OFFSET,067\n.equ PROC_SWAP_RETRY_LH,040000\n'
  printf '.text\n.equ MM_TYPE_PROCESS,1\n.equ MM_PIN_FIELD,03770000000\n.equ MM_PIN_ONE,010000000\n.equ PROC_TRANSITION_RH,0200000\n.globl mm_process_shrink_pinned\n.globl mm_process_transfer_pinned\n.globl mm_unpin\n.globl proc_swap_exchange_stage_v784\n.globl proc_swap_exchange_run_v790\n.globl proc_swap_exchange_commit_v789\n.globl proc_swap_exchange_mm_v779\n.globl proc_swap_exchange_pure_v785\n.globl proc_swap_exchange_records_v786\n.globl proc_swap_exchange_account_v787\n.globl proc_swap_exchange_publish_v788\n'
  sed -n '/^proc_swap_exchange_records_v786:$/,/^; Commit a prepared, already-transferred exchange/p' "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" | sed '$d'
  sed -n '/^proc_swap_exchange_run_v790:$/,/^; Validate live process storage before any irreversible exchange/p' "$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s" | sed '$d'

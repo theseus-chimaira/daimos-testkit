@@ -105,6 +105,8 @@ proc_high_slot: .word 0
 proc_sched_cursor: .word 0
         .globl proc_swap_pressure_ticks
 proc_swap_pressure_ticks: .word 0
+        .globl proc_timer_clock
+proc_timer_clock: .word 0
         .globl event_calls_v1493
 event_calls_v1493: .word 0
         .globl event_slot_v1493

@@ -24,6 +24,8 @@ init_pure:
  movem 4,__transfer+1
  move 1,__pure_req
  movem 1,__pure_uarea+0406
+ move 1,[040000,,1]
+ movem 1,__pure_uarea+067
  move 5,4
  addi 5,0200
  movem 5,__transfer+2
@@ -133,6 +135,9 @@ restore_alignment_v825:
  movei 1,__run_req
  pushj 17,proc_swap_exchange_run_v790
  jumpn 1,fail_entry
+ move 1,__pure_uarea+067
+ tlne 1,040000
+ jrst fail_entry
  move 4,__prepare
  setz 6,
 check_disk:
@@ -228,6 +233,12 @@ done: movem 1,__test_exit
 .globl proc_swap_storage_invariant_v30
 proc_swap_storage_invariant_v30:
  halt .
+; The synthetic compressed PURE image uses the same controlled decoder
+; as the original v854 fixture. Production now calls the grouped-codec
+; entry; map that exact ABI to the fixture, not the actual codec.
+.globl d6codec_decode_vfs_v1458
+d6codec_decode_vfs_v1458:
+ jrst d6lz36_decode_vfs
 .data
 __run_req: .word __stage_req
  .word __commit_req

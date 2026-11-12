@@ -39,7 +39,8 @@ for src in (mm, swap):
             if name in equ and equ[name] != value:
                 raise AssertionError('conflicting assembly equate: ' + name)
             equ[name] = value
-for name in ('PROC_TIMER_DUE_LH', 'PROC_TIMER_CLOCK_MASK'):
+for name in ('PROC_TIMER_DUE_LH', 'PROC_TIMER_CLOCK_MASK',
+             'PROC_SWAP_RETRY_TICKS'):
     match = re.search(r'(?m)^\s*\.equ\s+' + name + r',([^\n]+)', sched)
     assert match, 'missing scheduler timekeeping equate ' + name
     equ[name] = match.group(1).strip()
@@ -84,6 +85,8 @@ parts = [
          '\nproc_swap_mres_reclaim_v481:\n'),
     leaf(storage, 'proc_storage_expect_v30:\n',
          '\n; int proc_storage_exchange_modes_v778'),
+    leaf(backstore, 'backstore_verify_allocated_v795:\n',
+         '\n; int backstore_extend(first,old_blocks,new_blocks)'),
     leaf(backstore, 'backstore_free:\n', '\n        .bss\n'),
     '.globl proc_sched_pi_tick\n' +
     leaf(sched, 'proc_sched_pi_tick:\n', '\nproc_sched_timer_done:\n') +
@@ -152,9 +155,9 @@ mutants = (
      '        movei   2,MM_TYPE_PROCESS\n        move    3,10\n'
      '        setz    1,'),
     ('no-backing-free',
-     'backstore_free:\n        jumpe   2,backstore_free_return',
+     'backstore_free:\n        push    17,1',
      'backstore_free:\n        jrst    backstore_free_return\n'
-     '        jumpe   2,backstore_free_return'),
+     '        push    17,1'),
     ('no-storage-publication',
      'proc_storage_publish_v30:\n        caile   3,2',
      'proc_storage_publish_v30:\n        setz    1,\n'
