@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Inject two real Type-270 completion error paths into a disposable guest.
+"""Inject two Type-167/236 drum PI2 error completions in a copied guest.
 
 The first selected swap owner is established by the already accepted v1508
 checked-release experiment, after a real successful physical payload read.
-On its next two actual slot-0 BACKSTORE reads, replace the Type-270 PI5
-IDLE completion with the production PI5 controller-error branch. The normal
-DSK driver completes the private descriptor with failure, updates its error
+On its next two actual slot-0 BACKSTORE reads, redirect the selected drum
+DR_DONE completion through the production PI2 error branch. The normal
+DRM driver completes the private descriptor with failure, updates its error
 counter, and wakes the original slot-0 caller. No successful read is faked.
 The source-linked swap-in must then unpin/rollback MM and retain DISK/TERM.
 
@@ -25,7 +25,7 @@ def replace_once(source, old, new, name):
 
 def inject(root):
     bridge = root / "fs/fs_mres.s"
-    driver = root / "drivers/dsk_io.s"
+    driver = root / "drivers/drm236_io.s"
     backing = root / "storage/backstore_entry_v484.s"
 
     source = bridge.read_text()
@@ -60,51 +60,59 @@ def inject(root):
                        "        .globl proc_sched_cursor\n") + source)
 
     source = driver.read_text()
-    old = ("        movei 1,-2(017)\n"
-           "        pushj 017,dsk_start_active\n"
-           "dsk_runtime_slot0_wait:\n")
-    new = ("        movei 1,-2(017)\n"
-           "        ; Arm only after prior active/queued I/O is drained.\n"
-           "        ; The following request is exactly the target read.\n"
-           "        skipn daimos_v1511_this_read\n"
-           "        jrst daimos_v1511_start_normal\n"
-           "        setzm daimos_v1511_this_read\n"
-           "        setom daimos_v1511_error_active\n"
-           "daimos_v1511_start_normal:\n"
-           "        pushj 017,dsk_start_active\n"
-           "dsk_runtime_slot0_wait:\n")
-    source = replace_once(source, old, new, "exact slot-0 disk request")
-    old = ("dsk_pi_idle:\n"
-           "        cono 0270,0\n"
-           "        skipn 2,dsk_active_request\n")
-    new = ("dsk_pi_idle:\n"
-           "        cono 0270,0\n"
-           "        ; v1511: physical controller reached PI5 completion.\n"
-           "        ; Route the selected read through the REAL error\n"
-           "        ; completion, request wakeup and accounting path.\n"
-           "        skipn daimos_v1511_error_active\n"
-           "        jrst daimos_v1511_pi_normal\n"
-           "        setzm daimos_v1511_error_active\n"
-           "        aos daimos_v1511_device_errors\n"
-           "        jrst dsk_pi_error\n"
+    old = ("        add     017,kconst_3_3\n"
+           "        pushj   017,storage_request_init\n"
+           "\n"
+           "drm236_runtime_retry:\n")
+    new = ("        add     017,kconst_3_3\n"
+           "        pushj   017,storage_request_init\n"
+           "        ; v1511: identify the exact live stack descriptor,\n"
+           "        ; even when an older DR request owns the controller.\n"
+           "        skipn   daimos_v1511_this_read\n"
+           "        jrst    daimos_v1511_request_normal\n"
+           "        setzm   daimos_v1511_this_read\n"
+           "        movei   5,-2(017)\n"
+           "        movem   5,daimos_v1511_target_descriptor\n"
+           "daimos_v1511_request_normal:\n"
+           "\n"
+           "drm236_runtime_retry:\n")
+    source = replace_once(source, old, new, "exact drum descriptor creation")
+    old = ("        trnn    1,DRM_DR_DONE\n"
+           "        jrst    pdp10_pi_dispatch_done\n"
+           "        cono    0400,DRM_DR_DESELECT\n")
+    new = ("        trnn    1,DRM_DR_DONE\n"
+           "        jrst    pdp10_pi_dispatch_done\n"
+           "        ; v1511: genuine DP/DR completion for selected live\n"
+           "        ; descriptor is routed through existing PI2 error\n"
+           "        ; publication, accounting and wakeup code.\n"
+           "        hrrz    2,drm236_active_request\n"
+           "        jumpe   2,daimos_v1511_pi_normal\n"
+           "        came    2,daimos_v1511_target_descriptor\n"
+           "        jrst    daimos_v1511_pi_normal\n"
+           "        setzm   daimos_v1511_target_descriptor\n"
+           "        aos     daimos_v1511_device_errors\n"
+           "        jrst    drm236_pi_error\n"
            "daimos_v1511_pi_normal:\n"
-           "        skipn 2,dsk_active_request\n")
-    source = replace_once(source, old, new, "DSK PI5 completion")
-    old = ("dsk_fail_runtime:\n"
-           "        aos mfsdev_storage_errors+2")
-    new = ("dsk_fail_runtime:\n"
-           "        ; Also retire a test-only injection arm if hardware\n"
-           "        ; failed independently before reaching IDLE.\n"
-           "        setzm daimos_v1511_error_active\n"
-           "        aos mfsdev_storage_errors+2")
-    source = replace_once(source, old, new, "error descriptor retirement")
+           "        cono    0400,DRM_DR_DESELECT\n")
+    source = replace_once(source, old, new, "DRM PI2 final completion")
+    old = ("        hrrz    1,drm236_active_request\n"
+           "        jumpe   1,drm236_finish_return_v1079\n"
+           "        movem   2,2(1)\n")
+    new = ("        hrrz    1,drm236_active_request\n"
+           "        jumpe   1,drm236_finish_return_v1079\n"
+           "        ; A true earlier hardware error/timeout also retires\n"
+           "        ; the disposable pending target, never a stale stack.\n"
+           "        camn    1,daimos_v1511_target_descriptor\n"
+           "        setzm   daimos_v1511_target_descriptor\n"
+           "        movem   2,2(1)\n")
+    source = replace_once(source, old, new, "DRM actual descriptor retirement")
     driver.write_text(("        .globl daimos_v1511_this_read\n"
-                       "        .globl daimos_v1511_error_active\n"
+                       "        .globl daimos_v1511_target_descriptor\n"
                        "        .globl daimos_v1511_device_errors\n") + source)
 
     source = backing.read_text()
-    source += "\n; v1511 disposable real Type-270 error-path witnesses.\n        .bss\n"
-    for name in ("this_read", "error_active", "device_errors"):
+    source += "\n; v1511 disposable Type-167/236 PI2 witnesses.\n        .bss\n"
+    for name in ("this_read", "target_descriptor", "device_errors"):
         label = "daimos_v1511_" + name
         if label + ":" in source:
             raise ValueError("v1511 duplicate diagnostic symbol " + label)

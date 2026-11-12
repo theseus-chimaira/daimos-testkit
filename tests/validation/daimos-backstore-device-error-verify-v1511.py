@@ -34,7 +34,7 @@ def verify(samples, console, table):
     for idx, s in enumerate(active):
         required = ("sample", "timer", "slot", "first", "blocks",
                     "record", "meta", "vm", "sched", "retry", "fdctl",
-                    "refused", "device_errors", "dsk_errors",
+                    "refused", "device_errors", "drm_errors",
                     "failed_service", "record_count", "spinner",
                     "contender_restore", "contender_exchange", "contender_sleep",
                     "swap_blocks", "backstore_blocks", "cursor", "repairs",
@@ -62,8 +62,8 @@ def verify(samples, console, table):
             raise AssertionError("unrepaired owner falsely finalized")
         if not 0 <= s["device_errors"] <= 2:
             raise AssertionError("wrong injected controller failure count")
-        if s["dsk_errors"] < s["device_errors"]:
-            raise AssertionError("DSK controller error accounting absent")
+        if s["drm_errors"] < s["device_errors"]:
+            raise AssertionError("DRM controller error accounting absent")
         if s["refused"] < 1 or s["record_count"] < 1:
             raise AssertionError("no real physical checked refusal")
         if (s["record_count"] != s["failed_service"] or
@@ -90,14 +90,14 @@ def verify(samples, console, table):
                 raise AssertionError("failed owner retries faster than PI6 clock")
             if s["spinner"] <= previous["spinner"]:
                 raise AssertionError("independent PID5 stopped running")
-            for field in ("device_errors", "dsk_errors", "refused",
+            for field in ("device_errors", "drm_errors", "refused",
                           "contender_restore", "contender_exchange",
                           "contender_sleep"):
                 if s[field] < previous[field]:
                     raise AssertionError("physical witness regressed: " + field)
         previous = s
     if active[-1]["device_errors"] != 2:
-        raise AssertionError("both Type-270 controller failure paths unexercised")
+        raise AssertionError("both Type-167/236 failure paths unexercised")
     if active[-1]["refused"] - active[0]["refused"] < 2:
         raise AssertionError("checked release refusal did not resume")
     if active[-1]["record_count"] - active[0]["record_count"] < 3:
@@ -110,7 +110,7 @@ def verify(samples, console, table):
         raise AssertionError("healthy restored process did not execute")
     if "HALT instruction" in Path(console).read_text(errors="replace"):
         raise AssertionError("unrepaired owner guest claimed normal HALT")
-    print("PASS v1511: real Type-270 PI5 driver error returned twice")
+    print("PASS v1511: Type-167/236 PI2 driver error path returned twice")
     print("PASS v1511: failed DISK owner %03o, extent %06o/%06o retained" %
           (slot, first, blocks))
     print("PASS v1511: %d real fault-on samples; %d driver errors, %d free refusals" %
@@ -136,7 +136,7 @@ def self_test():
             "sample": index + 20, "timer": index * 0o1000,
             "refused": max(1, index - 1),
             "device_errors": min(2, index),
-            "dsk_errors": min(2, index),
+            "drm_errors": min(2, index),
             "spinner": 20 + index * 20,
             "contender_restore": int(index >= 3),
             "contender_exchange": 0,
@@ -154,7 +154,7 @@ def self_test():
         verify(good, log.name, table)
         mutations = (
             ("device-count", "device_errors", 3, 0),
-            ("controller-accounting", "dsk_errors", 2, 0),
+            ("controller-accounting", "drm_errors", 2, 0),
             ("missing-rollback", "vm", 3, 1),
             ("backing-loss", "swap_blocks", 3, 0),
             ("wrong-run", "record", 3, 0),

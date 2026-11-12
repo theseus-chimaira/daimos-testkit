@@ -15,7 +15,7 @@ def main():
     production = Path(sys.argv[1])
     mod = runpy.run_path(str(Path(__file__).resolve().parent /
                               "daimos-backstore-device-error-observer-v1511.py"))
-    rels = ("fs/fs_mres.s", "drivers/dsk_io.s",
+    rels = ("fs/fs_mres.s", "drivers/drm236_io.s",
             "storage/backstore_entry_v484.s")
     with tempfile.TemporaryDirectory(prefix="daimos-device-v1511-",
                                      dir=os.environ.get("TMPDIR", os.path.expanduser("~/tmp"))) as temp:
@@ -36,25 +36,29 @@ def main():
             if anchor not in bridge:
                 raise AssertionError("v1511 lost selective media gateway: " + anchor)
         for anchor in (
-                "dsk_runtime_slot0_wait:",
-                "dsk_pi_idle:",
-                "aos daimos_v1511_device_errors",
-                "jrst dsk_pi_error",
-                "dsk_fail_runtime:",
-                "aos mfsdev_storage_errors+2"):
+                "drm236_runtime_retry:",
+                "drm236_pi_handler:",
+                "came    2,daimos_v1511_target_descriptor",
+                "aos     daimos_v1511_device_errors",
+                "jrst    drm236_pi_error",
+                "drm236_finish_active_v1079:",
+                "camn    1,daimos_v1511_target_descriptor",
+                "aos     mfsdev_storage_errors+5"):
             if anchor not in driver:
-                raise AssertionError("v1511 bypassed production DSK: " + anchor)
+                raise AssertionError("v1511 bypassed production DRM: " + anchor)
         if backing.count("daimos_v1511_device_errors: .block 1") != 1:
             raise AssertionError("v1511 source-linked diagnostic word missing")
-        # The error branch is the original DSK PI5 error routine, not a
+        if backing.count("daimos_v1511_target_descriptor: .block 1") != 1:
+            raise AssertionError("v1511 descriptor identity witness missing")
+        # The error branch is the original DRM PI2 error routine, not a
         # fake success/error return in the production swap transaction.
         if "proc_swap_in" in driver or "proc_swap_in" in bridge:
             raise AssertionError("v1511 inserted swap policy into driver")
         for title, rel, old in (
                 ("backing-anchor", rels[0], "backstore_read:\n"),
-                ("slot0-anchor", rels[1], "dsk_runtime_slot0_wait:\n"),
-                ("pi5-anchor", rels[1], "dsk_pi_idle:\n"),
-                ("error-anchor", rels[1], "dsk_fail_runtime:\n"),
+                ("descriptor-anchor", rels[1], "drm236_runtime_retry:\n"),
+                ("pi2-anchor", rels[1], "        trnn    1,DRM_DR_DONE\n"),
+                ("error-anchor", rels[1], "        movem   2,2(1)\n"),
         ):
             for path in rels:
                 (root / path).write_text(original[path])
@@ -65,7 +69,7 @@ def main():
             except ValueError:
                 continue
             raise AssertionError("v1511 accepted damaged source: " + title)
-    print("PASS v1511: targeted PI5 error, real DSK failure retirement")
+    print("PASS v1511: targeted PI2 error, real DRM descriptor retirement")
     print("PASS v1511: four source drift mutations rejected")
 
 
