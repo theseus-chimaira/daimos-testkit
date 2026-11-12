@@ -29,6 +29,13 @@ def inject(root):
     backing = root / "storage/backstore_entry_v484.s"
 
     source = bridge.read_text()
+    # v1511 is valid only for a DRM-backed BACKSTORE. A future profile
+    # that routes backing to DSK must reject this experiment rather than
+    # silently report zero injected errors (the original setup mistake).
+    drum_route = ("blockset_direct_tail_drm_read:\n"
+                  "        pushj   17,drm236_read_block\n")
+    if source.count(drum_route) != 1:
+        raise ValueError("v1511 requires actual Type-236 backing route")
     old = ("backstore_read:\n"
            "blockset_direct_tail_read:\n"
            "        setz    4,\n"

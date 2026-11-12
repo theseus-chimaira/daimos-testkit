@@ -56,6 +56,8 @@ def main():
             raise AssertionError("v1511 inserted swap policy into driver")
         for title, rel, old in (
                 ("backing-anchor", rels[0], "backstore_read:\n"),
+                ("wrong-backing-DEVICE", rels[0],
+                 "        pushj   17,drm236_read_block\n"),
                 ("descriptor-anchor", rels[1], "drm236_runtime_retry:\n"),
                 ("pi2-anchor", rels[1], "        trnn    1,DRM_DR_DONE\n"),
                 ("error-anchor", rels[1], "        movem   2,2(1)\n"),
@@ -70,7 +72,7 @@ def main():
                 continue
             raise AssertionError("v1511 accepted damaged source: " + title)
     print("PASS v1511: targeted PI2 error, real DRM descriptor retirement")
-    print("PASS v1511: four source drift mutations rejected")
+    print("PASS v1511: five source drift and wrong-DEVICE mutations rejected")
 
 
 if __name__ == "__main__":

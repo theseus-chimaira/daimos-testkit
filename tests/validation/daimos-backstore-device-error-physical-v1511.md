@@ -50,7 +50,7 @@ No fake READY_ONCE, finalizer, zombie or successful reclaim is
 allowed. Actual PID 5 progress and independent physical DISK-to-RAM
 restore plus user SLEEP progress of slot `011` are also required.
 
-The source-injection self-test rejects four unsafe changes to
+The source-injection self-test rejects five unsafe changes to
 driver and gateway call sites; verifier self-test rejects eleven
 false accounting/rollback/restore/progress cases. All test code
 must compile from a clean committed v1510 baseline as well as the
@@ -79,7 +79,7 @@ owner. These remain explicit future KCORE DEVICE/media gates.
 
 ## Status
 
-Four source-injection mutation self-tests PASS; eleven strict
+Five source-injection mutation self-tests PASS; eleven strict
 verifier mutation self-tests PASS; generated runner and sampler
 preparation PASS. The first physical v1511 attempt targeted the
 **wrong DEVICE** (Type-270 DSK rather than the actual drum BACKSTORE
