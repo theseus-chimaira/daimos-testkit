@@ -10,6 +10,7 @@ v1511's exact DISK/MM/TERM/healthy-contender ownership verifier.
 from pathlib import Path
 from contextlib import redirect_stdout
 import io
+import re
 import runpy
 import sys
 import tempfile
@@ -18,6 +19,24 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 BASE = runpy.run_path(str(HERE / "daimos-backstore-persistent-verify-v1508.py"))
 V1511 = runpy.run_path(str(HERE / "daimos-backstore-device-error-verify-v1511.py"))
+
+
+def load(path):
+    """Preserve original octal decoding and the v1512 digit-bearing name."""
+    data = BASE["load"](path)
+    lost = []
+    for line in Path(path).read_text(errors="replace").splitlines():
+        if not line.startswith("[v1306] sample="):
+            continue
+        match = re.search(r"(?:^|\s)lost_pi2=(\d+)(?:\s|$)", line)
+        if match is None:
+            raise AssertionError("v1512 missing raw lost_pi2 observation")
+        lost.append(int(match.group(1)))
+    if len(data) != len(lost):
+        raise AssertionError("v1512 mismatched mapped sample count")
+    for record, count in zip(data, lost):
+        record["lost_pi2"] = count
+    return data
 
 
 def verify(samples, console, table):
@@ -115,7 +134,29 @@ def self_test():
             except AssertionError:
                 continue
             raise AssertionError("v1512 accepted false evidence: " + label)
+        # The inherited v1508 key parser intentionally recognizes only
+        # [a-z_]; a v1512 loss counter includes the digit 2. Ensure the
+        # raw SIMH text is not silently accepted without that counter.
+        with tempfile.NamedTemporaryFile(mode="w", delete=True) as raw:
+            raw.write("[v1306] sample=1 fault=1 lost_pi2=2 watchdog_errors=1 "
+                      "record=002350000330\n")
+            raw.flush()
+            parsed = load(raw.name)
+            if parsed[0]["lost_pi2"] != 2 or parsed[0]["record"] != (
+                    (0o2350 << 18) | 0o330):
+                raise AssertionError("v1512 lost exact octal or digit key")
+            raw.seek(0)
+            raw.truncate()
+            raw.write("[v1306] sample=1 fault=1 watchdog_errors=1\n")
+            raw.flush()
+            try:
+                load(raw.name)
+            except AssertionError:
+                pass
+            else:
+                raise AssertionError("v1512 accepted missing PI2 loss witness")
         print("PASS v1512: twelve unsafe physical evidence mutations rejected")
+        print("PASS v1512: digit-bearing lost_pi2 parser and missing-key test")
 
 
 def main():
@@ -125,7 +166,7 @@ def main():
     if len(sys.argv) != 3:
         raise SystemExit("usage: v1512.py SAMPLER_LOG GUEST_CONSOLE")
     log, console = (Path(s) for s in sys.argv[1:])
-    verify(BASE["load"](log), console, log.read_text(errors="replace"))
+    verify(load(log), console, log.read_text(errors="replace"))
 
 
 if __name__ == "__main__":

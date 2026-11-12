@@ -87,3 +87,12 @@ reconstruction and owner policy remain separate OPEN issues.
 Self-tests and generated runner/sampler preparation PASS. Booted
 physical timeout capture and acceptance remain OPEN. No release
 status or KCORE size acceptance is claimed.
+
+Before physical acceptance, v1512's strict verifier was corrected
+to decode the digit-bearing `lost_pi2` sampler field explicitly.
+The inherited v1508 evidence parser only recognizes alphabetic
+field names, which would otherwise silently omit this counter.
+The new local parser preserves the original octal decoding and
+rejects a missing `lost_pi2` field; both positive and missing-field
+native parser controls PASS. No v1508 parser or production code
+was modified.
