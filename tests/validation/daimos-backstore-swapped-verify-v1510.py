@@ -120,11 +120,14 @@ def self_test():
                       "contender_exchange": 0,
                       "contender_sleep": max(0, (index - 2) * 3)})
         good.append(entry)
-    table = "\n".join(
+    # Early physical snapshots precede the candidate's admission and
+    # legitimately omit slot 011; fault-on snapshots may never omit it.
+    table = ("[v1332] process-table sample=1 "
+             "slot05=SLEEP/R:064000:400401\n" + "\n".join(
         "[v1332] process-table sample=%d "
         "slot05=SLEEP/R:064000:400401 slot11=SLEEP/%s:064000:400401" %
         (item["sample"], "D" if index < 2 else "R")
-        for index, item in enumerate(good))
+        for index, item in enumerate(good)))
     with tempfile.NamedTemporaryFile(mode="w", delete=True) as console:
         verify(good, console.name, table)
         bad_cases = []
