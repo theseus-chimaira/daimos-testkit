@@ -58,8 +58,14 @@ mutations = (
      'move    1,fs_block_workspace\n        lsh     1,-037',
      'movei   1,036\n        lsh     1,0'),
     ('skip-directory-reserved',
-     'move    1,fs_block_workspace+014\n        lsh     1,-025',
+     'move    1,fs_block_workspace+016\n        lsh     1,-025',
      'movei   1,036\n        lsh     1,0'),
+    # v1525: on-media dir[14] in C is offset 016 in the octal PDP-6
+    # assembly. The old +014 source read word 12 and rejected genuine
+    # host MKDTFS and target MKFS media before any RBN0 identity read.
+    ('wrong-owner-index-v1525',
+     'move    1,fs_block_workspace+016',
+     'move    1,fs_block_workspace+014'),
     ('skip-native-sentinels',
      'move    1,fs_block_workspace+0122', 'move    1,[0167572]'))
 for name, old, new in mutations:
@@ -88,6 +94,7 @@ run_case baseline "$work/mount-source-v1519.s" || {
 echo 'PASS v1519: native DTFS direct mount requires fresh physical directory'
 for label in skip-physical-verification skip-cache-invalidation \
     wrong-magic-check skip-first-reserved skip-directory-reserved \
+    wrong-owner-index-v1525 \
     skip-native-sentinels; do
     if run_case "$label" "$work/mutant-$label-v1519.s"; then
         echo "FAIL v1519: unsafe $label accepted" >&2

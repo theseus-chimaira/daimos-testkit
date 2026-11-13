@@ -8,6 +8,10 @@ set -eu
 make_cmd=${MAKE:-make}
 host_cc=${HOST_CC:-cc}
 tag=daimos-dtfs-tape-root-mount-v578
+if [ "${DAIMOS_TSFS_MOUNT_PREFORMATTED_V1525:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
+        tag=daimos-dtfs-secondary-mounted-v1525
+fi
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 work="$TMPDIR/$tag-$$"
 build=${DAIMOS_TSFS_PREBUILT_BUILD:-$work/build}
@@ -86,6 +90,68 @@ fi
 # secondary-mount command or retired MOUNT.TSFS binary is involved.
 if [ "${DAIMOS_DTFS_DISK_ROOT_V1524:-0}" != 1 ]; then
 cp "$build/tsfs-root.manifest" "$work/root-v577.manifest"
+if [ "${DAIMOS_TSFS_MINIMAL_ROOT_V1525:-0}" = 1 ]; then
+        # This guest validates the installed DTFS provider, not all
+        # optional userland programs. A complete image spreads DTC0
+        # program extents over many blocks and creates long unnecessary
+        # root-tape seeks for each MOUNT/STAT/UNMOUNT command.
+        # Preserve actual INIT/LOGIN/DSH startup and every executable
+        # needed for this physical test; remove unrelated programs
+        # only from the disposable *test* TSFS image.
+        python3 - "$work/root-v577.manifest" <<'PY'
+from pathlib import Path
+import os
+import sys
+
+manifest = Path(sys.argv[1])
+needed = {
+    '/SYSTEM/INIT',
+    '/SYSTEM/EXEC/MOUNTALL',
+    '/CONFIG/FSTAB',
+    '/CONFIG/INITTAB',
+    '/SYSTEM/EXEC/LOGIN',
+    '/CONFIG/PASSWD',
+    '/CONFIG/SYSTEM',
+    '/SYSTEM/EXEC/DSH',
+    '/SYSTEM/EXEC/ECHO',
+    '/SYSTEM/EXEC/PWD',
+    '/SYSTEM/EXEC/STAT',
+    '/SYSTEM/EXEC/MOUNT',
+    '/SYSTEM/EXEC/MOUNT.DTFS',
+    '/SYSTEM/EXEC/UNMOUNT',
+    '/SYSTEM/EXEC/DTFSPROBE',
+}
+if os.environ.get('DAIMOS_TSFS_GATE_RUN_V1525') == '1':
+    # One test executable calls the real KCORE mount/FSINFO/chdir/unmount
+    # services, so the disposable TSFS root needs only boot programs.
+    needed.intersection_update({
+        '/SYSTEM/INIT', '/SYSTEM/EXEC/MOUNTALL',
+        '/CONFIG/FSTAB', '/CONFIG/INITTAB',
+        '/SYSTEM/EXEC/LOGIN', '/CONFIG/PASSWD',
+        '/CONFIG/SYSTEM', '/SYSTEM/EXEC/DSH',
+    })
+if os.environ.get('DAIMOS_TSFS_GATE_INIT_V1525') == '1':
+    # A real booted KCORE starts this one-shot gate directly as INIT.
+    # No shell or other userland executor is required for the syscall
+    # lifecycle; this keeps primary root-tape I/O bounded.
+    needed.intersection_update({'/SYSTEM/INIT'})
+lines = manifest.read_text().splitlines()
+existing = {line.split()[1] for line in lines if line.startswith('F ')}
+assert needed <= existing, 'test root missing required executable'
+chosen = [line for line in lines if line.startswith('D ') or
+          (line.startswith('F ') and line.split()[1] in needed)]
+assert len(chosen) < len(lines), 'test root not reduced'
+if os.environ.get('DAIMOS_TSFS_GATE_INIT_V1525') == '1':
+    binary = os.environ['DAIMOS_TSFS_GATE_DXR_V1525']
+    assert Path(binary).is_file()
+    chosen = [
+        ' '.join([line.split()[0], line.split()[1], binary] +
+                 line.split()[3:]) if line.startswith('F /SYSTEM/INIT ')
+        else line for line in chosen
+    ]
+manifest.write_text('\n'.join(chosen) + '\n')
+PY
+fi
 cat >> "$work/root-v577.manifest" <<EOF
 D /DOC 0555 0 0
 F /README $work/empty 0444 0 0
@@ -93,33 +159,78 @@ F /DOC/INDEX $work/empty 0444 0 0
 F /SYSTEM/EXEC/HELLO $work/empty 0555 0 0
 D /MOUNT/DT0 0755 0 0
 EOF
+if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
+        : "${DAIMOS_TSFS_GATE_BINARY_V1525:?compiled target test required}"
+        test -f "$DAIMOS_TSFS_GATE_BINARY_V1525" || exit 1
+        printf 'F /SYSTEM/EXEC/DTFSGATE %s 0555 0 0\n' \
+            "$DAIMOS_TSFS_GATE_BINARY_V1525" >> "$work/root-v577.manifest"
+fi
 "$mktsfs" -n 3 -i 1:1 -g 1 \
     -m "$work/root-v577.manifest" -o "$work/media/root-v577" >/dev/null
 cp "$work/media/root-v5770.dta" "$build/media/dtc0.tap"
 cp "$work/media/root-v5771.dta" "$build/media/dtc1.tap"
 cp "$work/media/root-v5772.dta" "$build/media/dtc2.tap"
 fi
-if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ]; then
+if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_MOUNT_PREFORMATTED_V1525:-0}" = 1 ]; then
         # V1523's physical lifecycle test needs a complete 578-block
         # DTC3 medium. A zero-byte simulator attachment has no DECtape
         # block marks and makes target MKFS search an absent geometry.
-        # Prepare a complete physical transport image. The target MKFS
-        # below performs the actual native filesystem formatting so
-        # this test does not depend on host image-format compatibility.
+        # The v1525 acceptance variant starts with the production
+        # host-formatted native DTFS image, including the actual 72-bit
+        # volume ID and RBN0144 directory. Its successful mount still
+        # requires actual physical Type-551 reads and KCORE validation.
+        # This avoids repeated DTC0 root EXECs for target MKFS/FSCK and
+        # concentrates the DTC-root guest on *mounted* DTFS behavior.
+        # The original v578/v1523 variant retains target MKFS/FSCK.
         # Only the disposable test medium is replaced.
         test -x "$PDP10_PREFIX/bin/mkdtfs" || \
             fail_logs 'v1523: installed native mkdtfs is missing'
         rm -f "$build/media/dtc3.tap"
         "$PDP10_PREFIX/bin/mkdtfs" -o "$build/media/dtc3.tap" || \
             fail_logs 'v1523: could not prepare physical DTC3 geometry'
+        if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
+                # The native host tool used during the older v1524 test
+                # installation did not yet write the v1520 72-bit stamp.
+                # Reject that stale tool and any host/target owner-map
+                # disagreement *before* claiming a physical mount test.
+                python3 - "$build/media/dtc3.tap" <<'PY'
+import struct
+import sys
+from pathlib import Path
+
+image = Path(sys.argv[1])
+with image.open('rb') as stream:
+    def read_word():
+        a, b = struct.unpack('<II', stream.read(8))
+        return ((a & 0o777777) << 18) | (b & 0o777777)
+    identity = [read_word() for _ in range(4)]
+    assert identity[0] == 0o446466575421, 'missing DTVOL1 marker'
+    assert identity[1] and identity[2], 'zero 72-bit identity half'
+    assert identity[3] == (
+        ~(identity[0] ^ identity[1] ^ identity[2]) &
+        0o777777777777), 'invalid identity complement'
+    stream.seek(0o144 * 128 * 8 + 12 * 8)
+    assert read_word() == 0, 'native owner map word 12 unexpectedly used'
+    assert (read_word() >> 21) & 0o37 == 0, (
+        'native directory word 13 unexpectedly owns RBN 0144')
+    assert (read_word() >> 21) & 0o37 == 0o36, (
+        'native directory word 14 must reserve physical RBN 0144')
+print('PASS v1525: stamped 72-bit native DTC3 and C dir[14]=ASM +016')
+PY
+        fi
 fi
 "$self/../lib/daimos-simh-headless.sh" "$build/boot.ini" \
         "$build/boot.headless.ini" "$dcs_port" "$ge_port"
-if [ "${DAIMOS_TSFS_DTC_DEBUG_V1524:-0}" = 1 ]; then
+if [ "${DAIMOS_TSFS_DTC_DEBUG_V1524:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_DTC_CONO_V1525:-0}" = 1 ]; then
         # Diagnostic-only Type-551 trace. Set up before the bootstrap
         # GO command; a command appended after GO would never execute.
         python3 - "$build/boot.headless.ini" "$work/dtc-v1524.debug" <<'PY'
 from pathlib import Path
+import os
 import sys
 ini, debug = (Path(value) for value in sys.argv[1:])
 text = ini.read_text()
@@ -129,7 +240,10 @@ with ini.open('w') as output:
     for line in lines:
         if line.strip() == 'break 060':
             output.write('set debug ' + str(debug) + '\n')
-            output.write('set DTC debug=DETAIL\n')
+            if os.environ.get('DAIMOS_TSFS_DTC_CONO_V1525') == '1':
+                output.write('set DTC debug=CONO\n')
+            else:
+                output.write('set DTC debug=DETAIL\n')
         output.write(line)
 PY
 fi
@@ -195,6 +309,23 @@ send_slow()
         sleep 0.15
 }
 
+if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
+        # The original KINIT has already mounted its physical TSFS root
+        # and installed the DTFS MRES. It now starts our one-shot gate as
+        # real PID 1 instead of the usual /SYSTEM/INIT/LOGIN/DSH chain.
+        # Validate actual kernel control flow on CTY, not a manufactured
+        # exit status from a separate stub simulator.
+        for stage in START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS; do
+                wait_new "$cty_out" "DTFSGATE V1525 $stage" 0 ||
+                    fail_logs "actual booted PID1 gate missing $stage"
+        done
+        if grep -F 'DTFSGATE V1525 FAIL' "$cty_out" >/dev/null; then
+                fail_logs 'real PID1 physical gate reported an error'
+        fi
+        printf '%s\n' "$tag: PASS (actual booted KCORE PID1 DTFS mount, FSINFO, cwd and retire)"
+        exit 0
+fi
+
 wait_new "$dcs_out" 'Connected to the PDP6 simulator DCS device' 0 || \
         fail_logs 'DCS0 transport did not connect'
 start=`log_size "$dcs_out"`
@@ -204,19 +335,43 @@ start=`log_size "$dcs_out"`
 send_slow ROOT
 wait_new "$dcs_out" 'DSH V1' "$start" || fail_logs 'ROOT login did not enter DSH'
 
-start=`log_size "$dcs_out"`
-# With a DTC-selected root, DTFS MRES is installed.  Exercise a real
-# native-format secondary DECtape rather than obsolete MOUNT.TSFS.
-send_slow 'MKFS.DTFS -O NATIVE /DEV/DTC3'
-wait_new "$dcs_out" '# ' "$start" || \
-    fail_logs 'secondary DTFS format did not return'
-start=`log_size "$dcs_out"`
-send_slow 'FSCK.DTFS -O NATIVE /DEV/DTC3'
-wait_new "$dcs_out" 'FSCK.DTFS NATIVE OK' "$start" || \
-    fail_logs 'secondary native DTFS failed validation'
-wait_new "$dcs_out" '# ' "$start" || fail_logs 'secondary DTFS check did not return'
-if tail -c "+$((start + 1))" "$dcs_out" | grep -F 'FSCK.DTFS:' >/dev/null; then
-        fail_logs 'secondary FSCK returned a command error'
+if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
+        start=`log_size "$dcs_out"`
+        send_slow 'DTFSGATE'
+        wait_new "$dcs_out" 'DTFSGATE V1525 PASS' "$start" ||
+            fail_logs 'installed DTFS physical mount/FSINFO/cwd/unmount gate failed'
+        wait_new "$dcs_out" '# ' "$start" ||
+            fail_logs 'physical gate did not return to DSH'
+        if tail -c "+$((start + 1))" "$dcs_out" |
+            grep -F 'DTFSGATE V1525 FAIL' >/dev/null; then
+                fail_logs 'physical gate explicitly reported failure'
+        fi
+        printf '%s\n' "$tag: PASS (booted native KCORE DTFS physical mount and cwd lifetime)"
+        exit 0
+fi
+
+if [ "${DAIMOS_TSFS_MOUNT_PREFORMATTED_V1525:-0}" != 1 ]; then
+        start=`log_size "$dcs_out"`
+        # With a DTC-selected root, DTFS MRES is installed. Exercise the
+        # real target native filesystem formatter unless testing mounting
+        # from an independently produced complete physical DTFS image.
+        send_slow 'MKFS.DTFS -O NATIVE /DEV/DTC3'
+        wait_new "$dcs_out" '# ' "$start" || \
+            fail_logs 'secondary DTFS format did not return'
+        if tail -c "+$((start + 1))" "$dcs_out" | \
+            grep -F 'MKFS.DTFS:' >/dev/null; then
+                fail_logs 'secondary MKFS returned a command error'
+        fi
+        start=`log_size "$dcs_out"`
+        send_slow 'FSCK.DTFS -O NATIVE /DEV/DTC3'
+        wait_new "$dcs_out" 'FSCK.DTFS NATIVE OK' "$start" || \
+            fail_logs 'secondary native DTFS failed validation'
+        wait_new "$dcs_out" '# ' "$start" || \
+            fail_logs 'secondary DTFS check did not return'
+        if tail -c "+$((start + 1))" "$dcs_out" | \
+            grep -F 'FSCK.DTFS:' >/dev/null; then
+                fail_logs 'secondary FSCK returned a command error'
+        fi
 fi
 start=`log_size "$dcs_out"`
 send_slow 'MOUNT.DTFS /DEV/DTC3 /MOUNT/DT0'

@@ -1,3 +1,16 @@
+# v1525 source-linked fixture correction (2026-11-13)
+
+The v1520 native PDP-6 mount fixture was still encoding the
+directory's reserved owner at assembly `media_dir+014` (octal
+index 12), a stale test assumption inherited from v1519.
+The actual native format uses C `dir[14]` (decimal) which
+is assembly octal `+016`. Both valid test-media setup and
+the deliberately corrupted directory-owner case now
+use the correct offset. The v1520 host stamp/checksum,
+target MKFS identity-clear, native positive admission and
+all five identity mutations PASS against the corrected
+production source. No on-media format was changed.
+
 # KCORE v1520: optional native DTFS persistent volume identity groundwork
 
 Date: 2026-11-12. Scope: host `mkdtfs` identity producer; actual

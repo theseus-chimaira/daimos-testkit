@@ -76,7 +76,7 @@ check_bad_owner0_v1519:
         movei   4,4
         movem   4,stage_v1519
         pushj   17,valid_media_v1519
-        setzm   media_dir_v1519+014
+        setzm   media_dir_v1519+016
         pushj   17,try_mount_v1519
         camn    1,[-1]
         jrst    check_bad_dir_owner_v1519
@@ -302,7 +302,7 @@ valid_media_v1519:
         move    4,[0740000000000]      ; owner block 0 = 036
         movem   4,media_dir_v1519
         move    4,[0360000000]         ; owner block 0144 = 036
-        movem   4,media_dir_v1519+014
+        movem   4,media_dir_v1519+016
         move    4,[0167572]            ; terminal three tags = 035
         movem   4,media_dir_v1519+0122
         move    4,[0446446632021]

@@ -1,3 +1,18 @@
+# v1525 native-media index correction (2026-11-13)
+
+The original v1519 source-linked media fixture incorrectly placed
+the directory's reserved owner for physical RBN 0144 at assembly
+offset `+014`, mirroring the previous production implementation.
+Host `mkdtfs`, target `MKFS.DTFS` and C `dtfs_probe` all use
+decimal `dir[14]`, which is **octal `+016`** in PDP-6 DAS.
+The corrected v1519 native fixture now uses `+016` for both
+the valid media and its corrupted-owner negative case. A new
+executed `wrong-owner-index-v1525` mutation restores the
+original `+014` source bug and is rejected. All prior v1519
+negative mutations remain rejected. The follow-up v1525
+full physical guest actually mounted a stamped DTC3 native
+filesystem and checked the full cwd/FILE/FSINFO lifetime.
+
 # KCORE v1519: native DTFS mount verifies real media before VFS publication
 
 Date: 2026-11-12. Source-linked native PDP-6 acceptance of the
