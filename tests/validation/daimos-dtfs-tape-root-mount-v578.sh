@@ -172,6 +172,11 @@ if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
         # then require a genuine uncached physical DTC3 read after detach.
         printf 'D /MOUNT/DT1 0755 0 0\n' >> "$work/root-v577.manifest"
 fi
+if [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
+        # Separate physically backed DTFS and in-core MEMFS mount roots.
+        printf 'D /MOUNT/DT1 0755 0 0\n' >> "$work/root-v577.manifest"
+        printf 'D /MOUNT/RAM 0755 0 0\n' >> "$work/root-v577.manifest"
+fi
 if [ "${DAIMOS_TSFS_GATE_FSINFO_HI_V1533:-0}" = 1 ]; then
         # Four real distinct noncritical DTFS volumes must occupy
         # public mount IDs 2..5, beyond the old four-slot limit.
@@ -316,6 +321,31 @@ assert len(set(ids)) == len(ids), 'distinct media identities required'
 print('PASS v1527: three genuine distinct 72-bit DTFS identities')
 PY
         fi
+        if [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
+                rm -f "$dtc4_media_v1530"
+                "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc4_media_v1530" ||
+                    fail_logs 'v1534: cannot create healthy DTC4 tape'
+                python3 - "$dtc3_media_v1530" "$dtc4_media_v1530" <<'PY'
+import struct
+import sys
+
+ids = []
+for filename in sys.argv[1:]:
+    with open(filename, 'rb') as stream:
+        words = []
+        for unused in range(4):
+            high, low = struct.unpack('<II', stream.read(8))
+            words.append(((high & 0o777777) << 18) |
+                         (low & 0o777777))
+    assert words[0] == 0o446466575421, 'bad DTVOL1 marker'
+    assert words[1] and words[2], 'missing 72-bit ID'
+    assert words[3] == (~(words[0] ^ words[1] ^ words[2]) &
+                        0o777777777777), 'bad DTVOL1 checksum'
+    ids.append((words[1], words[2]))
+assert ids[0] != ids[1], 'DTC3 and DTC4 have same identity'
+print('PASS v1534: independent physical DTC3/DTC4 volume identities')
+PY
+        fi
         if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
                 # The native host tool used during the older v1524 test
                 # installation did not yet write the v1520 72-bit stamp.
@@ -391,7 +421,8 @@ fi
 if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
-    [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
+    [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
         # The real Type-551 emulator supports eight physical transports.
         # All additional changes are to this disposable SIMH do-file,
         # not to the kernel or permanent boot root.
@@ -408,7 +439,8 @@ assert sum(line.strip() == 'break 060' for line in lines) == 1
 with ini.open('w') as output:
     for line in lines:
         if line.strip() == 'break 060' and \
-                os.environ.get('DAIMOS_TSFS_GATE_MEDIA_V1527') == '1':
+                (os.environ.get('DAIMOS_TSFS_GATE_MEDIA_V1527') == '1' or
+                 os.environ.get('DAIMOS_TSFS_GATE_MIXED_V1534') == '1'):
             output.write('set DTC4 enabled\n')
             output.write('attach -q DTC4 ' + str(dtc4) + '\n')
         output.write(line)
@@ -479,7 +511,8 @@ wait_new()
                 if { [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
                     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
                     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
-                    [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; } &&
+                    [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
+                    [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; } &&
                     [ "$file" = "$cty_out" ] &&
                     [ "$pattern" != 'sim> ' ] &&
                     grep -F "${DAIMOS_TSFS_GATE_PREFIX_V1526:-DTFSMEDIA V1527} FAIL_" "$file" >/dev/null 2>&1; then
@@ -527,7 +560,8 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
-            [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
+            [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
                 simh_media_exchange_v1527()
                 {
                         console_start=`log_size "$cty_out"`
@@ -582,6 +616,18 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                         simh_media_exchange_v1527 \
                             'detach DTC3' \
                             "attach -q DTC3 $work/media/replacement-v1531.tap"
+                elif [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
+                            fail_logs 'v1534: no physical detach checkpoint'
+                        simh_media_exchange_v1527 'detach DTC3'
+                        wait_new "$cty_out" "$gate_prefix WRITE_FAILED" 0 ||
+                            fail_logs 'v1534: faulting DTC3 write not refused'
+                        wait_new "$cty_out" "$gate_prefix HEALTHY_DURING" 0 ||
+                            fail_logs 'v1534: healthy providers failed during fault'
+                        wait_new "$cty_out" "$gate_prefix READY_RETURN" 0 ||
+                            fail_logs 'v1534: no media return checkpoint'
+                        simh_media_exchange_v1527 \
+                            "attach -q DTC3 $dtc3_media_v1530"
                 elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_ARM" 0 ||
                             fail_logs 'v1529: no pre-partial-write checkpoint'

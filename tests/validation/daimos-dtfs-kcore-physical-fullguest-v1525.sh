@@ -27,6 +27,7 @@ incs="$incs -I$PDP10_PREFIX/include"
 "$PDP10_PREFIX/bin/das" -F -C -O "$work/gate.dobj" "$work/gate.s"
 base="$b/userland/command/libc"
 gate_syscall_v1531="$base/syscall.dobj"
+gate_extra_v1534=
 if [ "${DAIMOS_TSFS_GATE_SYSCALL_V1531:-0}" = 1 ]; then
         # The reusable prebuilt KCC image predates extension 054. Link
         # the exact current production syscall.s rather than a stale
@@ -35,11 +36,19 @@ if [ "${DAIMOS_TSFS_GATE_SYSCALL_V1531:-0}" = 1 ]; then
         "$PDP10_PREFIX/bin/das" -F -C -O "$gate_syscall_v1531" \
             "$DAIMOS_REPO/userland/libc/syscall.s"
 fi
+if [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
+        # MEMFS mount is deliberately an INIT-only administrative veneer.
+        # Link the real production source into this PID1 probe only;
+        # never bulk it into common libc or fixed resident KCORE.
+        gate_extra_v1534="$work/memfs-mount-v1534.dobj"
+        "$PDP10_PREFIX/bin/das" -F -C -O "$gate_extra_v1534" \
+            "$DAIMOS_REPO/userland/init/memfs_mount.s"
+fi
 "$PDP10_PREFIX/bin/dlink" --daimos-uuo-relax -b 020 \
         -o "$work/gate.dxr" -M "$work/gate.map" \
         "$base/crt0.dobj" "$gate_syscall_v1531" \
         "$base/syscall_helpers.dobj" "$work/gate.dobj" \
-        "$base/u.dobj" "$base/text.dobj"
+        "$base/u.dobj" "$base/text.dobj" $gate_extra_v1534
 "$PDP10_PREFIX/bin/dxrcheck" "$work/gate.dxr"
 "$b/d6block-v1464" -x "$work/gate.dxr" "$work/gate.block.dxr"
 

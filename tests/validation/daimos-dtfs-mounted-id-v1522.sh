@@ -41,7 +41,14 @@ bridge = bridge.replace('dtfs_dtc_write_jump:\n        jrst    0',
 assert 'dtfs_mark_unit_suspect_v1522:' in bridge
 parser = section('dtfs_identity_validate_v1522:\n', 'dtfs_lookup:\n')
 sync = section('dtfs_sync:\n', '; Shared clean DTC block-cache veneers.')
-space = section('dtfs_space:\n', '        .data\ndtfs_mres_vector:')
+# v1531 added its independent administrative replacement validator between
+# dtfs_space and the MRES vector. It reuses the same physical-ID operands,
+# but does not belong to this v1522 loader/write-mark oracle; including it
+# makes the high-half mutation anchor ambiguous and tests unrelated code.
+# Extract only the original FSINFO space function and retain its full exits.
+space = section('dtfs_space:\n',
+                '; Accept replacement ONLY when a genuinely different')
+assert 'dtfs_space_failed_revalidate_v1522:' in space
 native = text.index('.else\n; Native-only build:')
 load = text[native:]
 load = load[load.index('dtfs_load:\n'):]
