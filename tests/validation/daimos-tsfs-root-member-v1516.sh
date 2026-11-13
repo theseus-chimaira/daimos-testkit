@@ -17,7 +17,10 @@ import sys
 repo, work = (Path(x) for x in sys.argv[1:])
 src = (repo / 'system/kernel/fs/tsfs_runtime.s').read_text()
 first = src.index('tsfs_root_owns_dtc_unit_v1516:\n')
-last = src.index('        .globl  bcache_reclaim\n', first)
+# Extract the exact historical predicate, not later helpers inserted
+# between it and bcache_reclaim (v1537 adds trusted-loss dispatch there).
+last = src.index('tsfs_root_dtc_bad_v1516:\n', first)
+last = src.index('        popj    17,\n', last) + len('        popj    17,\n')
 body = src[first:last]
 head = '.text\n.globl tsfs_root_owns_dtc_unit_v1516\n'
 for key in ('lsh     3,-030', 'andi    3,0377',
