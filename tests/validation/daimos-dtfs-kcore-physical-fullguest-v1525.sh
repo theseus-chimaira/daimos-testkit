@@ -14,7 +14,8 @@ work=$(mktemp -d "$TMPDIR/daimos-dtfs-gate-build-v1525.XXXXXX")
 b="$DAIMOS_TSFS_PREBUILT_BUILD"
 trap 'if [ "${DAIMOS_TSFS_KEEP_WORK:-0}" != 1 ]; then rm -rf "$work"; fi' EXIT HUP INT TERM
 
-cp "$self/../target/daimos-dtfs-physical-gate-v1525.c" "$work/gate.c"
+gate_source=${DAIMOS_TSFS_GATE_SOURCE_V1526:-"$self/../target/daimos-dtfs-physical-gate-v1525.c"}
+cp "$gate_source" "$work/gate.c"
 incs=
 for d in boot core drivers fs mm modules proc storage; do
         incs="$incs -I$DAIMOS_REPO/system/kernel/$d"

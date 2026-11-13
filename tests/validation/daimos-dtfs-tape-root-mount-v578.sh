@@ -315,11 +315,13 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         # real PID 1 instead of the usual /SYSTEM/INIT/LOGIN/DSH chain.
         # Validate actual kernel control flow on CTY, not a manufactured
         # exit status from a separate stub simulator.
-        for stage in START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS; do
-                wait_new "$cty_out" "DTFSGATE V1525 $stage" 0 ||
+        gate_prefix=${DAIMOS_TSFS_GATE_PREFIX_V1526:-"DTFSGATE V1525"}
+        gate_stages=${DAIMOS_TSFS_GATE_STAGES_V1526:-"START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS"}
+        for stage in $gate_stages; do
+                wait_new "$cty_out" "$gate_prefix $stage" 0 ||
                     fail_logs "actual booted PID1 gate missing $stage"
         done
-        if grep -F 'DTFSGATE V1525 FAIL' "$cty_out" >/dev/null; then
+        if grep -F "$gate_prefix FAIL" "$cty_out" >/dev/null; then
                 fail_logs 'real PID1 physical gate reported an error'
         fi
         printf '%s\n' "$tag: PASS (actual booted KCORE PID1 DTFS mount, FSINFO, cwd and retire)"
