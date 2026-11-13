@@ -424,7 +424,8 @@ if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
-    [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ]; then
+    [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ] ||
+    [ "${DAIMOS_D6FS_SECONDARY_FAULT_V1545:-0}" = 1 ]; then
         # The real Type-551 emulator supports eight physical transports.
         # All additional changes are to this disposable SIMH do-file,
         # not to the kernel or permanent boot root.
@@ -440,7 +441,8 @@ lines = text.splitlines(keepends=True)
 # Tape Stage-1 sets a temporary BREAK 060; disk Stage-1 starts at
 # GO 020 directly. Insert any optional monitor setup before the
 # actual boot command, never require a tape-only breakpoint on disk.
-disk_root = os.environ.get('DAIMOS_D6FS_GATE_ROOTLOSS_V1540') == '1'
+disk_root = (os.environ.get('DAIMOS_D6FS_GATE_ROOTLOSS_V1540') == '1' or
+             os.environ.get('DAIMOS_D6FS_SECONDARY_FAULT_V1545') == '1')
 boot_anchor = 'go 020' if disk_root else 'break 060'
 assert sum(line.strip() == boot_anchor for line in lines) == 1
 with ini.open('w') as output:
@@ -459,6 +461,41 @@ with ini.open('w') as output:
 final = ini.read_text().splitlines()
 assert final[-1].strip() == 'exit'
 ini.write_text('\n'.join(final[:-1]) + '\n')
+PY
+fi
+if [ "${DAIMOS_D6FS_SECONDARY_FAULT_V1545:-0}" = 1 ]; then
+        : "${DAIMOS_D6FS_SECONDARY_MEDIA_DIR_V1545:?}"
+        : "${DAIMOS_D6FS_SECONDARY_CLASS_V1545:?}"
+        # The handoff verifier has checked precisely these independent
+        # images. Attach their physical files to the requested unused
+        # controller class; leave the selected TSFS DTC root untouched.
+        python3 - "$headless_ini_v1530" \
+            "$DAIMOS_D6FS_SECONDARY_MEDIA_DIR_V1545" \
+            "$DAIMOS_D6FS_SECONDARY_CLASS_V1545" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+ini, media = (Path(s) for s in sys.argv[1:3])
+kind = sys.argv[3]
+assert kind in ('dsk', 'drm')
+prefix = 'dsk' if kind == 'dsk' else 'dr'
+lines = ini.read_text().splitlines(keepends=True)
+changed = set()
+output = []
+for line in lines:
+    match = re.match(r'attach -q ' + prefix + r'([0-3])\s', line)
+    if match:
+        unit = int(match.group(1))
+        assert unit not in changed
+        assert (media / ('dsk%d.dsk' % unit)).is_file()
+        output.append('attach -q %s%d %s\n' %
+                      (prefix,unit,media / ('dsk%d.dsk' % unit)))
+        changed.add(unit)
+    else:
+        output.append(line)
+assert changed == set(range(4)), (kind,changed)
+ini.write_text(''.join(output))
 PY
 fi
 if [ "${DAIMOS_TSFS_DTC_DEBUG_V1524:-0}" = 1 ] ||
@@ -521,7 +558,8 @@ wait_new()
                     [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
                     [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
                     [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
-                    [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ]; } &&
+                    [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ] ||
+                    [ "${DAIMOS_D6FS_SECONDARY_FAULT_V1545:-0}" = 1 ]; } &&
                     [ "$file" = "$cty_out" ] &&
                     [ "$pattern" != 'sim> ' ] &&
                     grep -F "${DAIMOS_TSFS_GATE_PREFIX_V1526:-DTFSMEDIA V1527} FAIL_" "$file" >/dev/null 2>&1; then
@@ -572,7 +610,8 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
             [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
-            [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ]; then
+            [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ] ||
+            [ "${DAIMOS_D6FS_SECONDARY_FAULT_V1545:-0}" = 1 ]; then
                 simh_media_exchange_v1527()
                 {
                         console_start=`log_size "$cty_out"`
@@ -634,7 +673,37 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                         fi
                         printf 'cont\n' >&3
                 }
-                if [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
+                if [ "${DAIMOS_D6FS_SECONDARY_FAULT_V1545:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
+                            fail_logs 'v1545: secondary D6FS not mounted or ready'
+                        if [ "$DAIMOS_D6FS_SECONDARY_CLASS_V1545" = drm ]; then
+                                simh_media_exchange_v1527 \
+                                    'detach DR0' 'detach DR1' \
+                                    'detach DR2' 'detach DR3'
+                        else
+                                simh_media_exchange_v1527 \
+                                    'detach DSK0' 'detach DSK1' \
+                                    'detach DSK2' 'detach DSK3'
+                        fi
+                        wait_new "$cty_out" "$gate_prefix PASS" 0 ||
+                            fail_logs 'v1545: failed secondary I/O or root did not recover'
+                        python3 - "$cty_out" <<'PY'
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text(errors='replace')
+for marker in ('SECD6FS V1545 START',
+               'SECD6FS V1545 MOUNTED',
+               'SECD6FS V1545 READY_DETACH',
+               'SECD6FS V1545 SECONDARY_FAILED',
+               'SECD6FS V1545 ROOT_ALIVE',
+               'SECD6FS V1545 PASS'):
+    assert text.count(marker) == 1, (marker,text.count(marker))
+assert 'SECD6FS V1545 FAIL_' not in text
+assert 'HALT instruction, PC:' not in text
+print('PASS v1545: full physical secondary I/O return, D6FS root alive')
+PY
+                        exit 0
+                elif [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
                    [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
                             fail_logs 'v1538: no actual ready root checkpoint'
