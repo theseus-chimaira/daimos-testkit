@@ -260,13 +260,15 @@ PY
 fi
 "$self/../lib/daimos-simh-headless.sh" "$build/boot.ini" \
         "$build/boot.headless.ini" "$dcs_port" "$ge_port"
-if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
+if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ]; then
         # The real Type-551 emulator supports eight physical transports.
         # All additional changes are to this disposable SIMH do-file,
         # not to the kernel or permanent boot root.
         python3 - "$build/boot.headless.ini" \
             "$build/media/dtc4.tap" <<'PY'
 from pathlib import Path
+import os
 import sys
 
 ini, dtc4 = (Path(s) for s in sys.argv[1:])
@@ -275,7 +277,8 @@ lines = text.splitlines(keepends=True)
 assert sum(line.strip() == 'break 060' for line in lines) == 1
 with ini.open('w') as output:
     for line in lines:
-        if line.strip() == 'break 060':
+        if line.strip() == 'break 060' and \
+                os.environ.get('DAIMOS_TSFS_GATE_MEDIA_V1527') == '1':
             output.write('set DTC4 enabled\n')
             output.write('attach -q DTC4 ' + str(dtc4) + '\n')
         output.write(line)
@@ -343,10 +346,11 @@ wait_new()
                         grep -F "$pattern" >/dev/null 2>&1; then
                         return 0
                 fi
-                if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] &&
+                if { [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
+                    [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ]; } &&
                     [ "$file" = "$cty_out" ] &&
                     [ "$pattern" != 'sim> ' ] &&
-                    grep -F 'DTFSMEDIA V1527 FAIL_' "$file" >/dev/null 2>&1; then
+                    grep -F "${DAIMOS_TSFS_GATE_PREFIX_V1526:-DTFSMEDIA V1527} FAIL_" "$file" >/dev/null 2>&1; then
                         return 1
                 fi
                 kill -0 "$simh_pid" 2>/dev/null || return 1
@@ -388,7 +392,8 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         # exit status from a separate stub simulator.
         gate_prefix=${DAIMOS_TSFS_GATE_PREFIX_V1526:-"DTFSGATE V1525"}
         gate_stages=${DAIMOS_TSFS_GATE_STAGES_V1526:-"START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS"}
-        if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
+        if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ]; then
                 simh_media_exchange_v1527()
                 {
                         console_start=`log_size "$cty_out"`
@@ -413,6 +418,14 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                 wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
                     fail_logs 'v1527: no pre-detach guest checkpoint'
                 simh_media_exchange_v1527 'detach DTC3'
+                if [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix WRITE_FAILED" 0 ||
+                            fail_logs 'v1528: physical write not refused'
+                        wait_new "$cty_out" "$gate_prefix READY_RESTORE" 0 ||
+                            fail_logs 'v1528: no return checkpoint'
+                        simh_media_exchange_v1527 \
+                            "attach -q DTC3 $build/media/dtc3.tap"
+                else
                 wait_new "$cty_out" "$gate_prefix OFFLINE_REFUSED" 0 ||
                     fail_logs 'v1527: missing physical read-failure refusal'
                 wait_new "$cty_out" "$gate_prefix READY_SWAP" 0 ||
@@ -426,6 +439,7 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                 simh_media_exchange_v1527 \
                     "detach DTC3" \
                     "attach -q DTC3 $build/media/dtc3.tap"
+                fi
         fi
         for stage in $gate_stages; do
                 wait_new "$cty_out" "$gate_prefix $stage" 0 ||
