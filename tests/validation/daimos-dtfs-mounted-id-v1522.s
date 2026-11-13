@@ -15,6 +15,8 @@
         .globl fs_block_workspace
         .globl bcache_state
         .globl bcache_workspace_tag
+        .globl bcache_store
+        .globl bcache_fetch
         .globl vfs_mount_root_base
         .globl vfs_mount_limit
         .globl tsfs_file_shape_base
@@ -139,6 +141,18 @@ same_media_v1522:
         ; has matching magic/padding, but a different high ID.
         movei   4,5
         movem   4,stage_v1522
+        ; The physical TSFS record occupying BCACHE slot 0 may be used
+        ; later for parent/path metadata. A direct raw DTC3 RBN0 read
+        ; must retire its workspace tag even when the returned volume
+        ; ID is rejected. The workspace itself is overwritten by RBN0.
+        move    1,[4,,0144]
+        movei   2,fs_block_workspace
+        pushj   17,bcache_store
+        movei   4,050
+        movem   4,stage_v1522
+        move    4,bcache_workspace_tag
+        came    4,[4,,0144]
+        jrst    fail_v1522
         aos     id_block_v1522+1
         pushj   17,checksum_v1522
         move    1,[050301000000]
@@ -147,12 +161,27 @@ same_media_v1522:
         jrst    check_replacement_v1522
         jrst    fail_v1522
 check_replacement_v1522:
+        movei   4,051
+        movem   4,stage_v1522
         move    4,media_v1522+2
         trnn    4,0200000
         jrst    fail_v1522
         move    4,dtfs_cache_mount
         caie    4,2                     ; must not publish mount 3
         jrst    fail_v1522
+        move    4,bcache_workspace_tag
+        camn    4,[-1]                  ; raw RBN0 invalidated slot 0
+        jrst    check_workspace_miss_v1527
+        jrst    fail_v1522
+check_workspace_miss_v1527:
+        movei   4,052
+        movem   4,stage_v1522
+        move    1,[4,,0144]
+        movei   2,fs_block_workspace
+        pushj   17,bcache_fetch
+        jumpe   1,check_workspace_done_v1527
+        jrst    fail_v1522             ; stale TSFS file-record hit
+check_workspace_done_v1527:
 
         ; A distinct replacement changing ONLY the low half must also
         ; fail. This is an independent oracle for the second 36 bits.
@@ -371,8 +400,6 @@ dir_block_v1522:
 dir_cache_v1522: .block 0200
 fs_block_workspace: .block 0200
 cache_slab_v1522: .block 0201
-bcache_workspace_tag: .block 1
-bcache_state: .block 1
 online_v1522: .block 1
 raw_reads_v1522: .block 1
 raw_writes_v1522: .block 1

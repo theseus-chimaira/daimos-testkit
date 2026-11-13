@@ -1,3 +1,36 @@
+# v1527 correction: real BCACHE workspace identity (2026-11-13)
+
+The original v1522 test fixture declared local
+`bcache_state`/`bcache_workspace_tag` words that
+were **not the actual data labels used by the
+source-linked BCACHE assembly unit**. Consequently,
+v1522 had accurately tested the media-suspect and
+volume-ID branches but had **not** tested real
+workspace-slot cache-tag correctness. The v1527
+fixture now exposes the existing production
+BCACHE data labels within the test image and
+removes the duplicate fixture variables, allowing
+the real source to use its actual state.
+
+The extended native case seeds a real L1
+`fs_block_workspace` tag with a clean simulated
+TSFS record, then executes the **production**
+raw RBN0 different-ID revalidation. It requires
+that the workspace tag be invalidated and that
+the old key return an actual BCACHE miss. The
+new eighth source mutation,
+`stale-workspace-tag-v1527`, replaces the
+single `bcache_workspace_invalidate` call with
+a harmless instruction. The executed native
+fixture rejects that mutation, as well as
+all seven original v1522 unsafe mutations.
+This matches the independent 256K real guest
+result from physical DTC3/DTC4 media exchange.
+
+The original scope and history below are retained
+as the v1522 checkpoint; the v1527 evidence
+supersedes its older cache-tag coverage claim.
+
 # DAIMOS native DTFS mounted-identity validation v1522
 
 Date: 2026-11-12. Feature-correctness regression for production

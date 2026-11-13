@@ -17,6 +17,15 @@ import sys
 repo, out = (Path(x) for x in sys.argv[1:])
 text = (repo / 'system/kernel/fs/dtfs_runtime.s').read_text()
 cache = (repo / 'system/kernel/storage/bcache_pdp6.s').read_text()
+# The real BCACHE keeps its internal tags local to this assembly unit.
+# Export only those two BSS labels in this *source-linked test image*.
+# Otherwise fixture declarations silently create distinct test variables
+# and never exercise the actual BCACHE slot-0 tag used by dtfs_dtc_read.
+assert cache.count('bcache_state:    .block 1') == 1
+cache = cache.replace('bcache_state:    .block 1',
+    '        .globl bcache_state\n'
+    '        .globl bcache_workspace_tag\n'
+    'bcache_state:    .block 1', 1)
 
 def section(a, b):
     assert text.count(a) == 1, a
@@ -68,6 +77,9 @@ mutations = (
     ('lose-raw-slot',
      '        pop     17,6\n        move    4,tsfs_file_shape_base',
      '        pop     17,5\n        move    4,tsfs_file_shape_base'),
+    ('stale-workspace-tag-v1527',
+     '        pushj   17,bcache_workspace_invalidate',
+     '        move    4,4'),
 )
 for name, old, new in mutations:
     assert source.count(old) == 1, (name, source.count(old))
@@ -94,7 +106,8 @@ if ! run_native baseline "$work/source-v1522.s"; then
 fi
 echo 'PASS v1522: native physical read fault -> identity match/reject and dirty fail-closed'
 for name in skip-read-marker skip-write-marker accept-replaced-high \
-    accept-replaced-low accept-legacy unsafe-write-retry lose-raw-slot; do
+    accept-replaced-low accept-legacy unsafe-write-retry lose-raw-slot \
+    stale-workspace-tag-v1527; do
     if run_native "$name" "$work/mutant-$name-v1522.s"; then
         echo "FAIL v1522: unsafe $name mutation survived" >&2
         exit 1

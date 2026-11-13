@@ -159,6 +159,12 @@ F /DOC/INDEX $work/empty 0444 0 0
 F /SYSTEM/EXEC/HELLO $work/empty 0555 0 0
 D /MOUNT/DT0 0755 0 0
 EOF
+if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
+        # The second independently stamped DTFS forces the real shared
+        # mounted-directory loader away from DTC3 on demand. The test can
+        # then require a genuine uncached physical DTC3 read after detach.
+        printf 'D /MOUNT/DT1 0755 0 0\n' >> "$work/root-v577.manifest"
+fi
 if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
         : "${DAIMOS_TSFS_GATE_BINARY_V1525:?compiled target test required}"
         test -f "$DAIMOS_TSFS_GATE_BINARY_V1525" || exit 1
@@ -191,6 +197,36 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
         rm -f "$build/media/dtc3.tap"
         "$PDP10_PREFIX/bin/mkdtfs" -o "$build/media/dtc3.tap" || \
             fail_logs 'v1523: could not prepare physical DTC3 geometry'
+        if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
+                rm -f "$build/media/dtc4.tap"
+                "$PDP10_PREFIX/bin/mkdtfs" -o "$build/media/dtc4.tap" ||
+                    { echo 'v1527: cannot build second DTFS' >&2; exit 1; }
+                "$PDP10_PREFIX/bin/mkdtfs" \
+                    -o "$work/media/replacement-v1527.tap" ||
+                    { echo 'v1527: cannot build replacement DTFS' >&2; exit 1; }
+                python3 - "$build/media/dtc3.tap" \
+                    "$build/media/dtc4.tap" \
+                    "$work/media/replacement-v1527.tap" <<'PY'
+import struct
+import sys
+
+ids = []
+for filename in sys.argv[1:]:
+    with open(filename, 'rb') as stream:
+        words = []
+        for unused in range(4):
+            high, low = struct.unpack('<II', stream.read(8))
+            words.append(((high & 0o777777) << 18) |
+                         (low & 0o777777))
+    assert words[0] == 0o446466575421
+    assert words[1] != 0 and words[2] != 0
+    assert words[3] == (~(words[0] ^ words[1] ^ words[2]) &
+                        0o777777777777)
+    ids.append((words[1], words[2]))
+assert len(set(ids)) == len(ids), 'distinct media identities required'
+print('PASS v1527: three genuine distinct 72-bit DTFS identities')
+PY
+        fi
         if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
                 # The native host tool used during the older v1524 test
                 # installation did not yet write the v1520 72-bit stamp.
@@ -224,6 +260,35 @@ PY
 fi
 "$self/../lib/daimos-simh-headless.sh" "$build/boot.ini" \
         "$build/boot.headless.ini" "$dcs_port" "$ge_port"
+if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
+        # The real Type-551 emulator supports eight physical transports.
+        # All additional changes are to this disposable SIMH do-file,
+        # not to the kernel or permanent boot root.
+        python3 - "$build/boot.headless.ini" \
+            "$build/media/dtc4.tap" <<'PY'
+from pathlib import Path
+import sys
+
+ini, dtc4 = (Path(s) for s in sys.argv[1:])
+text = ini.read_text()
+lines = text.splitlines(keepends=True)
+assert sum(line.strip() == 'break 060' for line in lines) == 1
+with ini.open('w') as output:
+    for line in lines:
+        if line.strip() == 'break 060':
+            output.write('set DTC4 enabled\n')
+            output.write('attach -q DTC4 ' + str(dtc4) + '\n')
+        output.write(line)
+    # This special physical hot-swap test must return from GO 060 to
+    # SIMH's interactive monitor when CTY sends Control-E. Ordinary
+    # batch boot scripts deliberately end in EXIT, which otherwise
+    # terminates the entire simulator instead of offering 'sim> '.
+    # The file tail is rewritten below so the last EXIT is omitted.
+final = ini.read_text().splitlines()
+assert final[-1].strip() == 'exit'
+ini.write_text('\n'.join(final[:-1]) + '\n')
+PY
+fi
 if [ "${DAIMOS_TSFS_DTC_DEBUG_V1524:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_DTC_CONO_V1525:-0}" = 1 ]; then
         # Diagnostic-only Type-551 trace. Set up before the bootstrap
@@ -278,6 +343,12 @@ wait_new()
                         grep -F "$pattern" >/dev/null 2>&1; then
                         return 0
                 fi
+                if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] &&
+                    [ "$file" = "$cty_out" ] &&
+                    [ "$pattern" != 'sim> ' ] &&
+                    grep -F 'DTFSMEDIA V1527 FAIL_' "$file" >/dev/null 2>&1; then
+                        return 1
+                fi
                 kill -0 "$simh_pid" 2>/dev/null || return 1
                 sleep 0.1
                 i=$((i + 1))
@@ -317,6 +388,45 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         # exit status from a separate stub simulator.
         gate_prefix=${DAIMOS_TSFS_GATE_PREFIX_V1526:-"DTFSGATE V1525"}
         gate_stages=${DAIMOS_TSFS_GATE_STAGES_V1526:-"START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS"}
+        if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
+                simh_media_exchange_v1527()
+                {
+                        console_start=`log_size "$cty_out"`
+                        printf '\005' >&3
+                        wait_new "$cty_out" 'sim> ' "$console_start" 150 ||
+                            fail_logs 'v1527: SIMH break did not reach prompt'
+                        for command do
+                                console_start=`log_size "$cty_out"`
+                                printf '%s\n' "$command" >&3
+                                wait_new "$cty_out" 'sim> ' "$console_start" 150 ||
+                                    fail_logs 'v1527: SIMH media command did not return'
+                                if tail -c "+$((console_start + 1))" "$cty_out" |
+                                    grep -Ei '^\?|Error [0-9]|not attached' >/dev/null; then
+                                        fail_logs 'v1527: simulator media operation refused'
+                                fi
+                        done
+                        printf 'cont\n' >&3
+                        # Input is addressed to the real running PID1's
+                        # blocked CTY READCHAR, never to SIMH monitor mode.
+                        printf 'A\r' >&3
+                }
+                wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
+                    fail_logs 'v1527: no pre-detach guest checkpoint'
+                simh_media_exchange_v1527 'detach DTC3'
+                wait_new "$cty_out" "$gate_prefix OFFLINE_REFUSED" 0 ||
+                    fail_logs 'v1527: missing physical read-failure refusal'
+                wait_new "$cty_out" "$gate_prefix READY_SWAP" 0 ||
+                    fail_logs 'v1527: no replacement checkpoint'
+                simh_media_exchange_v1527 \
+                    "attach -q DTC3 $work/media/replacement-v1527.tap"
+                wait_new "$cty_out" "$gate_prefix REPLACEMENT_REFUSED" 0 ||
+                    fail_logs 'v1527: different 72-bit identity was not refused'
+                wait_new "$cty_out" "$gate_prefix READY_RESTORE" 0 ||
+                    fail_logs 'v1527: no same-media return checkpoint'
+                simh_media_exchange_v1527 \
+                    "detach DTC3" \
+                    "attach -q DTC3 $build/media/dtc3.tap"
+        fi
         for stage in $gate_stages; do
                 wait_new "$cty_out" "$gate_prefix $stage" 0 ||
                     fail_logs "actual booted PID1 gate missing $stage"
