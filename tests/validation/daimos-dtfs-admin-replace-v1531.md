@@ -122,6 +122,18 @@ all-process scan is source-linked/native accepted,
 and v1526 separately verifies actual cross-process
 physical ownership.
 
+The original damaged DTC3 must be retained offline
+or disposed of after explicit destructive replacement.
+This ABI does **not** keep a persistent blacklist:
+if that old stamped tape is reinserted later, or
+the machine boots again after losing the volatile
+WRITE_UNCERTAIN marker, a normal DTFS MOUNT can
+admit its valid identity/directory despite damaged
+file data. Cross-reboot quarantine or comprehensive
+data-integrity certification is an additional,
+unaccepted P0-B requirement if the system must
+prevent that case automatically.
+
 The existing v1529 mid-block physical write test,
 v1528 failed-write quarantine, v1527 changed/original
 media identity-return and DTC4 isolation, and v1526
