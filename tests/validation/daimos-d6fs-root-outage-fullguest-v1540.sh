@@ -6,7 +6,11 @@ set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp}
 mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-work=$(mktemp -d "$TMPDIR/daimos-d6fs-root-outage-v1540.XXXXXX")
+if [ "${DAIMOS_D6FS_ROOT_DRM_V1543:-0}" = 1 ]; then
+    work=$(mktemp -d "$TMPDIR/daimos-drm-root-outage-v1543.XXXXXX")
+else
+    work=$(mktemp -d "$TMPDIR/daimos-d6fs-root-outage-v1540.XXXXXX")
+fi
 if [ "${V1540_KEEP_WORK:-0}" != 1 ]; then
     trap 'rm -rf "$work"' EXIT HUP INT TERM
 fi
@@ -42,12 +46,22 @@ done
 # Use a private complete matching-source KCC image. Root D6FS media are
 # generated from the actual mkd6fs production layout and hold this PID1
 # as /SYSTEM/INIT; no private boot ROM, KCORE hook or filesystem shim.
-printf '%s\n' 'v1540: building isolated full D6FS root image'
+printf '%s\n' 'v1540/v1543: building isolated full D6FS root image'
+root_kind_v1543=disk
+boot_device_v1543=dsk
+root_media_v1543=disk/dsk0.dsk
+if [ "${DAIMOS_D6FS_ROOT_DRM_V1543:-0}" = 1 ]; then
+    root_kind_v1543=drum
+    boot_device_v1543=drm
+    root_media_v1543=drum/dsk0.dsk
+    printf '%s\n' 'v1543: alternate physical DRM236 D6FS-root profile'
+fi
 if ! PATH="$PDP10_PREFIX/bin:$PATH" \
     make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$work/build" USERLAND_BUILD_ROOT="$userland" \
     SYSTEM_INIT_DXR="$work/guest-v1540.dxr" \
-    ROOT=disk BOOT=dsk COMPILER=kcc PROC_BOOT_USERS=1 \
+    ROOT="$root_kind_v1543" BOOT="$boot_device_v1543" \
+    COMPILER=kcc PROC_BOOT_USERS=1 \
     PDP10_PREFIX="$PDP10_PREFIX" HOST_TOOLS="$PDP10_PREFIX/bin" \
     > "$work/disk-image-build-v1540.log" 2>&1; then
     tail -75 "$work/disk-image-build-v1540.log" >&2
@@ -55,8 +69,13 @@ if ! PATH="$PDP10_PREFIX/bin:$PATH" \
     exit 1
 fi
 test -s "$work/build/kcore.map"
-test -s "$work/build/disk/dsk0.dsk"
-printf '%s\n' 'v1540: booting real PDP-6 and detaching all D6FS root disks'
+test -s "$work/build/$root_media_v1543"
+if [ "${DAIMOS_D6FS_ROOT_DRM_V1543:-0}" = 1 ]; then
+    grep -q '^deposit SW 3$' "$work/build/boot.ini"
+    echo 'v1543: booting real PDP-6 and detaching all D6FS root drums'
+else
+    echo 'v1540: booting real PDP-6 and detaching all D6FS root disks'
+fi
 
 export DAIMOS_TSFS_PREBUILT_BUILD="$work/build"
 export DAIMOS_DTFS_DISK_ROOT_V1524=1

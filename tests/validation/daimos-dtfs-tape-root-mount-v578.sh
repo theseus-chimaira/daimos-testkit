@@ -642,9 +642,18 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                                 # D6FS root spans DSK0..3.  Unmount every
                                 # selected member after the real PID1 read
                                 # checkpoint, not a phantom disk error bit.
-                                simh_media_exchange_v1527 \
-                                    'detach DSK0' 'detach DSK1' \
-                                    'detach DSK2' 'detach DSK3'
+                                if [ "${DAIMOS_D6FS_ROOT_DRM_V1543:-0}" = 1 ]; then
+                                        # Same D6FS root semantics, but the
+                                        # four selected devices are Type-236
+                                        # drum units, not Type-270 disks.
+                                        simh_media_exchange_v1527 \
+                                            'detach DR0' 'detach DR1' \
+                                            'detach DR2' 'detach DR3'
+                                else
+                                        simh_media_exchange_v1527 \
+                                            'detach DSK0' 'detach DSK1' \
+                                            'detach DSK2' 'detach DSK3'
+                                fi
                         elif [ "${DAIMOS_TSFS_GATE_ONE_ROOTLOSS_V1539:-0}" = 1 ]; then
                                 # The selected TSFS root spans DTC0..2.
                                 # Losing ONE active physical member must
@@ -684,7 +693,11 @@ version = 'v1540' if os.environ.get('DAIMOS_D6FS_GATE_ROOTLOSS_V1540') == '1' el
 print('PASS %s: physical root I/O HALT at %06o' % (version, actual))
 PY
                         if [ "${DAIMOS_D6FS_GATE_ROOTLOSS_V1540:-0}" = 1 ]; then
-                                echo 'v1540: PASS (booted D6FS root disk loss, exact root HALT)'
+                                if [ "${DAIMOS_D6FS_ROOT_DRM_V1543:-0}" = 1 ]; then
+                                        echo 'v1543: PASS (booted D6FS drum root loss, exact root HALT)'
+                                else
+                                        echo 'v1540: PASS (booted D6FS root disk loss, exact root HALT)'
+                                fi
                         elif [ "${DAIMOS_TSFS_GATE_ONE_ROOTLOSS_V1539:-0}" = 1 ]; then
                                 echo 'v1539: PASS (DTC0 only lost, other TSFS root members attached)'
                         else
