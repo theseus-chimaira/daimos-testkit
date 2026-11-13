@@ -84,12 +84,20 @@ under PDP10_PREFIX and independently passes the original
 v1528 physical quarantine control.
 
 Two concurrent guest runners were also found sharing a
-mutable prebuilt image and stopped; that overlapping
-attempt was discarded. The verified v1529 acceptance
-uses a versioned, independent 39 MB clone of the exact
-same production full-KCC image, with its absolute SIMH
-media paths rewritten to that clone. The controlled
-full guest has only one owner of its DTC3 tape.
+mutable prebuilt image; their conflicting media preimages
+were discarded rather than interpreted as a kernel fault.
+Independent versioned full-KCC image cloning established
+the first accepted v1529 runs. The v1530 permanent
+test-harness correction now creates a unique DTC0-DTC3
+media set and a unique SIMH do-file for **every** test
+run. The prebuilt production full-KCC image is strictly
+an input and is never overwritten by the test runner.
+The isolated v1530 physical partial-write regression
+also PASSes with the same real KCORE and Type-551 code.
+
+See daimos-dtfs-isolated-media-v1530.md for the
+test-image lifetime invariant and separate older
+v1526-v1528 regressions.
 
 ## Scope
 
