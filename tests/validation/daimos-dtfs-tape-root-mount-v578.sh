@@ -594,10 +594,34 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                                         fi
                                 fi
                         done
+                        # v1535: do not concatenate 'CONT' and raw 'A\r'
+                        # on SIMH's monitor stdin. The monitor reads command
+                        # input using stdio, while the running console polls
+                        # the host terminal separately. Sending both at once
+                        # can put 'A\r' into the monitor's input buffer; PID1
+                        # then remains blocked in CTY READCHAR indefinitely.
+                        #
+                        # SIMH SEND queues the same keyboard characters for
+                        # the *simulated console*, with a deterministic delay
+                        # measured in guest instructions after CONT. The
+                        # PDP-6 CTY output service takes 10000 instructions
+                        # per character (kx10_cty.c); when the host sees
+                        # READY_* the guest may still be writing CR/LF,
+                        # before it enters READCHAR. Allow 20 full output
+                        # character periods, then space A and CR by two
+                        # output periods. Early injection can be consumed
+                        # before READCHAR and falsely appear as a hung disk
+                        # request. No host sleep, retried character or
+                        # production guest hook is needed.
+                        console_start=`log_size "$cty_out"`
+                        printf '%s\n' 'SEND AFTER=200000,DELAY=20000,"A\r"' >&3
+                        wait_new "$cty_out" 'sim> ' "$console_start" 150 ||
+                            fail_logs 'v1535: console SEND did not return'
+                        if tail -c "+$((console_start + 1))" "$cty_out" |
+                            grep -Ei '^\?|Error [0-9]|Invalid|No more arguments' >/dev/null; then
+                                fail_logs 'v1535: SIMH queued console SEND refused'
+                        fi
                         printf 'cont\n' >&3
-                        # Input is addressed to the real running PID1's
-                        # blocked CTY READCHAR, never to SIMH monitor mode.
-                        printf 'A\r' >&3
                 }
                 if [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||

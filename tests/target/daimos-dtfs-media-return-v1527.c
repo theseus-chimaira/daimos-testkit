@@ -117,6 +117,12 @@ main(int argc, kword_t **argv)
         media_step_v1527("READY_SWAP") != 0 ||
         media_wait_v1527() != 0)
         return media_fail_v1527("FAIL_SWAP_ACK", 8);
+    /* v1535 witness: distinguish a lost CTY ACK from an actual in-flight
+     * DTC4 FSINFO/provider fault. The host queues the ACK using SIMH
+     * SEND only after allowing remaining READY_* output to complete.
+     * Preserve every following physical media correctness assertion. */
+    if (media_step_v1527("SWAP_ACK_RECEIVED_V1535") != 0)
+        return media_fail_v1527("FAIL_SWAP_ACK_TRACE_V1535", 25);
 
     /* A different independently stamped native DTFS volume can satisfy
      * both the full directory validator and RBN0 checksum. It may never
