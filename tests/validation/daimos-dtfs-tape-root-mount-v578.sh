@@ -218,6 +218,34 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
         rm -f "$dtc3_media_v1530"
         "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc3_media_v1530" || \
             fail_logs 'v1523: could not prepare physical DTC3 geometry'
+        if [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
+                # A genuinely different, valid native stamped tape must
+                # be present before root can retire a poisoned old slot.
+                # The old tape is never rewritten or treated as repaired.
+                "$PDP10_PREFIX/bin/mkdtfs" \
+                    -o "$work/media/replacement-v1531.tap" ||
+                    fail_logs 'v1531: could not prepare replacement tape'
+                python3 - "$dtc3_media_v1530" \
+                    "$work/media/replacement-v1531.tap" <<'PY'
+import struct
+import sys
+
+identities = []
+for name in sys.argv[1:]:
+    with open(name, 'rb') as source:
+        vals = []
+        for i in range(4):
+            high, low = struct.unpack('<II', source.read(8))
+            vals.append(((high & 0o777777) << 18) | (low & 0o777777))
+    assert vals[0] == 0o446466575421, 'invalid DTVOL1 stamp'
+    assert vals[1] != 0 and vals[2] != 0, 'legacy/empty stamp'
+    assert vals[3] == (~(vals[0] ^ vals[1] ^ vals[2]) &
+                       0o777777777777), 'invalid stamp checksum'
+    identities.append((vals[1], vals[2]))
+assert identities[0] != identities[1], 'replacement not distinct'
+print('PASS v1531: independently stamped different 72-bit volume')
+PY
+        fi
         if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
                 rm -f "$dtc4_media_v1530"
                 "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc4_media_v1530" ||
@@ -301,7 +329,8 @@ ini.write_text(text)
 PY
 if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
-    [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ]; then
+    [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
         # The real Type-551 emulator supports eight physical transports.
         # All additional changes are to this disposable SIMH do-file,
         # not to the kernel or permanent boot root.
@@ -388,7 +417,8 @@ wait_new()
                 fi
                 if { [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
                     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
-                    [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ]; } &&
+                    [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
+                    [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; } &&
                     [ "$file" = "$cty_out" ] &&
                     [ "$pattern" != 'sim> ' ] &&
                     grep -F "${DAIMOS_TSFS_GATE_PREFIX_V1526:-DTFSMEDIA V1527} FAIL_" "$file" >/dev/null 2>&1; then
@@ -435,7 +465,8 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         gate_stages=${DAIMOS_TSFS_GATE_STAGES_V1526:-"START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS"}
         if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
-            [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ]; then
+            [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
                 simh_media_exchange_v1527()
                 {
                         console_start=`log_size "$cty_out"`
@@ -473,7 +504,24 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                         # blocked CTY READCHAR, never to SIMH monitor mode.
                         printf 'A\r' >&3
                 }
-                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ]; then
+                if [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
+                            fail_logs 'v1531: no initial mount checkpoint'
+                        simh_media_exchange_v1527 'detach DTC3'
+                        wait_new "$cty_out" "$gate_prefix WRITE_FAILED" 0 ||
+                            fail_logs 'v1531: physical write not refused'
+                        wait_new "$cty_out" "$gate_prefix READY_RETURN" 0 ||
+                            fail_logs 'v1531: no original-media checkpoint'
+                        simh_media_exchange_v1527 \
+                            "attach -q DTC3 $dtc3_media_v1530"
+                        wait_new "$cty_out" "$gate_prefix SAME_REJECTED" 0 ||
+                            fail_logs 'v1531: same damaged media accepted'
+                        wait_new "$cty_out" "$gate_prefix READY_REPLACE" 0 ||
+                            fail_logs 'v1531: no replacement checkpoint'
+                        simh_media_exchange_v1527 \
+                            'detach DTC3' \
+                            "attach -q DTC3 $work/media/replacement-v1531.tap"
+                elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_ARM" 0 ||
                             fail_logs 'v1529: no pre-partial-write checkpoint'
                         simh_media_exchange_v1527 \

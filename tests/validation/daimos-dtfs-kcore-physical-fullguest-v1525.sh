@@ -26,9 +26,18 @@ incs="$incs -I$PDP10_PREFIX/include"
         -S "$work/gate.c" -o "$work/gate.s"
 "$PDP10_PREFIX/bin/das" -F -C -O "$work/gate.dobj" "$work/gate.s"
 base="$b/userland/command/libc"
+gate_syscall_v1531="$base/syscall.dobj"
+if [ "${DAIMOS_TSFS_GATE_SYSCALL_V1531:-0}" = 1 ]; then
+        # The reusable prebuilt KCC image predates extension 054. Link
+        # the exact current production syscall.s rather than a stale
+        # copied libc object. Other guest ABI objects are unchanged.
+        gate_syscall_v1531="$work/syscall-v1531.dobj"
+        "$PDP10_PREFIX/bin/das" -F -C -O "$gate_syscall_v1531" \
+            "$DAIMOS_REPO/userland/libc/syscall.s"
+fi
 "$PDP10_PREFIX/bin/dlink" --daimos-uuo-relax -b 020 \
         -o "$work/gate.dxr" -M "$work/gate.map" \
-        "$base/crt0.dobj" "$base/syscall.dobj" \
+        "$base/crt0.dobj" "$gate_syscall_v1531" \
         "$base/syscall_helpers.dobj" "$work/gate.dobj" \
         "$base/u.dobj" "$base/text.dobj"
 "$PDP10_PREFIX/bin/dxrcheck" "$work/gate.dxr"

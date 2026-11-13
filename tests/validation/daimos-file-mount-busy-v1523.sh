@@ -15,9 +15,13 @@ import sys
 repo, out = (Path(x) for x in sys.argv[1:])
 vfs = (repo / 'system/kernel/fs/vfs.s').read_text()
 file = (repo / 'system/kernel/fs/file_runtime.s').read_text()
-vfs_unmount = vfs[vfs.index('vfs_unmount:\n'):
-                  vfs.index('        .data\n; KINIT publishes both bases',
-                            vfs.index('vfs_unmount:\n'))]
+start = vfs.index('vfs_unmount:\n')
+# v1531 added a distinct administrative replacement API after the normal
+# unmount routines. Do not accidentally pull that *unrelated* API into
+# the v1523 source-linked test (it has separate native v1531 coverage).
+end_marker = '; Validate a zero-based, currently published non-root DTFS'
+assert end_marker in vfs[start:], 'v1531 source boundary missing'
+vfs_unmount = vfs[start:vfs.index(end_marker, start)]
 busy = file[file.index('file_mount_busy_v1523:\n'):
             file.index('; int file_close_all(void)', file.index(
                 'file_mount_busy_v1523:\n'))]

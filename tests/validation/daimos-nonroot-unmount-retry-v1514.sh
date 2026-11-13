@@ -15,7 +15,9 @@ import sys
 root, out = (Path(p) for p in sys.argv[1:])
 source = (root/'system/kernel/fs/vfs.s').read_text()
 first = source.index('vfs_unmount:\n')
-last = source.index('        .data\n; KINIT publishes both bases', first)
+admin_marker = '; Validate a zero-based, currently published non-root DTFS'
+assert admin_marker in source[first:], 'v1531 source boundary missing'
+last = source.index(admin_marker, first)
 segment = source[first:last]
 for text in ('pushj   17,vfs_sync\n        jumpn   1,vfs_unmount_fail',
              'pushj   17,fs_provider_reg_call\n        jumpn   1,vfs_unmount_fail',
