@@ -629,8 +629,16 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                 if [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
                             fail_logs 'v1538: no actual ready root checkpoint'
-                        simh_media_exchange_v1527 \
-                            'detach DTC0' 'detach DTC1' 'detach DTC2'
+                        if [ "${DAIMOS_TSFS_GATE_ONE_ROOTLOSS_V1539:-0}" = 1 ]; then
+                                # The selected TSFS root spans DTC0..2.
+                                # Losing ONE active physical member must
+                                # fail-stop when required data resides there,
+                                # even though the other two remain attached.
+                                simh_media_exchange_v1527 'detach DTC0'
+                        else
+                                simh_media_exchange_v1527 \
+                                    'detach DTC0' 'detach DTC1' 'detach DTC2'
+                        fi
                         wait_new "$cty_out" 'HALT instruction, PC:' 0 1200 ||
                             fail_logs 'v1538: detached root I/O did not HALT'
                         python3 - "$build/kcore.map" "$cty_out" \
@@ -657,7 +665,11 @@ assert actual == expected, (
 assert 'ROOTLOSS V1538 FAIL_' not in console
 print('PASS v1538: physical root I/O HALT at %06o' % actual)
 PY
-                        echo 'v1538: PASS (booted TSFS root loss, no reboot/retry)'
+                        if [ "${DAIMOS_TSFS_GATE_ONE_ROOTLOSS_V1539:-0}" = 1 ]; then
+                                echo 'v1539: PASS (DTC0 only lost, other TSFS root members attached)'
+                        else
+                                echo 'v1538: PASS (booted TSFS root loss, no reboot/retry)'
+                        fi
                         exit 0
                 elif [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
