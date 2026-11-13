@@ -172,6 +172,14 @@ if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ]; then
         # then require a genuine uncached physical DTC3 read after detach.
         printf 'D /MOUNT/DT1 0755 0 0\n' >> "$work/root-v577.manifest"
 fi
+if [ "${DAIMOS_TSFS_GATE_FSINFO_HI_V1533:-0}" = 1 ]; then
+        # Four real distinct noncritical DTFS volumes must occupy
+        # public mount IDs 2..5, beyond the old four-slot limit.
+        for unit_v1533 in 1 2 3; do
+                printf 'D /MOUNT/DT%s 0755 0 0\n' "$unit_v1533" \
+                    >> "$work/root-v577.manifest"
+        done
+fi
 if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
         : "${DAIMOS_TSFS_GATE_BINARY_V1525:?compiled target test required}"
         test -f "$DAIMOS_TSFS_GATE_BINARY_V1525" || exit 1
@@ -218,6 +226,38 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
         rm -f "$dtc3_media_v1530"
         "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc3_media_v1530" || \
             fail_logs 'v1523: could not prepare physical DTC3 geometry'
+        if [ "${DAIMOS_TSFS_GATE_FSINFO_HI_V1533:-0}" = 1 ]; then
+                # Create three more independent native 72-bit stamped tapes.
+                # No shared image or controller state is patched in the guest.
+                for unit_v1533 in 4 5 6; do
+                        "$PDP10_PREFIX/bin/mkdtfs" \
+                            -o "$work/media/dtc$unit_v1533-v1533.tap" ||
+                            fail_logs 'v1533: native extra DTFS format failed'
+                done
+                python3 - "$dtc3_media_v1530" \
+                    "$work/media/dtc4-v1533.tap" \
+                    "$work/media/dtc5-v1533.tap" \
+                    "$work/media/dtc6-v1533.tap" <<'PY'
+import struct
+import sys
+
+ids = set()
+for filename in sys.argv[1:]:
+    with open(filename, 'rb') as stream:
+        words = []
+        for unused in range(4):
+            high, low = struct.unpack('<II', stream.read(8))
+            words.append(((high & 0o777777) << 18) | (low & 0o777777))
+    assert words[0] == 0o446466575421, 'invalid DTVOL1 marker'
+    assert words[1] and words[2], 'legacy 72-bit identity'
+    assert words[3] == (~(words[0] ^ words[1] ^ words[2]) &
+                        0o777777777777), 'identity complement'
+    ident = (words[1], words[2])
+    assert ident not in ids, 'duplicate native DTFS 72-bit identity'
+    ids.add(ident)
+print('PASS v1533: four independent stamped DTFS volumes')
+PY
+        fi
         if [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
                 # A genuinely different, valid native stamped tape must
                 # be present before root can retire a poisoned old slot.
@@ -327,6 +367,27 @@ for unit in range(4):
     text = text.replace(original, isolated)
 ini.write_text(text)
 PY
+if [ "${DAIMOS_TSFS_GATE_FSINFO_HI_V1533:-0}" = 1 ]; then
+        # Enable extra physical transports and attach each of the private
+        # stamped media files before GO 060. No simulator monitor pause is
+        # needed; the guest never swaps or detaches a mounted tape here.
+        python3 - "$headless_ini_v1530" "$work/media" <<'PY'
+from pathlib import Path
+import sys
+
+ini, media = (Path(x) for x in sys.argv[1:])
+lines = ini.read_text().splitlines(keepends=True)
+assert sum(line.strip() == 'break 060' for line in lines) == 1
+with ini.open('w') as output:
+    for line in lines:
+        if line.strip() == 'break 060':
+            for unit in (4, 5, 6):
+                output.write('set DTC%d enabled\n' % unit)
+                output.write('attach -q DTC%d %s\n' %
+                             (unit, media / ('dtc%d-v1533.tap' % unit)))
+        output.write(line)
+PY
+fi
 if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
