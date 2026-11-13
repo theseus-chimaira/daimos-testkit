@@ -30,6 +30,8 @@ d6codec_decode_buffer_v1458:
         seto    1,
         popj    17,
 ASM
+python3 "$self/daimos-root-io-gate-extract-v1538.py" \
+    "$DAIMOS_REPO" "$work/root-io-gate-v1538.s"
 PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode go \
     --start 1000 --timeout 20 --workdir "$work/run" --name daimos-tsfs-multiextent \
@@ -37,5 +39,6 @@ PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
     "$self/daimos-test-crt0-v1.s" \
     "$self/daimos-tsfs-slab-v15.s" \
     "$DAIMOS_REPO/system/kernel/fs/tsfs_runtime.s" \
+    "$work/root-io-gate-v1538.s" \
     "$work/kconst.s" >/dev/null
 printf '%s\n' 'daimos-tsfs-slab-v15: PASS (third mount slot, cross-extent and cross-member read)'

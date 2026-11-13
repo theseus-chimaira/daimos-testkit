@@ -20,8 +20,8 @@ start = 'd6fs_reader_get_block:\n'
 end = '        .globl  d6fs_reader_fcb\n'
 assert d6.count(start) == 1 and d6.count(end) == 1
 block = d6[d6.index(start):d6.index(end)]
-assert 'jumpn   1,d6fs_get_block_read_fail' in block
-assert block.index('jumpn   1,d6fs_get_block_read_fail') < block.index('pushj   17,bcache_store')
+assert 'jumpn   1,d6fs_get_block_io_error_v1538' in block
+assert block.index('jumpn   1,d6fs_get_block_io_error_v1538') < block.index('pushj   17,bcache_store')
 assert 'd6fs_get_block_read_fail:\n        setz    1,' in block
 restore = d6[d6.index('d6fs_restore3:\n'):d6.index('        .globl  d6fs_reader_commit_cache\n')]
 assert restore.count('pop     17,012') == 1
@@ -30,15 +30,18 @@ first = fs.index('fs_backing_read:\n')
 last = fs.index('; int fs_backing_write(', first)
 bridge = fs[first:last]
 assert 'jrst    (4)' in bridge and 'jumpe   4,kret_neg1' in bridge
+proc = (root / 'system/kernel/proc/proc_storage_runtime_v30.s').read_text()
+gate = proc[proc.index('kcore_root_fs_io_failure_v1538:\n'):]
+assert 'kcore_critical_device_lost_v1515:' in gate
 (work / 'linked-v1513.s').write_text(
     '.text\n.globl d6fs_reader_get_block\n.globl fs_backing_read\n' +
-    block + restore + bridge)
+    block + restore + bridge + gate)
 assert 'bcache_store' not in block[block.index('d6fs_get_block_read_fail:'):]
 
-full = '.text\n.globl d6fs_reader_get_block\n.globl fs_backing_read\n' + block + restore + bridge
+full = '.text\n.globl d6fs_reader_get_block\n.globl fs_backing_read\n' + block + restore + bridge + gate
 for label, old, new in (
-        ('negative-read', 'jumpn   1,d6fs_get_block_read_fail',
-         'jumpe   1,d6fs_get_block_read_fail'),
+        ('negative-read', 'jumpn   1,d6fs_get_block_io_error_v1538',
+         'jumpe   1,d6fs_get_block_io_error_v1538'),
         ('null-result', 'd6fs_get_block_read_fail:\n        setz    1,',
          'd6fs_get_block_read_fail:\n        seto    1,'),
         ('callback-return', '        jrst    (4)\n',

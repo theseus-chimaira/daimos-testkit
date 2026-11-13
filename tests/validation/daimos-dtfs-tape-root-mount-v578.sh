@@ -422,7 +422,8 @@ if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
-    [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
+    [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ]; then
         # The real Type-551 emulator supports eight physical transports.
         # All additional changes are to this disposable SIMH do-file,
         # not to the kernel or permanent boot root.
@@ -512,7 +513,8 @@ wait_new()
                     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
                     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
                     [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
-                    [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; } &&
+                    [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
+                    [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ]; } &&
                     [ "$file" = "$cty_out" ] &&
                     [ "$pattern" != 'sim> ' ] &&
                     grep -F "${DAIMOS_TSFS_GATE_PREFIX_V1526:-DTFSMEDIA V1527} FAIL_" "$file" >/dev/null 2>&1; then
@@ -561,7 +563,8 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
             [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
-            [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
+            [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ]; then
                 simh_media_exchange_v1527()
                 {
                         console_start=`log_size "$cty_out"`
@@ -623,7 +626,40 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                         fi
                         printf 'cont\n' >&3
                 }
-                if [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
+                if [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
+                            fail_logs 'v1538: no actual ready root checkpoint'
+                        simh_media_exchange_v1527 \
+                            'detach DTC0' 'detach DTC1' 'detach DTC2'
+                        wait_new "$cty_out" 'HALT instruction, PC:' 0 1200 ||
+                            fail_logs 'v1538: detached root I/O did not HALT'
+                        python3 - "$build/kcore.map" "$cty_out" \
+                            "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+map_text, console, source = (Path(s).read_text() for s in sys.argv[1:])
+symbol = re.search(r'(?m)^kcore_critical_device_lost_v1515\s+([0-7]{6})',
+                   map_text)
+assert symbol, 'actual linked fatal leaf missing'
+code = source[source.index('kcore_critical_device_lost_v1515:\n'):]
+assert code.index('cono    0004,000400') < code.index('caie    1,1')
+assert re.search(r'caie\s+1,1\n\s*jrst\s+\S+\n'
+                 r'kcore_critical_media_root_halt_v1515:\n\s*halt\s+\.',
+                 code), 'fatal leaf layout changed: root offset not +3'
+expected = int(symbol.group(1), 8) + 3
+halts = re.findall(r'HALT instruction, PC: ([0-7]{6})', console)
+assert len(halts) == 1, 'physical guest did not stop exactly once'
+actual = int(halts[0], 8)
+assert actual == expected, (
+    'physical halt %06o != selected-root leaf %06o' % (actual, expected))
+assert 'ROOTLOSS V1538 FAIL_' not in console
+print('PASS v1538: physical root I/O HALT at %06o' % actual)
+PY
+                        echo 'v1538: PASS (booted TSFS root loss, no reboot/retry)'
+                        exit 0
+                elif [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
                             fail_logs 'v1531: no initial mount checkpoint'
                         simh_media_exchange_v1527 'detach DTC3'

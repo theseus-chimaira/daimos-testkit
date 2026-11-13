@@ -26,6 +26,17 @@ incs="$incs -I$PDP10_PREFIX/include"
         -S "$work/gate.c" -o "$work/gate.s"
 "$PDP10_PREFIX/bin/das" -F -C -O "$work/gate.dobj" "$work/gate.s"
 base="$b/userland/command/libc"
+# The normal production boot Makefile builds userland under its separate
+# USERLAND_BUILD_ROOT (default $BUILD/userland-build), whereas older
+# prebuilt physical fixtures place the same artifacts directly in $BUILD.
+# Select the layout backed by the actual full image, never stale libc.
+if [ ! -f "$base/crt0.dobj" ]; then
+        base="$b/userland-build/userland/command/libc"
+fi
+test -f "$base/crt0.dobj" || {
+        echo 'v1525: no built production libc crt0 in either layout' >&2
+        exit 1
+}
 gate_syscall_v1531="$base/syscall.dobj"
 gate_extra_v1534=
 if [ "${DAIMOS_TSFS_GATE_SYSCALL_V1531:-0}" = 1 ]; then

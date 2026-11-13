@@ -11,6 +11,7 @@
         .globl  fs_block_workspace
         .globl  kret_zero
         .globl  kret_neg1
+        .globl  vfs_namespace_root
 
 main:
         movei   1,1
@@ -143,6 +144,7 @@ kret_neg1:
         popj    17,
 
         .data
+vfs_namespace_root: .word 060101000000
 ; D6FS reader layout: word 1 mount id, word 3 logical block count,
 ; words 013..015 are packed fs_backing callbacks, opaque and length.
 root_reader_v1513:
