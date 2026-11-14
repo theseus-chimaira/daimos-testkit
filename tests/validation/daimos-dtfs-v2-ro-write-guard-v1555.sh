@@ -22,6 +22,12 @@ source='.text\n.globl dtfs_dtc_write\n'+full[start:end]
 assert source.count('dtfs_v2_ro_write_guard_v1555:')==1
 assert source.count('pushj   17,dtfs_v2_ro_write_guard_v1555')==1
 mutants=(
+    ('lose-block-across-intent-gate',
+     'pop     17,3\n        pop     17,2\n        move    1,(17)',
+     'pop     17,3\n        pop     17,3\n        move    1,(17)'),
+    ('lose-buffer-across-intent-gate',
+     'pop     17,3\n        pop     17,2\n        move    1,(17)',
+     'pop     17,2\n        pop     17,2\n        move    1,(17)'),
     ('bypass-v2-write-guard',
      'pushj   17,dtfs_v2_ro_write_guard_v1555',
      'setz    1,                     ; wrong: always permit DATA writes'),
@@ -48,7 +54,7 @@ for name,old,new in mutants:
     assert source.count(old)==1,(name,source.count(old))
     (work/('mutant-'+name+'-v1555.s')).write_text(source.replace(old,new,1))
 (work/'write-source-v1555.s').write_text(source)
-print('v1555: 12 actual PDP-6 write-guard scenarios and %d mutants' % len(mutants))
+print('v1561: 12 actual PDP-6 write-guard scenarios and %d mutants' % len(mutants))
 PY
 
 run_native() {
@@ -70,7 +76,8 @@ if ! run_native baseline "$work/write-source-v1555.s"; then
 fi
 echo 'PASS v1555: native write veneer refuses V2 before raw DTC transfer'
 
-for mutation in bypass-v2-write-guard reverse-v2-write-refusal \
+for mutation in lose-block-across-intent-gate lose-buffer-across-intent-gate \
+    bypass-v2-write-guard reverse-v2-write-refusal \
     ignore-v2-format-tag skip-provider-identity \
     skip-physical-unit-match allow-mount-in-later-slot \
     skip-published-root-check; do

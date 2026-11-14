@@ -13,6 +13,7 @@
         .globl dtfs_cache_mount
         .globl kret_zero
         .globl kret_neg1
+        .globl dtfs_intent_mount_gate_v1561
 
 main:
         movei   010,case_table_v1555
@@ -77,6 +78,18 @@ raw_write_success_v1555:
         popj    17,
 wrong_io_v1555:
         movei   1,0777                  ; wrong raw ABI must fail
+        popj    17,
+
+; v1561: isolate the still-mandatory v1555 READ-ONLY veto. The real
+; physically verified intent bridge has independent native acceptance;
+; this stub intentionally ALLOWS, so bypassing the earlier RO veto is
+; still caught by the old v1555 unsafe-source mutation suite.
+dtfs_intent_mount_gate_v1561:
+        ; Real MM allocator and physical DTC can clobber both arguments;
+        ; the production veneer MUST restore the exact pending block/buffer.
+        movei   2,0777
+        movei   3,0777
+        setz    1,
         popj    17,
 
 bcache_invalidate_all:
