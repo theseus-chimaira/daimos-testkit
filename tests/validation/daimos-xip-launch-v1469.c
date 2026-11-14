@@ -194,13 +194,25 @@ p1c_log_snapshot_v1576(int restored)
                                 return xip_fail_v1469("P1C-LOG-SCAN", (int)i);
                         if (p1c_log_read_v1576[0] == P1C_LOG_MAGIC_V1576 &&
                             p1c_log_read_v1576[4] == P1C_LOG_FIRST_V1576 &&
-                            p1c_log_read_v1576[5] == P1C_LOG_VALUE_V1576)
+                            p1c_log_read_v1576[5] == P1C_LOG_VALUE_V1576 &&
+                            p1c_log_read_v1576[0177] ==
+                                ((~(P1C_LOG_MAGIC_V1576 +
+                                p1c_log_read_v1576[1] +
+                                ((p1c_log_read_v1576[3] & 0777777UL) << 18U))
+                                & 0777777777777UL) | 1UL))
                                 ++found;
                 }
+#ifdef XIP_P1C_ORPHAN_V1578
+                if (found != 0U)
+                        return xip_fail_v1469("P1C-ORPHAN-RECOVERED", (int)found);
+                (void)u_puts(1, "P1C-ORPHAN-IGNORED");
+                (void)u_crlf(1);
+#else
                 if (found != 1U)
                         return xip_fail_v1469("P1C-LOG-REBOOT", (int)found);
                 (void)u_puts(1, "P1C-LOGSTORE-PREVIOUS-BOOT");
                 (void)u_crlf(1);
+#endif
         }
 
         for (i = 0U; i < P1C_LOG_WORDS_V1576; ++i)
@@ -210,7 +222,10 @@ p1c_log_snapshot_v1576(int restored)
         p1c_log_scratch_v1576[3] = (2UL << 30U) | (077U << 18U) | 2UL;
         p1c_log_scratch_v1576[4] = code;
         p1c_log_scratch_v1576[5] = P1C_LOG_VALUE_V1576;
-#ifdef XIP_P1C_LOGFAULT_V1577
+#if defined(XIP_P1C_LOGFAULT_V1577) || defined(XIP_P1C_ORPHAN_V1578)
+#ifdef XIP_P1C_ORPHAN_V1578
+        if (!restored) {
+#endif
         /* Test-only MRES writes a real, deliberately uncommitted record
          * to the physical LOGSTORE block, then reports an I/O error.
          * Producer state must remain unchanged and retry must recover.
@@ -233,6 +248,12 @@ p1c_log_snapshot_v1576(int restored)
                 return xip_fail_v1469("P1C-LOG-TORN-READBACK", -1);
         (void)u_puts(1, "P1C-LOGSTORE-TORN-REFUSED");
         (void)u_crlf(1);
+#ifdef XIP_P1C_ORPHAN_V1578
+                (void)u_puts(1, "P1C-ORPHAN-LEFT-UNCOMMITTED");
+                (void)u_crlf(1);
+                return 0;
+        }
+#endif
 #endif
         if (dsys_logctl(SYS_LOGCTL_APPEND, 0UL,
                 p1c_log_scratch_v1576) != 0)

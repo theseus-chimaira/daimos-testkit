@@ -56,7 +56,17 @@ command HALT
 terminal eof
 end
 EOF
-    if [ "${XIP_V1576_P1C_LOGSTORE:-0}" = 1 ]; then
+    if [ "${XIP_V1578_P1C_ORPHAN:-0}" = 1 ]; then
+        if [ "$n" = 1 ]; then
+            sed -i "/^contains $marker$/a contains P1C-ORPHAN-LEFT-UNCOMMITTED" \
+                "$work/boot-$n.probes"
+        else
+            sed -i "/^contains $marker$/a contains P1C-ORPHAN-IGNORED" \
+                "$work/boot-$n.probes"
+            sed -i "/^contains P1C-ORPHAN-IGNORED$/a contains P1C-LOGSTORE-APPEND-READBACK" \
+                "$work/boot-$n.probes"
+        fi
+    elif [ "${XIP_V1576_P1C_LOGSTORE:-0}" = 1 ]; then
         sed -i "/^contains $marker$/a contains P1C-LOGSTORE-APPEND-READBACK" \
             "$work/boot-$n.probes"
         if [ "$n" = 2 ]; then
@@ -102,5 +112,10 @@ EOF
         echo "v1484: AUXSTORE partition geometry changed at boot $n" >&2
         exit 1
     }
+    if [ "$n" = 1 ] && [ "${XIP_V1578_P1C_ORPHAN:-0}" = 1 ]; then
+        python3 "$self/daimos-p1c-orphan-media-v1578.py" \
+            "$boot/drum/dsk0.dsk" "$work/auxstore-after-boot-$n.inspect" \
+            "$work/orphan-physical-v1578.txt"
+    fi
 done
 echo 'PASS v1477: committed MEMFS snapshot survived a completely new PDP-6 boot'
