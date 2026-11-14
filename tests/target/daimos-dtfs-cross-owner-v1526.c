@@ -12,6 +12,12 @@
  */
 #include "u.h"
 
+#ifdef DAIMOS_DTFS_V2_PHYSICAL_V1564
+#define CROSS_TEST_PREFIX_V1526 "DTFSV2 V1564 "
+#else
+#define CROSS_TEST_PREFIX_V1526 "DTFSCROSS V1526 "
+#endif
+
 #define CROSS_V1526_RUN_PATH_WORDS 3U
 #define CROSS_V1526_ARG_WORDS 2U
 #define CROSS_V1526_PATH_OFF SYS_RUN_V2_FIXED_WORDS
@@ -32,7 +38,7 @@ static struct sys_fsinfo cross_info_v1526;
 static int
 cross_log_v1526(const char *message)
 {
-    if (u_puts(1, "DTFSCROSS V1526 ") != 0 ||
+    if (u_puts(1, CROSS_TEST_PREFIX_V1526) != 0 ||
         u_puts(1, message) != 0 || u_crlf(1) != 0)
         return -1;
     return 0;
@@ -176,7 +182,24 @@ main(int argc, kword_t **argv)
     if (argc != 1 || dsys_getpid() != 1)
         return cross_fail_v1526("FAIL_PID1", 2);
 
+#ifdef DAIMOS_DTFS_V2_PHYSICAL_V1564
+    /* Real physical DTVOL2 media must NEVER become writable while the
+     * v1555 unconditional read-only veto remains in effect. A refused
+     * mount must not publish a VFS slot or poison the CLEAN marker. */
     if (cross_log_v1526("START") != 0 ||
+        dsys_dtfs_mount(cross_device_v1526, cross_target_v1526,
+            SYS_DTFS_TYPE_NATIVE) == 0 ||
+        !cross_mounted_v1526(0))
+        return cross_fail_v1526("FAIL_RW_REFUSAL", 36);
+    if (cross_log_v1526("RW_REFUSED") != 0)
+        return 37;
+#endif
+
+#ifndef DAIMOS_DTFS_V2_PHYSICAL_V1564
+    if (cross_log_v1526("START") != 0 ||
+#else
+    if (
+#endif
         dsys_getcwd(parent_cwd, U_PATH_WORDS) != 0 ||
         !u_s6_eq(parent_cwd, "/") ||
         dsys_dtfs_mount(cross_device_v1526, cross_target_v1526,
@@ -236,6 +259,25 @@ main(int argc, kword_t **argv)
         SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
         SYS_WAIT_STATUS_VALUE(status) != 0U)
         return cross_fail_v1526("FAIL_WAIT", 17);
+#ifdef DAIMOS_DTFS_V2_PHYSICAL_V1564
+    /* A retired DTVOL2 slot must not preserve a borrowed quiescence or
+     * per-mount MM owner. Re-read the SAME physical CLEAN tape, refuse
+     * a second writable attempt, then mount and retire RO a second time.
+     * The host also independently verifies that RBN0 was not modified. */
+    if (dsys_dtfs_mount(cross_device_v1526, cross_target_v1526,
+            SYS_DTFS_TYPE_NATIVE) == 0 ||
+        !cross_mounted_v1526(0))
+        return cross_fail_v1526("FAIL_RW_AFTER_RETIRE", 38);
+    if (dsys_dtfs_mount(cross_device_v1526, cross_target_v1526,
+            SYS_MOUNT_RDONLY | SYS_DTFS_TYPE_NATIVE) != 0 ||
+        !cross_mounted_v1526(1))
+        return cross_fail_v1526("FAIL_REMOUNT_RO", 39);
+    if (dsys_unmount(cross_target_v1526) != 0 ||
+        !cross_mounted_v1526(0))
+        return cross_fail_v1526("FAIL_REMOUNT_RETIRE", 40);
+    if (cross_log_v1526("REMOUNTED") != 0)
+        return 41;
+#endif
     if (cross_log_v1526("PASS") != 0)
         return 18;
     return 0;

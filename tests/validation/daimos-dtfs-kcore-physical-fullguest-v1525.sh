@@ -22,7 +22,11 @@ for d in boot core drivers fs mm modules proc storage; do
 done
 incs="$incs -I$DAIMOS_REPO/userland/libc"
 incs="$incs -I$PDP10_PREFIX/include"
-"$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $incs \
+v1564_define=
+if [ "${DAIMOS_TSFS_GATE_DTVOL2_V1564:-0}" = 1 ]; then
+        v1564_define=-DDAIMOS_DTFS_V2_PHYSICAL_V1564=1
+fi
+"$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $v1564_define $incs \
         -S "$work/gate.c" -o "$work/gate.s"
 "$PDP10_PREFIX/bin/das" -F -C -O "$work/gate.dobj" "$work/gate.s"
 base="$b/userland/command/libc"

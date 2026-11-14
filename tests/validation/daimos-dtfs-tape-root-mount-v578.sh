@@ -229,8 +229,62 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
         test -x "$PDP10_PREFIX/bin/mkdtfs" || \
             fail_logs 'v1523: installed native mkdtfs is missing'
         rm -f "$dtc3_media_v1530"
-        "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc3_media_v1530" || \
-            fail_logs 'v1523: could not prepare physical DTC3 geometry'
+        if [ "${DAIMOS_TSFS_GATE_DTVOL2_V1564:-0}" = 1 ]; then
+                # v1564 uses the current source formatter, not an older
+                # installed mkdtfs that may know only legacy DTVOL1.
+                v1564_mkdtfs="$work/mkdtfs-v1564"
+                "$host_cc" -std=c99 -O2 -Wall -Wextra -Werror \
+                    -o "$v1564_mkdtfs" "$DAIMOS_REPO/tools/host/mkdtfs.c"
+                "$v1564_mkdtfs" --durable-v1550 \
+                    -o "$dtc3_media_v1530" || \
+                    fail_logs 'v1564: could not format physical DTVOL2 DTC3'
+                python3 - "$dtc3_media_v1530" "$work/physical-intent-v1564.sha256" <<'PY'
+from pathlib import Path
+import hashlib
+import os
+import struct
+import sys
+
+image = Path(sys.argv[1])
+words = []
+with image.open('rb') as inp:
+    for i in range(128):
+        hi, lo = struct.unpack('<II', inp.read(8))
+        assert hi <= 0o777777 and lo <= 0o777777
+        words.append((hi << 18) | lo)
+mask = 0o777777777777
+assert words[0] == 0o446466575422, 'not a DTVOL2 RBN0 record'
+assert words[1] != 0 and words[2] != 0, 'empty 72-bit identity'
+assert words[3] == (~(words[0] ^ words[1] ^ words[2]) & mask)
+assert words[4] == 0, 'non-CLEAN DTVOL2 before boot'
+assert words[5] == (~(words[0] ^ words[1] ^ words[2] ^
+                     0o246134572610) & mask), 'invalid CLEAN seal'
+assert all(word == 0 for word in words[6:]), 'nonzero RBN0 padding'
+if os.environ.get('DAIMOS_TSFS_GATE_V2_DIRTY_V1564') == '1':
+    # This is a fully valid on-media WRITE_INTENT (not an invalid checksum).
+    # Model a crash after physical DIRTY arming but before CLEAN is written;
+    # the real guest must refuse BOTH RO and RW mounts. Only the disposable
+    # DTC3 tape is changed; the booted kernel is entirely production source.
+    words[4] = 0o552255225522
+    words[5] = (~(words[0] ^ words[1] ^ words[2] ^ words[4] ^
+                 0o246134572610) & mask)
+    with image.open('r+b') as out:
+        out.seek(4 * 8)
+        for word in words[4:6]:
+            out.write(struct.pack('<II', (word >> 18) & 0o777777,
+                                  word & 0o777777))
+    assert words[5] == (~(words[0] ^ words[1] ^ words[2] ^
+                         words[4] ^ 0o246134572610) & mask)
+    print('PASS v1564: independent valid DTVOL2 WRITE_INTENT seal')
+else:
+    print('PASS v1564: independent full physical DTVOL2 CLEAN seal')
+Path(sys.argv[2]).write_text(hashlib.sha256(image.read_bytes()).hexdigest())
+print('PASS v1564: independent 72-bit identity and exact media fingerprint')
+PY
+        else
+                "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc3_media_v1530" || \
+                    fail_logs 'v1523: could not prepare physical DTC3 geometry'
+        fi
         if [ "${DAIMOS_TSFS_GATE_FSINFO_HI_V1533:-0}" = 1 ]; then
                 # Create three more independent native 72-bit stamped tapes.
                 # No shared image or controller state is patched in the guest.
@@ -362,7 +416,11 @@ with image.open('rb') as stream:
         a, b = struct.unpack('<II', stream.read(8))
         return ((a & 0o777777) << 18) | (b & 0o777777)
     identity = [read_word() for _ in range(4)]
-    assert identity[0] == 0o446466575421, 'missing DTVOL1 marker'
+    import os
+    if os.environ.get('DAIMOS_TSFS_GATE_DTVOL2_V1564') == '1':
+        assert identity[0] == 0o446466575422, 'missing DTVOL2 marker'
+    else:
+        assert identity[0] == 0o446466575421, 'missing DTVOL1 marker'
     assert identity[1] and identity[2], 'zero 72-bit identity half'
     assert identity[3] == (
         ~(identity[0] ^ identity[1] ^ identity[2]) &
@@ -373,7 +431,7 @@ with image.open('rb') as stream:
         'native directory word 13 unexpectedly owns RBN 0144')
     assert (read_word() >> 21) & 0o37 == 0o36, (
         'native directory word 14 must reserve physical RBN 0144')
-print('PASS v1525: stamped 72-bit native DTC3 and C dir[14]=ASM +016')
+print('PASS v1525/v1564: stamped 72-bit native DTC3 and C dir[14]=ASM +016')
 PY
         fi
 fi
@@ -852,6 +910,18 @@ PY
         done
         if grep -F "$gate_prefix FAIL" "$cty_out" >/dev/null; then
                 fail_logs 'real PID1 physical gate reported an error'
+        fi
+        if [ "${DAIMOS_TSFS_GATE_DTVOL2_V1564:-0}" = 1 ]; then
+                python3 - "$dtc3_media_v1530" "$work/physical-intent-v1564.sha256" <<'PY'
+from pathlib import Path
+import hashlib
+import sys
+
+actual = hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest()
+expected = Path(sys.argv[2]).read_text().strip()
+assert actual == expected, 'physical DTVOL2 seal/media changed during test'
+print('PASS v1564: physical DTVOL2 media unchanged after real guest test')
+PY
         fi
         printf '%s\n' "$tag: PASS (actual booted KCORE PID1 DTFS mount, FSINFO, cwd and retire)"
         exit 0
