@@ -235,10 +235,18 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
                 v1564_mkdtfs="$work/mkdtfs-v1564"
                 "$host_cc" -std=c99 -O2 -Wall -Wextra -Werror \
                     -o "$v1564_mkdtfs" "$DAIMOS_REPO/tools/host/mkdtfs.c"
-                "$v1564_mkdtfs" --durable-v1550 \
-                    -o "$dtc3_media_v1530" || \
-                    fail_logs 'v1564: could not format physical DTVOL2 DTC3'
-                python3 - "$dtc3_media_v1530" "$work/physical-intent-v1564.sha256" <<'PY'
+                if [ -n "${DAIMOS_TSFS_GATE_V2_REPLAY_V1567:-}" ]; then
+                        test -f "$DAIMOS_TSFS_GATE_V2_REPLAY_V1567" || \
+                            fail_logs 'v1567: physical torn replay image missing'
+                        cp "$DAIMOS_TSFS_GATE_V2_REPLAY_V1567" \
+                            "$dtc3_media_v1530"
+                else
+                        "$v1564_mkdtfs" --durable-v1550 \
+                            -o "$dtc3_media_v1530" || \
+                            fail_logs 'v1564: could not format physical DTVOL2 DTC3'
+                fi
+                python3 - "$dtc3_media_v1530" "$work/physical-intent-v1564.sha256" \
+                    "$self/daimos-dtfs-v2-fault-media-v1567.py" <<'PY'
 from pathlib import Path
 import hashlib
 import os
@@ -256,11 +264,22 @@ mask = 0o777777777777
 assert words[0] == 0o446466575422, 'not a DTVOL2 RBN0 record'
 assert words[1] != 0 and words[2] != 0, 'empty 72-bit identity'
 assert words[3] == (~(words[0] ^ words[1] ^ words[2]) & mask)
-assert words[4] == 0, 'non-CLEAN DTVOL2 before boot'
-assert words[5] == (~(words[0] ^ words[1] ^ words[2] ^
-                     0o246134572610) & mask), 'invalid CLEAN seal'
+replay_v1567 = os.environ.get('DAIMOS_TSFS_GATE_V2_REPLAY_V1567', '')
+if replay_v1567:
+    # The tape was physically damaged by the guest's previous real
+    # Type-551 CLEAN write; DO NOT silently reformat it here. A single
+    # changed physical word4 leaves CLEAN state but the old DIRTY seal.
+    dirty_seal_v1567 = (~(words[0] ^ words[1] ^ words[2] ^
+                         0o552255225522 ^ 0o246134572610) & mask)
+    assert words[4] == 0 and words[5] == dirty_seal_v1567, (
+        'not the authentic interrupted RBN0 CLEAN state/old DIRTY seal')
+else:
+    assert words[4] == 0, 'non-CLEAN DTVOL2 before boot'
+    assert words[5] == (~(words[0] ^ words[1] ^ words[2] ^
+                         0o246134572610) & mask), 'invalid CLEAN seal'
 assert all(word == 0 for word in words[6:]), 'nonzero RBN0 padding'
 if os.environ.get('DAIMOS_TSFS_GATE_V2_DIRTY_V1564') == '1':
+    assert not replay_v1567
     # This is a fully valid on-media WRITE_INTENT (not an invalid checksum).
     # Model a crash after physical DIRTY arming but before CLEAN is written;
     # the real guest must refuse BOTH RO and RW mounts. Only the disposable
@@ -276,11 +295,35 @@ if os.environ.get('DAIMOS_TSFS_GATE_V2_DIRTY_V1564') == '1':
     assert words[5] == (~(words[0] ^ words[1] ^ words[2] ^
                          words[4] ^ 0o246134572610) & mask)
     print('PASS v1564: independent valid DTVOL2 WRITE_INTENT seal')
+elif replay_v1567:
+    print('PASS v1567: real physically torn RBN0 replay image accepted by fixture')
 else:
     print('PASS v1564: independent full physical DTVOL2 CLEAN seal')
+fault_v1567 = os.environ.get('DAIMOS_TSFS_GATE_V2_FAULT_V1567', '')
+if fault_v1567:
+    # The independent v1567 crash-image generator changes only this
+    # private DTC3 attachment AFTER the full clean formatter check,
+    # BEFORE the whole-tape fingerprint. The real guest still reads
+    # the resulting image through its physical Type-551 controller.
+    # Never confuse this host-created torn tape with an interrupted
+    # controller write. That different v1567 test uses exact linked
+    # VFS breakpoints and real diagnostic Type-551 PARTIALWRITE.
+    assert os.environ.get('DAIMOS_TSFS_GATE_V2_DIRTY_V1564') != '1'
+    import subprocess
+    subprocess.run([sys.executable, sys.argv[3], str(image), fault_v1567],
+                   check=True)
+    assert image.stat().st_size == 0o1102 * 128 * 8
 Path(sys.argv[2]).write_text(hashlib.sha256(image.read_bytes()).hexdigest())
 print('PASS v1564: independent 72-bit identity and exact media fingerprint')
 PY
+                if [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
+                        # Source-matched genuine Type-551 v1567 proof:
+                        # retain the original clean full-tape baseline,
+                        # then capture physical DIRTY and partial CLEAN
+                        # only after the simulator DETACH flushes DTC3.
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/clean-origin-v1567.tap"
+                fi
         else
                 "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc3_media_v1530" || \
                     fail_logs 'v1523: could not prepare physical DTC3 geometry'
@@ -417,14 +460,24 @@ with image.open('rb') as stream:
         return ((a & 0o777777) << 18) | (b & 0o777777)
     identity = [read_word() for _ in range(4)]
     import os
+    fault_v1567 = os.environ.get('DAIMOS_TSFS_GATE_V2_FAULT_V1567', '')
     if os.environ.get('DAIMOS_TSFS_GATE_DTVOL2_V1564') == '1':
-        assert identity[0] == 0o446466575422, 'missing DTVOL2 marker'
+        if fault_v1567 == 'torn-magic':
+            assert identity[0] == (0o446466575422 ^ 0o100), \
+                'wrong controlled torn physical DTVOL2 magic'
+        else:
+            assert identity[0] == 0o446466575422, 'missing DTVOL2 marker'
     else:
         assert identity[0] == 0o446466575421, 'missing DTVOL1 marker'
     assert identity[1] and identity[2], 'zero 72-bit identity half'
-    assert identity[3] == (
-        ~(identity[0] ^ identity[1] ^ identity[2]) &
-        0o777777777777), 'invalid identity complement'
+    actual_complement_v1520 = (
+        ~(identity[0] ^ identity[1] ^ identity[2]) & 0o777777777777)
+    if fault_v1567 in ('torn-magic', 'torn-identity'):
+        assert identity[3] != actual_complement_v1520, \
+            'controlled torn identity unexpectedly became valid'
+    else:
+        assert identity[3] == actual_complement_v1520, \
+            'invalid identity complement'
     stream.seek(0o144 * 128 * 8 + 12 * 8)
     assert read_word() == 0, 'native owner map word 12 unexpectedly used'
     assert (read_word() >> 21) & 0o37 == 0, (
@@ -479,6 +532,7 @@ fi
 if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
@@ -519,6 +573,35 @@ with ini.open('w') as output:
 final = ini.read_text().splitlines()
 assert final[-1].strip() == 'exit'
 ini.write_text('\n'.join(final[:-1]) + '\n')
+PY
+fi
+if [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
+        # The physical diagnostic uses two deterministic KCORE instruction
+        # breakpoints. Install them BEFORE the initial GO in this private
+        # SIMH do-file. The above monitor-mode branch also removes the
+        # trailing EXIT so breakpoints return to interactive sim>.
+        : "${DAIMOS_TSFS_GATE_BREAK_BEFORE_CLEAN_V1567:?}"
+        : "${DAIMOS_TSFS_GATE_BREAK_FAILED_CLEAN_V1567:?}"
+        python3 - "$headless_ini_v1530" \
+            "$DAIMOS_TSFS_GATE_BREAK_BEFORE_CLEAN_V1567" \
+            "$DAIMOS_TSFS_GATE_BREAK_FAILED_CLEAN_V1567" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+ini=Path(sys.argv[1])
+before,failed=sys.argv[2:]
+assert re.fullmatch(r'[0-7]{6}',before)
+assert re.fullmatch(r'[0-7]{6}',failed)
+assert before != failed and before != '000060' and failed != '000060'
+text=ini.read_text()
+anchor='break 060\n'
+assert text.count(anchor)==2, 'expected Stage-1 and final PID1 breakpoints'
+assert text.splitlines()[-1].strip() != 'exit', 'breakpoints require monitor mode'
+text=text.replace(anchor,'break '+before+'\nbreak '+failed+'\n'+anchor,1)
+ini.write_text(text)
+print('v1567: simulator breakpoints before physical CLEAN '+before+
+      ' and on sticky-failure '+failed)
 PY
 fi
 if [ "${DAIMOS_D6FS_SECONDARY_FAULT_V1545:-0}" = 1 ]; then
@@ -665,6 +748,7 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
@@ -860,6 +944,64 @@ PY
                             fail_logs 'v1534: no media return checkpoint'
                         simh_media_exchange_v1527 \
                             "attach -q DTC3 $dtc3_media_v1530"
+                elif [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
+                        # The simulator stops by its own *exact* KCORE
+                        # breakpoint immediately BEFORE the unchanged
+                        # v1566 private CLEAN call. No asynchronous CTY
+                        # Control-E, guest readchar or timing guess.
+                        wait_new "$cty_out" "$gate_prefix READY_PARTIAL" 0 ||
+                            fail_logs 'v1567: physical DIRTY checkpoint absent'
+                        wait_new "$cty_out" "Breakpoint, PC: $DAIMOS_TSFS_GATE_BREAK_BEFORE_CLEAN_V1567" 0 ||
+                            fail_logs 'v1567: real CLEAN did not reach linked breakpoint'
+                        wait_new "$cty_out" 'sim> ' 0 150 ||
+                            fail_logs 'v1567: SIMH did not stop at CLEAN breakpoint'
+                        simh_monitor_v1567()
+                        {
+                                for command do
+                                        console_start=`log_size "$cty_out"`
+                                        printf '%s\n' "$command" >&3
+                                        wait_new "$cty_out" 'sim> ' "$console_start" 150 ||
+                                            fail_logs 'v1567: breakpoint monitor command timed out'
+                                        if tail -c "+$((console_start + 1))" "$cty_out" |
+                                            grep -Ei '^\?|Error [0-9]|not attached|Invalid argument' >/dev/null; then
+                                                fail_logs 'v1567: breakpoint monitor command refused'
+                                        fi
+                                done
+                        }
+                        # DETACH is an actual Type-551 simulator buffer
+                        # FLUSH, not a modification of the on-media image.
+                        simh_monitor_v1567 'detach DTC3'
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/dirty-physical-v1567.tap"
+                        python3 "$self/daimos-dtfs-physical-clean-verify-v1567.py" \
+                            dirty "$work/media/clean-origin-v1567.tap" \
+                            "$work/media/dirty-physical-v1567.tap" ||
+                            fail_logs 'v1567: no real original DIRTY RBN0 evidence'
+                        simh_monitor_v1567 \
+                            "attach -q DTC3 $dtc3_media_v1530" \
+                            'set DTC3 PARTIALWRITE=0000:1'
+                        printf 'cont\n' >&3
+                        wait_new "$cty_out" 'V1529 PARTIALWRITE block 0000 after 1 changed word' 0 ||
+                            fail_logs 'v1567: no real partial Type-551 RBN0 write witness'
+                        wait_new "$cty_out" "Breakpoint, PC: $DAIMOS_TSFS_GATE_BREAK_FAILED_CLEAN_V1567" 0 ||
+                            fail_logs 'v1567: production VFS never retained sticky failure'
+                        wait_new "$cty_out" 'sim> ' 0 150 ||
+                            fail_logs 'v1567: monitor never stopped on sticky failure'
+                        simh_monitor_v1567 'detach DTC3'
+                        python3 "$self/daimos-dtfs-physical-clean-verify-v1567.py" \
+                            torn "$work/media/dirty-physical-v1567.tap" \
+                            "$dtc3_media_v1530" ||
+                            fail_logs 'v1567: physical first-word CLEAN tear not proven'
+                        test -n "${DAIMOS_TSFS_GATE_EXPORT_PARTIAL_V1567:-}" ||
+                            fail_logs 'v1567: missing persistent physical replay path'
+                        cp "$dtc3_media_v1530" \
+                            "$DAIMOS_TSFS_GATE_EXPORT_PARTIAL_V1567"
+                        simh_monitor_v1567 "attach -q DTC3 $dtc3_media_v1530"
+                        printf 'cont\n' >&3
+                        wait_new "$cty_out" "$gate_prefix WRITE_FAILED" 0 ||
+                            fail_logs 'v1567: real partial CLEAN write not refused'
+                        wait_new "$cty_out" "$gate_prefix POISONED" 0 ||
+                            fail_logs 'v1567: failed physical CLEAN lost mounted poison'
                 elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_ARM" 0 ||
                             fail_logs 'v1529: no pre-partial-write checkpoint'
@@ -911,7 +1053,17 @@ PY
         if grep -F "$gate_prefix FAIL" "$cty_out" >/dev/null; then
                 fail_logs 'real PID1 physical gate reported an error'
         fi
-        if [ "${DAIMOS_TSFS_GATE_DTVOL2_V1564:-0}" = 1 ]; then
+        if [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
+                # Both physical flushes, independent 72-bit identity and
+                # exact one-word diff were checked at the breakpoint,
+                # BEFORE allowing guest PID1 to report PASS.
+                test -s "$DAIMOS_TSFS_GATE_EXPORT_PARTIAL_V1567" ||
+                    fail_logs 'v1567: missing actual torn RBN0 replay image'
+                cmp -s "$dtc3_media_v1530" \
+                    "$DAIMOS_TSFS_GATE_EXPORT_PARTIAL_V1567" ||
+                    fail_logs 'v1567: tape changed after poisoned mount refusal'
+                echo 'PASS v1567: physical partial RBN0 CLEAN persisted for cold boot'
+        elif [ "${DAIMOS_TSFS_GATE_DTVOL2_V1564:-0}" = 1 ]; then
                 python3 - "$dtc3_media_v1530" "$work/physical-intent-v1564.sha256" <<'PY'
 from pathlib import Path
 import hashlib
