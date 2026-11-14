@@ -210,6 +210,30 @@ p1c_log_snapshot_v1576(int restored)
         p1c_log_scratch_v1576[3] = (2UL << 30U) | (077U << 18U) | 2UL;
         p1c_log_scratch_v1576[4] = code;
         p1c_log_scratch_v1576[5] = P1C_LOG_VALUE_V1576;
+#ifdef XIP_P1C_LOGFAULT_V1577
+        /* Test-only MRES writes a real, deliberately uncommitted record
+         * to the physical LOGSTORE block, then reports an I/O error.
+         * Producer state must remain unchanged and retry must recover.
+         */
+        if (dsys_logctl(SYS_LOGCTL_APPEND, 0UL,
+                p1c_log_scratch_v1576) == 0 ||
+            dsys_logctl(SYS_LOGCTL_STATUS, 0UL,
+                p1c_log_status_v1576) != 0 ||
+            p1c_log_status_v1576[0] != before ||
+            (p1c_log_status_v1576[1] & 0777777UL) != slot)
+                return xip_fail_v1469("P1C-LOG-FAILED-CURSOR", -1);
+        block = slot + 2UL;
+        if (dsys_logctl(SYS_LOGCTL_READ_BLOCK, block,
+                p1c_log_read_v1576) != 0 ||
+            p1c_log_read_v1576[0] != P1C_LOG_MAGIC_V1576 ||
+            p1c_log_read_v1576[1] != before ||
+            p1c_log_read_v1576[4] != code ||
+            p1c_log_read_v1576[5] != P1C_LOG_VALUE_V1576 ||
+            p1c_log_read_v1576[0177] != 0UL)
+                return xip_fail_v1469("P1C-LOG-TORN-READBACK", -1);
+        (void)u_puts(1, "P1C-LOGSTORE-TORN-REFUSED");
+        (void)u_crlf(1);
+#endif
         if (dsys_logctl(SYS_LOGCTL_APPEND, 0UL,
                 p1c_log_scratch_v1576) != 0)
                 return xip_fail_v1469("P1C-LOG-APPEND", -1);
