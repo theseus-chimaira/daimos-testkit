@@ -9,6 +9,7 @@
         .globl mm_unpin
         .globl mm_free
         .globl dtfs_intent_arm_v1551
+        .globl dtfs_intent_verify_v1554
 
 main:
         movei   014,case_table_v1552
@@ -187,6 +188,12 @@ dtfs_intent_arm_v1551:
         popj    17,
 arm_good_v1552:
         setz    1,
+        popj    17,
+
+; v1552 baseline invokes ARM only. The shared-MM VERIFY operation
+; is exercised by the dedicated v1554 acceptance matrix.
+dtfs_intent_verify_v1554:
+        seto    1,
         popj    17,
 
 bad_mm_call_v1552:

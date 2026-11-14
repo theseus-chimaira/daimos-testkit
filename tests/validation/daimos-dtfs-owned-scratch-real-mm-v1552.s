@@ -5,6 +5,7 @@
         .globl __test_exit
         .globl dtfs_intent_owned_arm_v1552
         .globl dtfs_intent_arm_v1551
+        .globl dtfs_intent_verify_v1554
         .globl mm_is_pinned
         .globl mm_extent_count
         .globl mm_arena_count
@@ -113,6 +114,10 @@ dtfs_intent_arm_v1551:
         setz    1,
         popj    17,
 arm_failed_v1552:
+        seto    1,
+        popj    17,
+
+dtfs_intent_verify_v1554:
         seto    1,
         popj    17,
 

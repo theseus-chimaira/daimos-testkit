@@ -69,7 +69,8 @@ mutants=(
      'andi    014,1'),
 )
 for name,old,new in mutants:
-    assert source.count(old)==1,(name,source.count(old))
+    expected=2 if name=='skip-retained-MM-handle' else 1
+    assert source.count(old)==expected,(name,source.count(old),expected)
     (work/('mutant-'+name+'-v1553.s')).write_text(source.replace(old,new,1))
 print('v1553: 18 native authenticated mount cases, %d unsafe mutants' % len(mutants))
 PY

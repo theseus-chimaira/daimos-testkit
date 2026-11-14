@@ -5,6 +5,7 @@
         .globl __test_exit
         .globl dtfs_intent_first_write_v1553
         .globl dtfs_intent_owned_arm_v1552
+        .globl dtfs_intent_owned_verify_v1554
         .globl vfs_mount_root_base
         .globl vfs_mount_limit
         .globl dtfs_media_base
@@ -160,6 +161,21 @@ arm_wrong_v1553:
         movei   1,0777                ; incorrect ABI must fail native test
         popj    17,
 
+; v1554 source now requires a readback even for the older prearmed case.
+; Preserve the v1553 18-case oracle with the v1554 service substituted.
+dtfs_intent_owned_verify_v1554:
+        aos     calls_v1553
+        caie    1,2
+        jrst    arm_wrong_v1553
+        caie    2,012345
+        jrst    arm_wrong_v1553
+        caie    3,045670
+        jrst    arm_wrong_v1553
+        caie    4,scratch_base_v1553
+        jrst    arm_wrong_v1553
+        setz    1,
+        popj    17,
+
         .data
 ; Five words per entry: mode, result, physical arm calls, final media,
 ; retained MM base. All 36-bit values are explicitly octal-prefixed.
@@ -171,7 +187,7 @@ case_table_v1553:
         .word 0
         .word 1                     ; already armed and unchanged
         .word 0
-        .word 0
+        .word 1                     ; now physically reverified
         .word 0140002
         .word 0
         .word 2                     ; legacy
