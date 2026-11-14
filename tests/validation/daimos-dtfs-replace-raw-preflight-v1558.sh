@@ -100,7 +100,8 @@ clear=runtime[start:runtime.index('; Shared LEGACY native identity parser',start
 start=runtime.index('dtfs_identity_validate_v1522:\n')
 validator=runtime[start:runtime.index('dtfs_lookup:\n',start)]
 source=('.text\n.globl dtfs_verify_replacement_v1531\n'+
-        replacement+clear+validator)
+        replacement+clear+validator+
+        (repo/'system/kernel/fs/dtfs_intent_validate_v1550.s').read_text())
 assert source.count('pushj   17,dtfs_workspace_clear_v1558')==1
 assert source.count('pushj   17,dtfs_workspace_poison_v1558')==1
 mutants=(

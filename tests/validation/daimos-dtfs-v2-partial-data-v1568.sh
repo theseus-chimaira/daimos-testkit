@@ -10,7 +10,7 @@ mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 mode=${V1568_MODE:-data}
 case "$mode" in
-    data|dir) ;;
+    data|dir|admin) ;;
     *) echo "v1568: invalid mode: $mode" >&2; exit 1 ;;
 esac
 work=$(mktemp -d "$TMPDIR/daimos-dtfs-v2-partial-data-v1568.XXXXXX")
@@ -121,6 +121,17 @@ publish = ('        move    1,-1(17)               ; low half\n'
            '        movem   1,(2)\n'
            '        setzm   dtfs_cache_mount\n')
 assert original_dtfs.count(publish) == 1
+once_v1570 = ''
+if mode == 'admin':
+    # A second mount after privileged replacement must be genuinely RO,
+    # not silently relaxed again by the disposable first-mount hook.
+    once_v1570 = (
+        '        skipn   dtfs_test_rw_once_v1570\n'
+        '        jrst    dtfs_test_rw_first_v1570\n'
+        '        jrst    dtfs_test_rw_publish_done_v1568\n'
+        '        .globl dtfs_test_rw_first_v1570\n'
+        'dtfs_test_rw_first_v1570:\n'
+        '        aos     dtfs_test_rw_once_v1570\n')
 late_policy = (
     '        move    1,-1(17)               ; low half\n'
     '        movem   1,(2)\n'
@@ -133,6 +144,7 @@ late_policy = (
     '        jrst    dtfs_test_rw_publish_done_v1568\n'
     '        caie    012,2               ; exact public mount2 only\n'
     '        jrst    dtfs_test_rw_publish_done_v1568\n'
+    +once_v1570+
     '        movei   5,2\n'
     '        andcam  5,vfs_mount_policy\n'
     '        .globl dtfs_test_rw_publish_done_v1568\n'
@@ -174,7 +186,13 @@ extra = (
     '        jrst    dtfs_v2_write_allowed_v1555\n'
     '        .globl dtfs_test_guard_normal_v1568\n'
     'dtfs_test_guard_normal_v1568:\n')
-dtfs_path.write_text(original_dtfs.replace(anchor, extra, 1))
+original_dtfs = original_dtfs.replace(anchor, extra, 1)
+if mode == 'admin':
+    original_dtfs += (
+        '\n        .data\n'
+        '        .globl dtfs_test_rw_once_v1570\n'
+        'dtfs_test_rw_once_v1570: .word 0\n')
+dtfs_path.write_text(original_dtfs)
 assert 'pushj   17,dtfs_intent_mount_gate_v1561' in original_dtfs
 assert 'dtfs_intent_first_write_v1553:' in original_dtfs
 assert 'dtfs_intent_owned_arm_v1552:' in original_dtfs
@@ -212,6 +230,12 @@ if [ "$mode" = dir ]; then
         *) echo 'FAIL v1568: missing linked KCORE DIR breakpoints' >&2; exit 1 ;;
     esac
     echo "v1568: exact DIR VFS breakpoints: $DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568 $DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568"
+fi
+if [ "$mode" = admin ]; then
+    grep -q '^dtfs_test_rw_once_v1570' "$build/dtfs-mres.map" || {
+        echo 'FAIL v1570: one-shot RW test guard absent' >&2
+        exit 1
+    }
 fi
 
 # Use existing v1529 actual two-word RBN0145 partial-transfer guest,
@@ -251,6 +275,17 @@ if [ "$mode" = dir ]; then
     export DAIMOS_TSFS_GATE_PREFIX_V1526='DTFSDIR V1568'
     export DAIMOS_TSFS_GATE_STAGES_V1526='START DIRTY_ARMED READY_ARM WRITE_FAILED READY_VERIFY STICKY_CONFIRMED PASS'
     replay="$DAIMOS_TSFS_GATE_EXPORT_DIR_V1568"
+elif [ "$mode" = admin ]; then
+    export DAIMOS_TSFS_GATE_SOURCE_V1526="$self/../target/daimos-dtfs-v2-admin-replace-v1570.c"
+    export DAIMOS_TSFS_GATE_SYSCALL_V1531=1
+    export DAIMOS_TSFS_GATE_PARTIAL_V1529=1
+    export DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568=1
+    export DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570=1
+    export DAIMOS_TSFS_GATE_EXPORT_DATA_V1568="$work/real-v2-partial-data-v1570.tap"
+    export DAIMOS_TSFS_GATE_EXPORT_REPLACE_V1570="$work/real-v2-new-clean-v1570.tap"
+    export DAIMOS_TSFS_GATE_PREFIX_V1526='DTFSV2ADM V1570'
+    export DAIMOS_TSFS_GATE_STAGES_V1526='START READY_ARM WRITE_FAILED READY_VERIFY SAME_REJECTED READY_REPLACE RETIRED PASS'
+    replay="$DAIMOS_TSFS_GATE_EXPORT_DATA_V1568"
 else
     export DAIMOS_TSFS_GATE_SOURCE_V1526="$work/guest-v1568.c"
     export DAIMOS_TSFS_GATE_PARTIAL_V1529=1
@@ -273,6 +308,7 @@ export DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568="$replay"
 unset DAIMOS_TSFS_GATE_PARTIAL_V1529
 unset DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568
 unset DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568
+unset DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570
 unset DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568
 unset DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568
 export DAIMOS_TSFS_GATE_SOURCE_V1526="$self/../target/daimos-dtfs-v2-dirty-gate-v1564.c"
@@ -281,3 +317,14 @@ export DAIMOS_TSFS_GATE_STAGES_V1526='START RW_REFUSED RO_REFUSED UNPUBLISHED PA
 echo 'v1568: cold boot same physically damaged DTVOL2/DIRTY tape'
 sh "$self/daimos-dtfs-kcore-physical-fullguest-v1525.sh"
 echo "PASS v1568: real V2 $mode partial write and subsequent production cold boot"
+if [ "$mode" = admin ]; then
+    test -s "$DAIMOS_TSFS_GATE_EXPORT_REPLACE_V1570" || exit 1
+    unset DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568
+    export DAIMOS_TSFS_GATE_V2_REPLAY_CLEAN_V1570="$DAIMOS_TSFS_GATE_EXPORT_REPLACE_V1570"
+    export DAIMOS_TSFS_GATE_SOURCE_V1526="$self/../target/daimos-dtfs-cross-owner-v1526.c"
+    export DAIMOS_TSFS_GATE_PREFIX_V1526='DTFSV2 V1564'
+    export DAIMOS_TSFS_GATE_STAGES_V1526='START RW_REFUSED MOUNTED CROSS_CWD_REFUSED CROSS_FILE_REFUSED CROSS_RETIRED REMOUNTED PASS'
+    echo 'v1570: cold boot independently stamped replacement V2/CLEAN RO'
+    sh "$self/daimos-dtfs-kcore-physical-fullguest-v1525.sh"
+    echo 'PASS v1570: physical V2 replacement and both original/new cold boots'
+fi

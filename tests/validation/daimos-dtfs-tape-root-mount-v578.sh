@@ -235,7 +235,12 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
                 v1564_mkdtfs="$work/mkdtfs-v1564"
                 "$host_cc" -std=c99 -O2 -Wall -Wextra -Werror \
                     -o "$v1564_mkdtfs" "$DAIMOS_REPO/tools/host/mkdtfs.c"
-                if [ -n "${DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568:-}" ]; then
+                if [ -n "${DAIMOS_TSFS_GATE_V2_REPLAY_CLEAN_V1570:-}" ]; then
+                        test -f "$DAIMOS_TSFS_GATE_V2_REPLAY_CLEAN_V1570" || \
+                            fail_logs 'v1570: independent V2/CLEAN replay image missing'
+                        cp "$DAIMOS_TSFS_GATE_V2_REPLAY_CLEAN_V1570" \
+                            "$dtc3_media_v1530"
+                elif [ -n "${DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568:-}" ]; then
                         test -f "$DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568" || \
                             fail_logs 'v1568: real physical DATA replay image missing'
                         cp "$DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568" \
@@ -342,6 +347,39 @@ PY
                 if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568:-0}" = 1 ]; then
                         cp "$dtc3_media_v1530" \
                             "$work/media/clean-origin-v1568.tap"
+                fi
+                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ]; then
+                        # A completely independent, separately formatted
+                        # CLEAN reel: never infer identity from filename.
+                        "$v1564_mkdtfs" --durable-v1550 \
+                            -o "$work/media/replacement-v1570.tap" ||
+                            fail_logs 'v1570: could not format different CLEAN replacement'
+                        python3 - "$dtc3_media_v1530" \
+                            "$work/media/replacement-v1570.tap" \
+                            "$work/media/replacement-v1570.sha256" <<'PY'
+from pathlib import Path
+import hashlib
+import struct
+import sys
+
+ids = []
+for name in sys.argv[1:3]:
+    data = Path(name).read_bytes()
+    assert len(data) == 0o1102 * 1024
+    head = [struct.unpack_from('<II',data,i*8) for i in range(128)]
+    words = [(hi << 18) | lo for hi,lo in head]
+    assert all(hi <= 0o777777 and lo <= 0o777777 for hi,lo in head)
+    assert words[0] == 0o446466575422 and words[1] and words[2]
+    assert words[3] == (~(words[0]^words[1]^words[2])) & 0o777777777777
+    assert words[4] == 0 and words[5] == (
+        ~(words[0]^words[1]^words[2]^0o246134572610)) & 0o777777777777
+    assert not any(words[6:])
+    ids.append((words[1],words[2]))
+assert ids[0] != ids[1], 'same 72-bit identity cannot replace itself'
+Path(sys.argv[3]).write_text(hashlib.sha256(
+    Path(sys.argv[2]).read_bytes()).hexdigest())
+print('PASS v1570: two distinct independently formatted V2/CLEAN IDs')
+PY
                 fi
                 if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ]; then
                         cp "$dtc3_media_v1530" \
@@ -1160,6 +1198,19 @@ PY
                         simh_media_exchange_v1527 \
                             'detach DTC3' \
                             "attach -q DTC3 $dtc3_media_v1530"
+                        if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ]; then
+                                # The same damaged original is really
+                                # reattached above, with its DIRTY RBN0.
+                                # Guest releases FD/cwd but still cannot
+                                # retire this same physical 72-bit ID.
+                                wait_new "$cty_out" "$gate_prefix SAME_REJECTED" 0 ||
+                                    fail_logs 'v1570: original poisoned V2 accepted'
+                                wait_new "$cty_out" "$gate_prefix READY_REPLACE" 0 ||
+                                    fail_logs 'v1570: no actual media replacement checkpoint'
+                                simh_media_exchange_v1527 \
+                                    'detach DTC3' \
+                                    "attach -q DTC3 $work/media/replacement-v1570.tap"
+                        fi
                 else
                 wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
                     fail_logs 'v1527: no pre-detach guest checkpoint'
@@ -1217,6 +1268,36 @@ assert old == current, 'failed V2 DIR guest changed physically damaged tape'
 print('PASS v1568: final V2/DIRTY DIR unchanged, full SHA256',
       hashlib.sha256(old).hexdigest())
 PY
+        elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ]; then
+                test -s "${DAIMOS_TSFS_GATE_EXPORT_DATA_V1568:-}" ||
+                    fail_logs 'v1570: no original physical partial DATA evidence'
+                test -n "${DAIMOS_TSFS_GATE_EXPORT_REPLACE_V1570:-}" ||
+                    fail_logs 'v1570: no replacement CLEAN copy destination'
+                python3 - "$work/media/replacement-v1570.tap" \
+                    "$work/media/replacement-v1570.sha256" \
+                    "$dtc3_media_v1530" \
+                    "$DAIMOS_TSFS_GATE_EXPORT_DATA_V1568" <<'PY'
+from pathlib import Path
+import hashlib
+import sys
+
+# SIMH attaches the independently formatted replacement by its own
+# filename, never by the old DTC3 path. Reusing the old filename in
+# this check falsely compares two distinct good reel identities.
+replacement = Path(sys.argv[1]).read_bytes()
+original_digest = Path(sys.argv[2]).read_text().strip()
+old_original = Path(sys.argv[3]).read_bytes()
+old_snapshot = Path(sys.argv[4]).read_bytes()
+assert hashlib.sha256(replacement).hexdigest() == original_digest, (
+    'new CLEAN reel changed after physical RO mount/unmount')
+assert old_original == old_snapshot, (
+    'old DIRTY reel was modified after physically detaching it')
+assert hashlib.sha256(replacement).hexdigest() != (
+    hashlib.sha256(old_original).hexdigest()), 'old and new reels identical'
+print('PASS v1570: separate whole-media old DIRTY/new CLEAN SHA256 unchanged')
+PY
+                cp "$work/media/replacement-v1570.tap" \
+                    "$DAIMOS_TSFS_GATE_EXPORT_REPLACE_V1570"
         elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568:-0}" = 1 ]; then
                 test -s "${DAIMOS_TSFS_GATE_EXPORT_DATA_V1568:-}" ||
                     fail_logs 'v1568: physical V2/DIRTY DATA snapshot missing'
