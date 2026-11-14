@@ -10,6 +10,8 @@
         .globl mm_free
         .globl dtfs_intent_arm_v1551
         .globl dtfs_intent_verify_v1554
+        .globl dtfs_intent_clean_v1566
+        .globl dtfs_mark_unit_suspect_v1522
 
 main:
         movei   014,case_table_v1552
@@ -193,6 +195,15 @@ arm_good_v1552:
 ; v1552 baseline invokes ARM only. The shared-MM VERIFY operation
 ; is exercised by the dedicated v1554 acceptance matrix.
 dtfs_intent_verify_v1554:
+        seto    1,
+        popj    17,
+
+; v1566 adds a CLEAN mode to the shared MM lease, but this historical
+; matrix exercises ARM only. Refuse any unexpected physical CLEAN call.
+dtfs_intent_clean_v1566:
+        seto    1,
+        popj    17,
+dtfs_mark_unit_suspect_v1522:
         seto    1,
         popj    17,
 

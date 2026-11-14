@@ -6,6 +6,8 @@
         .globl dtfs_intent_owned_arm_v1552
         .globl dtfs_intent_arm_v1551
         .globl dtfs_intent_verify_v1554
+        .globl dtfs_intent_clean_v1566
+        .globl dtfs_mark_unit_suspect_v1522
         .globl mm_is_pinned
         .globl mm_extent_count
         .globl mm_arena_count
@@ -118,6 +120,15 @@ arm_failed_v1552:
         popj    17,
 
 dtfs_intent_verify_v1554:
+        seto    1,
+        popj    17,
+
+; The historical v1552 physical-MM matrix does not run v1566 CLEAN.
+; Keep the new compiled branch linked without pretending to seal RBN0.
+dtfs_intent_clean_v1566:
+        seto    1,
+        popj    17,
+dtfs_mark_unit_suspect_v1522:
         seto    1,
         popj    17,
 
