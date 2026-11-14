@@ -97,9 +97,61 @@ support=support.replace(old_flags,'move    3,mount_flags_v1555',1)
 old_patch='dtfs_patch_media:\n        aos     patched_v1519\n'
 assert support.count(old_patch)==1
 support=support.replace(old_patch,old_patch+'        movem   2,patched_media_v1555\n',1)
+old_raw='physical_copy_v1519:\n        move    5,3\n'
+assert support.count(old_raw)==1
+raw_hook=('physical_copy_v1519:\n'
+          '        ; v1558 fault-injection at exact raw Type-551 ABI.\n'
+          '        move    6,fault_mode_v1558\n'
+          '        caie    6,017\n'
+          '        jrst    physical_dir_prefix_v1558\n'
+          '        move    6,raw_reads_v1519\n'
+          '        caie    6,1\n'
+          '        jrst    physical_copy_normal_v1558\n'
+          '        setz    1,\n'
+          '        popj    17,\n'
+          'physical_dir_prefix_v1558:\n'
+          '        caie    6,020\n'
+          '        jrst    physical_id_missing_v1558\n'
+          '        move    6,raw_reads_v1519\n'
+          '        caie    6,1\n'
+          '        jrst    physical_copy_normal_v1558\n'
+          '        jrst    physical_copy_prefix_v1558\n'
+          'physical_id_missing_v1558:\n'
+          '        caie    6,021\n'
+          '        jrst    physical_id_prefix_v1558\n'
+          '        move    6,raw_reads_v1519\n'
+          '        caie    6,2\n'
+          '        jrst    physical_copy_normal_v1558\n'
+          '        setz    1,\n'
+          '        popj    17,\n'
+          'physical_id_prefix_v1558:\n'
+          '        caie    6,022\n'
+          '        jrst    physical_copy_normal_v1558\n'
+          '        move    6,raw_reads_v1519\n'
+          '        caie    6,2\n'
+          '        jrst    physical_copy_normal_v1558\n'
+          'physical_copy_prefix_v1558:\n'
+          '        move    5,3\n'
+          '        addi    5,2\n'
+          '        blt     4,(5)\n'
+          '        setz    1,\n'
+          '        popj    17,\n'
+          'physical_copy_normal_v1558:\n'
+          '        move    5,3\n')
+support=support.replace(old_raw,raw_hook,1)
 (work/'fixture-support-v1555.s').write_text(support)
 
 mutants=(
+    ('allow-zero-byte-rbn0-as-legacy',
+     '; nonzero poison; a complete legitimate legacy READ overwrites it.\n'
+     '        pushj   17,dtfs_workspace_poison_v1558',
+     '; nonzero poison; a complete legitimate legacy READ overwrites it.\n'
+     '        pushj   17,dtfs_workspace_clear_v1558'),
+    ('skip-initial-directory-workspace-clear',
+     '; clearing stale words makes false-successful short reads invalid.\n'
+     '        pushj   17,dtfs_workspace_clear_v1558',
+     '; clearing stale words makes false-successful short reads invalid.\n'
+     '        move    4,4                   ; stale directory accepted'),
     ('skip-v2-same-unit-check',
      'movei   2,1                     ; candidate DTVOL2 mount\n'
      '        pushj   17,dtfs_v2_mount_exclusive_v1557',
@@ -143,7 +195,7 @@ for name,old,new in mutants:
     assert source.count(old)==1,(name,source.count(old))
     (work/('mutant-'+name+'-v1555.s')).write_text(source.replace(old,new,1))
 (work/'native-source-v1555.s').write_text(source)
-print('v1557: 24 native genuine-image admission/exclusive-unit cases and '
+print('v1558: 28 native genuine-image admission/exclusive-unit cases and '
       '%d source mutations' % len(mutants))
 PY
 
@@ -168,9 +220,11 @@ if ! run_native baseline "$work/native-source-v1555.s"; then
     echo 'FAIL v1555: physical DTVOL2 mount admission' >&2
     exit 1
 fi
-echo 'PASS v1557: 24 native PDP-6 physical V2 admission/ownership scenarios'
+echo 'PASS v1558: 28 native PDP-6 physical V2 admission/ownership scenarios'
 
-for mutation in skip-v2-same-unit-check skip-v1-on-v2-check \
+for mutation in allow-zero-byte-rbn0-as-legacy \
+    skip-initial-directory-workspace-clear \
+    skip-v2-same-unit-check skip-v1-on-v2-check \
     allow-v2-rw skip-v2-seal-parser allow-v2-dirty \
     skip-v2-tag ignore-v1-check skip-high-id skip-low-id \
     skip-directory-magic skip-physical-id-read; do

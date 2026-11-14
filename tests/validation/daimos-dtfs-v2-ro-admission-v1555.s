@@ -17,7 +17,7 @@
 
 main:
         movei   010,case_table_v1555
-        movei   011,030                ; 24 mount scenarios through v1557
+        movei   011,034                ; 28 mount scenarios through v1558
 case_next_v1555:
         setzm   raw_reads_v1519
         setzm   published_v1519
@@ -43,6 +43,13 @@ case_next_v1555:
         hrli    4,record_dir_v1555
         movei   5,media_dir_v1519+0177
         blt     4,(5)
+        ; Seed the *shared* raw workspace with a complete older valid
+        ; directory before the new mount. A false-successful DTC READ
+        ; must not be able to reuse it when no physical words arrived.
+        movei   4,fs_block_workspace
+        hrli    4,record_dir_v1555
+        movei   5,fs_block_workspace+0177
+        blt     4,(5)
         move    6,(010)
         movei   4,media_id_v1519
         hrl     4,6
@@ -52,6 +59,7 @@ case_next_v1555:
         movem   5,mount_flags_v1555
 
         move    5,6(010)                ; damage-mode enum
+        movem   5,fault_mode_v1558
         cain    5,1                     ; nonzero padding
         jrst    case_bad_padding_v1555
         cain    5,2                     ; invalid checked seal
@@ -375,6 +383,36 @@ case_table_v1555:
         .word 0
         .word 2
         .word 016
+        .word record_v2_clean_v1555
+        .word 011                      ; false successful directory, no bytes
+        .word -1
+        .word 0
+        .word 0
+        .word 1
+        .word 017
+        .word record_v2_clean_v1555
+        .word 011                      ; false successful directory prefix
+        .word -1
+        .word 0
+        .word 0
+        .word 1
+        .word 020
+        .word record_v2_clean_v1555
+        .word 011                      ; false successful RBN0, no bytes
+        .word -1
+        .word 0
+        .word 0
+        .word 2
+        .word 021
+        .word record_v2_clean_v1555
+        .word 011                      ; false successful RBN0, 3-word prefix
+        .word -1
+        .word 0
+        .word 0
+        .word 2
+        .word 022
 
 patched_media_v1555: .word 0
 mount_flags_v1555: .word 011
+        .globl fault_mode_v1558
+fault_mode_v1558: .word 0

@@ -49,6 +49,14 @@ for name, values in [('clean',clean),('dirty',dirty),('legacy',legacy)]:
 
 arm=(repo/'system/kernel/fs/dtfs_intent_arm_v1551.s').read_text()
 mutants=(
+    ('skip-initial-scratch-clear',
+     'pushj   17,dtfs_arm_clear_scratch_v1551',
+     'move    2,2                   ; accept old CLEAN scratch'),
+    ('skip-readback-scratch-clear',
+     '; record in RAM must not be mistaken for verified on-media intent.\n'
+     '        pushj   17,dtfs_arm_clear_scratch_v1551',
+     '; record in RAM must not be mistaken for verified on-media intent.\n'
+     '        move    2,2                   ; old DIRTY scratch'),
     ('skip-clean-admission',
      'jumpn   1,dtfs_arm_reject_v1551',
      'jumpe   1,dtfs_arm_reject_v1551'),
@@ -75,14 +83,14 @@ mutants=(
 for name,old,new in mutants:
     count=arm.count(old)
     expected=2 if name in ('skip-clean-admission','skip-high-identity',
-                           'skip-low-identity') else 1
+                           'skip-low-identity','skip-initial-scratch-clear') else 1
     assert count==expected,(name,count,expected)
     # The same high/low checks recur after raw readback. Remove both
     # checks in their corresponding unsafe mutations.
     replacements=2 if name in ('skip-high-identity','skip-low-identity') else 1
     (work/('mutant-'+name+'-v1551.s')).write_text(
         arm.replace(old,new,replacements))
-print('v1551: 14 real-media physical boundary cases and %d mutations' % len(mutants))
+print('v1558: 17 real-media physical boundary cases and %d mutations' % len(mutants))
 PY
 
 run_case() {
@@ -104,9 +112,10 @@ if ! run_case baseline "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_arm_v1551.s"; 
     echo 'FAIL v1551: native physical RBN0 arm service' >&2
     exit 1
 fi
-echo 'PASS v1551: 14 actual PDP-6 arm/rollback/readback cases'
+echo 'PASS v1558: 17 actual PDP-6 arm/rollback/readback cases'
 
-for mutation in skip-clean-admission skip-high-identity \
+for mutation in skip-initial-scratch-clear skip-readback-scratch-clear \
+    skip-clean-admission skip-high-identity \
     skip-low-identity skip-dirty-checksum skip-poison \
     skip-cache-invalidate \
     skip-physical-readback skip-write-error; do

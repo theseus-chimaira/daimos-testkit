@@ -11,7 +11,7 @@
 
 main:
         movei   014,case_table_v1551
-        movei   015,016                 ; 14 distinct ordered scenarios
+        movei   015,021                 ; 17 distinct ordered scenarios
 case_next_v1551:
         move    1,(014)
         movem   1,test_mode_v1551
@@ -41,6 +41,15 @@ case_normal_media_v1551:
         hrli    2,record_clean_v1551
 case_copy_v1551:
         movei   3,media_v1551+0177
+        blt     2,(3)
+
+        ; v1558: MM returns a previously used buffer whose entire old
+        ; contents look like a *valid* DTVOL2/CLEAN record. A raw READ
+        ; that transfers no bytes or a short prefix but returns success
+        ; must not authorize the marker write from these stale words.
+        movei   2,scratch_v1551
+        hrli    2,record_clean_v1551
+        movei   3,scratch_v1551+0177
         blt     2,(3)
 
         movei   1,2                     ; physical Type-551 unit
@@ -108,6 +117,35 @@ raw_read_second_v1551:
         jrst    raw_read_copy_v1551
         jrst    raw_error_v1551
 raw_read_copy_v1551:
+        move    5,test_mode_v1551
+        caie    5,016                   ; first read: zero-byte success
+        jrst    raw_read_short_v1558
+        move    6,read_count_v1551
+        caie    6,1
+        jrst    raw_read_copy_real_v1558
+        setz    1,
+        popj    17,
+raw_read_short_v1558:
+        caie    5,017                   ; first read: short prefix
+        jrst    raw_read_missing_readback_v1558
+        move    6,read_count_v1551
+        caie    6,1
+        jrst    raw_read_copy_real_v1558
+        move    5,3
+        hrli    5,media_v1551
+        movei   6,2(3)                  ; only magic and both ID halves
+        blt     5,(6)
+        setz    1,
+        popj    17,
+raw_read_missing_readback_v1558:
+        caie    5,020                   ; readback: zero-byte success
+        jrst    raw_read_copy_real_v1558
+        move    6,read_count_v1551
+        caie    6,2
+        jrst    raw_read_copy_real_v1558
+        setz    1,
+        popj    17,
+raw_read_copy_real_v1558:
         move    5,3
         hrli    5,media_v1551
         movei   6,0177(3)
@@ -264,6 +302,24 @@ case_table_v1551:
         .word 0
         .word 0
         .word 0
+        .word 016                     ; false success, no initial bytes
+        .word -1
+        .word 1
+        .word 0
+        .word 0
+        .word 0
+        .word 017                     ; false success, initial 3 words
+        .word -1
+        .word 1
+        .word 0
+        .word 0
+        .word 0
+        .word 020                     ; false readback success, no bytes
+        .word -1
+        .word 2
+        .word 1
+        .word 1
+        .word 1
         .globl record_clean_v1551
         .globl record_dirty_v1551
         .globl record_legacy_v1551
