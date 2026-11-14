@@ -32,6 +32,34 @@ XIP_V1470_BOOT_CORE_WORDS="$core" XIP_V1470_SIMH_CPU_KWORDS="$size" \
     sh "$self/daimos-xip-launch-v1469.sh"
 
 boot="$work/guest/build/system/boot/pdp6"
+if [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
+    # Read five real linked KCORE witness words only after the simulator
+    # reaches the fatal BACKSTORE HALT. Keep the original physical boot.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1581'
+from pathlib import Path
+import sys
+
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    parts = line.split()
+    if len(parts) >= 2 and all(c in '01234567' for c in parts[1]):
+        symbols[parts[0]] = int(parts[1], 8)
+names = ('daimos_v1581_pi2_errors', 'daimos_v1581_relative',
+         'daimos_v1581_target_group', 'daimos_v1581_target_descriptor',
+         'daimos_v1581_arm', 'backstore_blocks_used',
+         'backstore_enabled', 'mfsdev_storage_errors')
+assert all(name in symbols for name in names), 'v1581 KCORE map incomplete'
+symbols['daimos_v1581_drm_errors'] = symbols['mfsdev_storage_errors'] + 5
+names += ('daimos_v1581_drm_errors',)
+source = ini.read_text()
+assert source.endswith('go 020\nexit\n'), 'v1581 boot control flow drift'
+checks = ''.join('ex %06o\n' % symbols[name] for name in names)
+ini.write_text(source[:-5] + checks + 'exit\n')
+(ini.parent / 'v1581-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1581
+fi
 "$PDP10_PREFIX/bin/mkauxstore" --inspect "$boot/drum/dsk0.dsk" \
     > "$work/auxstore-v1477.inspect"
 for n in 1 2; do
@@ -142,6 +170,11 @@ EOF
         echo "v1484: AUXSTORE partition geometry changed at boot $n" >&2
         exit 1
     }
+    if [ "$n" = 1 ] && [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
+        # One real physical fail-stop. A second boot would deliberately
+        # find no committed snapshot, not the v1580 recovery baseline.
+        break
+    fi
     if [ "$n" = 1 ] && [ "${XIP_V1580_P1C_SWAP:-0}" = 1 ]; then
         python3 "$self/daimos-p1c-swapped-media-v1580.py" \
             "$boot/drum/dsk0.dsk" "$work/auxstore-after-boot-$n.inspect" \
@@ -153,4 +186,8 @@ EOF
             "$work/orphan-physical-v1578.txt"
     fi
 done
-echo 'PASS v1477: committed MEMFS snapshot survived a completely new PDP-6 boot'
+if [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
+    echo 'v1581: one physical fatal-fault boot finished; commit not claimed'
+else
+    echo 'PASS v1477: committed MEMFS snapshot survived a completely new PDP-6 boot'
+fi
