@@ -19,6 +19,9 @@
         .globl  kconst_3_3
         .globl  tsfs_file_shape_base
         .globl  tsfs_extent_media_base
+        .globl  vfs_mount_root_base
+        .globl  dtfs_media_base
+        .globl  vfs_mount_limit
         .globl  __test_exit
 
 main:
@@ -374,7 +377,13 @@ kconst_3_3: .word 3,,3
 dtfs_cache_mount: .word 0
 tsfs_file_shape_base: .word shape_slabs_v1519
 tsfs_extent_media_base: .word extent_slabs_v1519
+; v1557: old fixture starts with no published DTFS unit owners.
+vfs_mount_root_base: .word roots_v1557
+dtfs_media_base: .word mounted_media_v1557
+vfs_mount_limit: .word 2
         .bss
+roots_v1557: .block 2
+mounted_media_v1557: .block 2
 media_dir_v1519: .block 0200
 media_id_v1519: .block 0200
 blank_identity_v1520: .block 0200

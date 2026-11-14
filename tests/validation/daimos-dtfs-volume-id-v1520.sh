@@ -140,6 +140,7 @@ run_native() {
         "$self/daimos-test-crt0-v1.s" \
         "$self/daimos-dtfs-volume-id-native-v1520.s" \
         "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_validate_v1550.s" \
+        "$DAIMOS_REPO/system/kernel/fs/dtfs_v2_mount_exclusive_v1557.s" \
         "$program" > "$work/$label.log" 2>&1
 }
 

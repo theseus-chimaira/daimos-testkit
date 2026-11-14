@@ -1,4 +1,4 @@
-; Native PDP-6 source-linked v1555 physical DTVOL2/CLEAN RO mount cases.
+; Native PDP-6 source-linked v1555/V1557 DTVOL2/CLEAN RO mount cases.
 ; The actual dtfs_mount_unit, identity V1 parser and v1550 V2 validator
 ; are linked from DAIMOS; only raw Type-551 and VFS publication are mocked.
 ;
@@ -17,12 +17,16 @@
 
 main:
         movei   010,case_table_v1555
-        movei   011,017                ; 15 independent mount scenarios
+        movei   011,030                ; 24 mount scenarios through v1557
 case_next_v1555:
         setzm   raw_reads_v1519
         setzm   published_v1519
         setzm   patched_v1519
         setzm   patched_media_v1555
+        setzm   roots_v1557
+        setzm   roots_v1557+1
+        setzm   mounted_media_v1557
+        setzm   mounted_media_v1557+1
         setzm   dtfs_cache_mount
         movei   4,cache_slab_v1519
         movem   4,bcache_state
@@ -62,6 +66,60 @@ case_next_v1555:
         jrst    case_bad_low_v1555
         cain    5,7                     ; legacy V1 checksum corrupt
         jrst    case_bad_v1_check_v1555
+        cain    5,010                   ; V1 on same physical DTC3
+        jrst    case_existing_v1_v1557
+        cain    5,011                   ; V2 on same DTC3
+        jrst    case_existing_v2_v1557
+        cain    5,012                   ; V1 on another DTC2
+        jrst    case_existing_other_v1_v1557
+        cain    5,013                   ; V2 on another DTC2
+        jrst    case_existing_other_v2_v1557
+        cain    5,014                   ; retired stale V2 tag
+        jrst    case_retired_v2_v1557
+        cain    5,015                   ; V1 on later published slot
+        jrst    case_existing_later_v1_v1557
+        cain    5,016                   ; V2 on later published slot
+        jrst    case_existing_later_v2_v1557
+        jrst    case_mount_v1555
+case_existing_v1_v1557:
+        move    5,[050101000000]
+        movem   5,roots_v1557
+        movei   5,3
+        movem   5,mounted_media_v1557
+        jrst    case_mount_v1555
+case_existing_v2_v1557:
+        move    5,[050101000000]
+        movem   5,roots_v1557
+        movei   5,0100003
+        movem   5,mounted_media_v1557
+        jrst    case_mount_v1555
+case_existing_other_v1_v1557:
+        move    5,[050101000000]
+        movem   5,roots_v1557
+        movei   5,2
+        movem   5,mounted_media_v1557
+        jrst    case_mount_v1555
+case_existing_other_v2_v1557:
+        move    5,[050101000000]
+        movem   5,roots_v1557
+        movei   5,0100002
+        movem   5,mounted_media_v1557
+        jrst    case_mount_v1555
+case_retired_v2_v1557:
+        movei   5,0100003
+        movem   5,mounted_media_v1557
+        jrst    case_mount_v1555
+case_existing_later_v1_v1557:
+        move    5,[050201000000]
+        movem   5,roots_v1557+1
+        movei   5,3
+        movem   5,mounted_media_v1557+1
+        jrst    case_mount_v1555
+case_existing_later_v2_v1557:
+        move    5,[050201000000]
+        movem   5,roots_v1557+1
+        movei   5,0100003
+        movem   5,mounted_media_v1557+1
         jrst    case_mount_v1555
 case_bad_padding_v1555:
         movei   5,1
@@ -254,6 +312,69 @@ case_table_v1555:
         .word 3
         .word 2
         .word 0
+        .word record_v2_clean_v1555
+        .word 011                      ; V2 must reject prior V1 same unit
+        .word -1
+        .word 0
+        .word 0
+        .word 2
+        .word 010
+        .word record_v2_clean_v1555
+        .word 011                      ; V2 must reject prior V2 same unit
+        .word -1
+        .word 0
+        .word 0
+        .word 2
+        .word 011
+        .word record_v1_v1555
+        .word 010                      ; V1 must reject prior V2 same unit
+        .word -1
+        .word 0
+        .word 0
+        .word 2
+        .word 011
+        .word record_v1_v1555
+        .word 010                      ; prior V1 and new V1 still allowed
+        .word 0
+        .word 1
+        .word 3
+        .word 2
+        .word 010
+        .word record_v2_clean_v1555
+        .word 011                      ; prior V1 on different unit allowed
+        .word 0
+        .word 1
+        .word 0100003
+        .word 2
+        .word 012
+        .word record_v1_v1555
+        .word 010                      ; prior V2 on different unit allowed
+        .word 0
+        .word 1
+        .word 3
+        .word 2
+        .word 013
+        .word record_v2_clean_v1555
+        .word 011                      ; retired stale V2 tag not an owner
+        .word 0
+        .word 1
+        .word 0100003
+        .word 2
+        .word 014
+        .word record_v2_clean_v1555
+        .word 011                      ; later-slot V1 same unit blocks V2
+        .word -1
+        .word 0
+        .word 0
+        .word 2
+        .word 015
+        .word record_v1_v1555
+        .word 010                      ; later-slot V2 same unit blocks V1
+        .word -1
+        .word 0
+        .word 0
+        .word 2
+        .word 016
 
 patched_media_v1555: .word 0
 mount_flags_v1555: .word 011

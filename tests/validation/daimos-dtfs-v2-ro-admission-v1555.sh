@@ -82,6 +82,7 @@ support=(self/'daimos-dtfs-volume-id-native-v1520.s').read_text()
 support_head=support[:support.index('main:\n')]
 start=support.index('stamp_identity_v1520:\n')
 support=support_head+support[start:]
+support='.globl roots_v1557\n.globl mounted_media_v1557\n'+support
 for name in ('raw_reads_v1519', 'published_v1519', 'patched_v1519',
              'media_dir_v1519', 'media_id_v1519', 'blank_identity_v1520',
              'shape_slabs_v1519', 'extent_slabs_v1519',
@@ -99,6 +100,14 @@ support=support.replace(old_patch,old_patch+'        movem   2,patched_media_v15
 (work/'fixture-support-v1555.s').write_text(support)
 
 mutants=(
+    ('skip-v2-same-unit-check',
+     'movei   2,1                     ; candidate DTVOL2 mount\n'
+     '        pushj   17,dtfs_v2_mount_exclusive_v1557',
+     'movei   2,1\n        setz    1, ; bypass V2 physical association'),
+    ('skip-v1-on-v2-check',
+     'setz    2,                      ; candidate V1 / zero legacy\n'
+     '        pushj   17,dtfs_v2_mount_exclusive_v1557',
+     'setz    2,\n        setz    1, ; bypass V1->V2 conflict'),
     ('allow-v2-rw',
      'trnn    1,1                     ; VFS_MOUNT_RDONLY explicitly set',
      'trne    1,1                     ; WRONG: deny RO, allow RW'),
@@ -134,7 +143,7 @@ for name,old,new in mutants:
     assert source.count(old)==1,(name,source.count(old))
     (work/('mutant-'+name+'-v1555.s')).write_text(source.replace(old,new,1))
 (work/'native-source-v1555.s').write_text(source)
-print('v1555: 15 native genuine-image admission cases and '
+print('v1557: 24 native genuine-image admission/exclusive-unit cases and '
       '%d source mutations' % len(mutants))
 PY
 
@@ -150,6 +159,7 @@ run_native() {
         "$work/fixture-support-v1555.s" \
         "$work/physical-records-v1555.s" \
         "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_validate_v1550.s" \
+        "$DAIMOS_REPO/system/kernel/fs/dtfs_v2_mount_exclusive_v1557.s" \
         "$source" > "$work/$label.log" 2>&1
 }
 
@@ -158,9 +168,10 @@ if ! run_native baseline "$work/native-source-v1555.s"; then
     echo 'FAIL v1555: physical DTVOL2 mount admission' >&2
     exit 1
 fi
-echo 'PASS v1555: 15 native PDP-6 physical V2 RO/dirty/legacy scenarios'
+echo 'PASS v1557: 24 native PDP-6 physical V2 admission/ownership scenarios'
 
-for mutation in allow-v2-rw skip-v2-seal-parser allow-v2-dirty \
+for mutation in skip-v2-same-unit-check skip-v1-on-v2-check \
+    allow-v2-rw skip-v2-seal-parser allow-v2-dirty \
     skip-v2-tag ignore-v1-check skip-high-id skip-low-id \
     skip-directory-magic skip-physical-id-read; do
     if run_native "$mutation" "$work/mutant-$mutation-v1555.s"; then
