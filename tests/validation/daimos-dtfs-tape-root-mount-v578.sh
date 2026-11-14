@@ -556,6 +556,7 @@ if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_ROOTLOSS_V1538:-0}" = 1 ] ||
@@ -596,6 +597,33 @@ with ini.open('w') as output:
 final = ini.read_text().splitlines()
 assert final[-1].strip() == 'exit'
 ini.write_text('\n'.join(final[:-1]) + '\n')
+PY
+fi
+if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ]; then
+        # v1568 exact resident VFS CREATE stops, not CTY Control-E.
+        # Both labels are generated ONLY in the disposable source-matched
+        # KCORE and checked against its actual linked symbol map.
+        : "${DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568:?}"
+        : "${DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568:?}"
+        python3 - "$headless_ini_v1530" \
+            "$DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568" \
+            "$DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+ini = Path(sys.argv[1])
+before, after = sys.argv[2:]
+assert re.fullmatch(r'[0-7]{6}', before)
+assert re.fullmatch(r'[0-7]{6}', after)
+assert before != after and before != '000060' and after != '000060'
+text = ini.read_text()
+assert text.count('break 060\n') == 2
+assert text.splitlines()[-1].strip() != 'exit'
+text = text.replace('break 060\n',
+                    'break ' + before + '\nbreak ' + after + '\nbreak 060\n', 1)
+ini.write_text(text)
+print('v1568: exact VFS DIR CREATE breakpoints:', before, after)
 PY
 fi
 if [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
@@ -1009,19 +1037,55 @@ PY
                 elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_ARM" 0 ||
                             fail_logs 'v1568: physical V2/DIRTY first create not ready'
-                        simh_media_exchange_v1527 \
-                            'detach DTC3' \
+                        wait_new "$cty_out" "Breakpoint, PC: $DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568" 0 ||
+                            fail_logs 'v1568: second VFS DTFS CREATE did not reach exact breakpoint'
+                        wait_new "$cty_out" 'sim> ' 0 150 ||
+                            fail_logs 'v1568: monitor did not stop at pre-DIR breakpoint'
+                        simh_monitor_v1568()
+                        {
+                                for command do
+                                        console_start=`log_size "$cty_out"`
+                                        printf '%s\n' "$command" >&3
+                                        wait_new "$cty_out" 'sim> ' "$console_start" 150 ||
+                                            fail_logs 'v1568: exact VFS breakpoint command timed out'
+                                        if tail -c "+$((console_start + 1))" "$cty_out" |
+                                            grep -Ei '^\?|Error [0-9]|not attached|Invalid argument' >/dev/null; then
+                                                fail_logs 'v1568: simulator rejected physical-media operation'
+                                        fi
+                                done
+                        }
+                        simh_monitor_v1568 'detach DTC3'
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/prewrite-dir-v1568.tap"
+                        python3 "$self/daimos-dtfs-v2-partial-dir-verify-v1568.py" \
+                            seed "$work/media/clean-origin-v1568.tap" \
+                            "$work/media/prewrite-dir-v1568.tap" ||
+                            fail_logs 'v1568: real first physical DIRTY metadata not proven'
+                        simh_monitor_v1568 \
                             "attach -q DTC3 $dtc3_media_v1530" \
                             'set DTC3 PARTIALWRITE=0144:1'
+                        printf 'cont\n' >&3
                         wait_new "$cty_out" 'V1529 PARTIALWRITE block 0144 after 1 changed word' 0 ||
                             fail_logs 'v1568: actual Type-551 DIR failure not observed'
+                        wait_new "$cty_out" "Breakpoint, PC: $DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568" 0 ||
+                            fail_logs 'v1568: second provider never returned from partial DIR'
+                        wait_new "$cty_out" 'sim> ' 0 150 ||
+                            fail_logs 'v1568: monitor did not stop at post-DIR breakpoint'
+                        simh_monitor_v1568 'detach DTC3'
+                        python3 "$self/daimos-dtfs-v2-partial-dir-verify-v1568.py" \
+                            partial "$work/media/prewrite-dir-v1568.tap" \
+                            "$dtc3_media_v1530" ||
+                            fail_logs 'v1568: only one changed physical DIR word not proven'
+                        test -n "${DAIMOS_TSFS_GATE_EXPORT_DIR_V1568:-}" ||
+                            fail_logs 'v1568: no actual physical DIR tape replay destination'
+                        cp "$dtc3_media_v1530" \
+                            "$DAIMOS_TSFS_GATE_EXPORT_DIR_V1568"
+                        simh_monitor_v1568 "attach -q DTC3 $dtc3_media_v1530"
+                        printf 'cont\n' >&3
                         wait_new "$cty_out" "$gate_prefix WRITE_FAILED" 0 ||
                             fail_logs 'v1568: failed DIR commit not refused'
-                        wait_new "$cty_out" "$gate_prefix READY_VERIFY" 0 ||
-                            fail_logs 'v1568: no post-partial DIR checkpoint'
-                        simh_media_exchange_v1527 \
-                            'detach DTC3' \
-                            "attach -q DTC3 $dtc3_media_v1530"
+                        wait_new "$cty_out" "$gate_prefix STICKY_CONFIRMED" 0 ||
+                            fail_logs 'v1568: poisoned DIR owner not retained'
                 elif [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
                         # The simulator stops by its own *exact* KCORE
                         # breakpoint immediately BEFORE the unchanged

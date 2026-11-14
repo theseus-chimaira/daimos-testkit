@@ -8,6 +8,11 @@ set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp}
 mkdir -p "$TMPDIR"
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+mode=${V1568_MODE:-data}
+case "$mode" in
+    data|dir) ;;
+    *) echo "v1568: invalid mode: $mode" >&2; exit 1 ;;
+esac
 work=$(mktemp -d "$TMPDIR/daimos-dtfs-v2-partial-data-v1568.XXXXXX")
 if [ "${V1568_KEEP_WORK:-0}" != 1 ]; then
     trap 'rm -rf "$work"' EXIT HUP INT TERM
@@ -39,11 +44,12 @@ build="$work/guest-build"
 mkdir -p "$build"
 cp -a "$base/." "$build/"
 
-python3 - "$DAIMOS_REPO" "$build" <<'PY'
+python3 - "$DAIMOS_REPO" "$build" "$mode" <<'PY'
 from pathlib import Path
 import sys
 
-repo, build = (Path(x) for x in sys.argv[1:])
+repo, build = (Path(x) for x in sys.argv[1:3])
+mode = sys.argv[3]
 original_vfs = (repo / 'system/kernel/fs/vfs.s').read_text()
 vfs_path = build / 'kcore-asm/vfs.s'
 assert vfs_path.read_text() == original_vfs, 'stale or foreign VFS build'
@@ -52,6 +58,47 @@ assert vfs_path.read_text() == original_vfs, 'stale or foreign VFS build'
 # production mount sequence legitimately exposes an empty media word
 # at that point; the correct test-only hook is inside the provider,
 # AFTER both saved ID words are written. Keep all VFS code untouched.
+if mode == 'dir':
+    # Only this copied VFS gets two instruction breakpoints. The first
+    # occurs immediately before the second DTFS CREATE, the second
+    # directly after the original provider returns. No VFS syscall
+    # or DTFS implementation is mocked. The counter is test-only BSS.
+    anchor = ('vfs_create:\n'
+              '        movei   5,6                    ; FS_MRES_OP_CREATE\n')
+    assert original_vfs.count(anchor) == 1
+    injection = (
+        'vfs_create:\n'
+        '        ldb     5,[POINT 6,1,5]\n'
+        '        caie    5,5\n'
+        '        jrst    vfs_test_dir_normal_v1568\n'
+        '        aos     vfs_test_dir_count_v1568\n'
+        '        move    5,vfs_test_dir_count_v1568\n'
+        '        caie    5,2\n'
+        '        jrst    vfs_test_dir_normal_v1568\n'
+        '        .globl vfs_test_before_dir_create_v1568\n'
+        'vfs_test_before_dir_create_v1568:\n'
+        '        move    5,5             ; unique physical fault stop\n'
+        'vfs_test_dir_normal_v1568:\n'
+        '        movei   5,6                    ; FS_MRES_OP_CREATE\n')
+    original_vfs = original_vfs.replace(anchor, injection, 1)
+    after = ('vfs_create_store_result:\n'
+             '        jumpn   1,vfs_create_done\n')
+    assert original_vfs.count(after) == 1
+    post = (
+        'vfs_create_store_result:\n'
+        '        move    5,vfs_test_dir_count_v1568\n'
+        '        caie    5,2\n'
+        '        jrst    vfs_test_dir_after_done_v1568\n'
+        '        .globl vfs_test_after_dir_create_v1568\n'
+        'vfs_test_after_dir_create_v1568:\n'
+        '        move    5,5             ; post-failure hardware stop\n'
+        'vfs_test_dir_after_done_v1568:\n'
+        '        jumpn   1,vfs_create_done\n')
+    original_vfs = original_vfs.replace(after, post, 1)
+    original_vfs += ('\n        .bss\n'
+                     '        .globl vfs_test_dir_count_v1568\n'
+                     'vfs_test_dir_count_v1568: .block 1\n')
+    vfs_path.write_text(original_vfs)
 
 names = ('dtfs_runtime.s', 'dtfs_intent_validate_v1550.s',
          'dtfs_v2_mount_exclusive_v1557.s',
@@ -153,6 +200,19 @@ grep -q '^dtfs_test_guard_normal_v1568' "$build/dtfs-mres.map" || {
     echo 'FAIL v1568: DTFS test boundary absent from linked image' >&2
     exit 1
 }
+if [ "$mode" = dir ]; then
+    DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568=$(awk \
+        '$1 == "vfs_test_before_dir_create_v1568" {print $2}' "$build/kcore.map")
+    DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568=$(awk \
+        '$1 == "vfs_test_after_dir_create_v1568" {print $2}' "$build/kcore.map")
+    export DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568
+    export DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568
+    case "$DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568:$DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568" in
+        ??????:??????) ;;
+        *) echo 'FAIL v1568: missing linked KCORE DIR breakpoints' >&2; exit 1 ;;
+    esac
+    echo "v1568: exact DIR VFS breakpoints: $DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568 $DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568"
+fi
 
 # Use existing v1529 actual two-word RBN0145 partial-transfer guest,
 # changing ONLY its initial mount policy request and adding proof that
@@ -183,28 +243,41 @@ test -x "$DAIMOS_TSFS_SIMH" || {
     exit 1
 }
 export DAIMOS_TSFS_PREBUILT_BUILD="$build"
-export DAIMOS_TSFS_GATE_SOURCE_V1526="$work/guest-v1568.c"
 export DAIMOS_TSFS_GATE_DTVOL2_V1564=1
-export DAIMOS_TSFS_GATE_PARTIAL_V1529=1
-export DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568=1
-export DAIMOS_TSFS_GATE_EXPORT_DATA_V1568="$work/real-v2-partial-data-v1568.tap"
-export DAIMOS_TSFS_GATE_PREFIX_V1526='DTFSPART V1529'
-export DAIMOS_TSFS_GATE_STAGES_V1526='START SEED_TRUNCATE_OK READY_ARM WRITE_FAILED READY_VERIFY STICKY_CONFIRMED PASS'
-echo 'v1568: booting V2 and forcing one changed physical DATA word'
+if [ "$mode" = dir ]; then
+    export DAIMOS_TSFS_GATE_SOURCE_V1526="$self/../target/daimos-dtfs-v2-partial-dir-v1568.c"
+    export DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568=1
+    export DAIMOS_TSFS_GATE_EXPORT_DIR_V1568="$work/real-v2-partial-dir-v1568.tap"
+    export DAIMOS_TSFS_GATE_PREFIX_V1526='DTFSDIR V1568'
+    export DAIMOS_TSFS_GATE_STAGES_V1526='START DIRTY_ARMED READY_ARM WRITE_FAILED READY_VERIFY STICKY_CONFIRMED PASS'
+    replay="$DAIMOS_TSFS_GATE_EXPORT_DIR_V1568"
+else
+    export DAIMOS_TSFS_GATE_SOURCE_V1526="$work/guest-v1568.c"
+    export DAIMOS_TSFS_GATE_PARTIAL_V1529=1
+    export DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568=1
+    export DAIMOS_TSFS_GATE_EXPORT_DATA_V1568="$work/real-v2-partial-data-v1568.tap"
+    export DAIMOS_TSFS_GATE_PREFIX_V1526='DTFSPART V1529'
+    export DAIMOS_TSFS_GATE_STAGES_V1526='START SEED_TRUNCATE_OK READY_ARM WRITE_FAILED READY_VERIFY STICKY_CONFIRMED PASS'
+    replay="$DAIMOS_TSFS_GATE_EXPORT_DATA_V1568"
+fi
+echo "v1568: booting V2 and forcing one changed physical $mode word"
 sh "$self/daimos-dtfs-kcore-physical-fullguest-v1525.sh"
-test -s "$DAIMOS_TSFS_GATE_EXPORT_DATA_V1568" || {
+test -s "$replay" || {
     echo 'FAIL v1568: missing physically torn V2 tape' >&2
     exit 1
 }
 
 # Cold boot the EXACT real torn DATA tape on the unchanged base KCORE.
 export DAIMOS_TSFS_PREBUILT_BUILD="$base"
-export DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568="$DAIMOS_TSFS_GATE_EXPORT_DATA_V1568"
+export DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568="$replay"
 unset DAIMOS_TSFS_GATE_PARTIAL_V1529
 unset DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568
+unset DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568
+unset DAIMOS_TSFS_GATE_BREAK_BEFORE_DIR_V1568
+unset DAIMOS_TSFS_GATE_BREAK_AFTER_DIR_V1568
 export DAIMOS_TSFS_GATE_SOURCE_V1526="$self/../target/daimos-dtfs-v2-dirty-gate-v1564.c"
 export DAIMOS_TSFS_GATE_PREFIX_V1526='DTFSV2DIRTY V1564'
 export DAIMOS_TSFS_GATE_STAGES_V1526='START RW_REFUSED RO_REFUSED UNPUBLISHED PASS'
 echo 'v1568: cold boot same physically damaged DTVOL2/DIRTY tape'
 sh "$self/daimos-dtfs-kcore-physical-fullguest-v1525.sh"
-echo 'PASS v1568: real V2 DATA partial write and subsequent production cold boot'
+echo "PASS v1568: real V2 $mode partial write and subsequent production cold boot"
