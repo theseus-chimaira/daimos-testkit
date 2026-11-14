@@ -7,6 +7,7 @@
         .globl vfs_mount_target_base
         .globl vfs_mount_limit
         .globl vfs_mount_policy
+        .globl vfs_mount_aux_base_v1560
         .globl vfs_namespace_root
         .globl kconst_2_2
         .globl pipe_fifo_mount_busy
@@ -142,6 +143,10 @@ vfs_mount_root_base: .word vfs_mount_roots_v1514
 vfs_mount_target_base: .word vfs_mount_targets_v1514
 vfs_namespace_root: .word 060101000003
 vfs_mount_policy: .word 2            ; RO secondary slot bit 1
+; The v1560 production helper requires the pre-existing provider-private
+; MM mount slab, even though this fixture mounts only D6FS.
+vfs_mount_aux_base_v1560: .word vfs_mount_aux_v1560
+vfs_mount_aux_v1560: .block 4
 vfs_mount_roots_v1514:
         .word 060101000003
         .word 060201000003

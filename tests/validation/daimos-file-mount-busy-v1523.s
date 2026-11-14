@@ -12,6 +12,7 @@
         .globl vfs_mount_root_base
         .globl vfs_mount_limit
         .globl vfs_mount_policy
+        .globl vfs_mount_aux_base_v1560
         .globl vfs_namespace_root
         .globl kconst_2_2
         .globl pipe_fifo_mount_busy
@@ -229,6 +230,9 @@ vfs_mount_limit: .word 4
 vfs_mount_target_base: .word mount_targets_v1523
 vfs_mount_root_base: .word mount_roots_v1523
 vfs_mount_policy: .word 2
+; No outstanding DTFS intent owner in this earlier FILE/cwd regression.
+vfs_mount_aux_base_v1560: .word mount_aux_v1560
+mount_aux_v1560: .block 4
 vfs_namespace_root: .word 060101000003
 processes_v1523:
         .block 3                    ; slot 0: idle, no u-area
