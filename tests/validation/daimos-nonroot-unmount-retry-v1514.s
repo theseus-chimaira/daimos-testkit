@@ -8,8 +8,11 @@
         .globl vfs_mount_limit
         .globl vfs_mount_policy
         .globl vfs_mount_aux_base_v1560
+        .globl dtfs_media_base
         .globl vfs_namespace_root
         .globl kconst_2_2
+        .globl kconst_1_1
+        .globl kconst_3_3
         .globl pipe_fifo_mount_busy
         .globl proc_swap_mount_busy
         .globl vfs_sync
@@ -138,6 +141,8 @@ kret_neg1:
 
         .data
 kconst_2_2: .word 2,,2
+kconst_1_1: .word 1,,1
+kconst_3_3: .word 3,,3
 vfs_mount_limit: .word 4
 vfs_mount_root_base: .word vfs_mount_roots_v1514
 vfs_mount_target_base: .word vfs_mount_targets_v1514
@@ -147,6 +152,8 @@ vfs_mount_policy: .word 2            ; RO secondary slot bit 1
 ; MM mount slab, even though this fixture mounts only D6FS.
 vfs_mount_aux_base_v1560: .word vfs_mount_aux_v1560
 vfs_mount_aux_v1560: .block 4
+dtfs_media_base: .word vfs_mount_media_v1562
+vfs_mount_media_v1562: .block 4
 vfs_mount_roots_v1514:
         .word 060101000003
         .word 060201000003

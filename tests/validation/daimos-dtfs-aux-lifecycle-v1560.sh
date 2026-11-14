@@ -30,7 +30,7 @@ source=(
     +leaf('vfs_mount_publish_slot:\n','; int vfs_remount(node)')
     +leaf('vfs_unmount_after_prepare:\n','; Retire exactly one unmounted slot')
     +leaf('vfs_unmount_fail:\n','; AC1=public mount ID.')
-    +leaf('vfs_dtfs_aux_empty_v1560:\n','; Validate a zero-based,')
+    +leaf('vfs_dtfs_aux_empty_v1560:\n','; v1562: mount-owner')
 )
 assert source.count('pushj   17,vfs_dtfs_aux_empty_v1560')==2
 assert 'move    2,(17)\n        movei   1,1(2)' in source

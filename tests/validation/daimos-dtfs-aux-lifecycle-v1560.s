@@ -5,6 +5,7 @@
         .globl __test_exit
         .globl vfs_mount_found
         .globl vfs_unmount_after_prepare
+        .globl vfs_dtfs_quiesce_end_v1562
         .globl vfs_dtfs_aux_empty_v1560
         .globl vfs_mount_aux_base_v1560
         .globl vfs_mount_limit
@@ -18,6 +19,7 @@
         .globl kret_zero
         .globl kret_neg1
         .globl kconst_2_2
+        .globl kconst_3_3
 
 main:
         movei   010,cases_v1560
@@ -67,6 +69,9 @@ slot_ready_v1560:
         pushj   17,unmount_wrapper_v1560
         jrst    case_check_v1560
 unmount_wrapper_v1560:
+        ; v1562 adds one stack-private quiescence flag beneath root/slot.
+        ; This historical v1560 test never acquires a V2 barrier.
+        push    17,[0]
         push    17,1                    ; root above caller's return
         push    17,2                    ; slot above root
         jrst    vfs_unmount_after_prepare
@@ -132,6 +137,9 @@ vfs_mount_retire_slot:
         add     3,[root_v1560]
         setzm   (3)
         jrst    kret_zero
+vfs_dtfs_quiesce_end_v1562:
+        ; v1560-only fixture: the zero flag must bypass this service.
+        jrst    kret_neg1
 kret_zero:
         setz    1,
         popj    17,
@@ -143,6 +151,7 @@ kret_neg1:
         .globl cases_v1560
         .globl case_count_v1560
 kconst_2_2: .word 0000002000002
+kconst_3_3: .word 3,,3
 vfs_mount_target_base: .word target_v1560
 vfs_mount_root_base: .word root_v1560
 vfs_mount_aux_base_v1560: .word aux_v1560

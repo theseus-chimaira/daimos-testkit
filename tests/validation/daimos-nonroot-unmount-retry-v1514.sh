@@ -23,7 +23,7 @@ for text in ('pushj   17,vfs_sync\n        jumpn   1,vfs_unmount_fail',
              'pushj   17,fs_provider_reg_call\n        jumpn   1,vfs_unmount_fail',
              'pushj   17,file_unlock_mount',
              'pushj   17,vfs_mount_retire_slot',
-             'vfs_unmount_fail:\n        sub     17,kconst_2_2'):
+             'vfs_unmount_fail:\n        ; No physical CLEAN attempt exists yet.'):
     if segment.count(text) != 1:
         raise AssertionError('v1514 VFS ordering source drift: '+text)
 head = '.text\n.globl vfs_unmount\n'

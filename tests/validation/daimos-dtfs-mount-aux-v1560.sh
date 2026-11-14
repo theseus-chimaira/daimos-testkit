@@ -18,7 +18,7 @@ vfs=(repo/'system/kernel/fs/vfs.s').read_text()
 bridge=(repo/'system/kernel/fs/fs_mres.s').read_text()
 assert 'd6fs_reader_slots_base:\nvfs_mount_aux_base_v1560:\n' in bridge
 start=vfs.index('vfs_dtfs_aux_empty_v1560:\n')
-end=vfs.index('\n; Validate a zero-based,',start)
+end=vfs.index('\n; v1562: mount-owner',start)
 source=('.text\n.globl vfs_dtfs_aux_empty_v1560\n'
         +vfs[start:end]+'\n')
 assert 'skipn   (6)' in source

@@ -13,8 +13,11 @@
         .globl vfs_mount_limit
         .globl vfs_mount_policy
         .globl vfs_mount_aux_base_v1560
+        .globl dtfs_media_base
         .globl vfs_namespace_root
         .globl kconst_2_2
+        .globl kconst_1_1
+        .globl kconst_3_3
         .globl pipe_fifo_mount_busy
         .globl proc_swap_mount_busy
         .globl vfs_sync
@@ -224,6 +227,8 @@ kret_neg1:
 
         .data
 kconst_2_2: .word 2,,2
+kconst_1_1: .word 1,,1
+kconst_3_3: .word 3,,3
 proc_table: .word processes_v1523
 proc_high_slot: .word 4
 vfs_mount_limit: .word 4
@@ -233,6 +238,8 @@ vfs_mount_policy: .word 2
 ; No outstanding DTFS intent owner in this earlier FILE/cwd regression.
 vfs_mount_aux_base_v1560: .word mount_aux_v1560
 mount_aux_v1560: .block 4
+dtfs_media_base: .word mount_media_v1562
+mount_media_v1562: .block 4
 vfs_namespace_root: .word 060101000003
 processes_v1523:
         .block 3                    ; slot 0: idle, no u-area
