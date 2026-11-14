@@ -6,6 +6,9 @@
  * This fixture uses only C89-compatible declarations and ASCII text. */
 #include "u.h"
 #include "../test_sixbit.h"
+#ifdef XIP_P1C_SWAP_V1580
+#include "proc.h"
+#endif
 
 #define XIP_PATH_COUNT_V1469       13U
 #define XIP_RECORD_WORDS_V1469     4U
@@ -48,6 +51,92 @@ xip_fail_v1469(const char *stage, int result)
         (void)u_crlf(1);
         return 1;
 }
+
+#ifdef XIP_P1C_SWAP_V1580
+/* Disposable 128K physical guest only. Each sleeping child retains a
+ * substantial private APR image to create genuine scheduler swap pressure.
+ * The parent HALTs while the children still own their swap records. */
+#define P1C_SWAP_CHILDREN_V1580 4U
+#define P1C_SWAP_AREA_V1580 060000U
+static volatile kword_t p1c_swap_area_v1580[P1C_SWAP_AREA_V1580];
+
+static int
+p1c_swap_child_v1580(void)
+{
+        p1c_swap_area_v1580[0] = 0157140001UL;
+        p1c_swap_area_v1580[P1C_SWAP_AREA_V1580 - 1U] = 0157140002UL;
+        /* More than the entire 90-second probe window at 60 Hz. */
+        if (dsys_sleep(060000U) != 0)
+                return 1;
+        return 0;
+}
+
+static int
+p1c_swap_arm_v1580(void)
+{
+        kword_t args[SYS_RUN_V2_FIXED_WORDS + 7U];
+        struct sys_run_v2 *run;
+        struct sys_procinfo info;
+        int children[P1C_SWAP_CHILDREN_V1580];
+        unsigned int i;
+        unsigned int tries;
+        int pid;
+
+        p1c_swap_area_v1580[0] = 0157140011UL;
+        p1c_swap_area_v1580[P1C_SWAP_AREA_V1580 - 1U] = 0157140012UL;
+        for (i = 0U; i < P1C_SWAP_CHILDREN_V1580; ++i) {
+                unsigned int j;
+                for (j = 0U; j < SYS_RUN_V2_FIXED_WORDS + 7U; ++j)
+                        args[j] = 0UL;
+                run = (struct sys_run_v2 *)args;
+                run->version_words = SYS_RUN_HEADER(SYS_RUN_VERSION_2,
+                    SYS_RUN_V2_FIXED_WORDS + 7U);
+                run->flags = SYS_RUN_PGRP_INHERIT;
+                run->argc = 1UL;
+                for (j = 0U; j < 5U; ++j)
+                        args[SYS_RUN_V2_FIXED_WORDS + j] =
+                            xip_self_name_v1469[j];
+                args[SYS_RUN_V2_FIXED_WORDS + 5U] = 1UL;
+                args[SYS_RUN_V2_FIXED_WORDS + 6U] =
+                    TEST_SIX6('P', ' ', ' ', ' ', ' ', ' ');
+                pid = dsys_run(run);
+                if (pid <= 1)
+                        return xip_fail_v1469("P1C-SWAP-RUN", pid);
+                children[i] = pid;
+        }
+        /* Require all children to reach a real scheduler sleep, not a
+         * queued RUN or zombie. Kernel HALT additionally requires a
+         * positive live proc_swap_blocks_used value in the test MRES. */
+        for (i = 0U; i < P1C_SWAP_CHILDREN_V1580; ++i) {
+                for (tries = 0U; tries < 03000U; ++tries) {
+                        if (dsys_procinfo((unsigned int)children[i],
+                                &info) == 0 && info.state == PROC_SLEEP)
+                                break;
+                        if (dsys_sleep(1U) != 0)
+                                return xip_fail_v1469("P1C-SWAP-SLEEP", -1);
+                }
+                if (tries == 03000U)
+                        return xip_fail_v1469("P1C-SWAP-STATE", children[i]);
+        }
+        (void)u_puts(1, "P1C-SWAP-CHILDREN-SLEEP-V1580");
+        (void)u_crlf(1);
+        return 0;
+}
+
+static int
+p1c_swap_halt_v1580(void)
+{
+        if (p1c_swap_arm_v1580() != 0)
+                return 1;
+        (void)u_puts(1, "P1C-SWAP-HALT-REQUEST-V1580");
+        (void)u_crlf(1);
+        /* The source-linked disposable MEMFS MRES refuses this HALT if
+         * no actual process swap blocks are owned at snapshot entry. */
+        if (dsys_halt() != -1)
+                return xip_fail_v1469("P1C-HALT-RETURNED", -1);
+        return xip_fail_v1469("P1C-HALT-REFUSED", -1);
+}
+#endif
 
 static void
 xip_copy_record_v1469(kword_t *dst)
@@ -373,6 +462,9 @@ xip_snapshot_v1477(void)
 #endif
                 (void)u_puts(1, "XIP-SNAPSHOT-RESTORED");
                 (void)u_crlf(1);
+#ifdef XIP_P1C_SWAP_V1580
+                return p1c_swap_halt_v1580();
+#endif
                 return 0;
         }
         if (xip_create_v1469() != 0 ||
@@ -402,6 +494,9 @@ xip_snapshot_v1477(void)
 #endif
         (void)u_puts(1, "XIP-SNAPSHOT-WRITTEN");
         (void)u_crlf(1);
+#ifdef XIP_P1C_SWAP_V1580
+        return p1c_swap_halt_v1580();
+#endif
 #ifdef XIP_SNAPSHOT_FAULT_V1478
         /* A test-only storage refusal must prevent HALT. The enclosing
          * shell issues a second HALT after the one-shot fault clears. */
@@ -765,6 +860,11 @@ main(int argc, kword_t **argv)
         int shared_pids[3];
         kword_t status;
 
+#ifdef XIP_P1C_SWAP_V1580
+        if (argc == 1 && argv != 0 && argv[0] != 0 &&
+            argv[0][1] == TEST_SIX6('P', ' ', ' ', ' ', ' ', ' '))
+                return p1c_swap_child_v1580();
+#endif
 #ifdef XIP_SNAPSHOT_V1477
         (void)argc;
         (void)argv;

@@ -44,6 +44,26 @@ for n in 1 2; do
             "$work/auxstore-v1477.inspect" "$boot/drum/dsk0.dsk"
         marker=XIP-SNAPSHOT-CORRUPT-RECOVERED
     fi
+    if [ "${XIP_V1580_P1C_SWAP:-0}" = 1 ]; then
+        # The source-authentic privileged syscall HALTs inside the same
+        # process which created the sleeping swapped children. No shell
+        # second HALT or successful-status echo may intervene.
+        cat > "$work/boot-$n.probes" <<EOF
+probe memfs-swapped-halt-$n
+command /CONFIG/XIP1469.TEST
+contains $marker
+contains P1C-LOGSTORE-APPEND-READBACK
+contains P1C-SWAP-CHILDREN-SLEEP-V1580
+contains P1C-SWAP-HALT-REQUEST-V1580
+not_contains XIP-FAIL-
+terminal eof
+end
+EOF
+        if [ "$n" = 2 ]; then
+            sed -i '/^contains P1C-LOGSTORE-APPEND-READBACK$/a contains P1C-LOGSTORE-PREVIOUS-BOOT' \
+                "$work/boot-$n.probes"
+        fi
+    else
     cat > "$work/boot-$n.probes" <<EOF
 probe memfs-persistent-boot-$n
 command /CONFIG/XIP1469.TEST; ECHO STATUS:\$?
@@ -56,6 +76,7 @@ command HALT
 terminal eof
 end
 EOF
+    fi
     if [ "${XIP_V1578_P1C_ORPHAN:-0}" = 1 ]; then
         if [ "$n" = 1 ]; then
             sed -i "/^contains $marker$/a contains P1C-ORPHAN-LEFT-UNCOMMITTED" \
@@ -66,7 +87,8 @@ EOF
             sed -i "/^contains P1C-ORPHAN-IGNORED$/a contains P1C-LOGSTORE-APPEND-READBACK" \
                 "$work/boot-$n.probes"
         fi
-    elif [ "${XIP_V1576_P1C_LOGSTORE:-0}" = 1 ]; then
+    elif [ "${XIP_V1576_P1C_LOGSTORE:-0}" = 1 ] &&
+        [ "${XIP_V1580_P1C_SWAP:-0}" != 1 ]; then
         sed -i "/^contains $marker$/a contains P1C-LOGSTORE-APPEND-READBACK" \
             "$work/boot-$n.probes"
         if [ "$n" = 2 ]; then
@@ -97,7 +119,15 @@ EOF
         echo "v1477: persistent MEMFS failed to mount on cold boot $n" >&2
         exit 1
     fi
-    grep -q '^STATUS:0' "$log"
+    if [ "${XIP_V1580_P1C_SWAP:-0}" != 1 ]; then
+        grep -q '^STATUS:0' "$log"
+    else
+        grep -Fq 'P1C-SWAP-HALT-REQUEST-V1580' "$log"
+        if grep -Fq 'XIP-FAIL-' "$log"; then
+            echo "v1580: swap-armed snapshot guest failed" >&2
+            exit 1
+        fi
+    fi
     # v1484: a raw-MRES LOGSTORE ABI mismatch once DMA-wrote KCORE text
     # into DR0 block zero during INIT/LOGIN, corrupting AUXSTORE discovery
     # on the next boot despite a valid snapshot near the end of the drum.
@@ -112,6 +142,11 @@ EOF
         echo "v1484: AUXSTORE partition geometry changed at boot $n" >&2
         exit 1
     }
+    if [ "$n" = 1 ] && [ "${XIP_V1580_P1C_SWAP:-0}" = 1 ]; then
+        python3 "$self/daimos-p1c-swapped-media-v1580.py" \
+            "$boot/drum/dsk0.dsk" "$work/auxstore-after-boot-$n.inspect" \
+            "$work/swapped-physical-v1580.txt"
+    fi
     if [ "$n" = 1 ] && [ "${XIP_V1578_P1C_ORPHAN:-0}" = 1 ]; then
         python3 "$self/daimos-p1c-orphan-media-v1578.py" \
             "$boot/drum/dsk0.dsk" "$work/auxstore-after-boot-$n.inspect" \
