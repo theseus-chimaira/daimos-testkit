@@ -2,6 +2,14 @@
 ; the real PDP-6 MM refuses the interrupted OPEN's last-reference free.
         .text
         .globl main
+        ; DTFS-specific services are not exercised by this FIFO-only
+        ; regression. Keep their native FILE-layer link boundaries explicit.
+        .globl vfs_dtfs_poisoned_slot_v1531
+        .globl vfs_dtfs_owner_admit_v1562
+vfs_dtfs_poisoned_slot_v1531:
+        jrst kret_neg1
+vfs_dtfs_owner_admit_v1562:
+        jrst kret_zero
 main:
         movei 17,__stack-1
         hrli 17,-0400
@@ -36,9 +44,9 @@ pinned_refs_v1084:
         ; the same owner and reader count.
         movei 1,__fdtable
         pushj 17,file_close_entry_v865
-        ; PIPE close exposes the checked refusal as -1, while MM
-        ; itself returned its physical-pin error -5.
-        camn 1,[-1]
+        ; Current native PIPE close preserves MM's exact physical-pin
+        ; refusal (-5) rather than folding all errors into -1.
+        camn 1,[-5]
         jrst pinned_fd_retry_v1084
         jrst fail_6_v1084
 pinned_fd_retry_v1084:

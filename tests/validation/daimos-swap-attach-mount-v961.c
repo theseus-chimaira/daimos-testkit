@@ -14,6 +14,14 @@ struct proc *proc_table = slots;
 struct proc_swap_record *proc_swap_records = records;
 kword_t vfs_mount_limit = 26UL;
 
+/* This legacy packing test is provider-neutral. The separate v1563
+ * fixture exercises real DTFS quiescence refusals and rollback. */
+int vfs_dtfs_owner_admit_v1562(vnode_t node)
+{
+        (void)node;
+        return 0;
+}
+
 static int bad;
 static void check(int ok, const char *msg)
 {

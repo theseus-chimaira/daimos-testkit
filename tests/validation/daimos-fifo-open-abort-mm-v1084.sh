@@ -23,6 +23,11 @@ fi
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     sed -n '/^file_new_fd:$/,/^; kword_t file_seek(int fd/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
+    # The post-v1531 FILE close slice includes administrative DTFS code
+    # that references the ordinary descriptor lookup, even though FIFO
+    # OPEN does not execute it. Link the unchanged real lookup leaf.
+    sed -n '/^file_find:$/,/^; int file_new_fd(vnode_t node/p' \
+        "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     sed -n '/^pipe_fifo_find:$/,/^; Remove AC1 object/p' \
         "$source_file" | sed '$d'
     sed -n '/^pipe_fifo_unlink_object:$/,/^; kword_t pipe_create/p' \
