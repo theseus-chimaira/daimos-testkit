@@ -142,6 +142,93 @@ xip_run_v1469(unsigned int argc)
 }
 
 #ifdef XIP_SNAPSHOT_V1477
+#ifdef XIP_P1C_LOGSTORE_V1576
+/* P1-C v1576: exercise the real privileged LOGSTORE producer on the
+ * same persistent AUXSTORE physical backing as the MEMFS snapshot.
+ * The second cold boot must see the first boot's committed record,
+ * not just its in-memory LOGSTORE sequence. No shadow filesystem.
+ */
+#define P1C_LOG_WORDS_V1576 0200U
+#define P1C_LOG_MAGIC_V1576 0546362454321UL
+#define P1C_LOG_FIRST_V1576 0157601UL
+#define P1C_LOG_SECOND_V1576 0157602UL
+#define P1C_LOG_VALUE_V1576 045671234567UL
+static kword_t p1c_log_scratch_v1576[P1C_LOG_WORDS_V1576];
+static kword_t p1c_log_read_v1576[P1C_LOG_WORDS_V1576];
+static kword_t p1c_log_status_v1576[3];
+
+static int
+p1c_log_snapshot_v1576(int restored)
+{
+        kword_t before;
+        kword_t slot;
+        kword_t capacity;
+        kword_t block;
+        kword_t code;
+        unsigned int i;
+        unsigned int found;
+        unsigned int scan;
+
+        if (dsys_logctl(SYS_LOGCTL_STATUS, 0UL,
+                p1c_log_status_v1576) != 0)
+                return xip_fail_v1469("P1C-LOG-STATUS", -1);
+        before = p1c_log_status_v1576[0];
+        capacity = p1c_log_status_v1576[1] >> 18U;
+        slot = p1c_log_status_v1576[1] & 0777777UL;
+        if (before == 0UL || capacity < 2UL ||
+            slot >= capacity || p1c_log_status_v1576[2] < capacity + 2UL)
+                return xip_fail_v1469("P1C-LOG-GEOMETRY", -1);
+
+        /* Find the exact previous boot's unique committed record in
+         * its original physical LOGSTORE ring slot before writing again.
+         * The full small ring is scanned to avoid depending on INIT/LOGIN
+         * background log counts. The record must predate this cold boot.
+         */
+        if (restored) {
+                found = 0U;
+                scan = (unsigned int)capacity;
+                for (i = 0U; i < scan; ++i) {
+                        if (dsys_logctl(SYS_LOGCTL_READ_BLOCK,
+                                (kword_t)i + 2UL,
+                                p1c_log_read_v1576) != 0)
+                                return xip_fail_v1469("P1C-LOG-SCAN", (int)i);
+                        if (p1c_log_read_v1576[0] == P1C_LOG_MAGIC_V1576 &&
+                            p1c_log_read_v1576[4] == P1C_LOG_FIRST_V1576 &&
+                            p1c_log_read_v1576[5] == P1C_LOG_VALUE_V1576)
+                                ++found;
+                }
+                if (found != 1U)
+                        return xip_fail_v1469("P1C-LOG-REBOOT", (int)found);
+                (void)u_puts(1, "P1C-LOGSTORE-PREVIOUS-BOOT");
+                (void)u_crlf(1);
+        }
+
+        for (i = 0U; i < P1C_LOG_WORDS_V1576; ++i)
+                p1c_log_scratch_v1576[i] = 0UL;
+        code = restored ? P1C_LOG_SECOND_V1576 : P1C_LOG_FIRST_V1576;
+        p1c_log_scratch_v1576[2] = dsys_gettime();
+        p1c_log_scratch_v1576[3] = (2UL << 30U) | (077U << 18U) | 2UL;
+        p1c_log_scratch_v1576[4] = code;
+        p1c_log_scratch_v1576[5] = P1C_LOG_VALUE_V1576;
+        if (dsys_logctl(SYS_LOGCTL_APPEND, 0UL,
+                p1c_log_scratch_v1576) != 0)
+                return xip_fail_v1469("P1C-LOG-APPEND", -1);
+        block = slot + 2UL;
+        if (dsys_logctl(SYS_LOGCTL_READ_BLOCK, block,
+                p1c_log_read_v1576) != 0 ||
+            p1c_log_read_v1576[0] != P1C_LOG_MAGIC_V1576 ||
+            p1c_log_read_v1576[1] != before ||
+            p1c_log_read_v1576[4] != code ||
+            p1c_log_read_v1576[5] != P1C_LOG_VALUE_V1576 ||
+            dsys_logctl(SYS_LOGCTL_STATUS, 0UL,
+                p1c_log_status_v1576) != 0 ||
+            p1c_log_status_v1576[0] != before + 1UL)
+                return xip_fail_v1469("P1C-LOG-READBACK", -1);
+        (void)u_puts(1, "P1C-LOGSTORE-APPEND-READBACK");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
 /* Snapshot test runs the same executable on two independent cold boots.
  * It never destroys or overwrites the first boot's persistent image
  * during the second boot's verification. All strings and data are ASCII
@@ -226,6 +313,10 @@ xip_snapshot_v1477(void)
                     SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
                     SYS_WAIT_STATUS_VALUE(status) != 0U)
                         return xip_fail_v1469("SNAP-RESTORE-WAIT", pid);
+#ifdef XIP_P1C_LOGSTORE_V1576
+                if (p1c_log_snapshot_v1576(1) != 0)
+                        return 1;
+#endif
 #ifdef XIP_SNAPSHOT_FAULT_V1478
                 /* The isolated one-shot write hook is reset by each cold
                  * boot. Consume and verify that boot's refused HALT here
@@ -260,6 +351,10 @@ xip_snapshot_v1477(void)
             SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
             SYS_WAIT_STATUS_VALUE(status) != 0U)
                 return xip_fail_v1469("SNAP-FIRST-RUN", pid);
+#ifdef XIP_P1C_LOGSTORE_V1576
+        if (p1c_log_snapshot_v1576(0) != 0)
+                return 1;
+#endif
         (void)u_puts(1, "XIP-SNAPSHOT-WRITTEN");
         (void)u_crlf(1);
 #ifdef XIP_SNAPSHOT_FAULT_V1478

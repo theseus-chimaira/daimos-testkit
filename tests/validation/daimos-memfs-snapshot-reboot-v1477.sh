@@ -56,6 +56,14 @@ command HALT
 terminal eof
 end
 EOF
+    if [ "${XIP_V1576_P1C_LOGSTORE:-0}" = 1 ]; then
+        sed -i "/^contains $marker$/a contains P1C-LOGSTORE-APPEND-READBACK" \
+            "$work/boot-$n.probes"
+        if [ "$n" = 2 ]; then
+            sed -i "/^contains P1C-LOGSTORE-APPEND-READBACK$/a contains P1C-LOGSTORE-PREVIOUS-BOOT" \
+                "$work/boot-$n.probes"
+        fi
+    fi
     if [ "${XIP_V1478_FAULT_MODE:-0}" = 1 ]; then
         sed -i "/^contains $marker$/a contains XIP-SNAPSHOT-HALT-REFUSED" \
             "$work/boot-$n.probes"
