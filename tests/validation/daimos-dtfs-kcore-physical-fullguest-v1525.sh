@@ -26,6 +26,12 @@ v1564_define=
 if [ "${DAIMOS_TSFS_GATE_DTVOL2_V1564:-0}" = 1 ]; then
         v1564_define=-DDAIMOS_DTFS_V2_PHYSICAL_V1564=1
 fi
+if [ "${DAIMOS_TSFS_GATE_OP_DIAG_V1572:-0}" = 1 ]; then
+        v1564_define="$v1564_define -DDAIMOS_DTFS_V1572_DIAG=1"
+fi
+if [ "${DAIMOS_TSFS_GATE_OP_RETURN_V1572:-0}" = 1 ]; then
+        v1564_define="$v1564_define -DDAIMOS_DTFS_V2_OPERATOR_V1572=1"
+fi
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $v1564_define $incs \
         -S "$work/gate.c" -o "$work/gate.s"
 "$PDP10_PREFIX/bin/das" -F -C -O "$work/gate.dobj" "$work/gate.s"

@@ -348,7 +348,16 @@ PY
                         cp "$dtc3_media_v1530" \
                             "$work/media/clean-origin-v1568.tap"
                 fi
-                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ]; then
+                if [ -n "${DAIMOS_TSFS_GATE_EXPORT_CLEAN_V1572:-}" ]; then
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/clean-origin-v1572.tap"
+                fi
+                if [ "${DAIMOS_TSFS_GATE_OP_RETURN_V1572:-0}" = 1 ]; then
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/return-origin-v1572.tap"
+                fi
+                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ] ||
+                   [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1575:-0}" = 1 ]; then
                         # A completely independent, separately formatted
                         # CLEAN reel: never infer identity from filename.
                         "$v1564_mkdtfs" --durable-v1550 \
@@ -510,7 +519,11 @@ for filename in sys.argv[1:]:
             high, low = struct.unpack('<II', stream.read(8))
             words.append(((high & 0o777777) << 18) |
                          (low & 0o777777))
-    assert words[0] == 0o446466575421
+    import os
+    expect_v1572 = (os.environ.get('DAIMOS_TSFS_GATE_OP_RETURN_V1572') == '1'
+                    and filename == sys.argv[1])
+    assert words[0] == (0o446466575422 if expect_v1572
+                        else 0o446466575421)
     assert words[1] != 0 and words[2] != 0
     assert words[3] == (~(words[0] ^ words[1] ^ words[2]) &
                         0o777777777777)
@@ -632,6 +645,7 @@ PY
 fi
 if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_OP_DIAG_V1572:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ] ||
@@ -877,6 +891,7 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         gate_stages=${DAIMOS_TSFS_GATE_STAGES_V1526:-"START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS"}
         if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_OP_DIAG_V1572:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ] ||
@@ -1085,6 +1100,35 @@ PY
                                 echo 'v1538: PASS (booted TSFS root loss, no reboot/retry)'
                         fi
                         exit 0
+                elif [ "${DAIMOS_TSFS_GATE_OP_DIAG_V1572:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_SECOND" 0 ||
+                            fail_logs 'v1572: failed to reach seeded first-write checkpoint'
+                        simh_media_exchange_v1527 \
+                            'detach DTC3' \
+                            "attach -q DTC3 $dtc3_media_v1530"
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/after-first-v1572.tap"
+                        wait_new "$cty_out" "$gate_prefix READY_CLEAN" 0 ||
+                            fail_logs 'v1572: failed to reach second-write checkpoint'
+                        simh_media_exchange_v1527 \
+                            'detach DTC3' \
+                            "attach -q DTC3 $dtc3_media_v1530"
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/after-second-v1572.tap"
+                        python3 - "$work/media/clean-origin-v1572.tap" \
+                            "$work/media/after-first-v1572.tap" \
+                            "$work/media/after-second-v1572.tap" <<'PY'
+from pathlib import Path
+from collections import Counter
+import sys
+
+data=[Path(s).read_bytes() for s in sys.argv[1:]]
+for name,a,b in (('first',data[0],data[1]),
+                 ('second',data[1],data[2])):
+    changed=Counter(i//1024 for i,(x,y) in enumerate(zip(a,b)) if x!=y)
+    print('v1572 diagnostic:',name,'write changed blocks:',
+          [(oct(k),v) for k,v in changed.items()])
+PY
                 elif [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_SWAP" 0 ||
                             fail_logs 'v1571: initial V2/RO mount did not reach exchange point'
@@ -1251,13 +1295,19 @@ PY
                         simh_media_exchange_v1527 \
                             'detach DTC3' \
                             "attach -q DTC3 $dtc3_media_v1530"
-                        if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ]; then
+                        if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ] ||
+                           [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1575:-0}" = 1 ]; then
                                 # The same damaged original is really
                                 # reattached above, with its DIRTY RBN0.
                                 # Guest releases FD/cwd but still cannot
                                 # retire this same physical 72-bit ID.
-                                wait_new "$cty_out" "$gate_prefix SAME_REJECTED" 0 ||
-                                    fail_logs 'v1570: original poisoned V2 accepted'
+                                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1575:-0}" = 1 ]; then
+                                        wait_new "$cty_out" "$gate_prefix DISCARDED_DIRTY" 0 ||
+                                            fail_logs 'v1575: poisoned owner not safely discarded'
+                                else
+                                        wait_new "$cty_out" "$gate_prefix SAME_REJECTED" 0 ||
+                                            fail_logs 'v1570: original poisoned V2 accepted'
+                                fi
                                 wait_new "$cty_out" "$gate_prefix READY_REPLACE" 0 ||
                                     fail_logs 'v1570: no actual media replacement checkpoint'
                                 simh_media_exchange_v1527 \
@@ -1299,7 +1349,39 @@ PY
         if grep -F "$gate_prefix FAIL" "$cty_out" >/dev/null; then
                 fail_logs 'real PID1 physical gate reported an error'
         fi
-        if [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ]; then
+        if [ "${DAIMOS_TSFS_GATE_OP_RETURN_V1572:-0}" = 1 ]; then
+                python3 - "$work/media/return-origin-v1572.tap" \
+                    "$dtc3_media_v1530" <<'PY'
+from pathlib import Path
+import struct
+import hashlib
+import sys
+
+before,after=[Path(x).read_bytes() for x in sys.argv[1:]]
+mask=0o777777777777
+def words(data,idx):
+    hi,lo=struct.unpack_from('<II',data,idx*8)
+    assert hi<=0o777777 and lo<=0o777777
+    return (hi<<18)|lo
+assert before[:1024]==after[:1024], 'DIRTY must seal same original CLEAN'
+assert words(after,0)==0o446466575422 and words(after,4)==0
+assert words(after,5)==(~(words(after,0)^words(after,1)^
+                          words(after,2)^0o246134572610))&mask
+changed={i//1024 for i,(x,y) in enumerate(zip(before,after)) if x!=y}
+assert changed=={0o144,0o145}, ('unexpected physical blocks',changed)
+assert words(after,0o145*128+1)==0o10000000
+assert words(after,0o145*128+2)==0o10000001
+print('PASS v1572: real RW/DIRTY read-fault return physically CLEAN')
+print('PASS v1572: full media SHA256',hashlib.sha256(after).hexdigest())
+PY
+        elif [ -n "${DAIMOS_TSFS_GATE_EXPORT_CLEAN_V1572:-}" ]; then
+                python3 "$self/daimos-dtfs-v2-operator-verify-v1572.py" \
+                    "$work/media/clean-origin-v1572.tap" \
+                    "$dtc3_media_v1530" ||
+                    fail_logs 'v1572: real production DIRTY/CLEAN and DATA not verified'
+                cp "$dtc3_media_v1530" \
+                    "$DAIMOS_TSFS_GATE_EXPORT_CLEAN_V1572"
+        elif [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ]; then
                 python3 - "$dtc3_media_v1530" \
                     "$work/media/clean-b-v1571.tap" \
                     "$work/media/v1571-sha256.txt" <<'PY'
@@ -1338,7 +1420,8 @@ assert old == current, 'failed V2 DIR guest changed physically damaged tape'
 print('PASS v1568: final V2/DIRTY DIR unchanged, full SHA256',
       hashlib.sha256(old).hexdigest())
 PY
-        elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ]; then
+        elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1570:-0}" = 1 ] ||
+             [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_ADMIN_V1575:-0}" = 1 ]; then
                 test -s "${DAIMOS_TSFS_GATE_EXPORT_DATA_V1568:-}" ||
                     fail_logs 'v1570: no original physical partial DATA evidence'
                 test -n "${DAIMOS_TSFS_GATE_EXPORT_REPLACE_V1570:-}" ||

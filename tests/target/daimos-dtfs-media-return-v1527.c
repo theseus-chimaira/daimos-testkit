@@ -17,6 +17,10 @@ static kword_t media_dt0_v1527[U_PATH_WORDS];
 static kword_t media_dt1_v1527[U_PATH_WORDS];
 static struct sys_fsinfo media_info_v1527;
 static struct vfs_dirent media_entry_v1527;
+#ifdef DAIMOS_DTFS_V2_OPERATOR_V1572
+static kword_t media_file_v1572[U_PATH_WORDS];
+static kword_t media_data_v1572[2];
+#endif
 
 static int
 media_step_v1527(const char *message)
@@ -79,14 +83,37 @@ main(int argc, kword_t **argv)
         u_s6_pack(media_dtc3_v1527, U_PATH_WORDS, "/DEV/DTC3") != 0 ||
         u_s6_pack(media_dtc4_v1527, U_PATH_WORDS, "/DEV/DTC4") != 0 ||
         u_s6_pack(media_dt0_v1527, U_PATH_WORDS, "/MOUNT/DT0") != 0 ||
-        u_s6_pack(media_dt1_v1527, U_PATH_WORDS, "/MOUNT/DT1") != 0)
+        u_s6_pack(media_dt1_v1527, U_PATH_WORDS, "/MOUNT/DT1") != 0
+#ifdef DAIMOS_DTFS_V2_OPERATOR_V1572
+        || u_s6_pack(media_file_v1572, U_PATH_WORDS,
+            "/MOUNT/DT0/TRUST") != 0
+#endif
+        )
         return media_fail_v1527("FAIL_SETUP", 1);
 
     if (media_step_v1527("START") != 0 ||
         dsys_dtfs_mount(media_dtc3_v1527, media_dt0_v1527,
+#ifdef DAIMOS_DTFS_V2_OPERATOR_V1572
+            SYS_DTFS_TYPE_NATIVE) != 0 ||
+#else
             SYS_MOUNT_RDONLY | SYS_DTFS_TYPE_NATIVE) != 0 ||
+#endif
         !media_fsinfo_v1527(1U, 5U, "/MOUNT/DT0"))
         return media_fail_v1527("FAIL_MOUNT3", 2);
+
+#ifdef DAIMOS_DTFS_V2_OPERATOR_V1572
+    /* Real production V2 RW must already be physically ARMED/DIRTY.
+     * Test-only DETACH follows and is a deliberately prohibited
+     * operator action, used solely to exercise observed-read rollback. */
+    media_data_v1572[0] = 010000000UL;
+    media_data_v1572[1] = 010000001UL;
+    fd = dsys_open(media_file_v1572, SYS_O_CREAT | SYS_O_RDWR);
+    if (fd < 0 || dsys_truncate(media_file_v1572, 2U) != 0 ||
+        dsys_write_words(fd, media_data_v1572, 2U) != 2 ||
+        dsys_close(fd) != 0 ||
+        media_step_v1527("RW_ARMED") != 0)
+        return media_fail_v1527("FAIL_RW_ARM", 3);
+#endif
 
     /* Keep a real descriptor and vnode owner from the original DTC3.
      * Mounting DTC4 physically validates its own stamped directory and

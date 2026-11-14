@@ -19,12 +19,15 @@
         .globl dtfs_media_base
         .globl tsfs_file_shape_base
         .globl tsfs_extent_media_base
+        .globl vfs_mount_aux_base_v1560
         .globl proc_table
         .globl proc_high_slot
         .globl __test_exit
         .globl kret_zero
         .globl kret_neg1
         .globl kconst_2_2
+        .globl kconst_1_1
+        .globl kconst_3_3
         .globl pipe_fifo_mount_busy
         .globl proc_swap_mount_busy
         .globl fs_provider_reg_call
@@ -257,6 +260,8 @@ kret_neg1:
 
         .data
 kconst_2_2:           .word 2,,2
+kconst_1_1:           .word 1,,1
+kconst_3_3:           .word 3,,3
 file_table:            .word uarea1_v1531+026
 proc_table:            .word processes_v1531
 proc_high_slot:        .word 4
@@ -304,7 +309,13 @@ ids_lo_v1531:
         .word 045670
         .word 0
         .word 0
+; Since v1560 the VFS discard path also checks the retained per-slot
+; MM scratch owner. Its pointer is a boot-published slab, not a static
+; VFS fallback; source-linked tests must supply the matching slab.
+vfs_mount_aux_base_v1560:
+        .word aux_slots_v1575
         .bss
+aux_slots_v1575:       .block 4
 uarea1_v1531:         .block 0410
 uarea2_v1531:         .block 0410
 uarea3_v1531:         .block 0410
