@@ -235,7 +235,12 @@ if [ "${DAIMOS_TSFS_CHECK_MOUNT_CWD_BUSY:-0}" = 1 ] ||
                 v1564_mkdtfs="$work/mkdtfs-v1564"
                 "$host_cc" -std=c99 -O2 -Wall -Wextra -Werror \
                     -o "$v1564_mkdtfs" "$DAIMOS_REPO/tools/host/mkdtfs.c"
-                if [ -n "${DAIMOS_TSFS_GATE_V2_REPLAY_V1567:-}" ]; then
+                if [ -n "${DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568:-}" ]; then
+                        test -f "$DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568" || \
+                            fail_logs 'v1568: real physical DATA replay image missing'
+                        cp "$DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568" \
+                            "$dtc3_media_v1530"
+                elif [ -n "${DAIMOS_TSFS_GATE_V2_REPLAY_V1567:-}" ]; then
                         test -f "$DAIMOS_TSFS_GATE_V2_REPLAY_V1567" || \
                             fail_logs 'v1567: physical torn replay image missing'
                         cp "$DAIMOS_TSFS_GATE_V2_REPLAY_V1567" \
@@ -265,7 +270,15 @@ assert words[0] == 0o446466575422, 'not a DTVOL2 RBN0 record'
 assert words[1] != 0 and words[2] != 0, 'empty 72-bit identity'
 assert words[3] == (~(words[0] ^ words[1] ^ words[2]) & mask)
 replay_v1567 = os.environ.get('DAIMOS_TSFS_GATE_V2_REPLAY_V1567', '')
-if replay_v1567:
+replay_dirty_v1568 = os.environ.get(
+    'DAIMOS_TSFS_GATE_V2_REPLAY_DIRTY_V1568', '')
+if replay_dirty_v1568:
+    assert not replay_v1567
+    assert words[4] == 0o552255225522, 'not an on-media V2/DIRTY DATA fault'
+    assert words[5] == (~(words[0] ^ words[1] ^ words[2] ^
+                         words[4] ^ 0o246134572610) & mask), (
+        'invalid actual physically armed DIRTY seal')
+elif replay_v1567:
     # The tape was physically damaged by the guest's previous real
     # Type-551 CLEAN write; DO NOT silently reformat it here. A single
     # changed physical word4 leaves CLEAN state but the old DIRTY seal.
@@ -279,7 +292,7 @@ else:
                          0o246134572610) & mask), 'invalid CLEAN seal'
 assert all(word == 0 for word in words[6:]), 'nonzero RBN0 padding'
 if os.environ.get('DAIMOS_TSFS_GATE_V2_DIRTY_V1564') == '1':
-    assert not replay_v1567
+    assert not replay_v1567 and not replay_dirty_v1568
     # This is a fully valid on-media WRITE_INTENT (not an invalid checksum).
     # Model a crash after physical DIRTY arming but before CLEAN is written;
     # the real guest must refuse BOTH RO and RW mounts. Only the disposable
@@ -297,6 +310,8 @@ if os.environ.get('DAIMOS_TSFS_GATE_V2_DIRTY_V1564') == '1':
     print('PASS v1564: independent valid DTVOL2 WRITE_INTENT seal')
 elif replay_v1567:
     print('PASS v1567: real physically torn RBN0 replay image accepted by fixture')
+elif replay_dirty_v1568:
+    print('PASS v1568: authentic physical V2/DIRTY DATA tape replayed without mutation')
 else:
     print('PASS v1564: independent full physical DTVOL2 CLEAN seal')
 fault_v1567 = os.environ.get('DAIMOS_TSFS_GATE_V2_FAULT_V1567', '')
@@ -323,6 +338,14 @@ PY
                         # only after the simulator DETACH flushes DTC3.
                         cp "$dtc3_media_v1530" \
                             "$work/media/clean-origin-v1567.tap"
+                fi
+                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568:-0}" = 1 ]; then
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/clean-origin-v1568.tap"
+                fi
+                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ]; then
+                        cp "$dtc3_media_v1530" \
+                            "$work/media/clean-origin-v1568.tap"
                 fi
         else
                 "$PDP10_PREFIX/bin/mkdtfs" -o "$dtc3_media_v1530" || \
@@ -748,6 +771,7 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
@@ -778,11 +802,49 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
                                                     seed "$work/media/prewrite-v1529.tap" \
                                                     "$work/media/prewrite-v1529.tap" ||
                                                     fail_logs 'v1529: invalid physical seed'
+                                                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568:-0}" = 1 ]; then
+                                                        python3 "$self/daimos-dtfs-v2-partial-verify-v1568.py" \
+                                                            seed \
+                                                            "$work/media/clean-origin-v1568.tap" \
+                                                            "$work/media/prewrite-v1529.tap" ||
+                                                            fail_logs 'v1568: physical DIRTY+DATA seed not proven'
+                                                fi
                                         else
                                                 python3 "$self/daimos-dtfs-partial-media-verify-v1529.py" \
                                                     partial "$work/media/prewrite-v1529.tap" \
                                                     "$dtc3_media_v1530" ||
                                                     fail_logs 'v1529: no proven partial physical write'
+                                                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568:-0}" = 1 ]; then
+                                                        python3 "$self/daimos-dtfs-v2-partial-verify-v1568.py" \
+                                                            partial \
+                                                            "$work/media/prewrite-v1529.tap" \
+                                                            "$dtc3_media_v1530" ||
+                                                            fail_logs 'v1568: real V2 partial DATA corrupted metadata'
+                                                        test -n "${DAIMOS_TSFS_GATE_EXPORT_DATA_V1568:-}" ||
+                                                            fail_logs 'v1568: no exact raw tape replay destination'
+                                                        cp "$dtc3_media_v1530" \
+                                                            "$DAIMOS_TSFS_GATE_EXPORT_DATA_V1568"
+                                                fi
+                                        fi
+                                fi
+                                if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ] &&
+                                    [ "$command" = 'detach DTC3' ]; then
+                                        if [ ! -e "$work/media/prewrite-dir-v1568.tap" ]; then
+                                                cp "$dtc3_media_v1530" \
+                                                    "$work/media/prewrite-dir-v1568.tap"
+                                                python3 "$self/daimos-dtfs-v2-partial-dir-verify-v1568.py" \
+                                                    seed "$work/media/clean-origin-v1568.tap" \
+                                                    "$work/media/prewrite-dir-v1568.tap" ||
+                                                    fail_logs 'v1568: physical first directory write not proven'
+                                        else
+                                                python3 "$self/daimos-dtfs-v2-partial-dir-verify-v1568.py" \
+                                                    partial "$work/media/prewrite-dir-v1568.tap" \
+                                                    "$dtc3_media_v1530" ||
+                                                    fail_logs 'v1568: actual partial V2 DIR commit not proven'
+                                                test -n "${DAIMOS_TSFS_GATE_EXPORT_DIR_V1568:-}" ||
+                                                    fail_logs 'v1568: no physical directory replay target'
+                                                cp "$dtc3_media_v1530" \
+                                                    "$DAIMOS_TSFS_GATE_EXPORT_DIR_V1568"
                                         fi
                                 fi
                         done
@@ -944,6 +1006,22 @@ PY
                             fail_logs 'v1534: no media return checkpoint'
                         simh_media_exchange_v1527 \
                             "attach -q DTC3 $dtc3_media_v1530"
+                elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_ARM" 0 ||
+                            fail_logs 'v1568: physical V2/DIRTY first create not ready'
+                        simh_media_exchange_v1527 \
+                            'detach DTC3' \
+                            "attach -q DTC3 $dtc3_media_v1530" \
+                            'set DTC3 PARTIALWRITE=0144:1'
+                        wait_new "$cty_out" 'V1529 PARTIALWRITE block 0144 after 1 changed word' 0 ||
+                            fail_logs 'v1568: actual Type-551 DIR failure not observed'
+                        wait_new "$cty_out" "$gate_prefix WRITE_FAILED" 0 ||
+                            fail_logs 'v1568: failed DIR commit not refused'
+                        wait_new "$cty_out" "$gate_prefix READY_VERIFY" 0 ||
+                            fail_logs 'v1568: no post-partial DIR checkpoint'
+                        simh_media_exchange_v1527 \
+                            'detach DTC3' \
+                            "attach -q DTC3 $dtc3_media_v1530"
                 elif [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
                         # The simulator stops by its own *exact* KCORE
                         # breakpoint immediately BEFORE the unchanged
@@ -1063,6 +1141,30 @@ PY
                     "$DAIMOS_TSFS_GATE_EXPORT_PARTIAL_V1567" ||
                     fail_logs 'v1567: tape changed after poisoned mount refusal'
                 echo 'PASS v1567: physical partial RBN0 CLEAN persisted for cold boot'
+        elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ]; then
+                test -s "${DAIMOS_TSFS_GATE_EXPORT_DIR_V1568:-}" ||
+                    fail_logs 'v1568: physical V2/DIRTY partial DIR snapshot missing'
+                python3 - "$DAIMOS_TSFS_GATE_EXPORT_DIR_V1568" "$dtc3_media_v1530" <<'PY'
+from pathlib import Path
+import hashlib
+import sys
+old, current = [Path(p).read_bytes() for p in sys.argv[1:]]
+assert old == current, 'failed V2 DIR guest changed physically damaged tape'
+print('PASS v1568: final V2/DIRTY DIR unchanged, full SHA256',
+      hashlib.sha256(old).hexdigest())
+PY
+        elif [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DATA_V1568:-0}" = 1 ]; then
+                test -s "${DAIMOS_TSFS_GATE_EXPORT_DATA_V1568:-}" ||
+                    fail_logs 'v1568: physical V2/DIRTY DATA snapshot missing'
+                python3 - "$DAIMOS_TSFS_GATE_EXPORT_DATA_V1568" "$dtc3_media_v1530" <<'PY'
+from pathlib import Path
+import hashlib
+import sys
+old, current = [Path(p).read_bytes() for p in sys.argv[1:]]
+assert old == current, 'physical V2/DIRTY DATA changed after failed guest write'
+print('PASS v1568: final physical V2/DIRTY unchanged, full SHA256',
+      hashlib.sha256(old).hexdigest())
+PY
         elif [ "${DAIMOS_TSFS_GATE_DTVOL2_V1564:-0}" = 1 ]; then
                 python3 - "$dtc3_media_v1530" "$work/physical-intent-v1564.sha256" <<'PY'
 from pathlib import Path
