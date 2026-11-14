@@ -18,6 +18,7 @@
         .globl bcache_store
         .globl bcache_fetch
         .globl vfs_mount_root_base
+        .globl vfs_mount_policy
         .globl vfs_mount_limit
         .globl tsfs_file_shape_base
         .globl tsfs_extent_media_base
@@ -371,6 +372,7 @@ kret_neg1:
         .data
 kconst_2_2: .word 2,,2
 vfs_mount_root_base: .word mount_roots_v1522
+vfs_mount_policy: .word 0
 vfs_mount_limit: .word 4
 dtfs_media_base: .word media_v1522
 tsfs_file_shape_base: .word shape_v1522

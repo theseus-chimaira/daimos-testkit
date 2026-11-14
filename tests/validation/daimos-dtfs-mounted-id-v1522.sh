@@ -103,6 +103,7 @@ run_native() {
         --name "dtfs-mounted-$name-v1522" --expect __test_exit=0 \
         "$self/daimos-test-crt0-v1.s" \
         "$self/daimos-dtfs-mounted-id-v1522.s" \
+        "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_validate_v1550.s" \
         "$source" > "$work/$name.log" 2>&1
 }
 
