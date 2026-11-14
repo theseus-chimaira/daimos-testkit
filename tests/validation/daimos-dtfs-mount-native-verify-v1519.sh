@@ -84,6 +84,7 @@ run_case() {
         --expect __test_exit=0 \
         "$self/daimos-test-crt0-v1.s" \
         "$self/daimos-dtfs-mount-native-verify-v1519.s" \
+        "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_validate_v1550.s" \
         "$source" > "$work/$label.log" 2>&1
 }
 
