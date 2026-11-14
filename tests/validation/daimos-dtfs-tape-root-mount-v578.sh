@@ -381,6 +381,46 @@ Path(sys.argv[3]).write_text(hashlib.sha256(
 print('PASS v1570: two distinct independently formatted V2/CLEAN IDs')
 PY
                 fi
+                if [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ]; then
+                        # Different valid CLEAN reel, same physical DTC3,
+                        # no in-guest I/O while the simulator detaches it.
+                        # This deliberately exposes the absence of an
+                        # atomic hardware media-generation signal.
+                        "$v1564_mkdtfs" --durable-v1550 \
+                            -o "$work/media/clean-b-v1571.tap" ||
+                            fail_logs 'v1571: second physical V2 format failed'
+                        python3 - "$dtc3_media_v1530" \
+                            "$work/media/clean-b-v1571.tap" \
+                            "$work/media/v1571-sha256.txt" <<'PY'
+from pathlib import Path
+import hashlib
+import struct
+import sys
+
+images = [Path(p) for p in sys.argv[1:3]]
+ids=[]
+digests=[]
+for name in images:
+    data=name.read_bytes()
+    assert len(data) == 0o1102 * 1024
+    words=[]
+    for i in range(128):
+        hi,lo=struct.unpack_from('<II',data,i*8)
+        assert hi<=0o777777 and lo<=0o777777
+        words.append((hi<<18)|lo)
+    assert words[0]==0o446466575422 and words[1] and words[2]
+    assert words[3]==(~(words[0]^words[1]^words[2]))&0o777777777777
+    assert words[4]==0
+    assert words[5]==(~(words[0]^words[1]^words[2]^
+                        0o246134572610))&0o777777777777
+    assert not any(words[6:])
+    ids.append(tuple(words[1:3]))
+    digests.append(hashlib.sha256(data).hexdigest())
+assert ids[0]!=ids[1], 'same identity would not prove silent swap'
+Path(sys.argv[3]).write_text('\n'.join(digests)+'\n')
+print('PASS v1571: physically distinct, valid CLEAN 72-bit IDs')
+PY
+                fi
                 if [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ]; then
                         cp "$dtc3_media_v1530" \
                             "$work/media/clean-origin-v1568.tap"
@@ -592,6 +632,7 @@ PY
 fi
 if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
+    [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ] ||
     [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ] ||
@@ -836,6 +877,7 @@ if [ "${DAIMOS_TSFS_GATE_INIT_V1525:-0}" = 1 ]; then
         gate_stages=${DAIMOS_TSFS_GATE_STAGES_V1526:-"START MOUNTED FSINFO BUSY_REFUSED FD_REFUSED PASS"}
         if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_WRITE_V1528:-0}" = 1 ] ||
+            [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V1529:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_V2_DIR_V1568:-0}" = 1 ] ||
             [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ] ||
@@ -1043,6 +1085,17 @@ PY
                                 echo 'v1538: PASS (booted TSFS root loss, no reboot/retry)'
                         fi
                         exit 0
+                elif [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_SWAP" 0 ||
+                            fail_logs 'v1571: initial V2/RO mount did not reach exchange point'
+                        # Single uninterrupted SIMH monitor episode:
+                        # no DTC3 transfer can observe an unavailable
+                        # unit. The guest is blocked in CTY READCHAR.
+                        simh_media_exchange_v1527 \
+                            'detach DTC3' \
+                            "attach -q DTC3 $work/media/clean-b-v1571.tap"
+                        wait_new "$cty_out" "$gate_prefix BLIND_SPOT_CONFIRMED" 0 ||
+                            fail_logs 'v1571: silent exchange did not exhibit intended blind spot'
                 elif [ "${DAIMOS_TSFS_GATE_ADMIN_V1531:-0}" = 1 ]; then
                         wait_new "$cty_out" "$gate_prefix READY_DETACH" 0 ||
                             fail_logs 'v1531: no initial mount checkpoint'
@@ -1246,7 +1299,24 @@ PY
         if grep -F "$gate_prefix FAIL" "$cty_out" >/dev/null; then
                 fail_logs 'real PID1 physical gate reported an error'
         fi
-        if [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
+        if [ "${DAIMOS_TSFS_GATE_SILENT_SWAP_V1571:-0}" = 1 ]; then
+                python3 - "$dtc3_media_v1530" \
+                    "$work/media/clean-b-v1571.tap" \
+                    "$work/media/v1571-sha256.txt" <<'PY'
+from pathlib import Path
+import hashlib
+import sys
+
+original,replacement=[Path(x).read_bytes() for x in sys.argv[1:3]]
+before=Path(sys.argv[3]).read_text().splitlines()
+assert len(before)==2 and before[0]!=before[1]
+assert hashlib.sha256(original).hexdigest()==before[0]
+assert hashlib.sha256(replacement).hexdigest()==before[1]
+print('PASS v1571: two distinct CLEAN reels unchanged after silent guest swap')
+print('Original:', before[0])
+print('Replacement:', before[1])
+PY
+        elif [ "${DAIMOS_TSFS_GATE_PARTIAL_CLEAN_V1567:-0}" = 1 ]; then
                 # Both physical flushes, independent 72-bit identity and
                 # exact one-word diff were checked at the breakpoint,
                 # BEFORE allowing guest PID1 to report PASS.
