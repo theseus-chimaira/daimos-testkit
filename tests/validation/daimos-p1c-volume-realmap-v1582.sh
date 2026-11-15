@@ -60,6 +60,8 @@ mutants = (
      'jrst    device_block_transfer', 'mapper-missing-fatal'),
     ('lose-disabled-owner', 'skipn   backstore_blocks_used',
      'skipn   test_dummy_zero_v1582', 'disabled-owned-fatal'),
+    ('wrong-buffer-stride', 'addi    010,0200',
+     'addi    010,0100', 'dsk-three-read'),
 )
 for name, before, after, case in mutants:
     assert linked.count(before) == 1, ('nonunique source mutation', name)
@@ -215,7 +217,8 @@ for scenario in dsk-three-read dsk-six-write drm-three-read \
 done
 
 for mutant in wrong-physical-block wrong-member-unit skip-data-offset \
-    misroute-drum lose-fatal bypass-mapper-failure lose-disabled-owner; do
+    misroute-drum lose-fatal bypass-mapper-failure lose-disabled-owner \
+    wrong-buffer-stride; do
     scenario=$(cat "$work/mutant-case-$mutant")
     label="mutant-$mutant"
     source="$work/$label-v1582.s"

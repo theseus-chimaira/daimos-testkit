@@ -57,10 +57,11 @@ All 13 baseline cases PASS on `p10run --machine pdp6 --mode deposit`:
 - Range-overflow, out-of-range start and zero-length transfer return
   without touching physical storage.
 
-Seven actual executed production-source mutants are all REJECTED:
+Eight actual executed production-source mutants are all REJECTED:
 incorrect physical block, wrong member unit, missing filesystem-data
 offset, misrouted DRM controller, skipped critical HALT, bypassed
-mapper refusal, and ignored owned blocks when allocations are disabled.
+mapper refusal, ignored owned blocks when allocations are disabled,
+and incorrect per-sector buffer stride (0200 replaced by 0100 words).
 
 One fatal example linked `kcore_critical_media_swap_halt_v1515` at
 octal PC `001342` and the simulator halted at precisely `001342`.

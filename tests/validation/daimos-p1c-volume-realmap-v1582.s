@@ -151,6 +151,16 @@ physical_compare_v1582:
 physical_block_v1582:
         move    7,expected_map_v1582+1(6)
         camn    2,7
+        jrst    physical_buffer_v1582
+        aos     observed_wrong_v1582
+physical_buffer_v1582:
+        ; Every physical completion must receive its own non-overlapping
+        ; 0200-word sector of the caller's original transfer buffer.
+        movei   7,transfer_buffer_v1582
+        move    0,observed_io_v1582
+        lsh     0,7
+        add     7,0
+        camn    3,7
         jrst    physical_write_v1582
         aos     observed_wrong_v1582
 physical_write_v1582:
