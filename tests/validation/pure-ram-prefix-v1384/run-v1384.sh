@@ -32,4 +32,5 @@ done
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_rebase_v1381.s" \
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_expand_v1384.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" \
+    "$DAIMOS_REPO/system/kernel/drivers/device_state.s" \
     "$work/test-native-v1384.s"

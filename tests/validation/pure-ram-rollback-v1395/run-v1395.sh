@@ -41,5 +41,6 @@ done
     "$work/proc_pure_ram_v1381.s" "$work/proc_pure_restore_v1384.s" \
     "$work/proc-pure-restore-v1395.s" \
     "$src/mm/mm_pure_rebase_v1381.s" "$src/mm/mm_pure_expand_v1384.s" \
-    "$src/proc/proc_storage_runtime_v30.s" "$work/test-native-v1395.s"
+    "$src/proc/proc_storage_runtime_v30.s" \
+    "$src/drivers/device_state.s" "$work/test-native-v1395.s"
 echo 'PASS v1395/v1397: native PURE FULL and DROP MM failure isolation'
