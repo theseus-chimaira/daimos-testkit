@@ -213,6 +213,32 @@ ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
     ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
 PYV1588
 fi
+if [ "${XIP_V1589_P1C_POPULATED_CACHE:-0}" = 1 ]; then
+    # D6FS was read through ordinary userland VFS before HALT. Observe
+    # the original private cache without cross-MRES reader references.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1589'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 2 and all(c in '01234567' for c in fields[1]):
+        symbols[fields[0]] = int(fields[1], 8)
+names = ('primed', 'nonzero', 'slab', 'key', 'before_differences',
+         'after_differences', 'fetch_after', 'fetch_differences',
+         'reclaim_matched', 'reclaim_inflight', 'reclaim_swaps',
+         'reclaim_differences', 'reclaim_succeeded', 'reclaim_refused')
+names = tuple('daimos_v1589_' + name for name in names)
+assert all(name in symbols for name in names)
+original = ini.read_text()
+assert original.endswith('exit\n')
+ini.write_text(original[:-5] + ''.join('ex %06o\n' % symbols[name]
+                                       for name in names) + 'exit\n')
+(ini.parent / 'v1589-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1589
+fi
 if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
     # Drum unit zero is now the selected D6FS VOLUME member, NOT an
     # AUXSTORE descriptor. Check all four real root images instead.

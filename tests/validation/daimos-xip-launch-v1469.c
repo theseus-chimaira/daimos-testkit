@@ -154,6 +154,30 @@ p1c_swap_halt_v1580(void)
 {
         if (p1c_swap_arm_v1580() != 0)
                 return 1;
+#ifdef XIP_P1C_CACHE_V1589
+        {
+                /* Populate the REAL D6FS clean cache through ordinary
+                 * VFS reads immediately before snapshot. The second block
+                 * miss should preserve an earlier block in BCACHE slot 1.
+                 * No kernel shortcut, fabricated tag or mock I/O. */
+                kword_t root_path[U_PATH_WORDS];
+                kword_t physical_words[0200];
+                int fd;
+
+                if (u_s6_pack(root_path, U_PATH_WORDS,
+                        "/CONFIG/XIP1469.TEST") != 0)
+                        return xip_fail_v1469("P1C-CACHE-PATH", -1);
+                fd = dsys_open(root_path, SYS_O_RDONLY);
+                if (fd < 0)
+                        return xip_fail_v1469("P1C-CACHE-OPEN", fd);
+                if (dsys_read_words(fd, physical_words, 0200U) != 0200 ||
+                    dsys_read_words(fd, physical_words, 0200U) != 0200 ||
+                    dsys_close(fd) != 0)
+                        return xip_fail_v1469("P1C-CACHE-READ", -1);
+                (void)u_puts(1, "P1C-BCACHE-D6FS-WARM-V1589");
+                (void)u_crlf(1);
+        }
+#endif
         (void)u_puts(1, "P1C-SWAP-HALT-REQUEST-V1580");
         (void)u_crlf(1);
         /* The source-linked disposable MEMFS MRES refuses this HALT if
