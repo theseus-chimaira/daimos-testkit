@@ -117,6 +117,29 @@ ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[n]
     ''.join('%s %06o\n' % (n, symbols[n]) for n in names))
 PYV1585
 fi
+if [ "${XIP_V1592_P1C_TWO_OWNER:-0}" = 1 ]; then
+    # Original timer-service wakeups for two distinct independently
+    # scheduled DISK owners; do not manufacture or count fake PI calls.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1592'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 2 and all(ch in '01234567' for ch in fields[1]):
+        symbols[fields[0]] = int(fields[1], 8)
+names = tuple('daimos_v1592_' + key for key in
+              ('first_slot', 'second_slot', 'first_woke', 'second_woke'))
+assert all(name in symbols for name in names), 'v1592 missing linked owner'
+source = ini.read_text()
+assert source.endswith('exit\n')
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
+                                    for name in names) + 'exit\n')
+(ini.parent / 'v1592-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1592
+fi
 if [ "${XIP_V1586_P1C_SWAP_READ_FAULT:-0}" = 1 ]; then
     # The original Type-236 error counter lives at +5 from the fixed
     # MFSDEV error base. The three additional words are test-only.
