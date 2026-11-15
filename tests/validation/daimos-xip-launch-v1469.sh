@@ -100,6 +100,13 @@ host_tools="${DAIMOS_HOST_TOOLS:-$PDP10_PREFIX/bin}"
 # full resident module selection and the physical core-size-specific image.
 xip_boot_core_words=${XIP_V1470_BOOT_CORE_WORDS:-01000000}
 xip_simh_cpu_kwords=${XIP_V1470_SIMH_CPU_KWORDS:-256}
+# v1583 opt-in: reuse the same exact XIP workload with the production
+# four-member Type-236 root. All earlier tests retain DSK + AUXSTORE.
+if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
+    xip_root_args='BOOT=drm ROOT=drum ROOTSET=1'
+else
+    xip_root_args='BOOT=dsk ROOT=disk ROOTSET=1'
+fi
 PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
     make -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD_ROOT="$build" PDP10_PREFIX="$PDP10_PREFIX" \
@@ -110,7 +117,7 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
     BOOT_PROFILE=full COMPILER=kcc \
     BOOT_CORE_WORDS="$xip_boot_core_words" \
     SIMH_CPU_KWORDS="$xip_simh_cpu_kwords" \
-    BOOT=dsk ROOT=disk ROOTSET=1 \
+    $xip_root_args \
     D6FS_EXTRA_ARGS="-f /CONFIG/XIP1469.TEST:$obj/test.dxr:555:dxr" \
     > "$work/image-build.log" 2>&1 || {
         tail -65 "$work/image-build.log" >&2

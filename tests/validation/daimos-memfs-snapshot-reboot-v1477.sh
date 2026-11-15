@@ -37,6 +37,7 @@ if [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
     # reaches the fatal BACKSTORE HALT. Keep the original physical boot.
     python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1581'
 from pathlib import Path
+import os
 import sys
 
 ini, mapping = (Path(s) for s in sys.argv[1:])
@@ -52,6 +53,10 @@ names = ('daimos_v1581_pi2_errors', 'daimos_v1581_relative',
 assert all(name in symbols for name in names), 'v1581 KCORE map incomplete'
 symbols['daimos_v1581_drm_errors'] = symbols['mfsdev_storage_errors'] + 5
 names += ('daimos_v1581_drm_errors',)
+if os.environ.get('XIP_V1583_VOLUME_DRM') == '1':
+    names += ('volume_data_blocks', 'backing_region_count',
+              'device_region_map', 'backstore_blocks',
+              'mfsdev_d6set_members', 'vfs_namespace_root')
 source = ini.read_text()
 assert source.endswith('go 020\nexit\n'), 'v1581 boot control flow drift'
 checks = ''.join('ex %06o\n' % symbols[name] for name in names)
@@ -60,8 +65,35 @@ ini.write_text(source[:-5] + checks + 'exit\n')
     ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
 PYV1581
 fi
-"$PDP10_PREFIX/bin/mkauxstore" --inspect "$boot/drum/dsk0.dsk" \
-    > "$work/auxstore-v1477.inspect"
+if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
+    # Drum unit zero is now the selected D6FS VOLUME member, NOT an
+    # AUXSTORE descriptor. Check all four real root images instead.
+    for unit in 0 1 2 3; do
+        test -s "$boot/drum/dsk$unit.dsk"
+        grep -Fq "attach -q dr$unit $boot/drum/dsk$unit.dsk" \
+            "$boot/boot.ini"
+    done
+    grep -Eq '^deposit SW 3$' "$boot/boot.ini"
+    "$PDP10_PREFIX/bin/d6fsck" -n 4 -d "$boot/drum" \
+        > "$work/volume-fsck-before-v1583.log" 2>&1
+    # The test deliberately ends with an abrupt critical HALT, so D6FS
+    # superblocks can legitimately remain DIRTY. Preserve exact physical
+    # per-member layouts instead of treating that expected state as damage.
+    python3 - "$boot/drum" "$work/volume-descriptors-v1583.bin" <<'PYV1583'
+from pathlib import Path
+import sys
+root, output = (Path(s) for s in sys.argv[1:])
+descriptors = []
+for i in range(4):
+    with (root / ('dsk%d.dsk' % i)).open('rb') as image:
+        descriptors.append(image.read(1024))
+assert all(len(block) == 1024 for block in descriptors)
+output.write_bytes(b''.join(descriptors))
+PYV1583
+else
+    "$PDP10_PREFIX/bin/mkauxstore" --inspect "$boot/drum/dsk0.dsk" \
+        > "$work/auxstore-v1477.inspect"
+fi
 for n in 1 2; do
     case "$n" in
         1) marker=XIP-SNAPSHOT-WRITTEN ;;
@@ -160,16 +192,32 @@ EOF
     # into DR0 block zero during INIT/LOGIN, corrupting AUXSTORE discovery
     # on the next boot despite a valid snapshot near the end of the drum.
     # Refuse the guest immediately if any boot changed the raw descriptor.
-    "$PDP10_PREFIX/bin/mkauxstore" --inspect "$boot/drum/dsk0.dsk" \
-        > "$work/auxstore-after-boot-$n.inspect" || {
-        echo "v1484: AUXSTORE drum descriptor was damaged by guest boot $n" >&2
-        exit 1
-    }
-    cmp -s "$work/auxstore-v1477.inspect" \
-        "$work/auxstore-after-boot-$n.inspect" || {
-        echo "v1484: AUXSTORE partition geometry changed at boot $n" >&2
-        exit 1
-    }
+    if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
+        python3 - "$boot/drum" "$work/volume-descriptors-v1583.bin" <<'PYV1583'
+from pathlib import Path
+import sys
+root, baseline = (Path(s) for s in sys.argv[1:])
+descriptors = []
+for i in range(4):
+    with (root / ('dsk%d.dsk' % i)).open('rb') as image:
+        descriptors.append(image.read(1024))
+assert all(len(block) == 1024 for block in descriptors)
+current = b''.join(descriptors)
+assert current == baseline.read_bytes(), \
+    'v1583: one of four physical D6FSR2 member layouts was damaged'
+PYV1583
+    else
+        "$PDP10_PREFIX/bin/mkauxstore" --inspect "$boot/drum/dsk0.dsk" \
+            > "$work/auxstore-after-boot-$n.inspect" || {
+            echo "v1484: AUXSTORE drum descriptor was damaged by guest boot $n" >&2
+            exit 1
+        }
+        cmp -s "$work/auxstore-v1477.inspect" \
+            "$work/auxstore-after-boot-$n.inspect" || {
+            echo "v1484: AUXSTORE partition geometry changed at boot $n" >&2
+            exit 1
+        }
+    fi
     if [ "$n" = 1 ] && [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
         # One real physical fail-stop. A second boot would deliberately
         # find no committed snapshot, not the v1580 recovery baseline.
