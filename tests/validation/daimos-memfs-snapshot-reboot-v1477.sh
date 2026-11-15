@@ -179,6 +179,40 @@ ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
     ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
 PYV1587
 fi
+if [ "${XIP_V1588_P1C_POSTREAD_FREE_FAIL:-0}" = 1 ]; then
+    # Test-only: examine real original MM/bitmap/process/BCACHE state
+    # captured on both sides of a post-DMA checked release refusal.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1588'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 2 and all(c in '01234567' for c in fields[1]):
+        symbols[fields[0]] = int(fields[1], 8)
+names = (
+    'fault_armed', 'release_refusals', 'rollback_count', 'term_events',
+    'slot', 'allocated_base', 'mm_before', 'mm_after',
+    'owner_before', 'owner_after', 'backing_before', 'backing_after',
+    'bitmap_words', 'bitmap_differences', 'record_before', 'record_after',
+    'process_before', 'process_after', 'process_word1_before',
+    'process_word1_after', 'process_word2_before', 'process_word2_after',
+    'bcache_state_before', 'bcache_state_after',
+    'bcache_tag_before', 'bcache_tag_after',
+    'bcache_private_before', 'bcache_private_after',
+    'storage_expect_after', 'extent_still_present', 'in_request',
+)
+names = tuple('daimos_v1588_' + name for name in names)
+assert all(name in symbols for name in names), 'v1588 absent linked witness'
+source = ini.read_text()
+assert source.endswith('exit\n'), 'v1588 SIMH boot tail changed'
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
+                                   for name in names) + 'exit\n')
+(ini.parent / 'v1588-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1588
+fi
 if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
     # Drum unit zero is now the selected D6FS VOLUME member, NOT an
     # AUXSTORE descriptor. Check all four real root images instead.
