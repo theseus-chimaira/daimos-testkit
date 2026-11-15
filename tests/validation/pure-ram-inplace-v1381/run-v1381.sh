@@ -23,4 +23,5 @@ includes="-I$DAIMOS_REPO/system/kernel/proc -I$DAIMOS_REPO/system/kernel/mm -I$D
     "$work/proc_pure_ram_v1381.s" \
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_rebase_v1381.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" \
+    "$DAIMOS_REPO/system/kernel/drivers/device_state.s" \
     "$work/test-native-v1381.s"
