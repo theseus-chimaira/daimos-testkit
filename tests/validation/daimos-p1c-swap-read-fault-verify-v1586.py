@@ -53,7 +53,8 @@ def sector(raw, number):
     return words
 
 
-def check(mapping, addr4, addr5, addr6, transcript, media, original):
+def check(mapping, addr4, addr5, addr6, transcript, media, original,
+          timer_arms=1):
     linked = labels(mapping)
     addressing = [labels(s) for s in (addr4, addr5, addr6)]
     for group, names in zip(addressing, (V1584, V1585, V1586)):
@@ -91,7 +92,7 @@ def check(mapping, addr4, addr5, addr6, transcript, media, original):
     assert values['mfsdev_storage_errors'] == 0
     assert values['daimos_v1584_snapshot_live'] == MASK36, \
         'snapshot already exited before selected swap READ fault'
-    assert values['daimos_v1585_armed'] == 1
+    assert values['daimos_v1585_armed'] == timer_arms
     assert values['daimos_v1585_woke'] == 1
     assert 0 < values['daimos_v1585_slot'] < 24
     assert values['daimos_v1585_start_tick'] > 0
@@ -172,7 +173,7 @@ def check(mapping, addr4, addr5, addr6, transcript, media, original):
     return fatal, unit, physical, logical, occupied, values
 
 
-def selftest(inputs):
+def selftest(inputs, timer_arms=1):
     mapping, addr4, addr5, addr6, transcript, media, original = inputs
     linked = labels(addr6)
     all_links = {}
@@ -204,19 +205,20 @@ def selftest(inputs):
         try:
             check(mapping, addr4, addr5, addr6,
                   prefix + 'HALT instruction, PC:' + changed,
-                  media, original)
+                  media, original, timer_arms=timer_arms)
         except (AssertionError, KeyError):
             print('PASS v1586: rejected ' + name)
         else:
             raise AssertionError('accepted corrupted physical witness ' + name)
 
-    fatal, unit, block, _, _, _ = check(*inputs)
+    fatal, unit, block, _, _, _ = check(*inputs, timer_arms=timer_arms)
     bad = list(media)
     changed = bytearray(bad[unit])
     changed[block * 1024:(block + 1) * 1024] = b'\0' * 1024
     bad[unit] = bytes(changed)
     try:
-        check(mapping, addr4, addr5, addr6, transcript, bad, original)
+        check(mapping, addr4, addr5, addr6, transcript, bad, original,
+              timer_arms=timer_arms)
     except (AssertionError, KeyError):
         print('PASS v1586: rejected missing selected physical swap payload')
     else:
@@ -230,7 +232,8 @@ def selftest(inputs):
     struct.pack_into('<Q', changed, end * 1024, SNAPSHOT_MAGIC)
     bad[3] = bytes(changed)
     try:
-        check(mapping, addr4, addr5, addr6, transcript, bad, original)
+        check(mapping, addr4, addr5, addr6, transcript, bad, original,
+              timer_arms=timer_arms)
     except (AssertionError, KeyError):
         print('PASS v1586: rejected falsely committed snapshot header')
     else:
@@ -241,7 +244,8 @@ def selftest(inputs):
     struct.pack_into('<Q', changed, 6 * 8, 0)
     bad[0] = bytes(changed)
     try:
-        check(mapping, addr4, addr5, addr6, transcript, bad, original)
+        check(mapping, addr4, addr5, addr6, transcript, bad, original,
+              timer_arms=timer_arms)
     except (AssertionError, KeyError):
         print('PASS v1586: rejected corrupt physical D6FSR2 member')
     else:
