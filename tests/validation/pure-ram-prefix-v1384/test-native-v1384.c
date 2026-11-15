@@ -304,7 +304,12 @@ extern int proc_pure_ram_restore_v1391(unsigned int,
     int (*)(kword_t, kword_t, kword_t, kword_t));
 #endif
 #endif
-static vnode_t roots_v1385[26];
+/* Earlier MM/restore tests run before the v1385 loader cases set
+ * their per-case roots. Preserve a valid initial KINIT mount identity.
+ */
+static vnode_t roots_v1385[26] = {
+    VFS_NODE(6U, VFS_MOUNT_KIND(1U, 1U), 1U)
+};
 vnode_t *vfs_mount_root_base = roots_v1385;
 kword_t vfs_mount_limit = 26UL;
 static int read_mode_v1385;

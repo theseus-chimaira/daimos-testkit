@@ -39,6 +39,17 @@ done
         "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" |
         sed '$d'
 } > "$work/unpack-backing-v1390.s"
+# This historical fixture provides the controlled four-register decoder
+# under its former symbol. The v1464 production codec cutover renamed
+# the entry point; preserve the tested ABI with a TEST-ONLY alias,
+# as in the already accepted v1487 native DXR suite.
+cat > "$work/codec-alias-v1608.s" <<'ASM'
+        .text
+        .globl d6codec_decode_vfs_v1458
+        .globl d6lz36_decode_vfs
+d6codec_decode_vfs_v1458:
+        jrst    d6lz36_decode_vfs
+ASM
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode go --start 1000 --timeout 30 \
     --workdir "$work/guest" --name exec-image-full-backing-v1390 \
@@ -51,5 +62,7 @@ done
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_rebase_v1381.s" \
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_expand_v1384.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" \
+    "$DAIMOS_REPO/system/kernel/drivers/device_state.s" \
     "$work/unpack-backing-v1390.s" \
+    "$work/codec-alias-v1608.s" \
     "$work/test-native-v1390.s"

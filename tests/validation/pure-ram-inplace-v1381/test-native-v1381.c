@@ -21,6 +21,11 @@
 #undef mm_free
 #endif
 
+/* The v1385+ source-linked DXR fixtures publish their mount slab after
+ * including this file; the earlier v1377 fixture supplies its own root.
+ */
+extern vnode_t *vfs_mount_root_base;
+
 static unsigned int pi_depth_v1381;
 static unsigned int pi_disable_count_v1381;
 static unsigned int pi_restore_count_v1381;
@@ -68,6 +73,81 @@ check_no_mutation_v1381(kword_t old_span, kword_t old_meta)
 {
         return mm_extents[0].span == old_span &&
             mm_extents[0].meta == old_meta;
+}
+
+/*
+ * v1608: all unsafe backing configurations must be rejected before the
+ * first MM pin or descriptor rebase. Each case uses the real staged DROP
+ * routine, not an independent imitation of the eligibility helper.
+ */
+static int
+check_source_admission_v1608(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t *u = (kword_t *)(unsigned long)UAREA;
+        vnode_t root = vfs_mount_root_base[0];
+        vnode_t *mounts = vfs_mount_root_base;
+        kword_t limit = vfs_mount_limit;
+        kword_t span = mm_extents[0].span;
+        kword_t meta = mm_extents[0].meta;
+        unsigned int n;
+
+        backstore_enabled = 1U;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 1;
+        backstore_enabled = 0U;
+        backstore_blocks = 0200UL;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 2;
+        backstore_blocks = 0UL;
+        backstore_blocks_used = 1UL;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 3;
+        backstore_blocks_used = 0UL;
+        backstore_bitmap = (kword_t *)(unsigned long)UAREA;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 4;
+        backstore_bitmap = (kword_t *)0;
+        proc_swap_blocks_used = 1UL;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 5;
+        proc_swap_blocks_used = 0UL;
+        vfs_mount_root_base = (vnode_t *)0;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 6;
+        vfs_mount_root_base = mounts;
+        vfs_mount_limit = 0UL;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 7;
+        vfs_mount_limit = limit;
+        vfs_mount_root_base[0] = 0UL;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 8;
+        vfs_mount_root_base[0] =
+            VFS_NODE(2U, VFS_MOUNT_KIND(1U, 1U), 0U);
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 9;
+        vfs_mount_root_base[0] =
+            VFS_NODE(MEMFS_PROVIDER, VFS_MOUNT_KIND(2U, 1U), 0U);
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 10;
+        vfs_mount_root_base[0] = root;
+        u[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL)
+                return 11;
+        u[PROC_CRED_OFFSET] &= ~PROC_SWAP_MOUNT_EXT_BIT;
+        if (mm_extents[0].span != span || mm_extents[0].meta != meta ||
+            mm_extent_count != 1 || !PROC_TRANSITION(p) ||
+            VM_PDP6_BASE(p) != SOURCE ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT) != 0 ||
+            pi_disable_count_v1381 || pi_restore_count_v1381 ||
+            alloc_count_v1381 || free_count_v1381)
+                return 12;
+        for (n = 0U; n < WORDS; ++n)
+                if (((kword_t *)(unsigned long)SOURCE)[n] !=
+                    (n < OMIT ? TEXT_PATTERN : PATTERN + n))
+                        return 13;
+        return 0;
 }
 
 static int
@@ -185,6 +265,9 @@ main(void)
         alloc_count_v1381 = 0U;
         free_count_v1381 = 0U;
 
+        rc = check_source_admission_v1608();
+        if (rc)
+                return 0200 + rc;
         if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
                 return 1;
         if (alloc_count_v1381 || free_count_v1381 ||
@@ -204,6 +287,17 @@ main(void)
                 if (suffix[i] != PATTERN + OMIT + i)
                         return 4;
         PROC_SET_TRANSITION(p);
+        /* Retiring a mount must not allow reconstruction from another
+         * source. Keep the suffix and its PACKED owner for retry. */
+        vfs_mount_root_base[0] = 0UL;
+        if (proc_pure_ram_restore_v1381(SLOT, reload) != MM_ERR_INVAL ||
+            !PROC_TRANSITION(p) || mm_extent_count != 1 ||
+            VM_PDP6_BASE(p) ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PACKED_PROCESS ||
+            MM_EXTENT_PINNED(&mm_extents[0]))
+                return 0217;
+        vfs_mount_root_base[0] =
+            VFS_NODE(MEMFS_PROVIDER, VFS_MOUNT_KIND(1U, 1U), 0U);
         refuse_restore_alloc = 1;
         if (proc_pure_ram_restore_v1381(SLOT, reload) != MM_ERR_NOMEM ||
             mm_extent_count != 1 || MM_EXTENT_PINNED(&mm_extents[0]))
@@ -228,12 +322,17 @@ main(void)
         PROC_SET_STATE(p, PROC_ZOMB);
         PROC_SET_TRANSITION(p);
         uarea[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
+        /* Final teardown must not depend on an already vanished mount
+         * or an unexpectedly reactivated storage provider. */
+        vfs_mount_root_base[0] = 0UL;
+        backstore_enabled = 1U;
         if (proc_pure_ram_discard_v1381(SLOT) != MM_OK ||
             mm_extent_count != 0 ||
             swap_slots[SLOT].state != 0UL ||
             uarea[PROC_SWAP_BACKING_OFFSET] != 0UL ||
             (uarea[PROC_CRED_OFFSET] & PROC_SWAP_MOUNT_EXT_BIT))
                 return 10;
+        backstore_enabled = 0U;
         return 0;
 }
 #endif

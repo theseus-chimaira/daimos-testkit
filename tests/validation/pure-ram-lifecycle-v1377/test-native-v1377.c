@@ -8,6 +8,7 @@
 #include "proc_packed_owner_v37.h"
 #include "vm_pdp6.h"
 #include "mm_internal.h"
+#include "memfs.h"
 
 #define SLOT 1U
 #define SLOTS PROC_MIN_SLOTS
@@ -38,6 +39,21 @@ struct mm_extent mm_extents[MM_MAX_EXTENTS];
 int mm_extent_count;
 kword_t backstore_blocks;
 unsigned int backstore_enabled;
+kword_t backstore_blocks_used;
+kword_t *backstore_bitmap;
+kword_t proc_swap_blocks_used;
+/* KINIT's selected, still-mounted MEMFS executable provider.
+ * All current v1381/v1384/v1391 PURE source-linked tests are
+ * swapless by design. The v1385+ DXR backing fixtures provide their
+ * own selected mount slab and the original vfs.s is not linked.
+ */
+#ifndef DAIMOS_TEST_PLAIN_DXR_V1385
+kword_t vfs_mount_limit = 1UL;
+static vnode_t pure_mount_roots_v1608[1] = {
+    VFS_NODE(MEMFS_PROVIDER, VFS_MOUNT_KIND(1U, 1U), 0U)
+};
+vnode_t *vfs_mount_root_base = pure_mount_roots_v1608;
+#endif
 static int refuse_restore_alloc;
 
 static int

@@ -74,6 +74,7 @@ case_v1395(unsigned int kind)
 {
         struct proc *p = &process_slots[SLOT];
         kword_t *u = (kword_t *)(unsigned long)UAREA;
+        vnode_t old_root;
         int rc;
 
         /* The preceding case may have deliberately left a pin refusal.
@@ -84,6 +85,27 @@ case_v1395(unsigned int kind)
         if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
                 return 1;
         PROC_SET_TRANSITION(p);
+        if (kind == 1U) {
+                /*
+                 * Source loss must be detected by the real bounded FULL
+                 * transaction before it allocates or pins a destination.
+                 * The PACKED suffix must survive for a later valid retry.
+                 */
+                old_root = vfs_mount_root_base[0];
+                vfs_mount_root_base[0] = 0UL;
+                rc = proc_pure_ram_restore_v1391(SLOT,
+                    reject_payload_v1395);
+                vfs_mount_root_base[0] = old_root;
+                if (rc != MM_ERR_INVAL || !PROC_TRANSITION(p) ||
+                    mm_extent_count != 1 ||
+                    MM_EXTENT_TYPE(&mm_extents[0]) !=
+                        MM_TYPE_PACKED_PROCESS ||
+                    MM_EXTENT_PINNED(&mm_extents[0]) ||
+                    VM_PDP6_BASE(p) ||
+                    u[PROC_SWAP_BACKING_OFFSET] != BACKING ||
+                    proc_storage_expect_v30(SLOT, PROC_STORAGE_PACKED))
+                        return 7;
+        }
         fault_kind_v1395 = kind;
         fault_calls_v1395 = 0U;
         rc = proc_pure_ram_restore_v1391(SLOT,
