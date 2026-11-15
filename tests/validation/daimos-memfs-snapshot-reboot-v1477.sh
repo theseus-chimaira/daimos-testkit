@@ -117,6 +117,34 @@ ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[n]
     ''.join('%s %06o\n' % (n, symbols[n]) for n in names))
 PYV1585
 fi
+if [ "${XIP_V1586_P1C_SWAP_READ_FAULT:-0}" = 1 ]; then
+    # The original Type-236 error counter lives at +5 from the fixed
+    # MFSDEV error base. The three additional words are test-only.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1586'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 2 and all(c in '01234567' for c in fields[1]):
+        symbols[fields[0]] = int(fields[1], 8)
+names = ('daimos_v1586_fault_armed', 'daimos_v1586_fault_count',
+         'daimos_v1586_target_group', 'backstore_enabled',
+         'mfsdev_d6set_members', 'device_region_map',
+         'vfs_namespace_root')
+assert all(name in symbols for name in names), 'v1586 missing linked labels'
+symbols['daimos_v1586_original_drm_errors'] = \
+    symbols['mfsdev_storage_errors'] + 5
+names += ('daimos_v1586_original_drm_errors',)
+source = ini.read_text()
+assert source.endswith('exit\n'), 'v1586 SIMH boot tail changed'
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
+                                   for name in names) + 'exit\n')
+(ini.parent / 'v1586-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1586
+fi
 if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
     # Drum unit zero is now the selected D6FS VOLUME member, NOT an
     # AUXSTORE descriptor. Check all four real root images instead.
@@ -284,7 +312,9 @@ PYV1583
             exit 1
         }
     fi
-    if [ "$n" = 1 ] && [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
+    if [ "$n" = 1 ] && {
+        [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ] ||
+        [ "${XIP_V1586_P1C_SWAP_READ_FAULT:-0}" = 1 ]; }; then
         # One real physical fail-stop. A second boot would deliberately
         # find no committed snapshot, not the v1580 recovery baseline.
         break
@@ -302,7 +332,9 @@ PYV1583
             "$work/orphan-physical-v1578.txt"
     fi
 done
-if [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
+if [ "${XIP_V1586_P1C_SWAP_READ_FAULT:-0}" = 1 ]; then
+    echo 'v1586: selected physical swap READ PI2 fatal boot finished; snapshot not committed'
+elif [ "${XIP_V1581_P1C_SNAPFAULT:-0}" = 1 ]; then
     echo 'v1581: one physical fatal-fault boot finished; commit not claimed'
 else
     echo 'PASS v1477: committed MEMFS snapshot survived a completely new PDP-6 boot'
