@@ -76,6 +76,11 @@ command HALT
 terminal eof
 end
 PROBES
+if [ "${XIP_V1594_P1D_DSK_FSINFO:-0}" = 1 ]; then
+    # Accept only evidence from the actual DSK270-root XIP guest.
+    sed -i '/^contains XIP-RUN-PASS$/a contains P1D-D6FS-DSK-CAPACITY6-V1594' \
+        "$work/probes.txt"
+fi
 if [ "${XIP_V1472_FAULT_MODE:-0}" = 1 ]; then
     sed -i '/^contains XIP-RUN-PASS$/a contains XIP-UAREA-FAULT-PASS' \
         "$work/probes.txt"

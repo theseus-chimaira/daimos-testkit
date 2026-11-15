@@ -140,6 +140,30 @@ ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
     ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
 PYV1592
 fi
+if [ "${XIP_V1593_P1C_PUBLISH:-0}" = 1 ]; then
+    # Original per-process RESIDENT commit, not aggregate totals.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1593'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 2 and all(ch in '01234567' for ch in fields[1]):
+        symbols[fields[0]] = int(fields[1], 8)
+names = tuple('daimos_v1593_' + key for key in
+              ('first_published', 'second_published', 'second_slot',
+               'second_procword', 'second_vm', 'second_record',
+               'second_uarea_backing'))
+assert all(name in symbols for name in names), 'v1593 missing linked owner'
+source = ini.read_text()
+assert source.endswith('exit\n')
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
+                                    for name in names) + 'exit\n')
+(ini.parent / 'v1593-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1593
+fi
 if [ "${XIP_V1586_P1C_SWAP_READ_FAULT:-0}" = 1 ]; then
     # The original Type-236 error counter lives at +5 from the fixed
     # MFSDEV error base. The three additional words are test-only.

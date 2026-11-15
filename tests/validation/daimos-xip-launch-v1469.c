@@ -10,6 +10,71 @@
 #include "proc.h"
 #endif
 
+#ifdef XIP_P1D_DSK_FSINFO_V1594
+/* DSK0..3 D6FS root; actual DSK270 controller members occupy one
+ * root mount, and DRM236 contributes four spare disk-type positions.
+ * Distinguish those physical hardware slots from mounted volumes. */
+static int
+p1d_dsk_fsinfo_v1594(void)
+{
+        struct sys_fsinfo info;
+        unsigned int slot;
+
+        if (dsys_fsinfo(SYS_FSINFO_CAPACITY_SLOT, 0) != 6)
+                return 1;
+        if (dsys_fsinfo(0U, &info) != 1 ||
+            info.mount_id != 1UL || info.provider != 6UL)
+                return 2;
+        if (dsys_fsinfo(1U, &info) != 1 ||
+            info.mount_id != 2UL || info.provider != 4UL ||
+            !u_s6_eq(info.path, "/TEMP"))
+                return 3;
+        for (slot = 2U; slot < 6U; ++slot)
+                if (dsys_fsinfo(slot, &info) != 0)
+                        return 4;
+        if (dsys_fsinfo(6U, &info) >= 0 ||
+            dsys_fsinfo(7U, &info) >= 0 ||
+            dsys_fsinfo(SYS_FSINFO_CAPACITY_SLOT, 0) != 6)
+                return 5;
+        (void)u_puts(1, "P1D-D6FS-DSK-CAPACITY6-V1594");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
+
+#ifdef XIP_P1D_DRM_FSINFO_V1593
+/* Query the real KINIT/FSINFO table on a four-member physical D6FS
+ * DRM root: one root, four spare DSK transports and one MEMFS slot.
+ * The resident root and MEMFS entries must remain distinct and all
+ * other slots must be empty. This probe performs no mount or I/O. */
+static int
+p1d_drm_fsinfo_v1593(void)
+{
+        struct sys_fsinfo info;
+        unsigned int slot;
+
+        if (dsys_fsinfo(SYS_FSINFO_CAPACITY_SLOT, 0) != 6)
+                return 1;
+        if (dsys_fsinfo(0U, &info) != 1 ||
+            info.mount_id != 1UL || info.provider != 6UL)
+                return 2;
+        if (dsys_fsinfo(1U, &info) != 1 ||
+            info.mount_id != 2UL || info.provider != 4UL ||
+            !u_s6_eq(info.path, "/TEMP"))
+                return 3;
+        for (slot = 2U; slot < 6U; ++slot)
+                if (dsys_fsinfo(slot, &info) != 0)
+                        return 4;
+        if (dsys_fsinfo(6U, &info) >= 0 ||
+            dsys_fsinfo(7U, &info) >= 0 ||
+            dsys_fsinfo(SYS_FSINFO_CAPACITY_SLOT, 0) != 6)
+                return 5;
+        (void)u_puts(1, "P1D-D6FS-DRM-CAPACITY6-V1593");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
+
 #define XIP_PATH_COUNT_V1469       13U
 #define XIP_RECORD_WORDS_V1469     4U
 #define XIP_RUN_WORDS_V1469        (SYS_RUN_V2_FIXED_WORDS + XIP_RECORD_WORDS_V1469)
@@ -501,6 +566,15 @@ xip_snapshot_v1477(void)
 #endif
         if (mem.memfs_capacity_words == 0UL)
                 return xip_fail_v1469("SNAP-NO-MEMFS", -1);
+#ifdef XIP_P1D_DRM_FSINFO_V1593
+        {
+                int inventory_rc;
+
+                inventory_rc = p1d_drm_fsinfo_v1593();
+                if (inventory_rc != 0)
+                        return xip_fail_v1469("P1D-DRM-FSINFO", inventory_rc);
+        }
+#endif
         if (dsys_stat(path, &st) == 0) {
                 if (st.type != VFS_TYPE_REG ||
                     st.size_words != 3UL ||
@@ -968,6 +1042,15 @@ main(int argc, kword_t **argv)
         }
         if (argc > 1)
                 return xip_fail_v1469("UNEXPECTED-ARGV", argc);
+#ifdef XIP_P1D_DSK_FSINFO_V1594
+        {
+                int inventory_rc;
+
+                inventory_rc = p1d_dsk_fsinfo_v1594();
+                if (inventory_rc != 0)
+                        return xip_fail_v1469("P1D-DSK-FSINFO", inventory_rc);
+        }
+#endif
         if (xip_create_v1469() != 0)
                 return 1;
         if (xip_check_file_v1469() != 0)
