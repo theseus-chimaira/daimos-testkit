@@ -4,18 +4,34 @@
         .globl main
         .globl mm_alloc_aligned_noreclaim
         .globl mm_free
+        .globl mm_pin
+        .globl mm_unpin
         .globl mock_dtc_read_v1490
         .globl mock_dtc_write_v1490
         .globl kret_zero
         .globl kret_one
+        .globl kret_neg1
         .globl kconst_2_2
         .globl fs_block_workspace
         .globl __test_exit
         .globl vfs_mount_root_base
         .globl vfs_mount_limit
         .globl dtfs_media_base
+        .globl vfs_mount_policy
+        .globl vfs_mount_aux_base_v1560
+        .globl tsfs_file_shape_base
+        .globl tsfs_extent_media_base
 
 main:
+        setzm   failure_stage_v1590
+        ; v1590: authentic mounted V1 Type-551 selector for production
+        ; dtfs_intent_mount_gate_v1561. Never fake its success return.
+        movei   1,mount_root_v1590
+        movem   1,vfs_mount_root_base
+        movei   1,mount_media_v1590
+        movem   1,dtfs_media_base
+        movei   1,1
+        movem   1,vfs_mount_limit
         movei   1,01234
         movem   1,physical_word_v1490
         movei   1,05670
@@ -51,6 +67,43 @@ main:
         jrst    verify_written_v1490
         jrst    fail_v1490
 verify_written_v1490:
+        movei   1,2
+        movem   1,failure_stage_v1590
+        ; v1590: the real v1561 gate must refuse raw WRITE if the
+        ; published DTFS V1 owner disappears, without even reaching
+        ; the test controller. Restore the genuine one-slot mount.
+        setzm   vfs_mount_root_base
+        movei   1,2
+        movei   2,5
+        movei   3,write_block_v1490
+        pushj   17,dtfs_dtc_write
+        jumpe   1,fail_v1490
+        move    1,write_calls_v1490
+        caie    1,1
+        jrst    fail_v1490
+        movei   1,mount_root_v1590
+        movem   1,vfs_mount_root_base
+
+        movei   1,3
+        movem   1,failure_stage_v1590
+        ; The original v1561 gate deliberately permits legacy V1
+        ; units with no matching V2 owner. Test the true security
+        ; boundary instead: a published V2 owner on this physical unit
+        ; without its retained MM scratch MUST refuse the WRITE.
+        movei   1,0100002
+        movem   1,mount_media_v1590
+        movei   1,2
+        movei   2,5
+        movei   3,write_block_v1490
+        pushj   17,dtfs_dtc_write
+        jumpe   1,fail_v1490
+        move    1,write_calls_v1490
+        caie    1,1
+        jrst    fail_v1490
+        movei   1,2
+        movem   1,mount_media_v1590
+
+        setzm   failure_stage_v1590
         ; The same DTC block must MISS the invalidated clean cache.
         movei   1,2
         movei   2,5
@@ -113,7 +166,10 @@ pass_v1490:
         setz    1,
         popj    17,
 fail_v1490:
+        move    1,failure_stage_v1590
+        jumpn   1,fail_return_v1590
         movei   1,1
+fail_return_v1590:
         popj    17,
 
 ; The MM allocation ABI uses the sixth argument at -2(17).
@@ -134,6 +190,14 @@ mm_free:
         popj    17,
 mm_free_ok_v1490:
         setz    1,
+        popj    17,
+
+; A V2 first-write transaction must never run in this V1-only native
+; cache fixture. If accidentally entered, its MM pin/unpin can only
+; fail closed; no fake successful V2 write authorization is supplied.
+mm_pin:
+mm_unpin:
+        seto    1,
         popj    17,
 
 ; Exact DTC ABI: AC1 physical unit, AC2 block, AC3 buffer.
@@ -173,20 +237,34 @@ kret_zero:
 kret_one:
         movei   1,1
         popj    17,
+kret_neg1:
+        seto    1,
+        popj    17,
 
         .data
 kconst_2_2: .word 2,,2
+; Original published VFS root descriptor must be initialized DATA,
+; never a nonzero initializer lost inside a zero-fill BSS extent.
+mount_root_v1590: .word 050101000000
+mount_media_v1590: .word 2
 
         .bss
         .globl bcache_state
         .globl bcache_workspace_tag
         .globl dtfs_cache_mount
 dtfs_cache_mount: .block 1
-; V1490 tests the original cache/write ABI only. No VFS mount exists in
-; this fixture, so the v1522 mounted-error classifier has no target.
+; v1590: one real V1 DTFS mount record (provider 5, mount ID 1).
+; Gate v1561 checks published owner, unit and V1 media personality.
+; The V2 dirty-marker helper is linked from original source but never
+; reached through this authentic V1 configuration.
 vfs_mount_root_base: .word 0
 vfs_mount_limit: .word 0
 dtfs_media_base: .word 0
+vfs_mount_policy: .word 0
+vfs_mount_aux_base_v1560: .word 0
+tsfs_file_shape_base: .word 0
+tsfs_extent_media_base: .word 0
+failure_stage_v1590: .word 0
 alloc_calls_v1490: .block 1
 free_calls_v1490: .block 1
 read_calls_v1490: .block 1

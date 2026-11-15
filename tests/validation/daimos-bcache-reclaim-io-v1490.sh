@@ -49,6 +49,27 @@ Path(sys.argv[2]).write_text(
     '.text\n.globl dtfs_dtc_read\n.globl dtfs_dtc_write\n' + code + '\n')
 PY
 
+# v1590: this source excerpt now calls the real v1561 VFS owner and
+# WRITE-intent gate before a raw DTC WRITE. Include the original gate,
+# its original first-write helpers and physical validation dependency,
+# rather than substituting a success-return stub for a security check.
+python3 - "$DAIMOS_REPO/system/kernel/fs" "$work/dtc-gates-v1590.s" <<'PY'
+from pathlib import Path
+import sys
+root = Path(sys.argv[1])
+parts = (
+    'dtfs_intent_validate_v1550.s',
+    'dtfs_intent_mount_gate_v1561.s',
+    'dtfs_intent_first_write_v1553.s',
+    'dtfs_intent_owned_arm_v1552.s',
+    'dtfs_intent_arm_v1551.s',
+    'dtfs_intent_verify_v1554.s',
+    'dtfs_intent_clean_v1566.s',
+)
+Path(sys.argv[2]).write_text('\n'.join((root / p).read_text()
+                                        for p in parts))
+PY
+
 run_guest() {
     label=$1
     source=$2
@@ -58,6 +79,7 @@ run_guest() {
         --expect __test_exit=0 \
         "$self/daimos-test-crt0-v1.s" "$source" \
         "$work/dtc-v1490.s" \
+        "$work/dtc-gates-v1590.s" \
         "$self/daimos-bcache-reclaim-io-v1490.s" \
         > "$work/$label.log" 2>&1
 }
@@ -76,14 +98,12 @@ from pathlib import Path
 import sys
 
 source = Path(sys.argv[1]).read_text()
-old = ('        push    17,1                   ; preserve physical unit across I/O\n'
-       '        pushj   17,bcache_invalidate_all\n'
+old = ('        pushj   17,bcache_invalidate_all\n'
        '        pushj   17,dtfs_dtc_write_jump')
 if source.count(old) != 1:
     raise ValueError('DTC invalidation gate missing')
 Path(sys.argv[2]).write_text(source.replace(
-    old, '        push    17,1                   ; preserve physical unit across I/O\n'
-         '        pushj   17,bcache_reclaim\n'
+    old, '        pushj   17,bcache_reclaim\n'
          '        pushj   17,dtfs_dtc_write_jump', 1))
 PY
 if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
@@ -92,6 +112,7 @@ if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --expect __test_exit=0 "$self/daimos-test-crt0-v1.s" \
     "$work/cache-v1490.s" \
     "$work/dtc-unsafe-v1490.s" \
+    "$work/dtc-gates-v1590.s" \
     "$self/daimos-bcache-reclaim-io-v1490.s" \
     > "$work/unsafe.log" 2>&1; then
     echo 'FAIL v1490: old DTC reclaim-before-write mutation was accepted' >&2
