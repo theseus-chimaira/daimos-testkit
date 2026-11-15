@@ -41,7 +41,7 @@ oracle PASS. Critical source-derived post-HALT results:
 | --- | --- |
 | Two distinct original timed SLEEP/DISK slots | **6 and 7** |
 | Original timer-service PI6 wake counts | **1 and 1** |
-| First actual original scheduler swap-READ owner | slot **7** |
+| First actual original scheduler swap-READ owner | slot **6** |
 | Original independently scheduled swap READs and matching DR_DONE PI2 | **1 and 1** |
 | Original successful DISK-to-RESIDENT publishes | **0** |
 | Selected injected driver errors | **1** |

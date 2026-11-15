@@ -23,12 +23,12 @@ def imported(filename, key):
 
 
 def check(mapping, address4, address5, address6, address2,
-          log, media, original):
+          log, media, original, direct_device=False):
     base = imported('daimos-p1c-swap-read-fault-verify-v1586.py',
                     'v1599_original_physical')
     fatal, unit, physical, logical, occupied, values = base.check(
         mapping, address4, address5, address6, log, media, original,
-        timer_arms=2)
+        timer_arms=2, direct_device=direct_device)
     linked = base.labels(mapping)
     recorded = base.labels(address2)
     after = log.split('HALT instruction, PC:', 1)[1]
@@ -60,14 +60,14 @@ def check(mapping, address4, address5, address6, address2,
     return fatal, unit, physical, logical, occupied, owners, values
 
 
-def negative_tests(inputs):
+def negative_tests(inputs, direct_device=False):
     mapping, a4, a5, a6, a2, log, media, original = inputs
     base = imported('daimos-p1c-swap-read-fault-verify-v1586.py',
                     'v1599_negative_original')
     linked = base.labels(a2)
     linked.update(base.labels(a5))
     head, tail = log.split('HALT instruction, PC:', 1)
-    owners = check(*inputs)[5]
+    owners = check(*inputs, direct_device=direct_device)[5]
     mutations = (
         ('first timer owner missing', 'daimos_v1592_first_slot', 0),
         ('second timer owner missing', 'daimos_v1592_second_slot', 0),
@@ -90,7 +90,7 @@ def negative_tests(inputs):
         try:
             check(mapping, a4, a5, a6, a2,
                   head + 'HALT instruction, PC:' + changed,
-                  media, original)
+                  media, original, direct_device=direct_device)
         except (AssertionError, KeyError):
             print('PASS v1599: rejected ' + label)
         else:
@@ -98,7 +98,7 @@ def negative_tests(inputs):
     # All original deep physical, fatal-path, on-disk and ownership
     # mutations must also fail in the two-owner geometry (15 more).
     base.selftest((mapping, a4, a5, a6, log, media, original),
-                  timer_arms=2)
+                  timer_arms=2, direct_device=direct_device)
 
 
 def main():
@@ -117,10 +117,12 @@ def main():
     inputs = (mapping, a4, a5, a6, a2, log, media, original)
     fatal, unit, physical, logical, occupied, owners, values = check(*inputs)
     result = ('PASS v1599: two original DISK timer owners %d/%d and PI6 '
-              'wakes 1/1; original BACKSTORE fatal %06o on mapped DR%d '
+              'wakes 1/1; selected swap owner %d; '
+              'original BACKSTORE fatal %06o on mapped DR%d '
               'block %06o (logical %06o), one real swap READ/PI2, '
               'no RESIDENT publish, %d other nonzero tail sectors\n' %
-              (owners['first_slot'], owners['second_slot'], fatal,
+              (owners['first_slot'], owners['second_slot'],
+               values['daimos_v1584_last_slot'], fatal,
                unit, physical, logical, occupied))
     Path(args[8]).write_text(result)
     print(result, end='')
