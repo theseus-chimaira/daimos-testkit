@@ -182,13 +182,21 @@ def selftest(mapping, addresses, logs, media):
         ('no root volume', bad_field('backing_region_count', 0), media),
     ]
     first, second, unit, block, _, _ = check(mapping, addresses, logs, media)
-    if first['daimos_v1584_swap_started'] != 0:
+    # An ordinary healthy snapshot need not overlap swap-in. However,
+    # when BOTH original boots do contain a complete physical overlap,
+    # corrupted evidence must satisfy the strict overlap contract too.
+    # Using the healthy-only default here previously let a mutation that
+    # deleted the real completed-publication count pass undetected.
+    actual_overlap = all(
+        values['daimos_v1584_swap_started'] > 0 and
+        values['daimos_v1584_swap_completed'] > 0 and
+        values['daimos_v1584_swap_pi2'] > 0
+        for values in (first, second))
+    if actual_overlap:
         failures.append(('lost actual scheduler swap',
             bad_field('daimos_v1584_swap_started', 0), media))
-    if first['daimos_v1584_swap_completed'] != 0:
         failures.append(('lost actual publication',
             bad_field('daimos_v1584_swap_completed', 0), media))
-    if first['daimos_v1584_swap_pi2'] != 0:
         failures.append(('lost matching swap PI2',
             bad_field('daimos_v1584_swap_pi2', 0), media))
     bad = list(media)
@@ -203,7 +211,7 @@ def selftest(mapping, addresses, logs, media):
     failures.append(('corrupt root member layout', logs, bad))
     for name, pair, sectors in failures:
         try:
-            check(mapping, addresses, pair, sectors)
+            check(mapping, addresses, pair, sectors, actual_overlap)
         except (AssertionError, KeyError):
             print('PASS v1584: rejected ' + name)
         else:

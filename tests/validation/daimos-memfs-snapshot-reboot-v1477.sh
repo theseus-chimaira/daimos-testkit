@@ -93,6 +93,30 @@ ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
     ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
 PYV1584
 fi
+if [ "${XIP_V1585_P1C_TIMED_WAKE:-0}" = 1 ]; then
+    # Exact original PI6 wakeup witness from the disposable kernel.  This
+    # extends (not replaces) the v1584 physical snapshot / swap probes.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1585'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 2 and all(c in '01234567' for c in fields[1]):
+        symbols[fields[0]] = int(fields[1], 8)
+names = ('daimos_v1585_slot', 'daimos_v1585_armed',
+         'daimos_v1585_woke', 'daimos_v1585_start_tick',
+         'daimos_v1585_end_tick')
+assert all(name in symbols for name in names), 'v1585 missing actual labels'
+source = ini.read_text()
+assert source.endswith('exit\n'), 'v1585 SIMH boot tail changed'
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[n]
+                                   for n in names) + 'exit\n')
+(ini.parent / 'v1585-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (n, symbols[n]) for n in names))
+PYV1585
+fi
 if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
     # Drum unit zero is now the selected D6FS VOLUME member, NOT an
     # AUXSTORE descriptor. Check all four real root images instead.
@@ -190,15 +214,24 @@ EOF
     fi
     printf '=== v1477 physical %sK, cold boot %s: %s ===\n' "$size" "$n" "$marker"
     timeout_v1477=90
+    timeout_snapshot_v1585=
     if [ "${XIP_V1584_P1C_OVERLAP:-0}" = 1 ]; then
         timeout_v1477=180
+    fi
+    if [ "${XIP_V1585_P1C_TIMED_WAKE:-0}" = 1 ]; then
+        # This scenario transfers hundreds of additional genuine 128-word
+        # drum blocks while snapshotting. Give a slow PDP-6 simulator more
+        # time than the v1584 no-overlap probe, but still fail boundedly
+        # and retain the real CPU/PC history on an actual stall.
+        timeout_v1477=300
+        timeout_snapshot_v1585=--timeout-snapshot
     fi
     "$self/../../tools/daimos-simh-harness-v6.sh" \
         --daimos-repo "$DAIMOS_REPO" --dofile "$boot/boot.ini" \
         --pty-run "$work/guest/pty-run" --login ROOT \
         --probes "$work/boot-$n.probes" \
         --work-dir "$work/boot-$n" --boot-timeout 60 \
-        --timeout "$timeout_v1477"
+        --timeout "$timeout_v1477" $timeout_snapshot_v1585
     log="$work/boot-$n/simh.log"
     grep -Eq "^MEM[[:space:]]+$size K" "$log"
     grep -Eq '^MEMFS[[:space:]]+LOADED' "$log"
