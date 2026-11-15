@@ -79,8 +79,10 @@ new snapshot.
 The independent host verifier checks original KCORE linked symbols,
 post-HALT transcripts, raw four-member physical media and the inherited
 two-boot v1588 MM/owner/PI2/snapshot checks. The valid persistent
-MEMFS v2 commit header is at DR3 physical `017777`. Boot 2's original
-LOGSTORE scan confirms the previously committed record and its new
+MEMFS v2 commit header is at DR3 physical `017777`, with a 3,648-word
+MEMFS pool and 280 other nonzero physical BACKSTORE sectors.
+Boot 2's original LOGSTORE scan confirms the previously committed
+record and its new
 same-slot retry commits another record. The verifier rejects **47
 deliberately corrupted witnesses**: 13 v1584 physical/PI/scheduling,
 21 v1588 MM/backing/BCACHE ownership and 13 new v1590 live-cache,
