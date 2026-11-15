@@ -42,6 +42,33 @@ p1d_dsk_fsinfo_v1594(void)
 }
 #endif
 
+#ifdef XIP_P1D_DSK_NO_DRM_V1597
+/* A genuinely absent DRM236 controller must not consume four empty mount
+ * slots. DSK270 root remains valid, MEMFS remains available. */
+static int
+p1d_no_drm_fsinfo_v1597(void)
+{
+        struct sys_fsinfo info;
+
+        if (dsys_fsinfo(SYS_FSINFO_CAPACITY_SLOT, 0) != 2)
+                return 1;
+        if (dsys_fsinfo(0U, &info) != 1 ||
+            info.mount_id != 1UL || info.provider != 6UL)
+                return 2;
+        if (dsys_fsinfo(1U, &info) != 1 ||
+            info.mount_id != 2UL || info.provider != 4UL ||
+            !u_s6_eq(info.path, "/TEMP"))
+                return 3;
+        if (dsys_fsinfo(2U, &info) >= 0 ||
+            dsys_fsinfo(3U, &info) >= 0 ||
+            dsys_fsinfo(SYS_FSINFO_CAPACITY_SLOT, 0) != 2)
+                return 4;
+        (void)u_puts(1, "P1D-D6FS-NODRM-CAPACITY2-V1597");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
+
 #ifdef XIP_P1D_DRM_FSINFO_V1593
 /* Query the real KINIT/FSINFO table on a four-member physical D6FS
  * DRM root: one root, four spare DSK transports and one MEMFS slot.
@@ -1049,6 +1076,15 @@ main(int argc, kword_t **argv)
                 inventory_rc = p1d_dsk_fsinfo_v1594();
                 if (inventory_rc != 0)
                         return xip_fail_v1469("P1D-DSK-FSINFO", inventory_rc);
+        }
+#endif
+#ifdef XIP_P1D_DSK_NO_DRM_V1597
+        {
+                int inventory_rc;
+
+                inventory_rc = p1d_no_drm_fsinfo_v1597();
+                if (inventory_rc != 0)
+                        return xip_fail_v1469("P1D-NODRM-FSINFO", inventory_rc);
         }
 #endif
         if (xip_create_v1469() != 0)

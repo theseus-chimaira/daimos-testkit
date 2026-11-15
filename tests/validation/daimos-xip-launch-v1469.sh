@@ -81,6 +81,10 @@ if [ "${XIP_V1594_P1D_DSK_FSINFO:-0}" = 1 ]; then
     sed -i '/^contains XIP-RUN-PASS$/a contains P1D-D6FS-DSK-CAPACITY6-V1594' \
         "$work/probes.txt"
 fi
+if [ "${XIP_V1597_P1D_NO_DRM:-0}" = 1 ]; then
+    sed -i '/^contains XIP-RUN-PASS$/a contains P1D-D6FS-NODRM-CAPACITY2-V1597' \
+        "$work/probes.txt"
+fi
 if [ "${XIP_V1472_FAULT_MODE:-0}" = 1 ]; then
     sed -i '/^contains XIP-RUN-PASS$/a contains XIP-UAREA-FAULT-PASS' \
         "$work/probes.txt"
@@ -133,6 +137,47 @@ PATH="$host_tools:$PDP10_PREFIX/bin:$PATH" \
 if [ "${XIP_V1477_IMAGE_ONLY:-0}" = 1 ]; then
     echo "PASS v1477: persistent MEMFS image built (no SIMH boot yet)"
     exit 0
+fi
+
+if [ "${XIP_V1597_P1D_NO_DRM:-0}" = 1 ]; then
+    # Change ONLY the private simulator startup config. Physical 236
+    # drum hardware is wholly absent before MINIT probes its CONI PI.
+    # Do not alter KCORE's installed module-services or FSINFO words.
+    python3 - "$build/system/boot/pdp6/boot.ini" <<'PYV1597'
+from pathlib import Path
+import re
+import sys
+
+ini = Path(sys.argv[1])
+lines = ini.read_text().splitlines(keepends=True)
+assert sum(line.strip().lower() == 'set dr enabled'
+           for line in lines) == 1
+# The real MINIT probe is CONO/CONI device 0010 on the Type-167
+# DP I/O processor, NOT a query of the Type-236 DR unit array.
+assert sum(line.strip().lower() == 'set dp enabled'
+           for line in lines) == 1
+assert sum(bool(re.match(r'attach -q dr[0-3] ', line, re.I))
+           for line in lines) == 4
+out = []
+absent = 0
+for line in lines:
+    if line.strip().lower() == 'set dr enabled':
+        out.append('set dr disabled\n')
+        absent += 1
+    elif line.strip().lower() == 'set dp enabled':
+        out.append('set dp disabled\n')
+        absent += 1
+    elif re.match(r'set dr[0-3] (enabled|writeenabled)', line, re.I):
+        continue
+    elif re.match(r'attach -q dr[0-3] ', line, re.I):
+        continue
+    else:
+        out.append(line)
+assert absent == 2
+ini.write_text(''.join(out))
+(ini.parent / 'v1597-no-drm-boot.txt').write_text(
+    'set dp disabled\nset dr disabled\n')
+PYV1597
 fi
 
 # Test-only observation after HALT: the simulator's noninteractive dofile

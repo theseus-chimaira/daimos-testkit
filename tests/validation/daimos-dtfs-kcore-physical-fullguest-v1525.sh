@@ -32,6 +32,14 @@ fi
 if [ "${DAIMOS_TSFS_GATE_OP_RETURN_V1572:-0}" = 1 ]; then
         v1564_define="$v1564_define -DDAIMOS_DTFS_V2_OPERATOR_V1572=1"
 fi
+if [ "${DAIMOS_TSFS_GATE_HI_MEDIA_V1595:-0}" = 1 ]; then
+        # Test-only genuine high-slot media-loss assertions in the existing
+        # original v1527 physical detach/replace/return guest. No MRES stub.
+        v1564_define="$v1564_define -DDAIMOS_P1D_HI_MEDIA_V1595=1"
+fi
+if [ "${DAIMOS_TSFS_GATE_MEMFS_HILOSS_V1596:-0}" = 1 ]; then
+        v1564_define="$v1564_define -DDAIMOS_P1C_MEMFS_HILOSS_V1596=1"
+fi
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $v1564_define $incs \
         -S "$work/gate.c" -o "$work/gate.s"
 "$PDP10_PREFIX/bin/das" -F -C -O "$work/gate.dobj" "$work/gate.s"
@@ -57,7 +65,8 @@ if [ "${DAIMOS_TSFS_GATE_SYSCALL_V1531:-0}" = 1 ]; then
         "$PDP10_PREFIX/bin/das" -F -C -O "$gate_syscall_v1531" \
             "$DAIMOS_REPO/userland/libc/syscall.s"
 fi
-if [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
+if [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ] ||
+   [ "${DAIMOS_TSFS_GATE_MEMFS_HILOSS_V1596:-0}" = 1 ]; then
         # MEMFS mount is deliberately an INIT-only administrative veneer.
         # Link the real production source into this PID1 probe only;
         # never bulk it into common libc or fixed resident KCORE.

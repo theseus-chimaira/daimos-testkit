@@ -55,6 +55,12 @@ cleanup()
 }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$work/media"
+if [ -n "${DAIMOS_TSFS_EVIDENCE_PATH_FILE_V1595:-}" ]; then
+        # The versioned full-physical wrappers need the exact private
+        # simulator/media directory for their independent raw-image oracle.
+        # A different concurrent test must never be selected by mtime.
+        printf '%s\n' "$work" > "$DAIMOS_TSFS_EVIDENCE_PATH_FILE_V1595"
+fi
 
 "$host_cc" -std=c99 -O2 -Wall -Wextra -o "$pty" \
         "$(dirname "$0")/../../tools/pty-run-v1.c"
@@ -177,10 +183,23 @@ if [ "${DAIMOS_TSFS_GATE_MIXED_V1534:-0}" = 1 ]; then
         printf 'D /MOUNT/DT1 0755 0 0\n' >> "$work/root-v577.manifest"
         printf 'D /MOUNT/RAM 0755 0 0\n' >> "$work/root-v577.manifest"
 fi
+if [ "${DAIMOS_TSFS_GATE_MEMFS_HILOSS_V1596:-0}" = 1 ]; then
+        # Real mixed-provider v1596 accepts a writable, independently
+        # owned MEMFS mount without triggering v1534's different host
+        # fault schedule or altering any production root image.
+        printf 'D /MOUNT/RAM 0755 0 0\n' >> "$work/root-v577.manifest"
+fi
 if [ "${DAIMOS_TSFS_GATE_FSINFO_HI_V1533:-0}" = 1 ]; then
         # Four real distinct noncritical DTFS volumes must occupy
         # public mount IDs 2..5, beyond the old four-slot limit.
         for unit_v1533 in 1 2 3; do
+                # v1595 reuses v1527's physically independent DTC4
+                # checkpoint and adds only the *new* high mount targets.
+                # Never put duplicate DT1 entries on the TSFS root.
+                if [ "${DAIMOS_TSFS_GATE_MEDIA_V1527:-0}" = 1 ] &&
+                   [ "$unit_v1533" = 1 ]; then
+                        continue
+                fi
                 printf 'D /MOUNT/DT%s 0755 0 0\n' "$unit_v1533" \
                     >> "$work/root-v577.manifest"
         done
@@ -639,6 +658,7 @@ if [ "${DAIMOS_TSFS_GATE_FSINFO_HI_V1533:-0}" = 1 ]; then
         # needed; the guest never swaps or detaches a mounted tape here.
         python3 - "$headless_ini_v1530" "$work/media" <<'PY'
 from pathlib import Path
+import os
 import sys
 
 ini, media = (Path(x) for x in sys.argv[1:])
@@ -648,6 +668,9 @@ with ini.open('w') as output:
     for line in lines:
         if line.strip() == 'break 060':
             for unit in (4, 5, 6):
+                if unit == 4 and os.environ.get('DAIMOS_TSFS_GATE_MEDIA_V1527') == '1':
+                    # v1527 already attaches its DTC4 independently.
+                    continue
                 output.write('set DTC%d enabled\n' % unit)
                 output.write('attach -q DTC%d %s\n' %
                              (unit, media / ('dtc%d-v1533.tap' % unit)))
@@ -1350,6 +1373,17 @@ PY
                 simh_media_exchange_v1527 \
                     "detach DTC3" \
                     "attach -q DTC3 $dtc3_media_v1530"
+                if [ "${DAIMOS_TSFS_GATE_MEMFS_HILOSS_V1596:-0}" = 1 ]; then
+                        wait_new "$cty_out" "$gate_prefix READY_HI_DETACH_V1596" 0 ||
+                            fail_logs 'v1596: returned DTC3 not validated before high fault'
+                        # DTC6 is a LIVE independently mounted, highest-ID
+                        # physical tape, not an unattached unused device.
+                        simh_media_exchange_v1527 'detach DTC6'
+                        wait_new "$cty_out" "$gate_prefix READY_HI_RETURN_V1596" 0 ||
+                            fail_logs 'v1596: DTC6 error/healthy MEMFS not proven'
+                        simh_media_exchange_v1527 \
+                            "attach -q DTC6 $work/media/dtc6-v1533.tap"
+                fi
                 fi
                 fi
         fi

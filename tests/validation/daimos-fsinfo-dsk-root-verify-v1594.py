@@ -13,14 +13,21 @@ DRIVE_HEADER = 0o444243000000
 MASK36 = (1 << 36) - 1
 
 
-def check(log, headers, sizes):
+def check(log, headers, sizes, no_drum=False):
     assert 'MACH                                PDP6' in log
     assert 'MEM                                 128 K' in log
     assert 'DSK270                                OK' in log
-    assert 'DRM236                                OK' in log
+    if no_drum:
+        # MINIT skips absent modules entirely; no diagnostic row is
+        # emitted after the real Type-167 DP hardware probe fails.
+        assert 'DRM236' not in log
+    else:
+        assert 'DRM236                                OK' in log
     assert 'D6FS                              LOADED' in log
     assert 'MEMFS                             LOADED' in log
-    assert 'P1D-D6FS-DSK-CAPACITY6-V1594' in log
+    marker = ('P1D-D6FS-NODRM-CAPACITY2-V1597' if no_drum else
+              'P1D-D6FS-DSK-CAPACITY6-V1594')
+    assert marker in log
     assert 'XIP-RUN-PASS' in log and 'STATUS:0' in log
     assert log.count('HALT instruction, PC:') == 1
     assert not any(marker in log for marker in
@@ -47,7 +54,10 @@ def check(log, headers, sizes):
     return common[0]
 
 
-def negatives(log, headers, sizes):
+def negatives(log, headers, sizes, no_drum=False):
+    marker = ('P1D-D6FS-NODRM-CAPACITY2-V1597' if no_drum else
+              'P1D-D6FS-DSK-CAPACITY6-V1594')
+    version = 'v1597' if no_drum else 'v1594'
     for label, variant in (
         ('invalid real D6FSR2 marker', 0),
         ('duplicate physical root member', 1),
@@ -60,14 +70,24 @@ def negatives(log, headers, sizes):
         elif variant == 1:
             changed[3][5] = changed[0][5]
         else:
-            witness = log.replace('P1D-D6FS-DSK-CAPACITY6-V1594',
+            witness = log.replace(marker,
                                   'P1D-D6FS-DSK-ABSENT', 1)
         try:
-            check(witness, changed, sizes)
+            check(witness, changed, sizes, no_drum)
         except AssertionError:
-            print('PASS v1594: rejected ' + label)
+            print('PASS %s: rejected %s' % (version, label))
         else:
             raise AssertionError('accepted false physical DSK: ' + label)
+    if no_drum:
+        try:
+            check(log.replace('BSET                              LOADED',
+                              'DRM236                                OK\n'
+                              'BSET                              LOADED', 1), headers, sizes,
+                  no_drum)
+        except AssertionError:
+            print('PASS v1597: rejected invented DRM hardware probe')
+        else:
+            raise AssertionError('accepted contradictory DRM presence')
 
 
 def main():
@@ -75,8 +95,12 @@ def main():
     selftest = '--self-test' in args
     if selftest:
         args.remove('--self-test')
+    no_drum = '--no-drum' in args
+    if no_drum:
+        args.remove('--no-drum')
     if len(args) != 3:
-        raise SystemExit('usage: v1594 [--self-test] SIMH_LOG DISK_DIR REPORT')
+        raise SystemExit('usage: v1594 [--self-test] [--no-drum] '
+                         'SIMH_LOG DISK_DIR REPORT')
     log = Path(args[0]).read_text(errors='replace')
     images = [Path(args[1]) / ('dsk%d.dsk' % i) for i in range(4)]
     headers = []
@@ -84,15 +108,17 @@ def main():
         with image.open('rb') as f:
             headers.append(list(struct.unpack('<128Q', f.read(1024))))
     sizes = [image.stat().st_size for image in images]
-    base, span, tail = check(log, headers, sizes)
-    result = ('PASS v1594: four real DSK270 D6FSR2 root members, '
+    base, span, tail = check(log, headers, sizes, no_drum)
+    version = 'v1597' if no_drum else 'v1594'
+    slots = 2 if no_drum else 6
+    result = ('PASS %s: four real DSK270 D6FSR2 root members, '
               'per-member sectors=%d base=%06o data=%06o tail=%06o; '
-              'original KINIT FSINFO capacity=6 and XIP lifecycle\n' %
-              (sizes[0] // 1024, base, span, tail))
+              'original KINIT FSINFO capacity=%d and XIP lifecycle\n' %
+              (version, sizes[0] // 1024, base, span, tail, slots))
     Path(args[2]).write_text(result)
     print(result, end='')
     if selftest:
-        negatives(log, headers, sizes)
+        negatives(log, headers, sizes, no_drum)
 
 
 if __name__ == '__main__':
