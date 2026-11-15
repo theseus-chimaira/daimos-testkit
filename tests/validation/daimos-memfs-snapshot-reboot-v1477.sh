@@ -65,6 +65,34 @@ ini.write_text(source[:-5] + checks + 'exit\n')
     ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
 PYV1581
 fi
+if [ "${XIP_V1584_P1C_OVERLAP:-0}" = 1 ]; then
+    # Only the disposable KCORE exports these four physical witnesses;
+    # the ordinary snapshot, v1581 and v1583 cases are unaffected.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1584'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    words = line.split()
+    if len(words) >= 2 and all(c in '01234567' for c in words[1]):
+        symbols[words[0]] = int(words[1], 8)
+names = ('daimos_v1584_snapshot_live', 'daimos_v1584_swap_started',
+         'daimos_v1584_swap_completed', 'daimos_v1584_swap_reads',
+         'daimos_v1584_swap_pi2', 'daimos_v1584_snapshot_pi2',
+         'daimos_v1584_swap_target', 'daimos_v1584_swap_read_active',
+         'daimos_v1584_last_slot', 'backstore_blocks_used',
+         'volume_data_blocks', 'backing_region_count',
+         'mfsdev_storage_errors', 'proc_swap_blocks_used')
+assert all(name in symbols for name in names), 'v1584 missing linked witness'
+source = ini.read_text()
+assert source.endswith('go 020\nexit\n')
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
+                                   for name in names) + 'exit\n')
+(ini.parent / 'v1584-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1584
+fi
 if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
     # Drum unit zero is now the selected D6FS VOLUME member, NOT an
     # AUXSTORE descriptor. Check all four real root images instead.
@@ -161,11 +189,16 @@ EOF
             "$work/boot-$n.probes"
     fi
     printf '=== v1477 physical %sK, cold boot %s: %s ===\n' "$size" "$n" "$marker"
+    timeout_v1477=90
+    if [ "${XIP_V1584_P1C_OVERLAP:-0}" = 1 ]; then
+        timeout_v1477=180
+    fi
     "$self/../../tools/daimos-simh-harness-v6.sh" \
         --daimos-repo "$DAIMOS_REPO" --dofile "$boot/boot.ini" \
         --pty-run "$work/guest/pty-run" --login ROOT \
         --probes "$work/boot-$n.probes" \
-        --work-dir "$work/boot-$n" --boot-timeout 60 --timeout 90
+        --work-dir "$work/boot-$n" --boot-timeout 60 \
+        --timeout "$timeout_v1477"
     log="$work/boot-$n/simh.log"
     grep -Eq "^MEM[[:space:]]+$size K" "$log"
     grep -Eq '^MEMFS[[:space:]]+LOADED' "$log"
@@ -224,9 +257,11 @@ PYV1583
         break
     fi
     if [ "$n" = 1 ] && [ "${XIP_V1580_P1C_SWAP:-0}" = 1 ]; then
-        python3 "$self/daimos-p1c-swapped-media-v1580.py" \
-            "$boot/drum/dsk0.dsk" "$work/auxstore-after-boot-$n.inspect" \
-            "$work/swapped-physical-v1580.txt"
+        if [ "${XIP_V1583_VOLUME_DRM:-0}" != 1 ]; then
+            python3 "$self/daimos-p1c-swapped-media-v1580.py" \
+                "$boot/drum/dsk0.dsk" "$work/auxstore-after-boot-$n.inspect" \
+                "$work/swapped-physical-v1580.txt"
+        fi
     fi
     if [ "$n" = 1 ] && [ "${XIP_V1578_P1C_ORPHAN:-0}" = 1 ]; then
         python3 "$self/daimos-p1c-orphan-media-v1578.py" \

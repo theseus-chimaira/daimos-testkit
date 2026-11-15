@@ -61,10 +61,27 @@ xip_fail_v1469(const char *stage, int result)
 static volatile kword_t p1c_swap_area_v1580[P1C_SWAP_AREA_V1580];
 
 static int
-p1c_swap_child_v1580(void)
+p1c_swap_child_v1580(unsigned int periodic)
 {
+#ifdef XIP_P1C_OVERLAP_V1584
+        unsigned int turn;
+#else
+        (void)periodic;
+#endif
         p1c_swap_area_v1580[0] = 0157140001UL;
         p1c_swap_area_v1580[P1C_SWAP_AREA_V1580 - 1U] = 0157140002UL;
+#ifdef XIP_P1C_OVERLAP_V1584
+        if (periodic != 0U) {
+                /* Exactly one actual swapped child periodically wakes.
+                 * The other three preserve v1580's long SLEEP baseline.
+                 * Do not invoke swap or snapshot functions from here. */
+                for (turn = 0U; turn < 010000U; ++turn) {
+                        if (dsys_sleep(040U) != 0)
+                                return 1;
+                }
+                return 0;
+        }
+#endif
         /* More than the entire 90-second probe window at 60 Hz. */
         if (dsys_sleep(060000U) != 0)
                 return 1;
@@ -99,11 +116,20 @@ p1c_swap_arm_v1580(void)
                 args[SYS_RUN_V2_FIXED_WORDS + 5U] = 1UL;
                 args[SYS_RUN_V2_FIXED_WORDS + 6U] =
                     TEST_SIX6('P', ' ', ' ', ' ', ' ', ' ');
+#ifdef XIP_P1C_OVERLAP_V1584
+                if (i == 0U)
+                        args[SYS_RUN_V2_FIXED_WORDS + 6U] =
+                            TEST_SIX6('Q', ' ', ' ', ' ', ' ', ' ');
+#endif
                 pid = dsys_run(run);
                 if (pid <= 1)
                         return xip_fail_v1469("P1C-SWAP-RUN", pid);
                 children[i] = pid;
         }
+#ifdef XIP_P1C_OVERLAP_V1584
+        (void)u_puts(1, "P1C-OVERLAP-CHILDREN-RUN-V1584");
+        (void)u_crlf(1);
+#endif
         /* Require all children to reach a real scheduler sleep, not a
          * queued RUN or zombie. Kernel HALT additionally requires a
          * positive live proc_swap_blocks_used value in the test MRES. */
@@ -863,7 +889,12 @@ main(int argc, kword_t **argv)
 #ifdef XIP_P1C_SWAP_V1580
         if (argc == 1 && argv != 0 && argv[0] != 0 &&
             argv[0][1] == TEST_SIX6('P', ' ', ' ', ' ', ' ', ' '))
-                return p1c_swap_child_v1580();
+                return p1c_swap_child_v1580(0U);
+#ifdef XIP_P1C_OVERLAP_V1584
+        if (argc == 1 && argv != 0 && argv[0] != 0 &&
+            argv[0][1] == TEST_SIX6('Q', ' ', ' ', ' ', ' ', ' '))
+                return p1c_swap_child_v1580(1U);
+#endif
 #endif
 #ifdef XIP_SNAPSHOT_V1477
         (void)argc;
