@@ -191,11 +191,22 @@ if [ "${DAIMOS_TSFS_GATE_RUN_V1525:-0}" = 1 ]; then
         printf 'F /SYSTEM/EXEC/DTFSGATE %s 0555 0 0\n' \
             "$DAIMOS_TSFS_GATE_BINARY_V1525" >> "$work/root-v577.manifest"
 fi
-"$mktsfs" -n 3 -i 1:1 -g 1 \
+root_members_v1591=3
+if [ "${DAIMOS_TSFS_GATE_TWO_MEMBER_ROOT_V1591:-0}" = 1 ]; then
+        # Physical alternate-inventory gate: root owns only DTC0/DTC1.
+        # DTC2 must not retain an old third member from the prebuilt
+        # image; the real KINIT root mask then publishes eight slots.
+        root_members_v1591=2
+fi
+"$mktsfs" -n "$root_members_v1591" -i 1:1 -g 1 \
     -m "$work/root-v577.manifest" -o "$work/media/root-v577" >/dev/null
 cp "$work/media/root-v5770.dta" "$work/media/dtc0-v1530.tap"
 cp "$work/media/root-v5771.dta" "$work/media/dtc1-v1530.tap"
-cp "$work/media/root-v5772.dta" "$work/media/dtc2-v1530.tap"
+if [ "$root_members_v1591" -eq 2 ]; then
+        : > "$work/media/dtc2-v1530.tap"
+else
+        cp "$work/media/root-v5772.dta" "$work/media/dtc2-v1530.tap"
+fi
 fi
 # The disk-root variant does not rebuild TSFS tapes. Copy every remaining
 # boot-attached unit as well, so even that variant cannot mutate a prebuilt
