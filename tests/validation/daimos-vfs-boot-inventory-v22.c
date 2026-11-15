@@ -13,23 +13,34 @@ static unsigned int target_mask;
 static unsigned int selected_tape_mask;
 static kword_t selector;
 static unsigned int installed_classes = 7U;
+static unsigned int installed_writes = 7U;
 
 unsigned int
 module_service_get(unsigned int service)
 {
         unsigned int bit;
+        unsigned int writes;
 
         bit = 0U;
-        if (service == MODULE_SERVICE_DSK_READ_SECTOR ||
-            service == MODULE_SERVICE_DSK_WRITE_SECTOR)
+        writes = 0U;
+        if (service == MODULE_SERVICE_DSK_READ_SECTOR)
                 bit = 1U;
-        else if (service == MODULE_SERVICE_DRM_READ_BLOCK ||
-            service == MODULE_SERVICE_DRM_WRITE_BLOCK)
+        else if (service == MODULE_SERVICE_DSK_WRITE_SECTOR) {
+                bit = 1U;
+                writes = 1U;
+        } else if (service == MODULE_SERVICE_DRM_READ_BLOCK)
                 bit = 2U;
-        else if (service == MODULE_SERVICE_DTC_READ_BLOCK ||
-            service == MODULE_SERVICE_DTC_WRITE_BLOCK)
+        else if (service == MODULE_SERVICE_DRM_WRITE_BLOCK) {
+                bit = 2U;
+                writes = 1U;
+        } else if (service == MODULE_SERVICE_DTC_READ_BLOCK)
                 bit = 4U;
-        return (installed_classes & bit) != 0U ? 01000U : 0U;
+        else if (service == MODULE_SERVICE_DTC_WRITE_BLOCK) {
+                bit = 4U;
+                writes = 1U;
+        }
+        return ((writes != 0U ? installed_writes : installed_classes) &
+            bit) != 0U ? 01000U : 0U;
 }
 
 kword_t
@@ -94,6 +105,7 @@ check(unsigned int root_class, unsigned int selected_mask,
         selected_tape_mask = selected_mask;
         selector = (kword_t)root_class;
         installed_classes = 7U;
+        installed_writes = 7U;
         root_select_minit();
         if (root_select_class() != root_class)
                 return -1;
@@ -132,12 +144,41 @@ main(void)
         installed_classes = 0U;
         if (root_select_mount_capacity_v22() != 0U)
                 return 7;             /* selected root transport vanished */
+        if (check(KINIT_ROOT_DRM, 017U, 6U) != 0)
+                return 10;
+        installed_classes = 2U;       /* real DRM; no Type-136 DSK */
+        if (root_select_mount_capacity_v22() != 2U)
+                return 11;            /* root + MEMFS, no phantom DSK */
+        installed_classes = 0U;
+        if (root_select_mount_capacity_v22() != 0U)
+                return 12;            /* selected DRM controller absent */
+        /* P1-D v1601: a half-installed READ/WRITE service pair never
+         * creates phantom slots, and cannot be used for the root. */
+        if (check(KINIT_ROOT_DRM, 017U, 6U) != 0)
+                return 13;
+        installed_writes = 2U;        /* DRM works; DSK WRITE missing */
+        if (root_select_mount_capacity_v22() != 2U)
+                return 14;
+        installed_writes = 1U;        /* DSK works; DRM WRITE missing */
+        if (root_select_mount_capacity_v22() != 0U)
+                return 15;            /* selected root is not writable */
+        if (check(KINIT_ROOT_DSK, 017U, 6U) != 0)
+                return 16;
+        installed_writes = 1U;        /* DSK works; DRM WRITE missing */
+        if (root_select_mount_capacity_v22() != 2U)
+                return 17;
+        installed_writes = 2U;        /* DRM works; DSK WRITE missing */
+        if (root_select_mount_capacity_v22() != 0U)
+                return 18;
 #if KINIT_TAPE_BOOT
         if (check(KINIT_ROOT_DTC, 024U, 8U) != 0)
                 return 8;
         installed_classes = 4U;       /* only tape controller detected */
         if (root_select_mount_capacity_v22() != 8U)
                 return 9;             /* DTC8 - 2 root + MEMFS1 + root1 */
+        installed_writes = 0U;
+        if (root_select_mount_capacity_v22() != 0U)
+                return 19;            /* half-installed tape root service */
 #endif
 #endif
         selector = (kword_t)KINIT_ROOT_DSK;

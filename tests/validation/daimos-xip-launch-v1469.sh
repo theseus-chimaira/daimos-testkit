@@ -85,6 +85,10 @@ if [ "${XIP_V1597_P1D_NO_DRM:-0}" = 1 ]; then
     sed -i '/^contains XIP-RUN-PASS$/a contains P1D-D6FS-NODRM-CAPACITY2-V1597' \
         "$work/probes.txt"
 fi
+if [ "${XIP_V1601_P1D_NO_DSK:-0}" = 1 ]; then
+    sed -i '/^contains XIP-RUN-PASS$/a contains P1D-D6FS-NODSK-CAPACITY2-V1601' \
+        "$work/probes.txt"
+fi
 if [ "${XIP_V1472_FAULT_MODE:-0}" = 1 ]; then
     sed -i '/^contains XIP-RUN-PASS$/a contains XIP-UAREA-FAULT-PASS' \
         "$work/probes.txt"
@@ -178,6 +182,71 @@ ini.write_text(''.join(out))
 (ini.parent / 'v1597-no-drm-boot.txt').write_text(
     'set dp disabled\nset dr disabled\n')
 PYV1597
+fi
+if [ "${XIP_V1601_P1D_NO_DSK:-0}" = 1 ]; then
+    # A DRM-selected root must remain bootable without a Type-136
+    # DSK270 controller.  Disable the actual simulator device and
+    # remove its attachments before the original KINIT MINIT probe.
+    python3 - "$build/system/boot/pdp6/boot.ini" <<'PYV1601'
+from pathlib import Path
+import re
+import sys
+
+ini = Path(sys.argv[1])
+lines = ini.read_text().splitlines(keepends=True)
+assert sum(line.strip().lower() == 'set dsk enabled'
+           for line in lines) == 1, 'missing actual DSK controller enable'
+assert sum(bool(re.match(r'attach -q dsk[0-3] ', line, re.I))
+           for line in lines) == 4, 'expected four physical DSK images'
+assert 'deposit SW 3\n' in lines, 'not a DRM-selected root'
+assert 'set dp enabled\n' in lines and 'set dr enabled\n' in lines
+out = []
+for line in lines:
+    if line.strip().lower() == 'set dsk enabled':
+        out.append('set dsk disabled\n')
+    elif re.match(r'attach -q dsk[0-3] ', line, re.I):
+        continue
+    else:
+        out.append(line)
+ini.write_text(''.join(out))
+(ini.parent / 'v1601-no-dsk-boot.txt').write_text(
+    'set dsk disabled\nDSK0-3 unattached\nDRM0-3 attached\n')
+PYV1601
+    # Read original fixed KCORE addresses only after the guest HALTs.
+    # Record the untouched original physical DRM member descriptors
+    # *before* simulator I/O for independent post-boot comparison.
+    python3 - "$build/system/boot/pdp6" <<'PYV1601BASE'
+from pathlib import Path
+import re
+import sys
+
+boot = Path(sys.argv[1])
+descriptors = []
+for unit in range(4):
+    image = boot / 'drum' / ('dsk%d.dsk' % unit)
+    with image.open('rb') as stream:
+        block = stream.read(1024)
+    assert len(block) == 1024, 'incomplete real DRM member descriptor'
+    descriptors.append(block)
+(boot / 'v1601-original-drm-descriptors.bin').write_bytes(
+    b''.join(descriptors))
+mapping = (boot / 'kcore.map').read_text()
+names = ('vfs_mount_limit', 'vfs_mount_root_base',
+         'vfs_mount_target_base', 'vfs_namespace_root')
+addresses = {}
+for name in names:
+    matches = re.findall(r'(?m)^' + re.escape(name) +
+                         r'\s+([0-7]{6})\s*$', mapping)
+    assert len(matches) == 1, 'missing unique KCORE label: ' + name
+    addresses[name] = int(matches[0], 8)
+ini = boot / 'boot.ini'
+source = ini.read_text()
+assert source.endswith('exit\n'), 'SIMH boot dofile tail changed'
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % addresses[name]
+                                    for name in names) + 'exit\n')
+(boot / 'v1601-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, addresses[name]) for name in names))
+PYV1601BASE
 fi
 
 # Test-only observation after HALT: the simulator's noninteractive dofile
