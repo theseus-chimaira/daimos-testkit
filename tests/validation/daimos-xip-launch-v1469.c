@@ -188,6 +188,33 @@ p1c_swap_halt_v1580(void)
 }
 #endif
 
+#ifdef XIP_P1C_CACHE_V1590
+/* Read two actual physical D6FS blocks via VFS BEFORE the LOGSTORE
+ * failure/retry transaction. No invented BCACHE tags or kernel calls.
+ * The cache is observed in the original LOGSTORE provider entry. */
+static int
+p1c_d6fs_cache_warm_v1590(void)
+{
+        kword_t path[U_PATH_WORDS];
+        kword_t words[0200];
+        int fd;
+
+        if (u_s6_pack(path, U_PATH_WORDS,
+                "/CONFIG/XIP1469.TEST") != 0)
+                return xip_fail_v1469("P1C-CACHE1590-PATH", -1);
+        fd = dsys_open(path, SYS_O_RDONLY);
+        if (fd < 0)
+                return xip_fail_v1469("P1C-CACHE1590-OPEN", fd);
+        if (dsys_read_words(fd, words, 0200U) != 0200 ||
+            dsys_read_words(fd, words, 0200U) != 0200 ||
+            dsys_close(fd) != 0)
+                return xip_fail_v1469("P1C-CACHE1590-READ", -1);
+        (void)u_puts(1, "P1C-D6FS-CACHE-BEFORE-LOGFAULT-V1590");
+        (void)u_crlf(1);
+        return 0;
+}
+#endif
+
 static void
 xip_copy_record_v1469(kword_t *dst)
 {
@@ -498,6 +525,10 @@ xip_snapshot_v1477(void)
                     SYS_WAIT_STATUS_VALUE(status) != 0U)
                         return xip_fail_v1469("SNAP-RESTORE-WAIT", pid);
 #ifdef XIP_P1C_LOGSTORE_V1576
+#ifdef XIP_P1C_CACHE_V1590
+                if (p1c_d6fs_cache_warm_v1590() != 0)
+                        return 1;
+#endif
                 if (p1c_log_snapshot_v1576(1) != 0)
                         return 1;
 #endif
@@ -539,6 +570,10 @@ xip_snapshot_v1477(void)
             SYS_WAIT_STATUS_VALUE(status) != 0U)
                 return xip_fail_v1469("SNAP-FIRST-RUN", pid);
 #ifdef XIP_P1C_LOGSTORE_V1576
+#ifdef XIP_P1C_CACHE_V1590
+        if (p1c_d6fs_cache_warm_v1590() != 0)
+                return 1;
+#endif
         if (p1c_log_snapshot_v1576(0) != 0)
                 return 1;
 #endif

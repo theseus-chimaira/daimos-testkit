@@ -239,6 +239,32 @@ ini.write_text(original[:-5] + ''.join('ex %06o\n' % symbols[name]
     ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
 PYV1589
 fi
+if [ "${XIP_V1590_P1C_LIVE_CACHE_LOGFAULT:-0}" = 1 ]; then
+    # These counters live in disposable KCORE (unlike the LOGSTORE
+    # MRES), so they remain authoritative at the native physical HALT.
+    python3 - "$boot/boot.ini" "$boot/kcore.map" <<'PYV1590'
+from pathlib import Path
+import sys
+ini, mapping = (Path(s) for s in sys.argv[1:])
+symbols = {}
+for line in mapping.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 2 and all(c in '01234567' for c in fields[1]):
+        symbols[fields[0]] = int(fields[1], 8)
+names = ('primed', 'nonzero', 'slab', 'key', 'physical',
+         'failure_observed', 'retry_observed', 'failure_differences',
+         'retry_differences', 'failure_hit', 'retry_hit',
+         'failure_fetch_differences', 'retry_fetch_differences')
+names = tuple('daimos_v1590_' + name for name in names)
+assert all(name in symbols for name in names), 'missing linked v1590 evidence'
+source = ini.read_text()
+assert source.endswith('exit\n'), 'unexpected physical SIMH tail'
+ini.write_text(source[:-5] + ''.join('ex %06o\n' % symbols[name]
+                                   for name in names) + 'exit\n')
+(ini.parent / 'v1590-linked-addresses.txt').write_text(
+    ''.join('%s %06o\n' % (name, symbols[name]) for name in names))
+PYV1590
+fi
 if [ "${XIP_V1583_VOLUME_DRM:-0}" = 1 ]; then
     # Drum unit zero is now the selected D6FS VOLUME member, NOT an
     # AUXSTORE descriptor. Check all four real root images instead.
