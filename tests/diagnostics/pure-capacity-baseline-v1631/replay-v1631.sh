@@ -9,8 +9,23 @@ export PDP10_PREFIX TMPDIR
 mkdir -p "$TMPDIR"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 testkit=$(CDPATH= cd -- "$here/../../.." && pwd)
-work=$(mktemp -d "$TMPDIR/pure-capacity-snapshot-v1631.XXXXXX")
-trap 'echo "v1631 baseline physical MM snapshot: $work"' EXIT HUP INT TERM
+case "${PURE_OFF_STOP_V1632:-six}" in
+six)
+    stop_marker='aaaaa!u'
+    stage=V1631_SIX_RUN_ACCEPTED
+    done_marker=V1631_END_SIX_RUN
+    work_prefix=pure-capacity-snapshot-v1631
+    ;;
+five)
+    stop_marker='aaaaa'
+    stage=V1632_FIVE_READY
+    done_marker=V1632_END_FIVE
+    work_prefix=pure-capacity-snapshot-v1632
+    ;;
+*) echo 'FAIL: unsupported PURE-off capacity observation stage' >&2; exit 1 ;;
+esac
+work=$(mktemp -d "$TMPDIR/${work_prefix}.XXXXXX")
+trap 'echo "$work_prefix baseline physical MM snapshot: $work"' EXIT HUP INT TERM
 mkdir -p "$work/media"
 python3 - "$PURE_OFF_BUILD_V1631" "$work" <<'PY'
 from pathlib import Path
@@ -45,7 +60,8 @@ PY
 port=$((33000 + ($$ % 10500)))
 sh "$testkit/tests/lib/daimos-simh-headless.sh" \
     "$work/noaux.ini" "$work/trace.ini" "$port" "$((port+13000))"
-python3 - "$PURE_OFF_BUILD_V1631/kcore.map" "$work/trace.ini" <<'PY'
+python3 - "$PURE_OFF_BUILD_V1631/kcore.map" "$work/trace.ini" \
+    "$stop_marker" "$stage" "$done_marker" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -56,10 +72,11 @@ for line in Path(sys.argv[1]).read_text(encoding="ascii").splitlines():
     if len(parts) >= 2 and re.fullmatch(r"[0-7]+", parts[1]):
         symbols[parts[0]] = int(parts[1], 8)
 path = Path(sys.argv[2])
+stop_marker, stage, done_marker = sys.argv[3:6]
 ini = path.read_text(encoding="ascii")
 assert "go 020\nexit\n" in ini
-tail = 'expect "aaaaa!u"\ngo 020\n'
-tail += 'echo V1631_SIX_RUN_ACCEPTED\n'
+tail = 'expect "%s"\ngo 020\n' % stop_marker
+tail += 'echo %s\n' % stage
 for name in ("proc_current_slot", "proc_high_slot", "proc_slots",
              "mm_arena_count", "mm_extent_count"):
     tail += "examine %06o\n" % symbols[name]
@@ -67,7 +84,7 @@ tail += "examine %06o-%06o\n" % (
     symbols["mm_arenas"], symbols["mm_arenas"] + 7)
 tail += "examine %06o-%06o\n" % (
     symbols["mm_extents"], symbols["mm_extents"] + 95)
-tail += 'echo V1631_END_SIX_RUN\ncont\nexit\n'
+tail += 'echo %s\ncont\nexit\n' % done_marker
 path.write_text(ini.replace("go 020\nexit\n", tail, 1),
                 encoding="ascii")
 PY
@@ -80,10 +97,10 @@ set +e
 rc=$?
 set -e
 tr -d '\r' <"$work/trace.log" >"$work/trace.clean"
-echo "v1631 physical baseline simulator status=$rc"
-grep -E 'V1631_|aaaaa!u|HALT instruction|LOADED' \
+echo "physical baseline simulator status=$rc"
+grep -E 'V1631_|V1632_|aaaaa|HALT instruction|LOADED' \
     "$work/trace.clean" | tail -20 || :
 test "$rc" -eq 0
-grep -q 'V1631_SIX_RUN_ACCEPTED$' "$work/trace.clean"
-grep -q '^V1631_END_SIX_RUN$' "$work/trace.clean"
+grep -q "${stage}$" "$work/trace.clean"
+grep -q "^${done_marker}$" "$work/trace.clean"
 grep -q 'HALT instruction' "$work/trace.clean"

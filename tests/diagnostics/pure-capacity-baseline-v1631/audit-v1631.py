@@ -24,8 +24,9 @@ def symbols(text):
     return result
 
 
-def decode_off(trace, mmap):
-    head, tail = "V1631_SIX_RUN_ACCEPTED\n", "V1631_END_SIX_RUN\n"
+def decode_off(trace, mmap, marker="V1631_SIX_RUN_ACCEPTED",
+               last="V1631_END_SIX_RUN", expected_owners=7):
+    head, tail = marker + "\n", last + "\n"
     assert trace.count(head) == 1 and trace.count(tail) == 1
     segment = trace.split(head, 1)[1].split(tail, 1)[0]
     words = {int(a, 8): int(w, 8) for a, w in re.findall(
@@ -73,8 +74,9 @@ def decode_off(trace, mmap):
                for start, end, kind, pin, owner in extents if kind == 1]
     assert not any(kind == 4 for _, _, kind, _, _ in extents), \
         "PURE disabled guest has PACKED owner"
-    assert {owner for _, _, _, owner in process} == set(range(1, 8)), \
-        "six children plus live parent not all resident"
+    assert {owner for _, _, _, owner in process} == set(
+        range(1, expected_owners + 1)), \
+        "live parent/children not all resident"
     assert all(end - start == 0o10000 and pin == 0
                for start, end, pin, owner in process), \
         "unexpected original process APR geometry"

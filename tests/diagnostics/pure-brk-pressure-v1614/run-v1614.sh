@@ -170,7 +170,8 @@ if [ "$pure_enabled" = 0 ]; then
         keep=1
         exit 1
     fi
-    if ! grep -q 'HALT instruction' "$work/console.clean"; then
+    if [ "$rc" -ne 0 ] ||
+       ! grep -q 'HALT instruction' "$work/console.clean"; then
         echo 'v1631: INCONCLUSIVE physical baseline, guest never HALTed' >&2
         keep=1
         exit 1
