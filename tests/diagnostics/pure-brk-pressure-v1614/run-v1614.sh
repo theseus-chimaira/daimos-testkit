@@ -25,7 +25,8 @@ cleanup()
 }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$work/user"
-cp "$here/test-v1614.c" "$work/user/init-v1614.c"
+cp "${PURE_BRK_SOURCE_V1615:-$here/test-v1614.c}" \
+    "$work/user/init-v1614.c"
 
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"
 das="$PDP10_PREFIX/bin/das"
@@ -49,10 +50,17 @@ incs="$incs -I$DAIMOS_REPO/userland/libc"
     "$DAIMOS_REPO/userland/libc/crt0.s"
 "$das" -C -F -O "$work/user/syscall.dobj" \
     "$DAIMOS_REPO/userland/libc/syscall.s"
+extra_obj=
+if [ -n "${PURE_BRK_VENEER_V1615:-}" ]; then
+    "$das" -C -F -O "$work/user/brk-cause-v1615.dobj" \
+        "$PURE_BRK_VENEER_V1615"
+    extra_obj="$work/user/brk-cause-v1615.dobj"
+fi
 libgcc=$("$cc" -print-libgcc-file-name)
 "$dlink" --pure -b 020 -o "$work/user/init.dxr" \
     -M "$work/user/init.map" "$work/user/crt0.dobj" \
-    "$work/user/syscall.dobj" "$work/user/init.dobj" "$libgcc"
+    "$work/user/syscall.dobj" "$work/user/init.dobj" \
+    $extra_obj "$libgcc"
 grep -Eq '^_start[[:space:]]+000020$' "$work/user/init.map"
 # A plain DXR (purity=UNKNOWN) is never eligible for RAW prefix DROP:
 # reject that test-setup error before constructing any boot media.
@@ -89,6 +97,36 @@ port=$((32000 + ($$ % 15000)))
 sh "$testkit/tests/lib/daimos-simh-headless.sh" \
     "$work/noaux.ini" "$work/headless.ini" "$port" "$((port+14000))"
 
+# v1615 test-only physical MM snapshot at the simulator's normal
+# post-HALT monitor prompt. No breakpoint instruction overhead, no
+# kernel memory reads from user mode and no production modification.
+if [ "${PURE_MM_DUMP_V1615:-0}" = 1 ]; then
+    python3 - "$boot/kcore.map" "$work/headless.ini" <<'PY'
+from pathlib import Path
+import sys
+symbols={}
+for line in Path(sys.argv[1]).read_text().splitlines():
+    parts=line.split()
+    if len(parts)>=2 and all(c in '01234567' for c in parts[1]):
+        symbols[parts[0]]=int(parts[1],8)
+required=('mm_extents','mm_extent_count','mm_arenas',
+          'mm_arena_count','proc_current_slot','proc_high_slot')
+assert all(key in symbols for key in required)
+path=Path(sys.argv[2])
+s=path.read_text()
+assert 'go 020\nexit\n' in s
+cmd='go 020\n'
+for name in required:
+    cmd+='examine %06o\n' % symbols[name]
+cmd+='examine %06o-%06o\n' % (symbols['mm_arenas'],
+                             symbols['mm_arenas']+7)
+cmd+='examine %06o-%06o\n' % (symbols['mm_extents'],
+                             symbols['mm_extents']+95)
+cmd+='exit\n'
+path.write_text(s.replace('go 020\nexit\n',cmd,1))
+PY
+fi
+
 set +e
 (
     cd "$boot"
@@ -107,6 +145,23 @@ fi
 if grep -q 'INIT V1' "$work/console.clean"; then
     tail -75 "$work/console.clean" >&2
     echo 'FAIL v1614: custom pressure INIT did not execute' >&2
+    keep=1
+    exit 1
+fi
+if [ "${PURE_DIAG_HALT_V1615:-0}" = 1 ]; then
+    if grep -Eq 'HALT instruction' "$work/console.clean" &&
+       grep -Eq '(C[0-7]{6}F|\[A[0-7]{6}/[0-7]{6}\]H)' \
+          "$work/console.clean"; then
+        echo 'v1615: halted PDP-6 with exact live MM owners; diagnostic only'
+        exit 0
+    fi
+    if grep -Eq 'HALT instruction' "$work/console.clean" &&
+       grep -q '<010000+020000>wwww' "$work/console.clean"; then
+        echo 'v1615: requester lost during BRK; possible fatal OOM' >&2
+        echo 'v1615: post-cleanup MM snapshot is not live refusal geometry' >&2
+    fi
+    tail -60 "$work/console.clean" >&2
+    echo 'v1615: INCONCLUSIVE, no typed refusal or halted BRK snapshot' >&2
     keep=1
     exit 1
 fi
