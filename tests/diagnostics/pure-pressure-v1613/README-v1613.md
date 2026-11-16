@@ -3,6 +3,15 @@
 This is a deliberately separate *diagnostic*, not a passing
 validation test or an accepted RAW PURE scheduler workload.
 
+**Correction recorded by v1614:** this historical
+DISK-derived test linked its INIT without `dlink --pure`.
+The resulting actual DXR metadata was `purity=UNKNOWN`;
+it could never prove that an immutable RAW PURE prefix
+was eligible for omission. The source-linked v1614
+host/native linker bug fix and physical PURE DXR
+diagnostic are documented in
+`tests/diagnostics/pure-brk-pressure-v1614/`.
+
 The existing `daimos-swap-wait-v1.c` physical DISK test creates
 large resident processes until a sleeping pipe reader becomes
 nonresident. The v1613 adaptation avoids all BACKSTORE
