@@ -63,6 +63,12 @@ assert not return_after or trigger, 'BRK return trap needs console stop'
 wait_tape=os.environ.get('PURE_TAPE_WAIT_BREAK_V1617','0')=='1'
 assert not wait_tape or (trigger and not return_after), \
     'tape search trap needs its own console stop'
+rbn_found=os.environ.get('PURE_RBN_FOUND_BREAK_V1619','0')=='1'
+assert not rbn_found or (trigger and not return_after and not wait_tape), \
+    'RBN found/fail trap requires separate console stop'
+rbn_transfer=os.environ.get('PURE_RBN_TRANSFER_V1619','0')=='1'
+assert not rbn_transfer or rbn_found, \
+    'RBN data-completion trap requires a physical matching block'
 advance_us=os.environ.get('PURE_DTC_ADVANCE_US_V1618','')
 assert not advance_us or wait_tape, \
     'timed advancement requires a real tape search breakpoint'
@@ -119,6 +125,44 @@ if wait_tape:
         'tape MRES no longer matches the linked wait instruction'
     tail+='break %06o\nshow break\ncont\n'%pc
     print('v1617: deferred source-checked DECtape wait PC=%06o'%pc)
+if rbn_found:
+    # A v1619 test-only export map establishes these exact labels and
+    # verifies binary identity with the production v1618 tape module.
+    path=Path(os.environ['PURE_RBN_MAP_V1619'])
+    local={}
+    for line in path.read_text().splitlines():
+        p=line.split()
+        if len(p)>=2 and p[1] and not p[1].strip('01234567'):
+            local[p[0]]=int(p[1],8)
+    assert local['dtc_search_pi_found']==0o415
+    assert local['dtc_search_fail']==0o463
+    if rbn_transfer:
+        assert local['dtc_search_pi_read']==0o455
+        assert local['tape_dct_done_keep_dtc']==0o124
+    tape_base=0o30431
+    found_pc=tape_base+local['dtc_search_pi_found']
+    fail_pc=tape_base+local['dtc_search_fail']
+    tail+='break %06o\nbreak %06o\nshow break\ncont\n'%(
+        found_pc,fail_pc)
+    print('v1619: deferred RBN match %06o or failure %06o'%(
+        found_pc,fail_pc))
+    if rbn_transfer:
+        read_pc=tape_base+local['dtc_search_pi_read']
+        done_pc=tape_base+local['tape_dct_done_keep_dtc']
+        # Snapshot the first block match before leaving PI3; then follow
+        # its original read-arming branch and DCT read completion.
+        tail+='examine %06o\nexamine %06o\n'%(
+            sym['storage_state'],0o31245)
+        tail+='nobreak %06o\nbreak %06o\ncont\n'%(
+            found_pc,read_pc)
+        tail+='examine %06o\nexamine %06o\n'%(
+            sym['storage_state'],0o31245)
+        tail+='nobreak %06o\nbreak %06o\ncont\n'%(
+            read_pc,done_pc)
+        tail+='examine %06o\nexamine %06o\nexamine %06o\n'%(
+            sym['storage_state'],sym['storage_count'],0o31246)
+        print('v1619: follow PI3 read %06o and DCT completion %06o'%(
+            read_pc,done_pc))
 if return_after or site or os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
     tail+='examine 1\nexamine 2\n'
 if wait_tape:
@@ -139,6 +183,11 @@ if wait_tape:
                 sym['storage_state'],sym['storage_count'],
                 sym['clk_tick_count'])
             tail+='examine %06o-%06o\n'%(0o31240,0o31245)
+if rbn_found:
+    assert 'clk_tick_count' in sym
+    tail+='examine %06o\nexamine %06o\nexamine %06o\n'%(
+        sym['storage_state'],sym['storage_count'],sym['clk_tick_count'])
+    tail+='examine %06o-%06o\n'%(0o31240,0o31246)
 if os.environ.get('PURE_MRES_PROBE_V1617','0') == '1':
     for name in ('proc_swap_reclaim', 'proc_swap_service_one'):
         assert name in sym, 'missing scheduler service symbol: '+name
@@ -170,6 +219,32 @@ python3 "$here/analyze-v1615.py" "$boot/kcore.map" \
     "$work/trace.clean" >"$work/physical-mm.log" 2>&1 || :
 cat "$work/physical-mm.log"
 if [ -n "${PURE_CONSOLE_STOP_V1616:-}" ]; then
+    if [ "${PURE_RBN_FOUND_BREAK_V1619:-0}" = 1 ]; then
+        if [ "${PURE_RBN_TRANSFER_V1619:-0}" = 1 ]; then
+            for pc in 031046 031106 030555; do
+                if ! grep -F "Breakpoint, PC: $pc " \
+                    "$work/trace.clean" >/dev/null; then
+                    echo "v1619: INCONCLUSIVE; physical PI3/PI5 stage $pc missing"
+                    exit 1
+                fi
+            done
+            echo 'v1619: physical RBN 4 match, read command and DCT done'
+            echo 'v1619: VFS/slot-0 MM restore completion remains OPEN'
+            exit 0
+        fi
+        if grep -F 'Breakpoint, PC: 031046 ' \
+            "$work/trace.clean" >/dev/null; then
+            echo 'v1619: physically matched DECtape RBN; READ not yet committed'
+            exit 0
+        fi
+        if grep -F 'Breakpoint, PC: 031114 ' \
+            "$work/trace.clean" >/dev/null; then
+            echo 'v1619: physically reached DECtape RBN search failure'
+            exit 0
+        fi
+        echo 'v1619: INCONCLUSIVE; no RBN match or failure by timeout'
+        exit 1
+    fi
     if [ "${PURE_TAPE_WAIT_BREAK_V1617:-0}" = 1 ]; then
         if ! grep -F 'Breakpoint, PC: 030762 ' \
             "$work/trace.clean" >/dev/null; then
