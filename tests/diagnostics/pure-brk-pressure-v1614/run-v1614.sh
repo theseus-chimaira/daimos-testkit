@@ -72,6 +72,14 @@ grep -q 'purity=PURE' "$work/user/dxrcheck.log" || {
 }
 
 boot="$work/build"
+# v1631 source-matched physical capacity control: an identical 48K
+# guest may run with the optional PURE MRES absent. The default remains
+# enabled for all historical v1614-v1630 PURE tests.
+pure_enabled=${PURE_ENABLE_V1631:-1}
+case "$pure_enabled" in
+0|1) ;;
+*) echo 'FAIL v1631: PURE_ENABLE_V1631 must be 0 or 1' >&2; exit 1 ;;
+esac
 # v1626 experimental 64K profile selector. Preserve the exact 48K
 # historical diagnostic unless an explicit, matched 64K request is made.
 pure_phys_kwords=${PURE_PHYS_KWORDS_V1626:-48}
@@ -86,7 +94,7 @@ make -s -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BOOT_PROFILE=lowmem COMPILER=gcc \
     BOOT_CORE_WORDS="$pure_core_words" SIMH_CPU_KWORDS="$pure_phys_kwords" \
     TSFS_ROOT_MEMBERS=3 TSFS_INPLACE_BOOT=1 \
-    PROC_BOOT_USERS=1 DAIMOS_PURE_MRES_ENABLED=1 \
+    PROC_BOOT_USERS=1 DAIMOS_PURE_MRES_ENABLED="$pure_enabled" \
     SYSTEM_INIT_DXR="$work/user/init.dxr" >"$work/build.log" 2>&1 || {
     tail -60 "$work/build.log" >&2
     keep=1
@@ -94,7 +102,15 @@ make -s -C "$DAIMOS_REPO/system/boot/pdp6" image \
 }
 grep -F "F /SYSTEM/INIT $work/user/init.dxr " \
     "$boot/tsfs-root.manifest" >/dev/null
-grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$boot/kinit.map"
+if [ "$pure_enabled" = 1 ]; then
+    grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$boot/kinit.map"
+else
+    if grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$boot/kinit.map"; then
+        echo 'FAIL v1631: off-build unexpectedly includes PURE MRES' >&2
+        keep=1
+        exit 1
+    fi
+fi
 
 awk '!/^attach -q (dsk[0-9]+|dr[0-9]+) /' \
     "$boot/boot.ini" >"$work/noaux.ini"
@@ -145,6 +161,24 @@ set +e
 rc=$?
 set -e
 tr -d '\r' <"$work/console.log" >"$work/console.clean"
+if [ "$pure_enabled" = 0 ]; then
+    # An opt-in observational negative control, not a PURE feature
+    # acceptance. Retain the complete physical guest and tell the
+    # caller what the original C source actually reported.
+    if grep -q 'PURE[[:space:]]*LOADED' "$work/console.clean"; then
+        echo 'FAIL v1631: OFF image loaded PURE MRES unexpectedly' >&2
+        keep=1
+        exit 1
+    fi
+    if ! grep -q 'HALT instruction' "$work/console.clean"; then
+        echo 'v1631: INCONCLUSIVE physical baseline, guest never HALTed' >&2
+        keep=1
+        exit 1
+    fi
+    echo 'v1631: original physical PURE-OFF capacity guest completed'
+    echo 'v1631: inspect original guest assertions; no RAM claim made'
+    exit 0
+fi
 if ! grep -q 'PURE[[:space:]]*LOADED' "$work/console.clean"; then
     tail -75 "$work/console.clean" >&2
     echo 'FAIL v1614: PURE service was never installed' >&2
