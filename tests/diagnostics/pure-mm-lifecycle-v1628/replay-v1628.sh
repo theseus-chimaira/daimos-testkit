@@ -9,8 +9,21 @@ export PDP10_PREFIX TMPDIR
 mkdir -p "$TMPDIR"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 testkit=$(CDPATH= cd -- "$here/../../.." && pwd)
+case "${PURE_MM_PROFILE_V1629:-64resident}" in
+64resident)
+    expect_b='aaaaaa[B'
+    expect_z='LwwwwwwZ'
+    marker=V1628
+    ;;
+48packed)
+    expect_b='aaaaax[B'
+    expect_z='LwwwwwZ'
+    marker=V1629
+    ;;
+*) echo 'FAIL: unknown versioned MM observation profile' >&2; exit 1 ;;
+esac
 work=$(mktemp -d "$TMPDIR/pure-mm-lifecycle-v1628.XXXXXX")
-trap 'echo "v1628 complete original MM trace: $work"' EXIT HUP INT TERM
+trap 'echo "original MM trace: $work"' EXIT HUP INT TERM
 mkdir -p "$work/media"
 python3 - "$PURE_MM_BUILD_V1628" "$work" <<'PY'
 from pathlib import Path
@@ -44,7 +57,8 @@ PY
 port=$((33000 + ($$ % 10000)))
 sh "$testkit/tests/lib/daimos-simh-headless.sh" \
     "$work/noaux.ini" "$work/trace.ini" "$port" "$((port+12000))"
-python3 - "$PURE_MM_BUILD_V1628/kcore.map" "$work/trace.ini" <<'PY'
+python3 - "$PURE_MM_BUILD_V1628/kcore.map" "$work/trace.ini" \
+    "$expect_b" "$expect_z" "$marker" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -54,11 +68,12 @@ for line in Path(sys.argv[1]).read_text(encoding="ascii").splitlines():
     if len(p) >= 2 and re.fullmatch(r"[0-7]+", p[1]):
         symbols[p[0]] = int(p[1], 8)
 path = Path(sys.argv[2])
+expect_b, expect_z, marker = sys.argv[3:6]
 ini = path.read_text(encoding="ascii")
 assert "go 020\nexit\n" in ini
 
 def examine(stage):
-    commands = "echo V1628_STAGE_%s\n" % stage
+    commands = "echo %s_STAGE_%s\n" % (marker, stage)
     for label in ("proc_current_slot", "proc_high_slot", "mm_arena_count",
                   "mm_extent_count"):
         commands += "examine %06o\n" % symbols[label]
@@ -66,12 +81,12 @@ def examine(stage):
         symbols["mm_arenas"], symbols["mm_arenas"] + 7)
     commands += "examine %06o-%06o\n" % (
         symbols["mm_extents"], symbols["mm_extents"] + 95)
-    commands += "echo V1628_END_%s\n" % stage
+    commands += "echo %s_END_%s\n" % (marker, stage)
     return commands
 
-tail = 'expect "aaaaaa[B"\ngo 020\n' + examine("B")
+tail = 'expect "%s"\ngo 020\n' % expect_b + examine("B")
 tail += 'expect "[A"\ncont\n' + examine("A")
-tail += 'expect "LwwwwwwZ"\ncont\n' + examine("Z")
+tail += 'expect "%s"\ncont\n' % expect_z + examine("Z")
 tail += 'cont\nexit\n'
 path.write_text(ini.replace("go 020\nexit\n", tail, 1), encoding="ascii")
 PY
@@ -85,7 +100,7 @@ rc=$?
 set -e
 tr -d '\r' <"$work/trace.log" >"$work/trace.clean"
 echo "v1628: simulator status=$rc"
-grep -E 'V1628_STAGE_|V1628_END_|aaaaaa|LwwwwwwZ|HALT instruction' \
+grep -E "${marker}_STAGE_|${marker}_END_|aaaaa|Lwwwww|HALT instruction" \
     "$work/trace.clean" | tail -24 || :
 if [ "$rc" -ne 0 ]; then
     echo 'v1628: INCONCLUSIVE; simulator failed or timed out' >&2
@@ -94,8 +109,8 @@ fi
 for stage in B A Z; do
     # SIMH's console EXPECT can stop mid-line, so the ECHO marker
     # follows the user's unfinished `[B`, `[A` or `Z` marker.
-    grep -q "V1628_STAGE_$stage$" "$work/trace.clean" || exit 1
-    grep -q "^V1628_END_$stage$" "$work/trace.clean" || exit 1
+    grep -q "${marker}_STAGE_$stage$" "$work/trace.clean" || exit 1
+    grep -q "^${marker}_END_$stage$" "$work/trace.clean" || exit 1
 done
 grep -q 'HALT instruction' "$work/trace.clean" || exit 1
 echo 'v1628: all three original physical owner snapshots captured'

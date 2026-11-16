@@ -193,7 +193,7 @@ if [ "${PURE_LIFECYCLE_ONLY_V1627:-0}" = 1 ]; then
         exit 1
         ;;
     esac
-    echo "PASS v1627: physical ${pure_phys_kwords}K six-child PIPE/WAIT/EXIT; RAM savings NOT accepted"
+    echo "PASS lifecycle: physical ${pure_phys_kwords}K source-checked PIPE/WAIT/EXIT; RAM savings NOT accepted"
     exit 0
 fi
 case "$text" in
