@@ -55,7 +55,22 @@ f=Path(sys.argv[2])
 s=f.read_text()
 assert 'go 020\nexit\n' in s
 tail=''
-if os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
+site=os.environ.get('PURE_BREAK_SITE_V1616','')
+trigger=os.environ.get('PURE_CONSOLE_STOP_V1616','')
+assert not (site and trigger), 'choose either source or console stop'
+return_after=os.environ.get('PURE_BRK_RETURN_V1616','0')=='1'
+assert not return_after or trigger, 'BRK return trap needs console stop'
+if trigger:
+    assert re.fullmatch(r'[A-Za-z0-9_+<>\[\]/-]+',trigger), 'unsafe trigger'
+    tail+='expect "%s"\n'%trigger
+    print('v1616: console EXPECT stop on %s'%trigger)
+elif site:
+    assert site in sym, 'missing source-mapped breakpoint symbol: '+site
+    tail+='break %06o\n'%sym[site]
+    tail+='show break\n'
+    print('v1616: source-mapped CPU breakpoint %s=%06o'%
+          (site,sym[site]))
+elif os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
     raw=subprocess.check_output([sys.argv[4],'-d',sys.argv[3]],text=True)
     words={int(a,8):int(w,8) for a,w in re.findall(
         r'(?m)^IMAGE\s+([0-7]{6})\s+([0-7]{12})$',raw)}
@@ -65,9 +80,24 @@ if os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
              words.get(addr+1)==(0o254000000000|fatal)]
     assert len(hits)==1, 'expected unique genuine BRK fatal path'
     tail+='break %06o\n'%hits[0]
+    tail+='show break\n'
     print('v1615: fatal OOM CPU breakpoint %06o'%hits[0])
 tail+='go 020\n'
-if os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
+if return_after:
+    raw=subprocess.check_output([sys.argv[4],'-d',sys.argv[3]],text=True)
+    words={int(a,8):int(w,8) for a,w in re.findall(
+        r'(?m)^IMAGE\s+([0-7]{6})\s+([0-7]{12})$',raw)}
+    vm=sym['vm_space_brk_current']
+    sites=[addr for addr,word in words.items()
+           if word==(0o260740000000|vm)]
+    assert len(sites)==1, 'BRK callsite must be unique in fixed KCORE'
+    ret=sites[0]+1
+    assert (words[ret]&0o777777000000)==0o316040000000
+    assert (words[ret+1]&0o777777000000)==0o254000000000
+    tail+='break %06o\nshow break\ncont\n'%ret
+    (f.parent/'brk-return-site-v1616').write_text('%06o\n'%ret)
+    print('v1616: deferred BRK return breakpoint %06o'%ret)
+if return_after or site or os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
     tail+='examine 1\nexamine 2\n'
 for x in need:
     tail+='examine %06o\n'%sym[x]
@@ -94,12 +124,35 @@ echo "v1615: complete trace $work/trace.clean"
 python3 "$here/analyze-v1615.py" "$boot/kcore.map" \
     "$work/trace.clean" >"$work/physical-mm.log" 2>&1 || :
 cat "$work/physical-mm.log"
-if [ "${PURE_OOM_BREAK_V1615:-0}" = 1 ]; then
-    if ! grep -q 'Breakpoint, PC:' "$work/trace.clean"; then
-        echo 'v1615: INCONCLUSIVE; no fatal OOM breakpoint reached'
+if [ -n "${PURE_CONSOLE_STOP_V1616:-}" ]; then
+    if [ "${PURE_BRK_RETURN_V1616:-0}" = 1 ]; then
+        site=$(cat "$work/brk-return-site-v1616")
+        if ! grep -F "Breakpoint, PC: $site " "$work/trace.clean" >/dev/null; then
+            echo 'v1616: INCONCLUSIVE, deferred BRK return breakpoint not reached'
+            exit 1
+        fi
+        if ! grep -q 'current slot 1' "$work/physical-mm.log"; then
+            echo 'v1616: INCONCLUSIVE, requester already cleaned up'
+            exit 1
+        fi
+        echo 'v1616: captured genuine BRK return and pre-cleanup MM owners'
+        exit 0
+    fi
+    if [ "$rc" -eq 124 ] ||
+       ! grep -F "${PURE_CONSOLE_STOP_V1616}" "$work/trace.clean" >/dev/null; then
+        echo 'v1616: INCONCLUSIVE, console-trigger stop was not reached'
         exit 1
     fi
-    echo 'v1615: captured kernel fatal BRK path before process cleanup'
+    echo 'v1616: console-triggered physical MM stop captured'
+    exit 0
+fi
+if [ -n "${PURE_BREAK_SITE_V1616:-}" ] ||
+   [ "${PURE_OOM_BREAK_V1615:-0}" = 1 ]; then
+    if ! grep -q 'Breakpoint, PC:' "$work/trace.clean"; then
+        echo 'v1616: INCONCLUSIVE; source-mapped breakpoint not reached'
+        exit 1
+    fi
+    echo 'v1616: captured source-mapped CPU breakpoint and physical MM state'
     exit 0
 fi
 if [ "$rc" -eq 124 ]; then
