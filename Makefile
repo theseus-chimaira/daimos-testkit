@@ -747,6 +747,12 @@ target-file-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-file-pdp6-v1/run.sh
 
+.PHONY: target-d6fs-free-fcb-pdp6-v1
+target-d6fs-free-fcb-pdp6-v1: check-prefix
+	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
+		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		sh tests/target/daimos-d6fs-free-fcb-pdp6-v1/run.sh
+
 target-file-walk-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-file-walk-pdp6-v1/run.sh
