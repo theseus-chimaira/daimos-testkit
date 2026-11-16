@@ -12,8 +12,10 @@ The independent KCC KINIT package-selector regression is:
 
 It rebuilds the same KINIT directory in default-OFF,
 experimental-ON and default-OFF configurations. The
-PURE package must appear only in the middle build,
-and fixed KCORE bytes must remain identical throughout.
+current v1612 PURE package must appear only in the middle
+build, and fixed KCORE bytes must remain identical throughout.
+The independent historical v1611 C-policy native test
+continues to use the unchanged v1611 source file.
 
 This links the original KCC PDP-6 v1381 zero-copy DROP,
 v1384 prefix transaction, v1391 bounded FULL transaction,
@@ -51,5 +53,7 @@ Explicit experimental KINIT build uses
 does not replace physical no-AUX PDP-6 boot,
 immutable source lifetime, full PI6/EXEC/WAIT/EXIT
 acceptance or installed RAM/peak-memory measurements.
-The KCC module costs 2275 words and GCC 1864 words,
-which must be offset by real reclaimed PURE memory.
+The historical v1611 KCC module costs 2275 words and GCC
+1864 words. The current v1612 module costs 2196 KCC and
+1758 GCC words. Both must be offset by real reclaimed
+PURE memory before enabling the feature by default.

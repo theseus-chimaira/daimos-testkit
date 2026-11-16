@@ -1,5 +1,5 @@
 #!/bin/sh
-# Check v1611 default OFF and explicit PURE opt-in from the SAME KCC
+# Check current PURE default OFF and explicit opt-in from the SAME KCC
 # build directory, so stale KINIT stamps and resident KCORE growth
 # cannot hide behind separately built images.
 set -eu
@@ -31,32 +31,40 @@ build_mode()
 }
 
 build_mode 0
-if grep -q '^proc_pure_mres_package_v1611[[:space:]]' "$work/kinit.map"; then
-    echo 'FAIL v1611: default KINIT unexpectedly contains PURE' >&2
+if grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$work/kinit.map"; then
+    echo 'FAIL v1612: default KINIT unexpectedly contains PURE' >&2
     exit 1
 fi
 cp "$work/kcore.dxr" "$work/kcore-original.dxr"
-echo 'PASS v1611: default KINIT excludes PURE MRES'
+echo 'PASS v1612: default KINIT excludes PURE MRES'
 
 build_mode 1
-grep -q '^proc_pure_mres_package_v1611[[:space:]]' "$work/kinit.map" || {
-    echo 'FAIL v1611: opt-in KINIT lost PURE MRES package' >&2
+grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$work/kinit.map" || {
+    echo 'FAIL v1612: opt-in KINIT lost PURE MRES package' >&2
     exit 1
 }
-grep -q '^proc_pure_mres_reclaim_v1611[[:space:]]' \
-    "$work/pure-mres-v1611.map"
-grep -q '^proc_pure_mres_service_v1611[[:space:]]' \
-    "$work/pure-mres-v1611.map"
+grep -q '^proc_pure_mres_reclaim_v1612[[:space:]]' \
+    "$work/pure-mres-v1612.map"
+grep -q '^proc_pure_mres_service_v1612[[:space:]]' \
+    "$work/pure-mres-v1612.map"
+test -s "$work/pure-mres-v1612.fold"
+grep -q '^FOLD[[:space:]]' "$work/pure-mres-v1612.fold"
+section=$("$PDP10_PREFIX/bin/pdp10-objdump" -h \
+    "$work/purev1612-mres.dobj" | grep '^mres:')
+echo "$section" | grep -q 'resident=2196' || {
+    echo "FAIL v1612: folded PURE module exceeded 2196 words: $section" >&2
+    exit 1
+}
 cmp "$work/kcore-original.dxr" "$work/kcore.dxr" || {
-    echo 'FAIL v1611: opt-in changes permanent KCORE' >&2
+    echo 'FAIL v1612: opt-in changes permanent KCORE' >&2
     exit 1
 }
-echo 'PASS v1611: opt-in KINIT links PURE, no fixed KCORE growth'
+echo 'PASS v1612: folded opt-in KINIT, 2196 words, no fixed KCORE growth'
 
 build_mode 0
-if grep -q '^proc_pure_mres_package_v1611[[:space:]]' "$work/kinit.map"; then
-    echo 'FAIL v1611: PURE package survived same-build disable' >&2
+if grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$work/kinit.map"; then
+    echo 'FAIL v1612: PURE package survived same-build disable' >&2
     exit 1
 fi
 cmp "$work/kcore-original.dxr" "$work/kcore.dxr"
-echo 'PASS v1611: same-build disable removes PURE again'
+echo 'PASS v1612: same-build disable removes PURE again'

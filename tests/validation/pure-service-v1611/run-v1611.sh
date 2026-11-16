@@ -10,8 +10,16 @@ mkdir -p "$TMPDIR"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 testkit=$(CDPATH= cd -- "$here/../../.." && pwd)
 src="$DAIMOS_REPO/system/kernel"
-work=$(mktemp -d "$TMPDIR/pure-service-v1611.XXXXXX")
-trap 'if [ "${KEEP_TEST:-0}" = 1 ]; then echo "v1611 work: $work"; else rm -rf "$work"; fi' EXIT HUP INT TERM
+service=proc_pure_service_pdp6_v1611.c
+test_flags=
+tag=v1611
+if [ "${DAIMOS_TEST_PURE_SERVICE_V1612:-0}" = 1 ]; then
+    service=proc_pure_service_pdp6_v1612.c
+    tag=v1612
+    test_flags='-DDAIMOS_TEST_PURE_SERVICE_V1612=1 -Dproc_pure_mres_reclaim_v1611=proc_pure_mres_reclaim_v1612 -Dproc_pure_mres_service_v1611=proc_pure_mres_service_v1612'
+fi
+work=$(mktemp -d "$TMPDIR/pure-service-$tag.XXXXXX")
+trap 'if [ "${KEEP_TEST:-0}" = 1 ]; then echo "$tag work: $work"; else rm -rf "$work"; fi' EXIT HUP INT TERM
 inc="-I$src/proc -I$src/mm -I$src/core -I$src/fs -I$src/storage -I$src/modules -I$src/drivers -I$PDP10_PREFIX/include -I$testkit/tests/validation/pure-ram-lifecycle-v1377 -I$testkit/tests/validation/pure-ram-registryfree-v1379 -I$testkit/tests/validation/pure-ram-inplace-v1381"
 
 for spec in \
@@ -27,7 +35,7 @@ for spec in \
     }
 done
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
-    $inc -S "$src/proc/proc_pure_service_pdp6_v1611.c" \
+    $inc -S "$src/proc/$service" \
     -o "$work/service-v1611.s" >"$work/service.log" 2>&1 || {
     cat "$work/service.log"
     exit 1
@@ -38,7 +46,7 @@ done
     cat "$here/test-native-v1611.c"
 } >"$work/test-v1611.c"
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
-    $inc -S "$work/test-v1611.c" \
+    $test_flags $inc -S "$work/test-v1611.c" \
     -o "$work/test-v1611.s" >"$work/test.log" 2>&1 || {
     cat "$work/test.log"
     exit 1
@@ -60,7 +68,7 @@ done
 
 # Source-authentic negative: bypass the final readiness guard only in a
 # private copy. The executed PDP-6 guest must reject READY_ONCE on IO failure.
-python3 - "$src/proc/proc_pure_service_pdp6_v1611.c" \
+python3 - "$src/proc/$service" \
     "$work/unsafe-ready-v1611.c" <<'PY'
 from pathlib import Path
 import sys
@@ -101,4 +109,4 @@ if ! grep -F 'FAIL: __test_exit' "$work/unsafe-run.log" >/dev/null; then
     echo 'FAIL v1611: mutant failed for a non-assertion reason' >&2
     exit 1
 fi
-echo 'PASS v1611 native RAW DROP, prefix/FULL, refusal and unsafe READY mutant'
+echo "PASS $tag native RAW DROP, prefix/FULL, refusal and unsafe READY mutant"

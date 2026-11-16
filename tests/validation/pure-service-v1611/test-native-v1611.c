@@ -176,6 +176,63 @@ test_refusal_v1611(void)
         return 0;
 }
 
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+/*
+ * The v1612 policy has one MM-owner scan for both resident and PACKED.
+ * A second physical owner of the same process is never safe to unlock.
+ * Deliberately construct a corrupt duplicate and insist that both
+ * READY_ONCE and TRANSITION-release fail closed.
+ */
+static int
+test_duplicate_packed_owner_v1612(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        int rc;
+
+        reset_service_v1611();
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) != 0 ||
+            !check_retained_v1611())
+                return 1;
+        mm_extents[1].span = ((kword_t)02000UL << 18U) | RESTORE;
+        mm_extents[1].meta = ((kword_t)MM_TYPE_PROCESS << MM_TYPE_SHIFT) |
+            (kword_t)SLOT;
+        mm_extent_count = 2;
+        PROC_SET_STATE(p, PROC_SRUN);
+        proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
+        rc = proc_pure_mres_service_v1611();
+        if (rc || proc_sched_cursor != SLOT ||
+            proc_swap_pressure_ticks != 0100UL ||
+            !PROC_TRANSITION(p) || VM_PDP6_BASE(p) ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PACKED_PROCESS ||
+            MM_EXTENT_WORDS(&mm_extents[0]) != SUFFIX ||
+            mm_extent_count != 2)
+                return 2;
+        return 0;
+}
+
+static int
+test_pinned_packed_owner_v1612(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        int rc;
+
+        reset_service_v1611();
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) != 0 ||
+            !check_retained_v1611())
+                return 1;
+        if (mm_pin(SOURCE + OMIT) != MM_OK)
+                return 2;
+        PROC_SET_STATE(p, PROC_SRUN);
+        proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
+        rc = proc_pure_mres_service_v1611();
+        if (rc || proc_sched_cursor != SLOT ||
+            !PROC_TRANSITION(p) || VM_PDP6_BASE(p) ||
+            MM_EXTENT_PINS(&mm_extents[0]) != 1U)
+                return 3;
+        return 0;
+}
+#endif
+
 int
 main(void)
 {
@@ -190,5 +247,13 @@ main(void)
         rc = test_refusal_v1611();
         if (rc)
                 return 0300 + rc;
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+        rc = test_duplicate_packed_owner_v1612();
+        if (rc)
+                return 0400 + rc;
+        rc = test_pinned_packed_owner_v1612();
+        if (rc)
+                return 0500 + rc;
+#endif
         return 0;
 }
