@@ -157,6 +157,53 @@ case_drop_unpin_v1397(unsigned int kind)
         return 0;
 }
 
+/*
+ * v1610: a real slot-0 wake may restore RUN only after the dormant
+ * suffix has been produced from SLEEP. A non-slot-0 caller, or an
+ * attempt to DROP RUN directly, must not modify either MM owner.
+ */
+static int
+case_slot0_full_v1610(void)
+{
+        struct proc *p = &process_slots[SLOT];
+
+        fault_kind_v1395 = 0U;
+        reset_prefix_v1384();
+        PROC_SET_STATE(p, PROC_SRUN);
+        proc_current_slot = 0UL;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_ERR_INVAL ||
+            VM_PDP6_BASE(p) != SOURCE ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT) != 0 ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PROCESS)
+                return 1;
+        PROC_SET_STATE(p, PROC_SLEEP);
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
+                return 2;
+        PROC_SET_TRANSITION(p);
+        PROC_SET_STATE(p, PROC_SRUN);
+        proc_current_slot = SLOT;
+        if (proc_pure_ram_restore_v1391(SLOT, accept_payload_v1395) !=
+                MM_ERR_INVAL ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PACKED_PROCESS ||
+            VM_PDP6_BASE(p) || !PROC_TRANSITION(p) ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_PACKED) != 0)
+                return 3;
+        proc_current_slot = 0UL;
+        if (proc_pure_ram_restore_v1391(SLOT, accept_payload_v1395) !=
+                MM_OK ||
+            VM_PDP6_BASE(p) != RESTORE ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT) != 0 ||
+            PROC_TRANSITION(p) ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PROCESS ||
+            MM_EXTENT_BASE(&mm_extents[0]) != RESTORE ||
+            !check_suffix_v1384())
+                return 4;
+        return 0;
+}
+
 int
 main(void)
 {
@@ -172,5 +219,8 @@ main(void)
             if (rc != 0)
                 return (int)(kind * 0100U + (unsigned int)rc);
         }
+        rc = case_slot0_full_v1610();
+        if (rc)
+                return 01600 + rc;
         return 0;
 }

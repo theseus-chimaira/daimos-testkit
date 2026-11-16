@@ -31,6 +31,7 @@ static kword_t mode_words[PROC_STORAGE_MAP_WORDS_V28(SLOTS)];
 static kword_t layout_words[SLOTS];
 
 struct proc *proc_table = process_slots;
+kword_t proc_current_slot;
 unsigned int proc_slots = SLOTS;
 struct proc_swap_record *proc_swap_records = swap_slots;
 struct proc_storage_map_v28 proc_storage_runtime_v29;

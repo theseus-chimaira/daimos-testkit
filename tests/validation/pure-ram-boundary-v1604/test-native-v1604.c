@@ -18,6 +18,7 @@ static struct proc slots[SLOTS];
 static struct proc_swap_record records[SLOTS];
 static kword_t modes[PROC_STORAGE_MAP_WORDS_V28(SLOTS)];
 struct proc *proc_table = slots;
+kword_t proc_current_slot;
 struct proc_swap_record *proc_swap_records = records;
 struct proc_storage_map_v28 proc_storage_runtime_v29 = { modes, SLOTS };
 
@@ -66,6 +67,22 @@ check_life(void)
         if (pure_life_prepare_v1604(SLOT, 0U, &out, &back,
             &words) != MM_ERR_INVAL)
                 return 4;
+        /* Only the restore action may accept RUN on the real slot-0
+         * executive stack. The drop action must continue to reject it.
+         * Actual callers then check PACKED storage and zero APR base. */
+        proc_current_slot = SLOT;
+        if (pure_life_prepare_v1604(SLOT, PURE_LIFE_RESTORE_V1610,
+            &out, &back, &words) != MM_ERR_INVAL)
+                return 10;
+        proc_current_slot = 0UL;
+        if (pure_life_prepare_v1604(SLOT, PURE_LIFE_RESTORE_V1610,
+            &out, &back, &words) != MM_OK)
+                return 11;
+        PROC_CLEAR_TRANSITION(p);
+        if (pure_life_prepare_v1604(SLOT, PURE_LIFE_RESTORE_V1610,
+            &out, &back, &words) != MM_ERR_INVAL)
+                return 12;
+        PROC_SET_TRANSITION(p);
         PROC_SET_STATE(p, PROC_STOP);
         if (pure_life_prepare_v1604(SLOT, 0U, &out, &back,
             &words) != MM_OK)
