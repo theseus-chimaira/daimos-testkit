@@ -69,6 +69,16 @@ assert not rbn_found or (trigger and not return_after and not wait_tape), \
 rbn_transfer=os.environ.get('PURE_RBN_TRANSFER_V1619','0')=='1'
 assert not rbn_transfer or rbn_found, \
     'RBN data-completion trap requires a physical matching block'
+prefix_boundary=os.environ.get('PURE_PREFIX_BOUNDARY_V1620','0')=='1'
+assert not prefix_boundary or (
+    trigger and not return_after and not wait_tape and not rbn_found), \
+    'PURE boundary trap requires its own late console stop'
+prefix_follow=os.environ.get('PURE_PREFIX_FOLLOW_V1620','0')=='1'
+assert not prefix_follow or prefix_boundary, \
+    'prefix follow requires physical transaction entry breakpoint'
+prefix_schedule=os.environ.get('PURE_PREFIX_SCHED_V1620','0')=='1'
+assert not prefix_schedule or prefix_follow, \
+    'scheduler wake needs completed physical MM retype/unpin watches'
 advance_us=os.environ.get('PURE_DTC_ADVANCE_US_V1618','')
 assert not advance_us or wait_tape, \
     'timed advancement requires a real tape search breakpoint'
@@ -163,6 +173,55 @@ if rbn_found:
             sym['storage_state'],sym['storage_count'],0o31246)
         print('v1619: follow PI3 read %06o and DCT completion %06o'%(
             read_pc,done_pc))
+if prefix_boundary:
+    pure=Path(sys.argv[3]).parent/'pure-mres-v1612.dxr'
+    linked=Path(sys.argv[3]).parent/'pure-mres-v1612.map'
+    offsets={}
+    for line in linked.read_text().splitlines():
+        p=line.split()
+        if len(p)>=2 and not p[1].strip('01234567'):
+            offsets[p[0]]=int(p[1],8)
+    assert offsets['mm_pure_release_prefix_v1384']==0o2563
+    assert offsets['mm_pure_commit_prefix_v1384']==0o2565
+    raw=subprocess.check_output([sys.argv[4],'-d',str(pure)],text=True)
+    image={int(a,8):int(w,8) for a,w in re.findall(
+        r'(?m)^IMAGE\s+([0-7]{6})\s+([0-7]{12})$',raw)}
+    assert image[0o2563]==0o201000000001
+    assert image[0o2565]==0o201000000002
+    base=0o32027
+    rollback=base+offsets['mm_pure_release_prefix_v1384']
+    commit=base+offsets['mm_pure_commit_prefix_v1384']
+    assert (rollback,commit)==(0o34612,0o34614)
+    tail+='break %06o\nbreak %06o\nshow break\ncont\n'%(
+        rollback,commit)
+    print('v1620: exact linked PURE rollback %06o / commit %06o'%(
+        rollback,commit))
+    if prefix_follow:
+        # In this preserved 48K image the live slot-2 descriptor is
+        # extent index 13: mm_extents + 2*13 + 1 = 024307.
+        # Watch machine-memory writes, not a guessed C return.
+        owner_meta=sym['mm_extents']+2*13+1
+        assert owner_meta==0o24307
+        tail+='examine %06o\n'%owner_meta
+        tail+='nobreak %06o\nnobreak %06o\n'%(rollback,commit)
+        tail+='break -W %06o\nshow break\ncont\n'%owner_meta
+        tail+='examine %06o\n'%owner_meta
+        tail+='cont\nexamine %06o\n'%owner_meta
+        print('v1620: physical MM descriptor write-watches %06o'%owner_meta)
+        if prefix_schedule:
+            cursor=sym['proc_sched_cursor']
+            current=sym['proc_current_slot']
+            assert (cursor,current)==(0o24235,0o24233)
+            tail+='nobreak -W %06o\n'%owner_meta
+            tail+='break -W %06o\nshow break\ncont\n'%cursor
+            tail+='examine %06o\nexamine %06o\n'%(
+                cursor,owner_meta)
+            tail+='nobreak -W %06o\n'%cursor
+            tail+='break -W %06o\nshow break\ncont\n'%current
+            tail+='examine %06o\nexamine %06o\n'%(
+                current,owner_meta)
+            print('v1620: physical scheduler write-watches cursor=%06o current=%06o'%(
+                cursor,current))
 if return_after or site or os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
     tail+='examine 1\nexamine 2\n'
 if wait_tape:
@@ -188,6 +247,13 @@ if rbn_found:
     tail+='examine %06o\nexamine %06o\nexamine %06o\n'%(
         sym['storage_state'],sym['storage_count'],sym['clk_tick_count'])
     tail+='examine %06o-%06o\n'%(0o31240,0o31246)
+if prefix_boundary:
+    for reg in (1,2,3,4):
+        tail+='examine %o\n'%reg
+    for name in ('proc_sched_cursor','proc_current_slot',
+                 'proc_high_slot','mm_extent_count'):
+        assert name in sym, 'missing linked kernel source symbol '+name
+        tail+='examine %06o\n'%sym[name]
 if os.environ.get('PURE_MRES_PROBE_V1617','0') == '1':
     for name in ('proc_swap_reclaim', 'proc_swap_service_one'):
         assert name in sym, 'missing scheduler service symbol: '+name
@@ -219,6 +285,42 @@ python3 "$here/analyze-v1615.py" "$boot/kcore.map" \
     "$work/trace.clean" >"$work/physical-mm.log" 2>&1 || :
 cat "$work/physical-mm.log"
 if [ -n "${PURE_CONSOLE_STOP_V1616:-}" ]; then
+    if [ "${PURE_PREFIX_BOUNDARY_V1620:-0}" = 1 ]; then
+        if [ "${PURE_PREFIX_FOLLOW_V1620:-0}" = 1 ]; then
+            if ! grep -F 'Breakpoint, PC: 034614 ' \
+                "$work/trace.clean" >/dev/null; then
+                echo 'v1620: INCONCLUSIVE; exact commit entry absent'
+                exit 1
+            fi
+            if [ "$(grep -c 'Breakpoint, PC:' "$work/trace.clean")" -lt 3 ]; then
+                echo 'v1620: INCONCLUSIVE; MM type/pin watchpoint incomplete'
+                exit 1
+            fi
+            if [ "${PURE_PREFIX_SCHED_V1620:-0}" = 1 ]; then
+                if [ "$(grep -c 'Breakpoint, PC:' "$work/trace.clean")" -lt 5 ]; then
+                    echo 'v1620: INCONCLUSIVE; READY/current slot watches incomplete'
+                    exit 1
+                fi
+                echo 'v1620: physical MM retype/unpin and scheduler writes sampled'
+            else
+                echo 'v1620: physical commit + two descriptor-write events sampled'
+            fi
+            echo 'v1620: inspect MM owner mode and pin values before acceptance'
+            exit 0
+        fi
+        if grep -F 'Breakpoint, PC: 034614 ' \
+            "$work/trace.clean" >/dev/null; then
+            echo 'v1620: REAL prefix COMMIT entry reached; execution not yet proven'
+            exit 0
+        fi
+        if grep -F 'Breakpoint, PC: 034612 ' \
+            "$work/trace.clean" >/dev/null; then
+            echo 'v1620: REAL prefix ROLLBACK entry reached; outcome open'
+            exit 0
+        fi
+        echo 'v1620: INCONCLUSIVE; neither PURE MM boundary reached'
+        exit 1
+    fi
     if [ "${PURE_RBN_FOUND_BREAK_V1619:-0}" = 1 ]; then
         if [ "${PURE_RBN_TRANSFER_V1619:-0}" = 1 ]; then
             for pc in 031046 031106 030555; do
