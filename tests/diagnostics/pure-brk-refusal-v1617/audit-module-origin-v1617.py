@@ -111,8 +111,13 @@ def audit(kmap, pmap, tape_dxr, service_trace, interrupted_trace,
     print("OPEN v1617: tape search progress, slot-0 restoration, BRK return")
 
 
-def audit_wait(kmap, tape_source, wait_trace):
-    """Check the second, independently executed physical DTC breakpoint."""
+def audit_wait(kmap, tape_source, wait_trace, tape_dxr, dxrcheck):
+    """Check the preserved v1617 physical DTC breakpoint and linked image.
+
+    v1618 legitimately raises the source timeout to 120 seconds. The old
+    physical evidence remains tied to its exact v1617 45-second DXR,
+    not to the timeout selected by a newer source checkout.
+    """
     kernel = symbols(kmap)
     required = ("storage_state", "storage_count", "proc_current_slot",
                 "mm_extent_count", "mm_extents")
@@ -135,8 +140,12 @@ def audit_wait(kmap, tape_source, wait_trace):
     if word("proc_current_slot") != 0:
         raise ValueError("search did not execute on kernel idle slot 0")
     asm = Path(tape_source).read_text()
-    if not re.search(r"\.set DTC_SEARCH_TIMEOUT_TICKS,05214\b", asm):
-        raise ValueError("source DECtape search timeout changed")
+    if not re.search(r"\.set DTC_SEARCH_TIMEOUT_TICKS,[0-7]+\b", asm):
+        raise ValueError("DECtape search timeout source definition missing")
+    image, unused_size = dxr_image(tape_dxr, dxrcheck)
+    if (image.get(0o343) != 0o561200772564 or
+            image.get(0o405) != 0o561100772564):
+        raise ValueError("v1617 physical evidence is not from its 45s DXR")
     if word("mm_extent_count") > 136:
         raise ValueError("invalid physical MM extent count")
     packed = {}
@@ -185,7 +194,8 @@ def main():
             "[WAIT.clean]")
     audit(*sys.argv[1:8])
     if len(sys.argv) == 9:
-        audit_wait(sys.argv[1], sys.argv[6], sys.argv[8])
+        audit_wait(sys.argv[1], sys.argv[6], sys.argv[8],
+                   sys.argv[3], sys.argv[7])
 
 
 if __name__ == "__main__":

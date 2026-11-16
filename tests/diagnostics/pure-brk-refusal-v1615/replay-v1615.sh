@@ -63,6 +63,14 @@ assert not return_after or trigger, 'BRK return trap needs console stop'
 wait_tape=os.environ.get('PURE_TAPE_WAIT_BREAK_V1617','0')=='1'
 assert not wait_tape or (trigger and not return_after), \
     'tape search trap needs its own console stop'
+advance_us=os.environ.get('PURE_DTC_ADVANCE_US_V1618','')
+assert not advance_us or wait_tape, \
+    'timed advancement requires a real tape search breakpoint'
+advance_windows=int(os.environ.get('PURE_DTC_WINDOWS_V1618','1'))
+assert 1<=advance_windows<=3, 'bounded to three physical timer windows'
+if advance_us:
+    assert advance_us.isdecimal() and 100000<=int(advance_us)<=10000000, \
+        'timed SIMH step must be between 0.1 and 10 seconds'
 if trigger:
     assert re.fullmatch(r'[A-Za-z0-9_+<>\[\]/-]+',trigger), 'unsafe trigger'
     tail+='expect "%s"\n'%trigger
@@ -117,6 +125,20 @@ if wait_tape:
     assert 'storage_state' in sym and 'storage_count' in sym
     tail+='examine %06o\nexamine %06o\n'%(
         sym['storage_state'],sym['storage_count'])
+    if advance_us:
+        assert 'clk_tick_count' in sym
+        # Physical native tape BSS is immediately after the original
+        # DXR image. The v1618 auditor proves that image has the
+        # expected original size before interpreting these cells.
+        tail+='examine %06o\nexamine %06o-%06o\n'%(
+            sym['clk_tick_count'],0o31240,0o31245)
+        tail+='nobreak 030762\n'
+        for _ in range(advance_windows):
+            tail+='step -t %d\n'%int(advance_us)
+            tail+='examine %06o\nexamine %06o\nexamine %06o\n'%(
+                sym['storage_state'],sym['storage_count'],
+                sym['clk_tick_count'])
+            tail+='examine %06o-%06o\n'%(0o31240,0o31245)
 if os.environ.get('PURE_MRES_PROBE_V1617','0') == '1':
     for name in ('proc_swap_reclaim', 'proc_swap_service_one'):
         assert name in sym, 'missing scheduler service symbol: '+name
