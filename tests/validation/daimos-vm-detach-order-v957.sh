@@ -22,6 +22,7 @@ cc -std=c99 -O2 -ffunction-sections -fdata-sections \
 cc -std=c99 -O2 -ffunction-sections -fdata-sections \
     $inc -I"${PDP10_PREFIX:-$HOME/cross}/include" \
     -Wl,--gc-sections "$self/daimos-vm-detach-order-v957.c" \
+    "$self/daimos-swap-detach-host-helpers-v1609.c" \
     "$work/swap.o" -o "$work/test"
 "$work/test"
 echo 'v957: actual C resident-vs-disk swap-detach branch contract PASS'

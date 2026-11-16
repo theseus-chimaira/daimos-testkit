@@ -279,6 +279,39 @@ test_blocked_gap_v1384(void)
         return 0;
 }
 
+/*
+ * v1609: a previously valid PURE backing can lose its provider before
+ * an inactive process is selected for in-place reconstruction.
+ * The fast path must refuse before MM prefix claim/pinning, preserve the
+ * raw suffix, and retain TRANSITION for a correctly sourced retry.
+ */
+static int
+test_missing_prefix_source_v1609(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        vnode_t *roots;
+        int rc;
+
+        reset_prefix_v1384();
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
+                return 1;
+        PROC_SET_TRANSITION(p);
+        roots = vfs_mount_root_base;
+        vfs_mount_root_base = (vnode_t *)0;
+        rc = proc_pure_restore_v1384(SLOT, prefix_plain_v1384);
+        vfs_mount_root_base = roots;
+        if (rc != MM_ERR_INVAL || prefix_reads_v1384 ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_BASE(&mm_extents[0]) != SOURCE + OMIT ||
+            MM_EXTENT_WORDS(&mm_extents[0]) != SUFFIX ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PACKED_PROCESS ||
+            MM_EXTENT_PINNED(&mm_extents[0]) ||
+            VM_PDP6_BASE(p) || !PROC_TRANSITION(p) ||
+            !check_suffix_v1384())
+                return 2;
+        return 0;
+}
+
 #ifdef DAIMOS_TEST_PLAIN_DXR_V1385
 /* Exact public exec.h values, without another nested legacy KCC include. */
 #define EXEC_DXR_F_PURE 0200000UL
@@ -744,6 +777,9 @@ main(void)
         rc = test_blocked_gap_v1384();
         if (rc)
                 return 0500 + rc;
+        rc = test_missing_prefix_source_v1609();
+        if (rc)
+                return 01500 + rc;
 #ifdef DAIMOS_TEST_PLAIN_DXR_V1385
         rc = test_plain_loader_v1385(0U, 1U);
         if (rc)
