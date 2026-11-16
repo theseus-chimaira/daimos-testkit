@@ -59,7 +59,8 @@ def audit(map_text, trace, source, cache_source, dxrcheck):
             assert len(children) == 6
             assert {owner for _, _, _, _, owner in children} == set(range(2, 8))
             assert all(pin == 0 for _, _, _, pin, _ in children)
-            assert packed, "seventh RUN did not exercise actual PACKED owners"
+            assert len(packed) == 6, \
+                "seventh RUN did not pack all six sleeping child owners"
             assert all(b - a == 0o7000 and pin == 0
                        for a, b, pin, _ in packed)
             packed_sets.append({(a, b, owner) for a, b, _, owner in packed})
