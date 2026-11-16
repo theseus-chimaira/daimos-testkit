@@ -23,9 +23,9 @@ def linked_symbols(text):
     return symbols
 
 
-def read_stage(physical, symbols, name):
-    first = "V1636_STAGE_%s\n" % name
-    last = "V1636_END_%s\n" % name
+def read_stage(physical, symbols, name, version="V1636"):
+    first = "%s_STAGE_%s\n" % (version, name)
+    last = "%s_END_%s\n" % (version, name)
     assert physical.count(first) == 1 and physical.count(last) == 1
     text = physical.split(first, 1)[1].split(last, 1)[0]
     words = {int(a, 8): int(b, 8) for a, b in re.findall(
