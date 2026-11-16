@@ -72,10 +72,19 @@ grep -q 'purity=PURE' "$work/user/dxrcheck.log" || {
 }
 
 boot="$work/build"
+# v1626 experimental 64K profile selector. Preserve the exact 48K
+# historical diagnostic unless an explicit, matched 64K request is made.
+pure_phys_kwords=${PURE_PHYS_KWORDS_V1626:-48}
+case "$pure_phys_kwords" in
+48) pure_core_words=0140000 ;;
+64) pure_core_words=0200000 ;;
+*) echo 'FAIL v1626: supported physical memory profiles are 48/64K' >&2
+   exit 1 ;;
+esac
 make -s -C "$DAIMOS_REPO/system/boot/pdp6" image \
     BUILD="$boot" ROOT=tape BOOT=dtc \
     BOOT_PROFILE=lowmem COMPILER=gcc \
-    BOOT_CORE_WORDS=0140000 SIMH_CPU_KWORDS=48 \
+    BOOT_CORE_WORDS="$pure_core_words" SIMH_CPU_KWORDS="$pure_phys_kwords" \
     TSFS_ROOT_MEMBERS=3 TSFS_INPLACE_BOOT=1 \
     PROC_BOOT_USERS=1 DAIMOS_PURE_MRES_ENABLED=1 \
     SYSTEM_INIT_DXR="$work/user/init.dxr" >"$work/build.log" 2>&1 || {
@@ -174,6 +183,19 @@ case "$text" in
     exit 1
     ;;
 esac
+if [ "${PURE_LIFECYCLE_ONLY_V1627:-0}" = 1 ]; then
+    case "$text" in
+    *'a'*'[B'*'[A'*'L'*'w'*'Z'*'HALT'*) ;;
+    *)
+        tail -75 "$work/console.clean" >&2
+        echo "FAIL v1627: physical ${pure_phys_kwords}K PIPE/WAIT/EXIT incomplete" >&2
+        keep=1
+        exit 1
+        ;;
+    esac
+    echo "PASS v1627: physical ${pure_phys_kwords}K six-child PIPE/WAIT/EXIT; RAM savings NOT accepted"
+    exit 0
+fi
 case "$text" in
 *'a'*'[B'*'[A'*'R'*'w'*'Z'*'HALT'*) ;;
 *)
@@ -183,4 +205,4 @@ case "$text" in
     exit 1
     ;;
 esac
-echo 'PASS v1614: physical 48K TSFS no-AUX PURE BRK reclaim, wake and WAIT'
+echo "PASS v1614: physical ${pure_phys_kwords}K TSFS no-AUX PURE BRK reclaim, wake and WAIT"
