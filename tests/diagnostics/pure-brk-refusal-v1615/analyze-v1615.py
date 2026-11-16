@@ -76,6 +76,7 @@ def main():
     # This is an exact physical gap calculation for the captured instant,
     # NOT a claim about success after future MM movement or new allocations.
     best_aligned = 0
+    total_free = 0
     for low, size in arenas:
         high = low + size
         inside = sorted((e for e in extents
@@ -90,6 +91,7 @@ def main():
             available = max(0, e["base"] - aligned)
             best_aligned = max(best_aligned, available)
             if e["base"] > cursor:
+                total_free += e["base"] - cursor
                 print("    gap %06o..%06o raw=%06o aligned=%06o" %
                       (cursor, e["base"], e["base"] - cursor,
                        available))
@@ -98,8 +100,13 @@ def main():
                 raise SystemExit("v1615: extent exceeds managed arena")
     print("v1615 MM: retained PACKED suffix total=%06o words" %
           total_packed)
+    print("v1615 MM: total physical free gaps=%06o words" %
+          total_free)
     print("v1615 MM: largest currently aligned free run=%06o words" %
           best_aligned)
+    full_request = 0o20000
+    print("v1615 MM: second %06o-word image possible NOW=%s" %
+          (full_request, "yes" if best_aligned >= full_request else "no"))
     print("v1615: this snapshot alone does not establish net RAM benefit")
     return 0
 
