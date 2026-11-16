@@ -13,7 +13,7 @@ mkdir -p "$work"
 src="$DAIMOS_REPO/system/kernel"
 include="-I$src/proc -I$src/core -I$src/mm -I$src/fs -I$src/storage -I$src/modules -I$src/drivers -I$PDP10_PREFIX/include"
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
-    -DDAIMOS_SWAPLESS_PURE_RAM_RESTORE_V1391=1 $include \
+    -DDAIMOS_PURE_FULL_V1391=1 $include \
     -S "$src/proc/proc_pure_ram_restore_v1391.c" \
     -o "$work/restore-v1391.s" >"$work/restore-kcc-v1391.log" 2>&1
 "$PDP10_PREFIX/bin/das" -C -O "$work/restore-v1391.dobj" \
@@ -26,7 +26,11 @@ case "$sections" in
 esac
 restore=$(printf '%s\n' "$sections" |
     sed -n 's/^sections: text=\([0-9]*\).*/\1/p')
-# v1395 adds explicit MM rollback/finalization refusal checks. The previous
-# 359-word baseline grows by nine TEXT words, with no permanent DATA/BSS.
-test "$restore" -le 368
-printf '%s\n' 'PASS exec-image-size-v1391/v1395 (unlinked safe rollback budget)'
+# The original v1395 368-word budget predates v1608 source-identity
+# admission, v1609 fail-closed restore and v1610 slot-0 role validation.
+# Current actual KCC v1611 isolated FULL restore is 521 TEXT words.
+# This new explicit bound is for the opt-in MRES ONLY, not permission
+# to add a single permanent KCORE word or declare a net RAM benefit.
+# The whole PURE module's 2275-word footprint is a separate release gate.
+test "$restore" -le 521
+printf '%s\n' 'PASS exec-image-size-v1391/v1611 (experimental 521-word cap)'

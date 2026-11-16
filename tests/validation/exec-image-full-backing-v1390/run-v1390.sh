@@ -15,7 +15,7 @@ for src in proc_pure_ram_v1381 proc_pure_restore_v1384 proc_pure_ram_restore_v13
     case "$src" in
         proc_pure_ram_v1381) flag=DAIMOS_SWAPLESS_PURE_RAM_V1381 ;;
         proc_pure_restore_v1384) flag=DAIMOS_SWAPLESS_PREFIX_V1384 ;;
-        *) flag=DAIMOS_SWAPLESS_PURE_RAM_RESTORE_V1391 ;;
+        *) flag=DAIMOS_PURE_FULL_V1391 ;;
     esac
     "$KCC_BIN_V1392" -Pgnu99 -O -x=pdp6 -m=gas \
         -D"$flag"=1 $include \

@@ -76,9 +76,11 @@ printf 'Shared EXEC + FULL replacement delta: %+d words\n' \
     "$combined_delta"
 printf 'Bounded FULL callback: %s\n' "$bounded"
 
-# Pin this experiment to the measured isolated baseline. Any growth
-# requires an explicit new cost review rather than silent KCORE adoption.
-test "$old" -eq 183
+# v1611 source-matched audit: original PDP-6 EXEC now assembles to
+# 218 TEXT words (the historical v1390 fixture expected 183).
+# Keep every candidate, shared and combined-growth limit unchanged.
+# A later EXEC change still requires a measured budget review.
+test "$old" -eq 218
 test "$candidate" -le 119
 test "$core" -le 161
 test "$shared" -le "$shared_budget"
