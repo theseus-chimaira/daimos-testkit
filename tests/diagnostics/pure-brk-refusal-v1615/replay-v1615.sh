@@ -60,6 +60,9 @@ trigger=os.environ.get('PURE_CONSOLE_STOP_V1616','')
 assert not (site and trigger), 'choose either source or console stop'
 return_after=os.environ.get('PURE_BRK_RETURN_V1616','0')=='1'
 assert not return_after or trigger, 'BRK return trap needs console stop'
+wait_tape=os.environ.get('PURE_TAPE_WAIT_BREAK_V1617','0')=='1'
+assert not wait_tape or (trigger and not return_after), \
+    'tape search trap needs its own console stop'
 if trigger:
     assert re.fullmatch(r'[A-Za-z0-9_+<>\[\]/-]+',trigger), 'unsafe trigger'
     tail+='expect "%s"\n'%trigger
@@ -97,8 +100,28 @@ if return_after:
     tail+='break %06o\nshow break\ncont\n'%ret
     (f.parent/'brk-return-site-v1616').write_text('%06o\n'%ret)
     print('v1616: deferred BRK return breakpoint %06o'%ret)
+if wait_tape:
+    pc=0o30762
+    tape=Path(sys.argv[3]).parent/'tape-mres.dxr'
+    raw=subprocess.check_output([sys.argv[4],'-d',str(tape)],
+                                text=True)
+    match=re.search(r'(?m)^IMAGE\s+000331\s+([0-7]{12})$',raw)
+    assert match and int(match.group(1),8)==(
+        0o336000000000|sym['storage_count']), \
+        'tape MRES no longer matches the linked wait instruction'
+    tail+='break %06o\nshow break\ncont\n'%pc
+    print('v1617: deferred source-checked DECtape wait PC=%06o'%pc)
 if return_after or site or os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
     tail+='examine 1\nexamine 2\n'
+if wait_tape:
+    assert 'storage_state' in sym and 'storage_count' in sym
+    tail+='examine %06o\nexamine %06o\n'%(
+        sym['storage_state'],sym['storage_count'])
+if os.environ.get('PURE_MRES_PROBE_V1617','0') == '1':
+    for name in ('proc_swap_reclaim', 'proc_swap_service_one'):
+        assert name in sym, 'missing scheduler service symbol: '+name
+        tail+='examine %06o\n'%sym[name]
+    tail+='examine 030762\n'
 for x in need:
     tail+='examine %06o\n'%sym[x]
 tail+='examine %06o-%06o\n'%(sym['mm_arenas'],sym['mm_arenas']+7)
@@ -125,6 +148,16 @@ python3 "$here/analyze-v1615.py" "$boot/kcore.map" \
     "$work/trace.clean" >"$work/physical-mm.log" 2>&1 || :
 cat "$work/physical-mm.log"
 if [ -n "${PURE_CONSOLE_STOP_V1616:-}" ]; then
+    if [ "${PURE_TAPE_WAIT_BREAK_V1617:-0}" = 1 ]; then
+        if ! grep -F 'Breakpoint, PC: 030762 ' \
+            "$work/trace.clean" >/dev/null; then
+            echo 'v1617: INCONCLUSIVE, tape wait breakpoint not reached'
+            exit 1
+        fi
+        echo 'v1617: physical DECtape search-wait PC captured'
+        echo 'v1617: no restoration or BRK completion is claimed'
+        exit 0
+    fi
     if [ "${PURE_BRK_RETURN_V1616:-0}" = 1 ]; then
         site=$(cat "$work/brk-return-site-v1616")
         if ! grep -F "Breakpoint, PC: $site " "$work/trace.clean" >/dev/null; then
