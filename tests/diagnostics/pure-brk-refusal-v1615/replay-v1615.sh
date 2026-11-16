@@ -79,6 +79,9 @@ assert not prefix_follow or prefix_boundary, \
 prefix_schedule=os.environ.get('PURE_PREFIX_SCHED_V1620','0')=='1'
 assert not prefix_schedule or prefix_follow, \
     'scheduler wake needs completed physical MM retype/unpin watches'
+user_continue=os.environ.get('PURE_USER_CONTINUE_V1621','0')=='1'
+assert not user_continue or prefix_schedule, \
+    'user execution proof needs both completed MM and scheduler watches'
 advance_us=os.environ.get('PURE_DTC_ADVANCE_US_V1618','')
 assert not advance_us or wait_tape, \
     'timed advancement requires a real tape search breakpoint'
@@ -220,6 +223,17 @@ if prefix_boundary:
             tail+='break -W %06o\nshow break\ncont\n'%current
             tail+='examine %06o\nexamine %06o\n'%(
                 current,owner_meta)
+            if user_continue:
+                tail+='nobreak -W %06o\n'%current
+                tail+='step -t 3000000\n'
+                tail+='examine %06o\nexamine %06o\n'%(
+                    current,owner_meta)
+                tail+='examine %06o\n'%sym['pdp10_pi_level6']
+                tail+='step -t 3000000\n'
+                tail+='examine %06o\nexamine %06o\n'%(
+                    current,owner_meta)
+                tail+='examine %06o\n'%sym['pdp10_pi_level6']
+                print('v1621: continue original slot-2 context after MM+READY')
             print('v1620: physical scheduler write-watches cursor=%06o current=%06o'%(
                 cursor,current))
 if return_after or site or os.environ.get('PURE_OOM_BREAK_V1615','0') == '1':
@@ -302,6 +316,14 @@ if [ -n "${PURE_CONSOLE_STOP_V1616:-}" ]; then
                     exit 1
                 fi
                 echo 'v1620: physical MM retype/unpin and scheduler writes sampled'
+                if [ "${PURE_USER_CONTINUE_V1621:-0}" = 1 ]; then
+                    if [ "$(grep -c 'Step expired, PC:' "$work/trace.clean")" -lt 2 ]; then
+                        echo 'v1621: INCONCLUSIVE; two post-wake timed steps absent'
+                        exit 1
+                    fi
+                    echo 'v1621: two bounded physical CPU continuations captured'
+                    echo 'v1621: user execution requires source-backed audit'
+                fi
             else
                 echo 'v1620: physical commit + two descriptor-write events sampled'
             fi
