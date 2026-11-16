@@ -9,7 +9,7 @@ here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 work="$TMPDIR/daimos-d6fs-free-fcb-pdp6-v1-$$"
 mkdir -p "$work"
 trap 'rm -rf "$work"' 0 1 2 3 15
-src="$DAIMOS_REPO/system/kernel/fs/d6fs_provider_mutation.s"
+src=${D6FS_FREE_FCB_SOURCE:-$DAIMOS_REPO/system/kernel/fs/d6fs_provider_mutation.s}
 
 # Extract exactly the live allocator. Its other neighbors have unrelated
 # backing, extent and namespace dependencies which this test must not mock.
