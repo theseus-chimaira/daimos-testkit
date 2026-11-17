@@ -41,6 +41,13 @@ def generate(original):
     assert source.count("int rd, wr, pid[P14_CHILDREN], got, denied;") == 1
     source = source.replace("int rd, wr, pid[P14_CHILDREN], got, denied;",
                             "int rd, wr, pid[P14_CHILDREN], got;", 1)
+    # v1645's constant no-growth break applied to its smaller TX2
+    # executable. The extra v1646 actor/race code legitimately raises
+    # the initial data break. Compare against the actual original BRK
+    # value, preserving precisely the same no-growth syscall invariant.
+    assert source.count("    target = P14_BRK_TARGET;") == 1
+    source = source.replace("    target = P14_BRK_TARGET;",
+                            "    target = old_brk;", 1)
 
     # A source-backed plain TSFS helper has no executable backing reference
     # to the secondary DTFS volume. It waits on its inherited anonymous
