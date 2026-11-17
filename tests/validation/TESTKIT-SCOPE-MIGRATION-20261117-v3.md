@@ -15,8 +15,10 @@ deduplicated into PDP10** (including 71 guest-native compiler toolchain
 suite files and 28 already-owned equivalent/stronger cases), and **23
 boot, root-media, linked-kernel and native DAS guest/OS files moved
 here**. No original source C or assembly fixture assertions were
-changed. The `v1.tsv` remains for the first transfer stage; `v2.tsv`
-adds 59 native KCC/DAS/DLINK suites; v3 adds a further 12 native KCC preprocessor/parser/optimizer/Makefile source and progress assertions.
+changed. The intermediate v1/v2 manifests remain available in Git
+history rather than as duplicate active snapshots. Canonical v3
+includes the 59 native KCC/DAS/DLINK files and 12 additional native KCC
+preprocessor/parser/optimizer/Makefile and progress assertions.
 
 All eight relocated bounded OS host checks are callable through
 `make test-daimos-migrated-os-host-v1`; the guest/boot cases are
@@ -51,3 +53,15 @@ OS testkit boot infrastructure; they are explicitly manual, not default
 compiler sweeps. The cross-repository source-hash checker recognizes all
 150 original test identities. Runtime dispatch coverage for unrelated
 DAIMOS OS scripts remains independent.
+
+## Documentation ownership (2026-11-17)
+
+Only the v3 ownership report and hash manifest remain active; older
+v1/v2 files were superseded and can be retrieved from Git history.
+The historical, **DAIMOS-specific** AAP kernel mnemonic inventory is
+now `tests/validation/DAIMOS-AAP-KERNEL-COVERAGE-MATRIX-20261117-v2.md`.
+Generic AAP processor instruction/timing oracles remain in PDP10.
+The detailed pre-split STATUS chronology (with now-obsolete compiler
+test paths) is retained at
+`tests/validation/history/DAIMOS-TESTKIT-STATUS-THROUGH-20261109-v1.md`;
+the active `STATUS.MD` contains only the latest verified testkit state.

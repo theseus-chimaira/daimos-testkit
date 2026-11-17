@@ -1,96 +1,112 @@
-# DAIMOS TESTKIT
+# DAIMOS operating-system testkit
 
-DAIMOS TESTKIT IS THE DAIMOS-SPECIFIC TEST SUITE FOR PDP-6 AND PDP-10 TARGET, BOOT, KERNEL, FILESYSTEM, DEVICE, AND USER-RUNTIME BEHAVIOR.
+This repository tests the **DAIMOS operating system** on PDP-6/PDP-10:
+boot and root selection, KINIT/KCORE/MRES, filesystems, device drivers,
+DSH, processes, memory management, scheduling, syscalls and user runtime.
+Generic GCC/KCC, DAS/DLINK, optimizer, ABI, assembler-output and CPU ISA
+tests belong in the separate `../pdp10-testkit` repository.
 
-GENERIC COMPILER, ASSEMBLER, ABI, AND TOOLCHAIN TESTS BELONG IN PDP10-TESTKIT.  TESTS THAT REQUIRE DAIMOS SOURCE, A DAIMOS IMAGE, OR A RUNNING DAIMOS SYSTEM BELONG HERE.
+## Boundary between the testkits
 
-OWNERSHIP IS DETERMINED BY THE PRIMARY ASSERTION, NOT THE EXECUTABLE
-USED TO PREPARE IT.  COMPILER AND ASSEMBLER OUTPUT/DIAGNOSTIC/RELOCATION
-REGRESSIONS ARE OWNED BY ../pdp10-testkit, INCLUDING TARGETS THAT USE
-DAIMOS PRODUCTION SOURCE AS A COMPILER FIXTURE.  A TEST REQUIRING BOOTED
-DAIMOS, DSH, DEVICE DRIVERS, D6FS, TSFS, KINIT, OR AN OS SERVICE REMAINS
-HERE EVEN IF IT INVOKES KCC OR DAS IN THE GUEST.  DO NOT REGISTER THE
-SAME ASSERTION IN BOTH REPOSITORIES.  SEE
-tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.md FOR THE CURRENT
-VERSIONED SOURCE-OWNERSHIP TRANSFER AND ITS STATIC VERIFIER.
+Ownership is determined by the **primary assertion**, not the tool or
+execution environment. A D6FS test may invoke DAS or KCC and remains
+an OS test. Conversely, **native KCC/DAS/DLINK toolchain assertions run
+inside a booted DAIMOS guest still belong to `pdp10-testkit`** as manual
+compiler/assembler tests. They call this testkit's OS harness through
+`DAIMOS_TESTKIT_REPO`, but are not duplicated here.
 
-## TEST AREAS
+The current cross-repository migration is documented in
+`tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.md`; its canonical
+150-original-source transfer manifest is the matching v3 TSV here and
+in `pdp10-testkit/docs/`. Intermediate v1/v2 manifests are available
+from Git history, not maintained as active alternative inventories.
 
-THE TREE CONTAINS FOUR MAIN CLASSES OF TESTS.
+## Requirements
 
-- TARGET TESTS EXECUTE SMALL DAIMOS PROGRAMS DIRECTLY ON THE PDP-6 TARGET.
-- SYSTEM TESTS BUILD AND EXERCISE KERNEL, MEMORY-MANAGER, FILESYSTEM, DEVICE, AND STANDALONE BOOT PATHS.
-- VALIDATION TESTS CHECK SPECIFIC DAIMOS INVARIANTS AND REGRESSIONS.
-- RUNTIME PROBES DRIVE A REAL DAIMOS DSH SESSION THROUGH PDP-6 SIMH.
+- POSIX shell and GNU Make, ordinary host utilities and a host C compiler.
+- PDP-6 SIMH for PDP-6 runtime/guest work.
+- `PDP10_PREFIX`: installed PDP-10 toolchain root.
+- `DAIMOS_REPO`: current DAIMOS source checkout.
+- `TMPDIR`: writable scratch directory (prefer `$HOME/tmp` by default).
+- For OS tests using generic CPU/ISA evidence helpers,
+  `PDP10_TESTKIT_REPO` optionally overrides the sibling checkout.
 
-THE RUNTIME HARNESS USES A SMALL HOST PTY RELAY AND A PERSISTENT FIFO.  IT DOES NOT REQUIRE PYTHON, PEXPECT, OR TCL EXPECT.
+Example setup:
 
-## REQUIREMENTS
+```sh
+export PDP10_PREFIX="$HOME/cross"
+export DAIMOS_REPO="$HOME/git/DAIMOS"
+export PDP10_TESTKIT_REPO="$HOME/git/pdp10-testkit"
+export TMPDIR="${TMPDIR:-$HOME/tmp}"
+mkdir -p "$TMPDIR"
+make test-testkit-scope-v1
+make test-daimos-migrated-os-host-v1
+```
 
-- A POSIX SHELL AND ORDINARY POSIX TEXT UTILITIES.
-- A HOST C COMPILER FOR HOST-SIDE HELPERS.
-- PDP-6 SIMH.
-- THE INSTALLED PDP-10 TOOLCHAIN UNDER PDP10_PREFIX.
-- A CURRENT DAIMOS SOURCE TREE UNDER DAIMOS_REPO.
-- A WRITABLE TMPDIR.
-- GNU MAKE IS CURRENTLY REQUIRED BY THE TESTKIT MAKEFILES.
+The two commands above are **static/host-only**, not a guest-boot or
+compiler matrix sweep. The second runs eight bounded OS helper tests.
+The original recursive `RM -R` OS assertions have the explicit target
+`test-daimos-rm-recursive-os-20261117-v1`; native KCC Makefile suffix
+and CLEAN assertions moved to `pdp10-testkit/misc/kcc-host/`.
 
-## BASIC USE
+## Test areas and entry points
 
-SELECT THE PDP-10 C COMPILER WITH `COMPILER=kcc` (DEFAULT) OR
-`COMPILER=gcc`. THE TESTKIT EXPORTS THE SELECTION TO NESTED DAIMOS
-BUILDS. HOST HELPERS CONTINUE TO USE `HOST_CC`. BUILD OUTPUTS AND
-REGRESSION CHECKPOINTS ARE SEPARATED BY COMPILER.
+- `tests/host/`: DAIMOS host-side assertions and fixture preparation.
+- `tests/target/`: small programs exercising DAIMOS on the PDP-6.
+- `tests/system/`: kernel, MM, filesystem, devices and boot integration.
+- `tests/validation/`: targeted OS invariants, boot/media probes,
+  root-state verification, versioned supporting evidence and the
+  authoritative regression matrix.
+- `tools/`: DAIMOS-specific PTY/SIMH, disk-media and root-state helpers.
 
-    make check COMPILER=gcc
-    make regression COMPILER=gcc
-    make regression COMPILER=kcc
+`make check` performs the ordinary host and target checks. `make target`
+selects the direct OS target group. `make regression` performs the **full,
+serial, resumable DAIMOS acceptance sweep**; it may be long-running and
+is run only on explicit request. `make regression-status` inspects saved
+checkpoints, while `make regression-restart` begins a new sweep.
 
-COMPILER-SPECIFIC REGRESSION CHECKPOINTS PREVENT A PASS UNDER ONE
-COMPILER FROM BEING REUSED UNDER THE OTHER. DSH SIZE ACCEPTANCE
-REMAINS A SEPARATE EXCEPTION TO THE TWO-COMPILER PASS REQUIREMENT.
+The authoritative matrix is
+`tests/validation/daimos-regression-matrix-v1.tsv` with the summary in
+`REGRESSION-MATRIX.MD`. Regression checkpoints are source-fingerprinted;
+a retained historical pass must not be mistaken for a fresh result.
+`COMPILER=kcc` (default) or `COMPILER=gcc` selects the toolchain when
+building the DAIMOS programs under test. It does not move generic
+compiler correctness tests into this repository.
 
-SET THE REQUIRED PATHS BEFORE RUNNING TESTS.
+The DSH guest harness, `tools/daimos-simh-harness-v4.sh` (and the
+v6 native phase variant), drives PDP-6 SIMH through `tools/pty-run-v1.c`
+using a persistent FIFO. The declarative probes assert guest output and
+exit/terminal conditions. No Python `pexpect`/Tcl `expect` is needed.
 
-    PDP10_PREFIX=/PATH/TO/LOCAL
-    DAIMOS_REPO=/PATH/TO/DAIMOS
-    TMPDIR=/PATH/TO/VERSIONED/TEMP
-    EXPORT PDP10_PREFIX DAIMOS_REPO TMPDIR
+## Explicit boot and guest-native OS tests
 
-IMPORTANT TOP-LEVEL TARGETS INCLUDE:
+The relocated DAIMOS boot/media and guest acceptance checks are **opt-in**:
 
-    MAKE CHECK
-    MAKE TARGET
-    MAKE KERNEL-RUNTIME
-    MAKE STAND-RUNTIME
-    MAKE RUNTIME-BUILD
-    MAKE DTFS-RUNTIME
-    MAKE D6FS-MRES
-    MAKE DTFS-MRES
-    MAKE TEST-DAIMOS-DTFS-RESIZE
-    MAKE TEST-DAIMOS-PERMANENT-SIZE
-    MAKE SIMULATOR-TEST
+```sh
+make test-daimos-aap-stage1-v1
+make test-daimos-aap-stage1-trace-v1
+make test-daimos-aap-alt-stage1-media-v1
+make test-daimos-aap-ptr-handoff-v1
+make test-daimos-simh-ptr-tsfs-boot-v1
+make test-daimos-native-das-guest-v1
+```
 
-ADDITIONAL VALIDATION TARGETS TEST LOW-MEMORY BOOT, SCHEDULING, USER UUO ISOLATION, MONITORFS device view, DISKSET, LOGSTORE, MTC516, DSK270, AND DTC BEHAVIOR.  THE DTC REVERSE-ONLINE TARGET REQUIRES ACTUAL SINGLE-BLOCK REVERSE READ AND WRITE TRANSFER THROUGH THE PRODUCTION TYPE-551 DRIVER.
+These targets need their original SIMH, media, staged build and/or
+native DAS prerequisites. Listing a target or passing its static
+ownership check does **not** mean it has completed execution.
 
-## RUNTIME HARNESS
+## Documentation
 
-TOOLS/DAIMOS-SIMH-HARNESS-V4.SH STARTS ONE PDP-6 SIMH PROCESS THROUGH TOOLS/PTY-RUN-V1.C.  COMMANDS ARE WRITTEN THROUGH A FIFO TO THE PTY MASTER AND CONSOLE OUTPUT IS RECORDED IN A LOG.
+- `TODO.MD`: open OS testkit tasks and acceptance blockers.
+- `STATUS.MD`: dated verification observations, not present-day
+  compiler/assembler ownership or a fresh sweep result.
+- `REGRESSION-MATRIX.MD`: condensed DAIMOS acceptance stages.
+- `tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.md`: canonical
+  scope, migration and static enforcement explanation.
+- `tests/validation/DAIMOS-AAP-KERNEL-COVERAGE-MATRIX-20261117-v2.md`:
+  **historical** DAIMOS kernel static mnemonic coverage; generic AAP
+  timing/ISA fixtures remain in `pdp10-testkit`.
 
-EACH PROBE IS A SMALL DECLARATIVE TEST WITH A NAME, OPTIONAL SETUP COMMANDS, ONE COMMAND, OUTPUT ASSERTIONS, A TIMEOUT, AND A TERMINAL CONDITION.
-
-THE MAIN DSH RUNTIME PROBE FILE CURRENTLY CONTAINS 60 PROBES.  THE DTFS NATIVE PERSISTENCE SUITE USES SIX PHASE FILES AND 142 PROBES.
-
-THE CURRENT DAIMOS RELEASE BUILD ALWAYS INCLUDES NATIVE, TENEX, AND ITS DECTAPE PERSONALITIES.  DTFS RESIDENT/RUNTIME TESTS KEEP ALL THREE PERSONALITIES COMPILED AND SIZE-GUARDED.  TEST-DAIMOS-DTFS-RESIZE DIRECTLY EXERCISES THE PRODUCTION NATIVE/TENEX RESIZE ROUTINE AND ITS DELEGATION.
-
-GENERATED RUNTIME REPORTS MAY BE WRITTEN UNDER REPORTS.  GENERATED REPORTS ARE TEST OUTPUT, NOT AUTHORITATIVE PROJECT DOCUMENTATION.
-
-## COMPLETE PATCH-ACCEPTANCE RUN
-
-RUN `MAKE REGRESSION` FOR THE COMPLETE DAIMOS PATCH-ACCEPTANCE SUITE. THE
-MACHINE-READABLE MATRIX IS `tests/validation/daimos-regression-matrix-v1.tsv`.
-THE RUNNER SERIALIZES TEST GROUPS WHICH SHARE SIMULATOR MEDIA OR BUILD
-DIRECTORIES AND CHECKPOINTS EACH PASS, SO AN INTERRUPTED OR FAILED SWEEP CAN
-RESUME WITHOUT REPEATING EARLIER ROWS. EACH PASS RECORDS THE SOURCE
-FINGERPRINTS IT TESTED; `MAKE REGRESSION-STATUS` SHOWS THEM AND `MAKE
-REGRESSION-RESTART` STARTS A CLEAN SINGLE-REVISION SWEEP.
+Only the explicitly recorded, focused host and ownership checks were
+executed for the repository split. Full DAIMOS runtime validation is
+still a separate acceptance task.

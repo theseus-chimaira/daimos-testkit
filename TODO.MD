@@ -1,101 +1,77 @@
-### v1064: final startup-snapshot branch reconciliation
+# DAIMOS testkit - open work
 
-- [x] Restore useful v101 dependency test and native FILE fixture
-  extension storage fix, and validate both against current source.
-- [x] Re-run current VFS parent-AC3 and MonitorFS compiler-selection
-  regressions without changing or optimizing KCORE.
-- [x] Preserve obsolete v72 test fixtures by ancestry, not by adding
-  incompatible targets to current regression suites.
-- [ ] Reconsider the v72 startup snapshot, optional SYSINFO tests, and
-  48K MonitorFS live stress only if their interfaces are reintroduced
-  and independently validated; KCORE and 32K work remains deferred.
+Updated 2026-11-17. Only unresolved OS-testkit work belongs here.
+Completed v1062-v1064 checkpoint notes are preserved in Git history;
+older verification observations are retained in `STATUS.MD` and the
+historical status archive. Do not treat a dated 2026-09-30 run as a
+current complete regression result.
 
-### v1063: swap build dependencies
+## P1 - complete DAIMOS regression acceptance
 
-- [x] Recover the testkit source-graph test from the historical
-  startup-snapshot branch and register its opt-in v1063 target.
-- [x] Verify it passes on corrected DAIMOS and fails on older source.
-- [ ] Preserve unmerged historical KCORE startup and optional-MRES
-  test sources in Git history while their optimization is deferred.
+- [ ] Obtain a clean, source-fingerprinted **full** `make regression`
+  result covering host checks, direct PDP-6 OS target tests,
+  KINIT/KCORE/MRES size/boot, process/TTY/IPC, scheduler, MM, storage,
+  D6FS/TSFS/DTFS, DSH and root/login paths.
+- [ ] Independently reassess the 2026-09-30 pre-DSH failure: the last
+  recorded serial run reached compressed boot-source and root classes,
+  then timed out in the auto-root all-media case. Recheck against the
+  current DAIMOS revision before claiming this is still the blocker;
+  do not raise timeout limits to hide a real fault.
+- [ ] Verify the remaining v72 startup-snapshot and optional SYSINFO/
+  48K MonitorFS stress cases only if their original interfaces are
+  reintroduced and independently validated. Do not restore obsolete
+  tests just to increase the test count.
 
-### v1062: preserve historical test archives while pruning refs
+## P1 - INIT configuration and runtime policies
 
-- [x] Move grouped D6CODEC and legacy DSH/SUPERVISOR archive
-  descriptions into main and retain original commits through Git
-  ancestry before removing obsolete archive labels.
-- [x] Restore native PURE swap target result-sentinel integrity and
-  real backing-owner lifetime checks; pass native mount IDs 1 and 26.
-- [ ] Leave KCORE startup-snapshot acceptance deferred until its source
-  optimization is resumed explicitly; do not infer 32K acceptance.
+DAIMOS owns administrator policy in INIT, not KINIT. Add acceptance for:
 
-# DAIMOS TESTKIT TODO
+- [ ] Additional/nonessential mounts from `/CONFIG/FSTAB`.
+- [ ] Swap reservation selection and activation.
+- [ ] LOGSTORE reservation and service selection/activation.
+- [ ] Failure handling that leaves the OS bootable and diagnosable.
 
-### 2026-11-17 v3: enforce OS versus compiler/assembler test ownership
+Hardware discovery/root selection remains the stage-one/KINIT contract;
+these administrative decisions must not be moved into the kernel.
 
-- [x] Relocate/deduplicate 127 standalone GCC/KCC, DAS, DLINK, ABI,
-  p10fold, and native compiler-in-guest fixture files into pdp10-testkit.
-  The native compiler suites (71 source/helper files) keep a prerequisite-gated DAIMOS boot
-  environment but their primary assertions are compiler/toolchain ones.
-- [x] Receive 23 DAIMOS boot, media, linked-kernel and guest-execution
-  test sources/validators from pdp10-testkit. Register eight fast host
-  verifications and explicit opt-in boot/native DAS guest targets.
-- [x] Split the mixed RM/KCC-MAKE test by actual assertion: native RM
-  stays here, native KCC suffix/CLEAN behavior is tested in pdp10-testkit.
-- [x] Pin every transfer by original source SHA256 in the matching
-  cross-repository v2 manifests and verify both repositories' file
-  ownership, category restrictions and unchanged C/ASM fixture bytes.
-- [ ] Audit all remaining indirect/dynamically selected DAIMOS OS test
-  script callers separately; static source ownership does not prove a
-  complete OS runtime sweep.
+## P1 - verify OS test registrations and ownership
 
-See `tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.md`.
+- [x] Relocate 127 GCC/KCC/DAS/DLINK/ABI/optimizer source identities into
+  `pdp10-testkit` (99 moved, 28 deduplicated); receive 23 DAIMOS OS
+  sources/validators. Preserve original assertions and C/ASM fixtures.
+- [x] Split recursive OS `RM -R` from the independent native KCC MAKE
+  suffix/CLEAN assertions. Add a registered, cross-repository static
+  owner/path/fixture guard and eight fast relocated OS host checks.
+- [ ] Audit **indirect and dynamically dispatched** DAIMOS OS scripts,
+  update their active registrations, and verify actual runtime
+  execution where necessary. The 150-file static migration does not
+  prove the full OS test suite has executed.
+- [ ] Recheck historical compiler/toolchain-in-guest integration reports
+  before interpreting their old paths as current OS test ownership.
+  Native compiler assertions belong to PDP10 even when run under DSH.
 
-DATE: 2026-09-30
+The authoritative transfer is
+`tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.tsv`, with the
+readable explanation in the adjacent v3 Markdown document. Earlier
+v1/v2 snapshots are available through Git history.
 
-THIS FILE CONTAINS OPEN TESTKIT WORK ONLY.  SUBSTANTIAL DSH WORK DOES NOT START
-UNTIL THE REQUIRED PRE-DSH MATRIX IS GREEN AND THE TOP-LEVEL `MAKE REGRESSION`
-ENTRY POINT COMPLETES SUCCESSFULLY.
+## P2 - harness and documentation
 
-## 1. COVER THE FINAL INIT `/CONFIG` POLICY
+- [ ] Improve CTY input/line-terminator injection when the SIMH console
+  reliably delivers the required sequence. This is useful additional
+  coverage but does not block v0.9 if DCS0/GE0 login is green.
+- [ ] Reconfirm the current DSH and DTFS persistence probe inventory
+  before publishing numeric totals. Older README counts were historical.
+- [ ] Keep README.MD for stable usage and ownership, STATUS.MD for the
+  latest verified checks, and this file for open work. Preserve older
+  detailed checkpoint history in its dated archive, not in the active
+  README/TODO.
 
-DAIMOS NOW OWNS SWAP/LOGSTORE ACTIVATION POLICY IN INIT.  ADD ACCEPTANCE FOR:
+## Acceptance discipline
 
-- ADDITIONAL/NONESSENTIAL FILESYSTEM MOUNTS THROUGH `/CONFIG/FSTAB`;
-- SWAP RESERVATION SELECTION AND ACTIVATION;
-- LOGSTORE RESERVATION/SERVICE SELECTION AND ACTIVATION;
-- FAILURE CASES THAT LEAVE THE SYSTEM BOOTABLE AND DIAGNOSABLE.
-
-HARDWARE/ROOT DISCOVERY REMAINS A STAGE1/KINIT RESPONSIBILITY; THE TESTKIT MUST
-NOT ENCODE ADMINISTRATIVE SERVICE POLICY BACK INTO KINIT.
-
-## 2. CLOSE THE PRE-DSH GATE ONLY ON A CLEAN FULL REGRESSION
-
-THE SIXBIT/ABI REBASE IS COMPLETE.  THE 2026-09-30 PRE-TSFS SERIAL RUN PASSES
-THROUGH THE COMPRESSED BOOT-SOURCE MATRIX AND ALL EXPLICIT ROOT CLASSES, THEN
-TIMES OUT IN THE AUTO-ROOT ALL-MEDIA CASE BEFORE DSH.  A FOCUSED RERUN
-REPRODUCES THAT FAILURE.  RESUME THE COMPLETE SERIAL RUN ONLY AFTER THE DAIMOS
-ROOT/TSFS STARTUP-LOCALITY ITEM IS RESOLVED; DO NOT RAISE THE TIMEOUT TO HIDE
-THE FAILURE.
-
-THE GATE CLOSES ONLY WHEN THE COMPLETE RUN PASSES FORMAT/COVERAGE, HOST MM,
-DIRECT PDP-6 TARGET TESTS, RESIDENT/PERMANENT SIZE GATES, PROCESS/TTY/IPC,
-SCHEDULER/RT, STORAGE/FILESYSTEMS, ALL BOOT/ROOT/LOGIN PATHS, D6LZ BOOT/EXEC,
-LOGSTORE, DTFS/TSFS, D6FS RUNTIME/RECOVERY, AND PDP10-TOOLS INTEGRATION.
-
-DO NOT HIDE REQUIRED FAILURES WITH XFAILS, SKIPS, TIMEOUT CHANGES, OR KERNEL
-WORKAROUNDS FOR STALE TEST ASSUMPTIONS.
-
-## 3. CTY HARNESS FOLLOW-UP
-
-IMPROVE CTY INPUT INJECTION IF THE SIMH CONSOLE HARNESS CAN RELIABLY DELIVER
-THE REQUIRED LINE TERMINATOR.  THIS IS USEFUL COVERAGE BUT DOES NOT BLOCK V0.9
-WHILE THE DCS0/GE0 LOGIN CONTRACT IS GREEN.
-
-## 4. DOCUMENTATION MAINTENANCE
-
-KEEP README.MD FOR STABLE PROJECT/USAGE INFORMATION, STATUS.MD FOR CURRENT
-VERIFIED STATE ONLY, AND THIS FILE FOR OPEN WORK ONLY.  REMOVE SUPERSEDED
-CHECKPOINT SECTIONS INSTEAD OF ACCUMULATING DATED SNAPSHOTS.
-
-DAIMOS-SPECIFIC TESTS STAY HERE.  GENERIC DAS, KCC, ABI, OR PDP-10 TOOLCHAIN
-TESTS STAY IN PDP10-TESTKIT.
+No compiler/assembler test duplication in the OS suite. Do not hide
+required failures with XFAILs, broad skips, longer timeouts or kernel
+workarounds. The only release-grade result is a full, provenance-matched
+DAIMOS OS acceptance sweep; isolated host/ownership checks are not a
+substitute. Tools and compiler fixes belong in their production source
+repos, with their tests in `pdp10-testkit`.
