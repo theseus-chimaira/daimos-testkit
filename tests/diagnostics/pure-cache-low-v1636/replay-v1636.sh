@@ -20,6 +20,11 @@ six-packed)
     final_mark='LwwwwwwZ'
     stage_version=V1637
     ;;
+six-control-off)
+    first_mark='aaaaaax[B'
+    final_mark='LwwwwwwZ'
+    stage_version=V1639
+    ;;
 *) echo 'FAIL: unknown versioned physical cache test profile' >&2
    exit 1 ;;
 esac
