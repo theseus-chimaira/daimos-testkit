@@ -70,6 +70,19 @@ grep -q '^vfs_dtfs_quiesce_begin_v1562[[:space:]]' "$boot/kcore.map"
 test -s "$boot/kcore.stream"
 test -s "$boot/kinit.lowmem.words"
 
+# v1647: the ordinary in-place DTC3 image is a DTVOL1 compatibility
+# reel. Its unmount correctly bypasses V2 owner quiescence, making a
+# "successful" race witness impossible. Create an actual clean DTVOL2
+# with the original host formatter in this disposable build only.
+# The production kernel and the selected TSFS root reels stay intact.
+dtc3="$boot/media/dtc3-home-v22.tap"
+test -s "$dtc3"
+${HOST_CC:-cc} -std=c99 -O2 -Wall -Wextra -Werror \
+    -o "$work/mkdtfs-v1647" "$DAIMOS_REPO/tools/host/mkdtfs.c"
+rm "$dtc3"
+"$work/mkdtfs-v1647" --durable-v1550 -o "$dtc3"
+python3 "$here/check-v2-v1647.py" "$dtc3"
+
 # Regenerate the real three-member TSFS boot source because KCORE's
 # original low-memory payload changed address with this test-only call.
 # The real compressed DXR is independently recreated from the exact
@@ -81,6 +94,7 @@ sh "$testkit/tests/diagnostics/pure-full-restore-v1638/prepare-media-v1638.sh" \
         tail -60 "$work/tsfs-media-v1646.log" >&2
         exit 1
     }
-test -s "$boot/media/dtc0.tap" && test -s "$boot/media/dtc3-home-v22.tap"
-echo "PASS v1646: original source-matched 48K copied KCORE with only v1565-style scheduling delay"
+test -s "$boot/media/dtc0.tap" && test -s "$dtc3"
+python3 "$here/check-v2-v1647.py" "$dtc3"
+echo "PASS v1647: source-matched 48K copied KCORE, V2/CLEAN DTC3 and real scheduling interval"
 echo "v1646: staged build=$boot"

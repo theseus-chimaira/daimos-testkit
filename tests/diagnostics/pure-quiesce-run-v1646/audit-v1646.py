@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Audit original two-PURE-child guest and REAL DTFS V2 unmount/RUN race.
+"""Audit original two-child guest and REAL DTFS V2 unmount/RUN race.
 
 The original kernel is modified only in a disposable build to sleep 768
 real hardware-CLK ticks AFTER v1562 V2 quiescence, as v1565 accepted.
 The actual owner barrier, PURE attach, EXEC, VFS retirement and MM are
 unmodified; the challenged RUN and the later accepted RUN are real.
+Two children deliberately avoid the six-owner memory-pressure profile:
+this race proves source admission, not an additional PACKED lifecycle.
 """
 
 import argparse
@@ -32,7 +34,8 @@ def audit(kmap, plain, comp, trace, guest, original_guest):
                      "dsys_unmount(p14_mount_v1643) != 0",
                      "result = dsys_fsinfo(1U, &info)",
                      "if (result < 0)",
-                     "if (result == 0 || dsys_sleep(1U) != 0)",
+                     "if (result == 0)",
+                     "if (dsys_sleep(1U) != 0)",
                      "child = p14_spawn(restore_rd, 1U);",
                      "if (child != -1 || dsys_fsinfo(1U, &info) >= 0)",
                      "dsys_dtfs_mount(p14_device_v1643, p14_mount_v1643,",
@@ -41,6 +44,17 @@ def audit(kmap, plain, comp, trace, guest, original_guest):
                      "(void)p14_char('M');", "(void)p14_char('A');",
                      "(void)p14_char('Z');"):
         assert fragment in guest, "missing real v1646 source gate: " + fragment
+    # v1647: do not allow a PIPE-close syscall to run between waking
+    # the unmount helper and the first FSINFO barrier observation.  The
+    # writer is closed only after the helper has finished.  This is a
+    # scheduling-race precondition, not a substitute for the V2 audit.
+    token_write = guest.index("dsys_write_words(control_wr, &token, 1U)")
+    barrier_probe = guest.index("result = dsys_fsinfo(1U, &info)")
+    close_writer = guest.index("dsys_close(control_wr)")
+    assert token_write < barrier_probe < close_writer, \
+        "control writer closed before the V2 barrier was probed"
+    assert "if (result == 0)\n            p14_fail('l');" in guest
+    assert "if (dsys_sleep(1U) != 0)\n            p14_fail('t');" in guest
     assert "denied = p14_spawn" not in guest, \
         "v1646 is NOT a six-child admission pressure test"
     plain_words, comp_words = (old["dxr_words"](x) for x in (plain, comp))
@@ -84,7 +98,14 @@ def audit(kmap, plain, comp, trace, guest, original_guest):
             trace.replace("V1646_", "V1638_"), syms, marker)
         assert words[syms["vfs_namespace_root"]] >> 24 == \
             (7 << 6) | 1, "selected TSFS namespace root changed"
-        assert words[syms["proc_current_slot"]] == 1
+        # UNMOUNT_DONE is emitted by the independent root-backed
+        # unmount helper before it exits. The simulator's EXPECT
+        # breakpoint freezes that helper, not PID1. Every other
+        # checkpoint belongs to the parent. Both the earlier valid
+        # V2 trace and the new source-matched replay show this.
+        expected_slot = 2 if marker == "UNMOUNT_DONE" else 1
+        assert words[syms["proc_current_slot"]] == expected_slot, \
+            "unexpected executing process at " + marker
         assert (words[syms["vfs_mount_policy"]] & 1) == 1
         assert words[syms["clk_tick_count"]] >= 0
         snapshots[marker] = (words, extents)
@@ -97,18 +118,20 @@ def audit(kmap, plain, comp, trace, guest, original_guest):
     expected = [(a, b, k, p, o) for a, b, k, p, o in children("B")]
     assert len(expected) == 2
     assert {owner for a, b, kind, pin, owner in expected} == {2, 3}
-    assert all(kind == 4 and pin == 0 and b - a == raw_size
-               for a, b, kind, pin, owner in expected)
+    assert all(kind == 1 and pin == 0 and b - a >= 0o10000 and
+               (b - a) % 0o2000 == 0
+               for a, b, kind, pin, owner in expected), \
+        "two-owner test unexpectedly entered PACKED memory pressure"
     assert children("A") == expected
     assert children("WAKE") == expected
     assert children("PI6_DONE") == [row for row in expected if row[4] == 3], \
         "one token did not release exactly the root-backed child"
 
-    # After two original PID/EXIT-057 WAITs there are no child RAW
-    # owners. The new actor is an independent TSFS-backed process,
-    # which might be resident or PACKED while its unmount sleeps.
-    assert not children("RACE_START") or all(
-        owner == 2 for a, b, kind, pin, owner in children("RACE_START"))
+    # The two original PID/EXIT-057 owners were reaped. The sole new
+    # process is the independently ROOT-backed unmount helper in slot 2.
+    assert len(children("RACE_START")) == 1
+    assert all(owner == 2 and kind == 1 and pin == 0
+               for a, b, kind, pin, owner in children("RACE_START"))
 
     q = snapshots["BARRIER"][0]
     r = snapshots["RUN_REFUSED"][0]
@@ -163,8 +186,9 @@ def audit(kmap, plain, comp, trace, guest, original_guest):
     # The observed Q/R markers come from the EXACT generated C89
     # source and require FSINFO -1 both before and after a real PURE
     # dsys_run, not a detached/retired mount's empty FSINFO=0.
-    print("v1646: original 48K two-owner ROOT+compressed PURE, RAW %06o" %
-          raw_size)
+    print("v1647: 48K two RESIDENT owners, compressed PURE skip %06o" %
+          skipped)
+    print("v1647: genuine RUN admission race, not a PACKED RAM claim")
     print("v1646: original V2 quiescence blocked real compressed RUN")
     print("v1646: real CLK PI6 advanced %d ticks across protected unmount" %
           (clk("UNMOUNT_DONE") - clk("RACE_START")))

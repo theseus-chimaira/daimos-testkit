@@ -12,6 +12,10 @@ here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 work=$(mktemp -d "$TMPDIR/pure-quiesce-run-audit-v1646.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 build=$PURE_QUIESCE_RUN_BUILD_V1646
+python3 "$here/check-v2-v1647.py" \
+    "$build/media/dtc3-home-v22.tap"
+python3 "$here/test-v2-v1647.py" \
+    "$build/media/dtc3-home-v22.tap"
 
 # The only admitted difference from the exact compiled production VFS
 # is the accepted v1565-style real scheduler interval.  Verify whole

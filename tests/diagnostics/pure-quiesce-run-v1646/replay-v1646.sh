@@ -91,6 +91,7 @@ tail += 'expect "Z"\ncont\n' + snapshot("Z")
 tail += 'cont\nexit\n'
 (out / "physical.ini").write_text(head + tail, encoding="ascii")
 PY
+python3 "$here/check-v2-v1647.py" "$work/media/dtc3.tap"
 port=$((35000 + ($$ % 9800)))
 sh "$testkit/tests/lib/daimos-simh-headless.sh" \
     "$work/physical.ini" "$work/headless.ini" "$port" "$((port + 14000))"
@@ -111,4 +112,13 @@ for stage in B A WAKE PI6_DONE RACE_START BARRIER RUN_REFUSED UNMOUNT_DONE REMOU
     grep -q "V1646_STAGE_${stage}$" "$work/trace.clean"
     grep -q "^V1646_END_${stage}$" "$work/trace.clean"
 done
-grep -q 'HALT instruction' "$work/trace.clean"
+# A guest assertion halts at 000000, but later simulator CONTs can
+# manufacture the expected stage labels while repeatedly halting at
+# 000001. Never call such a replay successful, regardless of host rc.
+if grep -q '!' "$work/trace.clean" ||
+   grep -q 'HALT instruction, PC: 000001' "$work/trace.clean"; then
+    echo 'FAIL v1647: guest assertion or repeated post-HALT continuation' >&2
+    exit 1
+fi
+grep -q 'HALT instruction, PC: 000000' "$work/trace.clean"
+test "$(grep -c 'HALT instruction' "$work/trace.clean")" -eq 1

@@ -17,6 +17,8 @@ work=$PURE_QUIESCE_WORK_V1646
 test -s "$work/build/kcore.map"
 grep -q '^vfs_quiesce_sleep_done_v1646[[:space:]]' \
     "$work/build/kcore.map"
+python3 "$here/check-v2-v1647.py" \
+    "$work/build/media/dtc3-home-v22.tap"
 mkdir -p "$work/user"
 python3 "$here/prepare-v1646.py" \
     "$testkit/tests/diagnostics/pure-brk-pressure-v1614/test-v1614.c" \

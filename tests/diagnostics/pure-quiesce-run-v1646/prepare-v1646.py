@@ -111,8 +111,12 @@ p14_quiesce_run_v1646(void)
     unmounter = p14_spawn_unmounter_v1646(control_rd);
     if (unmounter <= 1 || dsys_close(control_rd) != 0)
         p14_fail('j');
-    if (dsys_write_words(control_wr, &token, 1U) != 1 ||
-        dsys_close(control_wr) != 0)
+    /* v1647: Keep the control writer open while probing quiescence.
+     * Closing it here can give the unmount helper an extra scheduler
+     * window before the parent observes the original V2 barrier.
+     * The helper has received its one-word token and needs no EOF.
+     */
+    if (dsys_write_words(control_wr, &token, 1U) != 1)
         p14_fail('k');
     (void)p14_char('S');
 
@@ -125,8 +129,10 @@ p14_quiesce_run_v1646(void)
         result = dsys_fsinfo(1U, &info);
         if (result < 0)
             break;
-        if (result == 0 || dsys_sleep(1U) != 0)
+        if (result == 0)
             p14_fail('l');
+        if (dsys_sleep(1U) != 0)
+            p14_fail('t');
     }
     if (attempts == 03000U)
         p14_fail('m');
@@ -144,7 +150,8 @@ p14_quiesce_run_v1646(void)
     if (dsys_wait((unsigned int)unmounter, &status, 0U) != unmounter ||
         SYS_WAIT_STATUS_KIND(status) != SYS_WAIT_EXITED ||
         SYS_WAIT_STATUS_VALUE(status) != 0U ||
-        dsys_fsinfo(1U, &info) != 0)
+        dsys_fsinfo(1U, &info) != 0 ||
+        dsys_close(control_wr) != 0)
         p14_fail('o');
 
     /* The real mount can now be reinstalled with the exact same DTC3

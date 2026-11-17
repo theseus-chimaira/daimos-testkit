@@ -1,5 +1,7 @@
 #!/bin/sh
-# Base unmodified 48K PDP-6 source-derived six-child plus late race guest.
+# Generate the two-child source-derived v1646 admission-race guest.
+# Physical V2 acceptance also requires prepare-kcore-v1646.sh,
+# rebuild-guest-v1646.sh, replay-v1646.sh and run-audit-v1646.sh.
 set -eu
 : "${DAIMOS_REPO:?original DAIMOS checkout required}"
 TMPDIR=${TMPDIR:-$HOME/tmp}
