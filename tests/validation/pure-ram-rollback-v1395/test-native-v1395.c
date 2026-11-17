@@ -27,7 +27,10 @@ mm_unpin_fault_v1395(kword_t base)
 {
         if ((fault_kind_v1395 == 1U && base == RESTORE) ||
             (fault_kind_v1395 == 3U && base == SOURCE + OMIT) ||
-            (fault_kind_v1395 == 4U && base == RESTORE) ||
+            (fault_kind_v1395 == 4U && base == RESTORE &&
+             fault_calls_v1395 == 0U) ||
+            (fault_kind_v1395 == 10U && base == RESTORE) ||
+            (fault_kind_v1395 == 11U && base == SOURCE + OMIT) ||
             (fault_kind_v1395 == 5U && base == SOURCE)) {
                 ++fault_calls_v1395;
                 return MM_ERR_BUSY;
@@ -111,12 +114,9 @@ case_v1395(unsigned int kind)
         rc = proc_pure_ram_restore_v1391(SLOT,
             kind == 4U ? accept_payload_v1395 : reject_payload_v1395);
         if (rc != MM_ERR_BUSY || fault_calls_v1395 != 1U ||
-            !PROC_TRANSITION(p) ||
-            (kind != 4U && (VM_PDP6_BASE(p) ||
-                u[PROC_SWAP_BACKING_OFFSET] != BACKING ||
-                proc_storage_expect_v30(SLOT, PROC_STORAGE_PACKED))) ||
-            (kind == 4U && (VM_PDP6_BASE(p) != RESTORE ||
-                proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT))))
+            !PROC_TRANSITION(p) || VM_PDP6_BASE(p) ||
+            u[PROC_SWAP_BACKING_OFFSET] != BACKING ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_PACKED))
                 return 2;
         if (kind == 1U && (mm_extent_count != 2 ||
             !MM_EXTENT_PINNED(&mm_extents[0]) ||
@@ -130,8 +130,29 @@ case_v1395(unsigned int kind)
             !MM_EXTENT_PINNED(&mm_extents[0])))
                 return 5;
         if (kind == 4U && (mm_extent_count != 1 ||
-            !MM_EXTENT_PINNED(&mm_extents[0])))
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PACKED_PROCESS ||
+            MM_EXTENT_BASE(&mm_extents[0]) != SOURCE + OMIT ||
+            MM_EXTENT_PINNED(&mm_extents[0]) ||
+            !check_suffix_v1384()))
                 return 6;
+        /* v1654: the target unpin failure must happen before
+         * destructive source release and RESIDENT publication.
+         * Its one-shot refusal can be rolled back with no leaked
+         * full target; a later retry must recover the exact image.
+         */
+        if (kind == 4U) {
+                fault_kind_v1395 = 0U;
+                if (proc_pure_ram_restore_v1391(SLOT,
+                    accept_payload_v1395) != MM_OK ||
+                    PROC_TRANSITION(p) ||
+                    VM_PDP6_BASE(p) != RESTORE ||
+                    proc_storage_expect_v30(SLOT,
+                        PROC_STORAGE_RESIDENT) != 0 ||
+                    mm_extent_count != 1 ||
+                    MM_EXTENT_PINNED(&mm_extents[0]) ||
+                    !check_suffix_v1384())
+                        return 8;
+        }
         return 0;
 }
 
