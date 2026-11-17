@@ -49,8 +49,47 @@ def audit(kmap, mmap, mres_dxr, trace, guest, backing,
     assert "LwwwwwwZ" not in trace, "root loss somehow completed all WAITs"
 
     def stage(tag):
-        return h["stage"](trace.replace("V1642_", "V1638_"),
-                          syms, tag)
+        # v1642 deliberately snapshots exact original MM descriptors,
+        # root identity and scheduler slot. The source-linked optional
+        # arena table is checked when recorded; physical 48K bounds and
+        # sorted nonoverlap remain mandatory on every snapshot.
+        begin = "V1642_STAGE_%s\n" % tag
+        end = "V1642_END_%s\n" % tag
+        assert trace.count(begin) == 1 and trace.count(end) == 1
+        segment = trace.split(begin, 1)[1].split(end, 1)[0]
+        words = {int(a, 8): int(b, 8) for a, b in re.findall(
+            r"(?m)^\s*([0-7]{1,7}):\s*([0-7]{1,12})\s*$",
+            segment)}
+        for name in ("mm_extent_count", "mm_arena_count",
+                     "proc_current_slot", "vfs_namespace_root"):
+            assert syms[name] in words, "missing source-linked " + name
+        count = words[syms["mm_extent_count"]]
+        assert 1 <= count <= 48
+        assert words[syms["mm_arena_count"]] == 1
+        arenas = None
+        if syms["mm_arenas"] in words:
+            v = words[syms["mm_arenas"]]
+            arenas = (v & 0o777777,
+                      (v & 0o777777) + (v >> 18))
+            assert arenas[1] == 0o140000
+        extents = []
+        for i in range(count):
+            addr = syms["mm_extents"] + 2 * i
+            assert addr in words and addr + 1 in words
+            span, meta = words[addr], words[addr + 1]
+            lo, size = span & 0o777777, span >> 18
+            kind = (meta >> 18) & 7
+            pin = (meta >> 21) & 255
+            owner = meta & 0o777777
+            assert kind in (1, 2, 3, 4) and size
+            assert 0o40000 <= lo < lo + size <= 0o140000
+            if arenas:
+                assert arenas[0] <= lo and lo + size <= arenas[1]
+            extents.append((lo, lo + size, kind, pin, owner))
+        assert extents == sorted(extents)
+        assert all(a[1] <= b[0] for a, b in
+                   zip(extents, extents[1:])), "overlapping MM owners"
+        return words, extents
 
     for phase in ("B", "A"):
         words, ext = stage(phase)

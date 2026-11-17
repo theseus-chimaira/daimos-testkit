@@ -1,5 +1,7 @@
 # P1-E v1642: physical selected-root read loss during FULL reconstruction
 
+Status: original physical 48K PDP-6 fail-stop ACCEPTED 2026-11-17.
+
 The selected TSFS ROOT has a deliberate kernel-wide v1538
 fail-stop policy. A genuine failed root operation, after normal
 physical Type-551 driver retries, calls the original
@@ -50,3 +52,38 @@ is terminal by design. A recoverable failed FULL executable
 read from SECONDARY filesystem and immutable source unmount
 checks remain P1-E acceptance gates. No production edit is
 allowed merely to bypass the existing essential-root policy.
+
+## Original physical findings
+
+The unchanged source-built 48K guest reached B/A with six
+genuine PACKED child suffix owners, followed by bounded FULL
+callback PC 035252. At that instruction original compressed
+slot3 held two nonoverlapping MM extents, both pin=1:
+
+| Owner | Physical words (octal) | Type |
+|---|---|---|
+| 3 | 111000..120000 | PACKED_PROCESS |
+| 3 | 120000..130000 | PROCESS full APR |
+
+The simulator then detached ALL three original selected root
+members DTC0/DTC1/DTC2, with each `show dtcN` confirming it
+was no longer attached. The next genuine TSFS data transfer
+reached original `kcore_root_fs_io_failure_v1538` at physical
+PC 003761, with AC1=7 (TSFS provider), AC2=1 (public mount).
+The original `vfs_namespace_root` matches provider 7/mount 1.
+The MM source/destination owners and their pins were still
+unchanged at this classifier, as the critical-root operation
+must fail-stop before normal PURE transaction rollback.
+
+The normal production v1538 critical service then HALTed at
+the root-specific original PC **003776** (`HALT 3776`). No
+parent Z/WAIT completion followed, correctly. The simulator
+terminated its script normally after examining the HALT word.
+
+The source-linked physical auditor PASSes. Mutations falsely
+changing the failing root mount to 7 or the HALT PC by one
+instruction are independently rejected. The earlier first
+replay reproduced the same classified HALT, but a testkit
+indentation error printed only DTC2's detach marker; it was
+corrected and the complete physical run was repeated before
+acceptance. No production source had to be modified.
