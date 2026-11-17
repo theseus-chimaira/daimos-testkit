@@ -1,7 +1,7 @@
 # P1-E v1638: source-matched compressed PURE FULL relocation experiment
 
-Status: testkit physical experiment, not an accepted production fix.
-No KCORE, MRES, MM or process logic is patched by these tests.
+Status: source-matched physical successful FULL relocation ACCEPTED
+2026-11-17. No KCORE, MRES, MM or process logic is patched.
 
 ## Why this tests FULL rather than plain in-place reloading
 
@@ -67,8 +67,53 @@ must follow all original six WAIT checks and leave no children.
         sh tests/diagnostics/pure-full-restore-v1638/run-audit-v1638.sh
 
 The auditor separately rejects a forged FULL target owner and
-a forged parent WAIT success marker. Only a passing original
-source-linked simulator trace closes this physical path.
+a forged parent WAIT success marker.
+
+## Original physical 48K result
+
+The exact source-built mixed guest finished with the complete
+continuous console:
+
+    aaaaaax[B013470/042501]<010000+010000>
+    [A013470/042501]{013470-013470}LwwwwwwZ
+
+Normal simulator HALT followed. Both B and A MM snapshots
+contain six unpinned PACKED 007000-word suffixes, owners 7..2,
+with parent APR 130000..140000, proving actual RAW pressure.
+The breakpoint replay then physically stopped at the original
+bounded FULL loader `exec_image_full_bounded_v1391`, PC 035252
+octal. Its installed opcode `200000000004` matches the original
+linked PURE MRES DXR offset 003224. The restore is executing
+under scheduler slot zero and the callback's AC2 destination
+is 120000, AC4 allocated APR capacity 010000.
+
+The original MM table AT THAT INSTRUCTION contains two
+simultaneously pinned, nonoverlapping extents belonging to
+the SAME compressed child slot 3:
+
+| Owner | Physical extent (octal) | Type | Pins |
+|---|---|---|---:|
+| 3 | 111000..120000 | PACKED_PROCESS | 1 |
+| 3 | 120000..130000 | PROCESS | 1 |
+
+The writable source suffix was still owned and intact while
+the full APR was safely reserved for the bounded compressed
+image loader. This is physical v1391 **relocated** restoration;
+the ordinary v1384 in-place claim cannot allocate a distinct
+MM_TYPE_PROCESS owner for the same process. The first plain
+child had already completed, making the replacement APR
+available without fabricating memory or changing the kernel.
+
+After loader execution, five remaining `w` markers and the
+parent's original Z appear. The final source-linked MM Z table
+contains no PROCESS/PACKED child owner 2..7. The original source,
+compressed PURE flags, MM and callback opcode audit PASSes;
+the two falsified-owner/WAIT test witnesses are rejected.
+
+This test does not claim that every compressed child received
+an individually observed PC breakpoint; the physically checked
+FULL invocation is slot 3. All six original child data/EXIT
+and parent WAIT results nevertheless passed.
 
 This does NOT yet cover failed compressed reads/source loss,
 relocation rollback or transient whole-system net/peak RAM.
