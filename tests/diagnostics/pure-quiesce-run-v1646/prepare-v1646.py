@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """v1646: an actual PURE RUN challenges a sleeping DTFS V2 unmount.
 
-Derive all six original v1645 WAIT/PIPE/private-DATA checks.  After
-those owners retire, a root-backed sibling unmounts writable native
-DTFS while PID1 watches the live FSINFO quiescence boundary and tries
-to RUN the compressed executable from the held secondary mount.
+Derive v1645's actual PIPE/private-DATA/WAIT checks. Retain one plain
+ROOT and one compressed secondary PURE child; six-child 48K memory
+pressure was established independently by v1645, while this larger
+race-test executable genuinely changes the physical BCACHE geometry.
+After both owners retire, a root-backed sibling unmounts native DTFS
+while PID1 challenges the live quiescence boundary with a real RUN.
 """
 
 from pathlib import Path
@@ -17,6 +19,28 @@ def generate(original):
     prior = runpy.run_path(str(here.parent /
                                 "pure-pi6-backing-v1645/prepare-v1645.py"))
     source = prior["generate"](original)
+
+    # This is a transaction/scheduler race test, NOT another assertion
+    # that exactly six large 8K guest images fit into 48K. The extra
+    # actor and race code grows TX2 and compressed data, and thereby
+    # consumes more physical BCACHE. Retain only the two necessary
+    # independent backing owners; verify both actual EXIT/WAIT paths.
+    assert source.count("#define P14_CHILDREN         6U") == 1
+    source = source.replace("#define P14_CHILDREN         6U",
+                            "#define P14_CHILDREN         2U", 1)
+    refused = ("    /* Seventh RUN forces real RAW memory pressure; it\n"
+               "     * cannot acquire a seventh complete child APR. The\n"
+               "     * parent must survive and reap its six existing kids.\n"
+               "     */\n"
+               "    denied = p14_spawn(rd, 1U);\n"
+               "    if (denied != -1)\n"
+               "        p14_fail('u');\n"
+               "    (void)p14_char('x');\n")
+    assert source.count(refused) == 1
+    source = source.replace(refused, "", 1)
+    assert source.count("int rd, wr, pid[P14_CHILDREN], got, denied;") == 1
+    source = source.replace("int rd, wr, pid[P14_CHILDREN], got, denied;",
+                            "int rd, wr, pid[P14_CHILDREN], got;", 1)
 
     # A source-backed plain TSFS helper has no executable backing reference
     # to the secondary DTFS volume. It waits on its inherited anonymous
@@ -154,7 +178,7 @@ p14_quiesce_run_v1646(void)
     assert source.count(after_wait) == 1
     source = source.replace(after_wait,
                             "    p14_quiesce_run_v1646();\n" + after_wait, 1)
-    for fragment in ("#define P14_CHILDREN         6U",
+    for fragment in ("#define P14_CHILDREN         2U",
                      "(void)p14_char('H');", "(void)p14_char('T');",
                      "p14_check_busy_v1644();",
                      "SYS_WAIT_STATUS_VALUE(status) != P14_STATUS",

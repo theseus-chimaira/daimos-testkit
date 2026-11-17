@@ -76,7 +76,7 @@ def snapshot(label):
 
 head = ini.replace("go 020\nexit\n", "")
 assert head != ini
-tail = 'expect "aaaaaax[B"\ngo 020\n' + snapshot("B")
+tail = 'expect "aa[B"\ngo 020\n' + snapshot("B")
 tail += 'expect "[A"\ncont\n' + snapshot("A")
 tail += 'expect "H"\ncont\n' + snapshot("WAKE")
 tail += 'expect "T"\ncont\n' + snapshot("PI6_DONE")
