@@ -102,6 +102,21 @@ make -s -C "$DAIMOS_REPO/system/boot/pdp6" image \
 }
 grep -F "F /SYSTEM/INIT $work/user/init.dxr " \
     "$boot/tsfs-root.manifest" >/dev/null
+# v1638: an opt-in testkit-only hook may add a second, compressed PURE
+# executable using the original mktsfs image builder. Run before SIMH
+# creates writable private media copies; never alter production media.
+if [ -n "${PURE_TSFS_PRE_SIM_V1638:-}" ]; then
+    test -f "$PURE_TSFS_PRE_SIM_V1638" || {
+        echo 'FAIL v1638: missing source-matched TSFS test hook' >&2
+        keep=1
+        exit 1
+    }
+    sh "$PURE_TSFS_PRE_SIM_V1638" "$work" "$boot" || {
+        echo 'FAIL v1638: source-matched TSFS fixture preparation failed' >&2
+        keep=1
+        exit 1
+    }
+fi
 if [ "$pure_enabled" = 1 ]; then
     grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$boot/kinit.map"
 else
