@@ -1,3 +1,9 @@
+.PHONY: test-kcore-pure-mm-owner-v1658
+test-kcore-pure-mm-owner-v1658: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/pure-mm-owner-v1658/run-v1658.sh
+
 .PHONY: test-daimos-swap-physical-final-v1349-preflight
 test-daimos-swap-physical-final-v1349-preflight: check-prefix
 	@python3 tests/validation/daimos-f07-swapstack-schema-v1349.py

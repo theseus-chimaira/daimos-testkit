@@ -1,3 +1,26 @@
+## 2026-11-17 v1658: native PDP-6 PURE owner and actual 48K lifecycle
+
+On the exact v1657 source base, v1658 real MM PREFIX retype now
+consumes the verified single transaction pin before resident mapping;
+the service verifies exact unpinned RESIDENT or PACKED DROP ownership
+before releasing TRANSITION. Actual original native PDP-6 v1654 FULL
+rollback and v1612 PURE service matrices PASS, plus new v1658 native
+fast retype/unpin, genuinely refused DROP unpin and completed-but-
+reported-BUSY unpin checks. Independently executed unsafe pin-retention
+mutant rejects __test_exit=002002 rather than silently passing.
+
+A fresh original source-built GCC 48K selected TSFS ROOT / secondary
+DTC3 DTFS six-child PIPE/WAIT/EXIT guest also PASSed and HALTed normally,
+with fixed KCORE.stream SHA256 identical to accepted v1654. The separate
+original physical DTC3 read-loss/recovery replay is available under
+`tests/validation/pure-mm-owner-v1658/run-physical-v1658.sh` and now
+PASSes end-to-end on exact v1658 source and MRES maps. Real DTC3 loss
+returns -4, frees the provisional target while retaining RAW, then
+recovers after reattaching the SAME reel; six WAIT/HALT complete.
+Both forged pin and fake-success physical traces are rejected.
+No production mode3 compression, whole-machine peak saving, 64K or
+32K release acceptance is claimed.
+
 ## 2026-11-09 v1395: native KIR1 symbol corruption corrected (4/6 PASS)
 
 The `kcc-indptr-call-v1395` host regression demonstrates that the v1373
