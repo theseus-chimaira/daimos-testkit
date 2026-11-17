@@ -1,6 +1,7 @@
 # P1-E v1640: physical FULL memory-refusal/rollback/retry test
 
-This testkit-only experiment continues accepted v1638 successful
+This original 48K physical experiment is accepted (2026-11-17).
+It continues accepted v1638 successful
 compressed-PURE FULL relocation and v1639 physical six-owner RAM
 comparison. No permanent KCORE, MRES, MM, VFS or process code is
 patched or instrumented. Original 48K PDP-6 core and Type-551
@@ -51,9 +52,48 @@ remaining child MM owners.
     PURE_FULL_REFUSAL_TRACE_V1640=/path/to/replay/trace.clean \
         sh tests/diagnostics/pure-full-refusal-v1640/run-audit-v1640.sh
 
-The testkit also rejects a fake after-rollback source pin and a
-forged successful NOMEM allocator return. This is a natural
-resource-refusal and retry test, NOT an injected VFS read error
+## Accepted original physical results
+
+The complete compressed-first PDP-6 guest produced:
+
+    aaaaaax[B013470/042501]<010000+010000>
+    [A013470/042501]{013470-013470}LwwwwwwZ
+
+Original simulator HALT, all six child PIPE/private-data/EXIT-057
+and all six exact parent WAIT status checks passed.
+
+At both B and A, there are six distinct, unpinned 007000-word
+PACKED owners (slots 7..2), parent 130000..140000. The
+source-linked original PC 034336 (instruction after v1391 MM
+allocation call) returns `777777777777` (= MM_ERR_NOMEM -1).
+At this exact point slot2 still owns physical PACKED suffix
+121000..130000, with pin count 1. There is NO separate APR for
+it. At original PC 032461, the return from v1391 to the PURE
+service, AC1 still holds -1, the exact six PACKED extents have
+not moved, and ALL their MM pins are ZERO. Both PCs are from
+the installed original PURE MRES and compiled symbol layout.
+
+Later the same physical simulator enters bounded FULL loader
+at original PC 035252 for the SAME compressed child slot2.
+AC2 = 110000, AC4 = 010000 allocated physical words. Original
+MM at that instruction has separate simultaneous pinned owners:
+
+| Child owner | Octal physical interval | Type | Pins |
+|---|---|---|---:|
+| 2 | 121000..130000 | PACKED_PROCESS suffix | 1 |
+| 2 | 110000..120000 | Full PROCESS target | 1 |
+
+The target was allocated only after a different plain child
+completed and freed space. The original raw suffix remains
+separately owned throughout the late FULL callback. The
+simulator continues through all six final WAITs and Z, and
+the final MM table has no child PROCESS or PACKED owner.
+
+The full source/MM/opcode/console auditor PASSes. It also
+rejects both a forged pin remaining after rollback and an
+invented successful return from the failed allocator.
+
+This is a natural resource-refusal and retry test, NOT an injected VFS read error
 or a test of corrupt compressed executable payloads. Such a
 failure, immutable source loss/unmount, PI6 concurrency and
 whole-system transient peak RAM remain independent P1-E gates.

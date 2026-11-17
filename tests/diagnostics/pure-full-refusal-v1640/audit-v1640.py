@@ -29,13 +29,15 @@ def audit(kcore_map, mres_map, mres_dxrcheck, trace, guest,
                  "loader": base + 0o3224}
     for off, expected in ((0o2307, "260740001461"),
                           (0o0432, "260740002207"),
+                          (0o0433, "326040000451"),
                           (0o3224, "200000000004")):
         assert ("IMAGE  %06o %s" % (off, expected)) in mres_dxrcheck
-    for name, op in (("alloc", "MOVE"), ("rollback", "JUMPN"),
-                     ("loader", "MOVE")):
-        assert ("%o:\t" % locations[name]) in trace
+    for name in ("alloc", "rollback", "loader"):
+        if name != "rollback":
+            assert ("%o:\t" % locations[name]) in trace
         assert re.search(r"Breakpoint, PC: %06o " % locations[name],
                          trace), "missing actual %s source-PC" % name
+    assert "Breakpoint, PC: 032461 (JUMPN 1,32477)" in trace
 
     for marker in ("V1640_ALLOC_RETURN", "V1640_ROLLBACK_RETURN",
                    "V1640_BOUNDED_FULL"):
