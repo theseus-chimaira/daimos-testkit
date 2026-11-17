@@ -93,6 +93,19 @@ p14_seed_secondary_v1643(void)
     }
     if (dsys_chmod(p14_compressed_path, 0555U) != 0)
         return -6;
+    /* End the original writable transaction and physically seal the
+     * stamped DTVOL2 volume CLEAN before launching executable owners.
+     * A later READ_SUSPECT must authenticate that same CLEAN medium;
+     * no mark bit is bypassed or cleared by the test program.
+     */
+    if (dsys_unmount(p14_mount_v1643) != 0)
+        return -7;
+    if (dsys_dtfs_mount(p14_device_v1643, p14_mount_v1643,
+            SYS_MOUNT_RDONLY | SYS_DTFS_TYPE_NATIVE) != 0)
+        return -8;
+    if (dsys_fsinfo(1U, &info) != 1 ||
+        info.provider != 5UL || info.mount_id != 2UL)
+        return -9;
     return 0;
 }
 """
