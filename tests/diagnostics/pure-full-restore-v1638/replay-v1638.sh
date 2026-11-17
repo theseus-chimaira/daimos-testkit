@@ -59,7 +59,7 @@ sh "$testkit/tests/lib/daimos-simh-headless.sh" \
     "$work/noaux.ini" "$work/trace.ini" "$port" "$((port+12000))"
 python3 - "$PURE_FULL_BUILD_V1638/kcore.map" \
     "$work/trace.ini" "$PURE_FULL_BUILD_V1638/pure-mres-v1612.dxr" \
-    "$PDP10_PREFIX/bin/dxrcheck" <<'PY'
+    "$PDP10_PREFIX/bin/dxrcheck" "${PURE_FULL_PROFILE_V1640:-}" <<'PY'
 from pathlib import Path
 import re
 import subprocess
@@ -82,12 +82,16 @@ image = subprocess.check_output([sys.argv[4], "-d", sys.argv[3]],
                                 encoding="ascii", text=True)
 opcode = re.search(r"(?m)^IMAGE  003224 ([0-7]{12})$", image)
 assert opcode, "original PURE DXR full loader entry absent"
+profile = sys.argv[5]
+assert profile in ("", "refusal")
+version = "V1640" if profile else "V1638"
+(path.parent / "profile.txt").write_text(version + "\n", encoding="ascii")
 (path.parent / "full-entry.txt").write_text(
     "%06o %s\n" % (bounded_full, opcode.group(1)), encoding="ascii")
 
 
 def snapshot(stage):
-    out = "echo V1638_STAGE_%s\n" % stage
+    out = "echo %s_STAGE_%s\n" % (version, stage)
     for name in ("proc_current_slot", "proc_high_slot", "mm_arena_count",
                  "mm_extent_count"):
         out += "examine %06o\n" % sym[name]
@@ -95,15 +99,37 @@ def snapshot(stage):
         sym["mm_arenas"], sym["mm_arenas"] + 7)
     out += "examine %06o-%06o\n" % (
         sym["mm_extents"], sym["mm_extents"] + 95)
-    return out + "echo V1638_END_%s\n" % stage
+    return out + "echo %s_END_%s\n" % (version, stage)
 
 
 tail = 'expect "aaaaaax[B"\ngo 020\n' + snapshot("B")
 tail += 'expect "[A"\ncont\n' + snapshot("A")
-tail += "echo V1638_EXPECT_FULL\n"
+if profile:
+    # These two addresses are extracted from the unchanged original
+    # compiled PURE MRES: the first instruction after the v1391 MM
+    # allocation call, and the return to the v1612 service after v1391
+    # has released its source pin on the failed-allocation path.
+    assert re.search(r"(?m)^IMAGE  002307 260740001461$", image)
+    assert re.search(r"(?m)^IMAGE  000432 260740002207$", image)
+    alloc_return = loaded_base + 0o2310
+    service_return = loaded_base + 0o433
+    tail += "echo V1640_EXPECT_REAL_NOMEM\n"
+    tail += "examine %06o\n" % alloc_return
+    tail += "break %06o\ncont\n" % alloc_return
+    tail += "echo V1640_ALLOC_RETURN\n"
+    for i in (1, 2, 3, 4):
+        tail += "examine %o\n" % i
+    tail += snapshot("PINNED_FAILURE")
+    tail += "nobreak\nbreak %06o\ncont\n" % service_return
+    tail += "echo V1640_ROLLBACK_RETURN\n"
+    for i in (1, 2, 3, 4):
+        tail += "examine %o\n" % i
+    tail += snapshot("ROLLED_BACK")
+    tail += "nobreak\n"
+tail += "echo %s_EXPECT_FULL\n" % version
 tail += "examine %06o\n" % bounded_full
 tail += "break %06o\ncont\n" % bounded_full
-tail += "echo V1638_BOUNDED_FULL\n"
+tail += "echo %s_BOUNDED_FULL\n" % version
 for i in (1, 2, 3, 4):
     tail += "examine %o\n" % i
 tail += snapshot("FULL")
@@ -124,12 +150,19 @@ rc=$?
 set -e
 tr -d '\r' <"$work/trace.log" >"$work/trace.clean"
 echo "v1638 simulator status=$rc"
-grep -E 'V1638_STAGE_|V1638_END_|V1638_BOUNDED_FULL|Breakpoint, PC|wwwwwwZ|HALT instruction' \
+grep -E 'V1638_|V1640_|Breakpoint, PC|wwwwwwZ|HALT instruction' \
     "$work/trace.clean" | tail -25 || :
 test "$rc" -eq 0
+version=$(cat "$work/profile.txt")
 for stage in B A FULL Z; do
-    grep -q "V1638_STAGE_$stage$" "$work/trace.clean"
-    grep -q "^V1638_END_$stage$" "$work/trace.clean"
+    grep -q "${version}_STAGE_$stage$" "$work/trace.clean"
+    grep -q "^${version}_END_$stage$" "$work/trace.clean"
 done
-grep -q 'V1638_BOUNDED_FULL' "$work/trace.clean"
+grep -q "${version}_BOUNDED_FULL" "$work/trace.clean"
+if [ "$version" = V1640 ]; then
+    for stage in PINNED_FAILURE ROLLED_BACK; do
+        grep -q "V1640_STAGE_$stage$" "$work/trace.clean"
+        grep -q "^V1640_END_$stage$" "$work/trace.clean"
+    done
+fi
 grep -q 'HALT instruction' "$work/trace.clean"
