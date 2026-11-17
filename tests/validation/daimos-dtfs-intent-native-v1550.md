@@ -1,9 +1,11 @@
 # v1550: native PDP-6 DTVOL2 record and explicit host format
 
+> **Source location (2026-11-17):** The production mkdtfs.c file is in the separate `DAIMOS` source repository at `$DAIMOS_REPO/tools/host/mkdtfs.c`, not in `daimos-testkit`. This is a documentation-path update only; the historical test observations were not rerun.
+
 Date: 2026-11-13. KCORE P0-B staged implementation, not mounted
 media durability acceptance.
 
-Production `tools/host/mkdtfs.c` now supports an **explicit**
+Production `$DAIMOS_REPO/tools/host/mkdtfs.c` now supports an **explicit**
 `mkdtfs --durable-v1550 -o NEW.tap` argument. The existing
 `mkdtfs -o NEW.tap` output is **unchanged DTVOL1**. The new option
 emits six checked words in the already reserved native physical

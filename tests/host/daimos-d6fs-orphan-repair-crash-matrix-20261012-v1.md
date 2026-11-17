@@ -1,8 +1,10 @@
 # D6FS host-repair durable-write interruption matrix (2026-10-12 v1)
 
+> **Source location (2026-11-17):** The production d6fsck.c file is in the separate `DAIMOS` source repository at `$DAIMOS_REPO/tools/host/d6fsck.c`, not in `daimos-testkit`. This is a documentation-path update only; the historical test observations were not rerun.
+
 Inputs: the preserved *faulted* four-member PDP-6 SIMH disk image containing
 orphaned FCBs 0451 and 0452, and a DAIMOS source tree containing
-`tools/host/d6fsck.c`. The runner **never writes to input media**. It clones
+`$DAIMOS_REPO/tools/host/d6fsck.c`. The runner **never writes to input media**. It clones
 all four `.dsk` members for each trial, verifies the original orphan state,
 compiles the host checker with `D6FSCK_TEST_FAULTS`, and aborts its repair
 process immediately after the Nth `fflush` + `fsync`-completed physical

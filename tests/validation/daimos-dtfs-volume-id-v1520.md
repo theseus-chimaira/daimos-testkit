@@ -1,5 +1,7 @@
 # v1525 source-linked fixture correction (2026-11-13)
 
+> **Source location (2026-11-17):** The production mkdtfs.c file is in the separate `DAIMOS` source repository at `$DAIMOS_REPO/tools/host/mkdtfs.c`, not in `daimos-testkit`. This is a documentation-path update only; the historical test observations were not rerun.
+
 The v1520 native PDP-6 mount fixture was still encoding the
 directory's reserved owner at assembly `media_dir+014` (octal
 index 12), a stale test assumption inherited from v1519.
@@ -73,7 +75,7 @@ Legacy mounts store zero/zero, signaling *absence* of verified ID.
 
 `daimos-dtfs-volume-id-v1520.sh`:
 
-- Compiles real host `tools/host/mkdtfs.c`, creates two different
+- Compiles real host `$DAIMOS_REPO/tools/host/mkdtfs.c`, creates two different
   complete tapes, verifies their separate random 72-bit identities,
   checks marker, complement checksum, all zero reserved padding,
   physical image size and unchanged native directory magic/owner.

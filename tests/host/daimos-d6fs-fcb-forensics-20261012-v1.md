@@ -1,7 +1,9 @@
 # D6FS ambiguous FCB failure: read-only on-disk forensics (2026-10-12)
 
+> **Source location (2026-11-17):** The production d6fsck.c file is in the separate `DAIMOS` source repository at `$DAIMOS_REPO/tools/host/d6fsck.c`, not in `daimos-testkit`. This is a documentation-path update only; the historical test observations were not rerun.
+
 The test-only C99 utility compiles an instrumented *copy* of current
-DAIMOS `tools/host/d6fsck.c` and prints both raw 16-word FCBs and decoded
+DAIMOS `$DAIMOS_REPO/tools/host/d6fsck.c` and prints both raw 16-word FCBs and decoded
 metadata for octal indices 0451 and 0452. It uses d6fsck's actual logical
 block mapping and performs a complete read-only consistency check.
 

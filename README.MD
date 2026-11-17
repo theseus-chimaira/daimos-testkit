@@ -107,6 +107,11 @@ ownership check does **not** mean it has completed execution.
   **historical** DAIMOS kernel static mnemonic coverage; generic AAP
   timing/ISA fixtures remain in `pdp10-testkit`.
 
+Five dated D6FS/DTFS reports now reference their actual production
+`$DAIMOS_REPO/tools/host/` sources, not nonexistent testkit-local
+copies. The accompanying PDP10 historical-source path audit is
+documented in `../pdp10-testkit/docs/`.
+
 Only the explicitly recorded, focused host and ownership checks were
 executed for the repository split. Full DAIMOS runtime validation is
 still a separate acceptance task.

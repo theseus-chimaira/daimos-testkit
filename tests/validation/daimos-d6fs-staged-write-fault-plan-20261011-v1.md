@@ -1,10 +1,12 @@
 # D6FS staged-growth backing-I/O fault matrix (2026-10-11 v1)
 
+> **Source location (2026-11-17):** The production d6fsck.c file is in the separate `DAIMOS` source repository at `$DAIMOS_REPO/tools/host/d6fsck.c`, not in `daimos-testkit`. This is a documentation-path update only; the historical test observations were not rerun.
+
 **Status:** test design and source contract only; device write-fault injection
 has not been implemented or executed. Do not count this as a passing fault test.
 
 The existing `D6FSCK_TEST_FAULTS` / `D6FSCK_TEST_ABORT_WRITE` hook in
-DAIMOS `tools/host/d6fsck.c` triggers after a durable *fsck repair* write.
+DAIMOS `$DAIMOS_REPO/tools/host/d6fsck.c` triggers after a durable *fsck repair* write.
 It cannot simulate failure in the live D6FS provider. A correct harness
 needs a fault hook below `fs_backing_write` (or in the SIMH disk device),
 with test-controlled write number, target logical block, and a mode for

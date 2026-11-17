@@ -26,8 +26,9 @@ need a booted system as their environment.
 - Eight relocated bounded DAIMOS host validations passed.
 - The isolated DAIMOS recursive `RM -R` and retired assembler RM checks
   passed after separating them from KCC MAKE suffix assertions.
-- `pdp10-testkit` registered host verification passed 19/19, including
-  ownership and source-integrity checks. No compiler/assembler source,
+- `pdp10-testkit` registered host verification passed 20/20, including
+  ownership, source-integrity and historical-document path checks.
+  No compiler/assembler source,
   kernel or simulator implementation was changed as part of the move.
 - Both testkits' v3 transfer manifests match byte-for-byte.
 
@@ -44,3 +45,15 @@ at `tests/validation/history/DAIMOS-TESTKIT-STATUS-THROUGH-20261109-v1.md`.
 The text there is a historical source snapshot; its compiler paths
 and test ownership are not current. See the versioned v3 migration
 report in `tests/validation/` for the active paths.
+
+## Production source documentation audit (2026-11-17)
+
+Five dated D6FS/DTFS reports had relative `tools/host/` references
+which could be mistaken for testkit-owned source files. They now use
+`$DAIMOS_REPO/tools/host/d6fsck.c` or
+`$DAIMOS_REPO/tools/host/mkdtfs.c`. Both production files were located
+in the separate DAIMOS source repository. These are documentation
+corrections only; no D6FS/DTFS native runtime result was rerun.
+PDP10's independent historical-source crosswalk and Markdown path
+audit are described in
+`../pdp10-testkit/docs/PDP10-HISTORICAL-DOC-PATH-AUDIT-20261117-v1.md`.
