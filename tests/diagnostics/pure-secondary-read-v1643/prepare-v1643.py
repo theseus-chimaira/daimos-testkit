@@ -29,9 +29,9 @@ def generate(source):
            "    P14_SIX6('M', '/', 'C', 'O', 'M', 'P')\n"
            "};")
     replacement = """static kword_t p14_compressed_path[3] = {
-    12UL,
+    11UL,
     P14_SIX6('/', 'M', 'O', 'U', 'N', 'T'),
-    P14_SIX6('/', 'D', 'T', '0', '/', 'C')
+    P14_SIX6('/', 'C', 'O', 'M', 'P', ' ')
 };
 static kword_t p14_source_v1643[3] = {
     12UL,
@@ -44,9 +44,9 @@ static kword_t p14_device_v1643[3] = {
     P14_SIX6('T', 'C', '3', ' ', ' ', ' ')
 };
 static kword_t p14_mount_v1643[3] = {
-    10UL,
+    6UL,
     P14_SIX6('/', 'M', 'O', 'U', 'N', 'T'),
-    P14_SIX6('/', 'D', 'T', '0', ' ', ' ')
+    0UL
 };
 
 /* No permanent kernel, filesystem, or new file format support.
@@ -85,8 +85,12 @@ p14_seed_secondary_v1643(void)
             break;
         }
     }
-    if (dsys_close(dst) != 0 || dsys_close(src) != 0 || n < 0)
-        return -5;
+    {
+        int close_dst = dsys_close(dst);
+        int close_src = dsys_close(src);
+        if (close_dst != 0 || close_src != 0 || n < 0)
+            return -5;
+    }
     if (dsys_chmod(p14_compressed_path, 0555U) != 0)
         return -6;
     return 0;
@@ -95,7 +99,11 @@ p14_seed_secondary_v1643(void)
     assert code.count(old) == 1
     code = code.replace(old, replacement, 1)
     old = "    if (p14_pipe(&rd, &wr) != 0)"
-    new = "    if (p14_seed_secondary_v1643() != 0)\n        p14_fail('f');\n" + old
+    new = ("    {\n"
+           "        int seed_result = p14_seed_secondary_v1643();\n"
+           "        if (seed_result != 0)\n"
+           "            p14_fail('0' - seed_result);\n"
+           "    }\n" + old)
     assert code.count(old) == 1
     code = code.replace(old, new, 1)
     for marker in ("#define P14_CHILDREN         6U",
