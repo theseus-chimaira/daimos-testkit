@@ -83,8 +83,9 @@ image = subprocess.check_output([sys.argv[4], "-d", sys.argv[3]],
 opcode = re.search(r"(?m)^IMAGE  003224 ([0-7]{12})$", image)
 assert opcode, "original PURE DXR full loader entry absent"
 profile = sys.argv[5]
-assert profile in ("", "refusal")
-version = "V1640" if profile else "V1638"
+assert profile in ("", "refusal", "loader-error")
+version = ("V1640" if profile == "refusal" else
+           "V1641" if profile == "loader-error" else "V1638")
 (path.parent / "profile.txt").write_text(version + "\n", encoding="ascii")
 (path.parent / "full-entry.txt").write_text(
     "%06o %s\n" % (bounded_full, opcode.group(1)), encoding="ascii")
@@ -109,31 +110,61 @@ if profile:
     # compiled PURE MRES: the first instruction after the v1391 MM
     # allocation call, and the return to the v1612 service after v1391
     # has released its source pin on the failed-allocation path.
-    assert re.search(r"(?m)^IMAGE  002307 260740001461$", image)
-    assert re.search(r"(?m)^IMAGE  000432 260740002207$", image)
-    alloc_return = loaded_base + 0o2310
-    service_return = loaded_base + 0o433
-    tail += "echo V1640_EXPECT_REAL_NOMEM\n"
-    tail += "examine %06o\n" % alloc_return
-    tail += "break %06o\ncont\n" % alloc_return
-    tail += "echo V1640_ALLOC_RETURN\n"
+    if profile == "refusal":
+        assert re.search(r"(?m)^IMAGE  002307 260740001461$", image)
+        assert re.search(r"(?m)^IMAGE  000432 260740002207$", image)
+        alloc_return = loaded_base + 0o2310
+        service_return = loaded_base + 0o433
+        tail += "echo V1640_EXPECT_REAL_NOMEM\n"
+        tail += "examine %06o\n" % alloc_return
+        tail += "break %06o\ncont\n" % alloc_return
+        tail += "echo V1640_ALLOC_RETURN\n"
+        for i in (1, 2, 3, 4):
+            tail += "examine %o\n" % i
+        tail += snapshot("PINNED_FAILURE")
+        tail += "nobreak\nbreak %06o\ncont\n" % service_return
+        tail += "echo V1640_ROLLBACK_RETURN\n"
+        for i in (1, 2, 3, 4):
+            tail += "examine %o\n" % i
+        tail += snapshot("ROLLED_BACK")
+        tail += "nobreak\n"
+    else:
+        # Test-only one-shot callback-error simulation: the original
+        # compressed DXR was read successfully, then the PUBLIC v1391
+        # loader-return AC1 is changed to -1 by the simulator. This
+        # exercises fail_target and fail_source without changing KCORE,
+        # the MRES image, any MM descriptor or a persistent backing file.
+        # It is NOT evidence of a physical DTC I/O fault.
+        assert re.search(r"(?m)^IMAGE  002332 260746000000$", image)
+        assert re.search(r"(?m)^IMAGE  002333 561400777774$", image)
+        assert re.search(r"(?m)^IMAGE  000432 260740002207$", image)
+        callback_return = loaded_base + 0o2333
+        service_return = loaded_base + 0o433
+        tail += "echo V1641_EXPECT_REAL_CALLBACK\n"
+        tail += "examine %06o\n" % callback_return
+        tail += "break %06o\ncont\n" % callback_return
+        tail += "echo V1641_LOADER_RETURN_OK\nexamine 1\n"
+        tail += snapshot("PINNED_BEFORE_ERROR")
+        tail += "deposit 1 777777777777\nexamine 1\n"
+        tail += "echo V1641_ERROR_INJECTED\n"
+        tail += "nobreak\nbreak %06o\ncont\n" % service_return
+        tail += "echo V1641_ROLLBACK_RETURN\n"
+        for i in (1, 2, 3, 4):
+            tail += "examine %o\n" % i
+        tail += snapshot("ROLLED_BACK")
+        tail += "nobreak\nbreak %06o\ncont\n" % callback_return
+        tail += "echo V1641_RETRY_LOADER_RETURN\nexamine 1\n"
+        tail += snapshot("RETRY_PINNED")
+        tail += "nobreak\n"
+if profile != "loader-error":
+    tail += "echo %s_EXPECT_FULL\n" % version
+    tail += "examine %06o\n" % bounded_full
+    tail += "break %06o\ncont\n" % bounded_full
+    tail += "echo %s_BOUNDED_FULL\n" % version
     for i in (1, 2, 3, 4):
         tail += "examine %o\n" % i
-    tail += snapshot("PINNED_FAILURE")
-    tail += "nobreak\nbreak %06o\ncont\n" % service_return
-    tail += "echo V1640_ROLLBACK_RETURN\n"
-    for i in (1, 2, 3, 4):
-        tail += "examine %o\n" % i
-    tail += snapshot("ROLLED_BACK")
+    tail += snapshot("FULL")
     tail += "nobreak\n"
-tail += "echo %s_EXPECT_FULL\n" % version
-tail += "examine %06o\n" % bounded_full
-tail += "break %06o\ncont\n" % bounded_full
-tail += "echo %s_BOUNDED_FULL\n" % version
-for i in (1, 2, 3, 4):
-    tail += "examine %o\n" % i
-tail += snapshot("FULL")
-tail += "nobreak\n"
 # The first plain child can already have printed its `w` before
 # the FULL callback. Trigger only on the final parent Z marker.
 tail += 'expect "Z"\ncont\n' + snapshot("Z")
@@ -154,11 +185,20 @@ grep -E 'V1638_|V1640_|Breakpoint, PC|wwwwwwZ|HALT instruction' \
     "$work/trace.clean" | tail -25 || :
 test "$rc" -eq 0
 version=$(cat "$work/profile.txt")
-for stage in B A FULL Z; do
+stages="B A FULL Z"
+if [ "$version" = V1641 ]; then
+    stages="B A PINNED_BEFORE_ERROR ROLLED_BACK RETRY_PINNED Z"
+fi
+for stage in $stages; do
     grep -q "${version}_STAGE_$stage$" "$work/trace.clean"
     grep -q "^${version}_END_$stage$" "$work/trace.clean"
 done
-grep -q "${version}_BOUNDED_FULL" "$work/trace.clean"
+if [ "$version" != V1641 ]; then
+    grep -q "${version}_BOUNDED_FULL" "$work/trace.clean"
+else
+    grep -q '^V1641_ERROR_INJECTED$' "$work/trace.clean"
+    grep -q '^V1641_RETRY_LOADER_RETURN$' "$work/trace.clean"
+fi
 if [ "$version" = V1640 ]; then
     for stage in PINNED_FAILURE ROLLED_BACK; do
         grep -q "V1640_STAGE_$stage$" "$work/trace.clean"
