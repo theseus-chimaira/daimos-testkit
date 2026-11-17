@@ -30,6 +30,26 @@
 
 # DAIMOS TESTKIT TODO
 
+### 2026-11-17 v3: enforce OS versus compiler/assembler test ownership
+
+- [x] Relocate/deduplicate 127 standalone GCC/KCC, DAS, DLINK, ABI,
+  p10fold, and native compiler-in-guest fixture files into pdp10-testkit.
+  The native compiler suites (71 source/helper files) keep a prerequisite-gated DAIMOS boot
+  environment but their primary assertions are compiler/toolchain ones.
+- [x] Receive 23 DAIMOS boot, media, linked-kernel and guest-execution
+  test sources/validators from pdp10-testkit. Register eight fast host
+  verifications and explicit opt-in boot/native DAS guest targets.
+- [x] Split the mixed RM/KCC-MAKE test by actual assertion: native RM
+  stays here, native KCC suffix/CLEAN behavior is tested in pdp10-testkit.
+- [x] Pin every transfer by original source SHA256 in the matching
+  cross-repository v2 manifests and verify both repositories' file
+  ownership, category restrictions and unchanged C/ASM fixture bytes.
+- [ ] Audit all remaining indirect/dynamically selected DAIMOS OS test
+  script callers separately; static source ownership does not prove a
+  complete OS runtime sweep.
+
+See `tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.md`.
+
 DATE: 2026-09-30
 
 THIS FILE CONTAINS OPEN TESTKIT WORK ONLY.  SUBSTANTIAL DSH WORK DOES NOT START

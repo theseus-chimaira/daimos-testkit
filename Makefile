@@ -271,12 +271,6 @@ test-daimos-mres-residency-inventory-v1176:
 	@python3 tests/validation/daimos-mres-residency-inventory-v1176.py \
 	 '$(V1176_ARCHIVE)'
 
-.PHONY: test-daimos-kcc-preserved-arg-v1175
-test-daimos-kcc-preserved-arg-v1175: check-prefix
-	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
-	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
-	 sh tests/validation/daimos-kcc-preserved-arg-v1175.sh
-
 .PHONY: test-daimos-oom-residency-v1174
 test-daimos-oom-residency-v1174: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
@@ -326,15 +320,6 @@ test-daimos-oom-exact-once-matrix-v1146: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-oom-exact-once-matrix-v1146.sh
 
-.PHONY: test-dxr2-st2-v1070 test-kcc-excluded-long-directive-v1070
-test-dxr2-st2-v1070:
-	@DAS_REPO='$(DAS_REPO)' TMPDIR='$(TMPDIR)' \
-	    sh tests/validation/dxr2-st2-v1070.sh
-
-test-kcc-excluded-long-directive-v1070:
-	@KCC_CC='$(KCC_CC)' TMPDIR='$(TMPDIR)' \
-	    sh tests/validation/kcc-excluded-long-directive-v1070.sh
-
 .PHONY: test-daimos-kcore-swap-input-deps-v1063
 test-daimos-kcore-swap-input-deps-v1063:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
@@ -351,11 +336,6 @@ test-daimos-make-lazy-depth-v1054: check-prefix
 test-daimos-simh-console-pc-v1048: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
 	    sh tests/validation/daimos-simh-console-pc-v115.sh
-
-.PHONY: test-daimos-gcc-packed-heading-v1043
-test-daimos-gcc-packed-heading-v1043: check-prefix
-	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
-	    sh tests/target/daimos-gcc-help-heading-v154/run.sh
 
 .PHONY: test-daimos-dsh-image-provenance-v1043
 test-daimos-dsh-image-provenance-v1043:
@@ -483,7 +463,6 @@ DTFS_RUN = tests/system/dtfs-native-v1/run.sh
 	test-daimos-pi-restore test-daimos-tsfs-boot-eight test-daimos-tsfs-aap-64k-boot
 .PHONY: test-daimos-boot-source-matrix test-daimos-root-class-matrix test-daimos-auto-root-priority test-daimos-boot-root-cross-matrix test-daimos-root-login-lifecycle test-daimos-monitorfs-live-state test-daimos-monitorfs-storage-accounting test-daimos-dsh-conformance test-daimos-dsh-pipeline test-daimos-dsh-source test-daimos-dsh-argument-frames test-daimos-dsh-foreground test-daimos-native-tools test-daimos-img2dpic test-type340-timing regression regression-status regression-restart test-daimos-sleep test-daimos-multiuser-kernel-auth test-daimos-multiuser-auth-runtime
 .PHONY: test-daimos-compiler-selection-20261012-v1
-.PHONY: test-daimos-p10fold-io-skip-20261012-v1
 .PHONY: test-daimos-file-directmount-20261026-v417
 test-daimos-file-directmount-20261026-v417: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
@@ -493,10 +472,6 @@ test-daimos-file-directmount-20261026-v417: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' sh tests/validation/daimos-file-cutover-guard-20261026-v416.sh
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-vfs-umask-20261026-v417.sh
-test-daimos-p10fold-io-skip-20261012-v1: check-prefix
-	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
-	    TMPDIR='$(TMPDIR)' sh tests/validation/daimos-p10fold-io-skip-20261012-v1.sh
-
 test-daimos-compiler-selection-20261012-v1: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	    TMPDIR='$(TMPDIR)' COMPILER='$(COMPILER)' \
@@ -510,12 +485,6 @@ test-pdp10-tools-mkd6fs-encoding:
 
 check-prefix:
 	@test -n "$(PDP10_PREFIX)" || { echo "PDP10_PREFIX must be set" >&2; exit 2; }
-
-.PHONY: test-daimos-dlink-xip-v218
-test-daimos-dlink-xip-v218: check-prefix
-	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
-		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
-		HOST_CC='$(HOST_CC)' sh tests/host/dlink-xip-v218.sh
 
 $(PTY_RUN): $(PTY_RUN_SRC)
 	mkdir -p '$(dir $@)'
@@ -690,16 +659,10 @@ mm-core:
 	'$(BUILD_ROOT)/tests/system/mm-v1/test'
 
 
-target: mm-core target-backstore-pdp6 target-monitorfs-wordio-pdp6 target-memfs-pdp6 target-memfs-fifo-pdp6 target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-swap-pure-text-pdp6 target-stage1-d6lz-pdp6 target-wordtoken-pdp6 target-kcc-indexed-byteptr-pdp6 test-daimos-compiler-selection-20261012-v1 test-daimos-p10fold-io-skip-20261012-v1 test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-pi-restore
+target: mm-core target-backstore-pdp6 target-monitorfs-wordio-pdp6 target-memfs-pdp6 target-memfs-fifo-pdp6 target-file-pdp6 target-file-walk-pdp6 target-module-runtime-pdp6 target-swap-pure-text-pdp6 target-stage1-d6lz-pdp6 target-wordtoken-pdp6 test-daimos-compiler-selection-20261012-v1 test-daimos-d6fs-fcb-validate test-daimos-vfs-stat-frame test-daimos-pre-dsh-fs-closure test-daimos-dtfs-chain-walk test-daimos-dtfs-resize test-daimos-kfmt-u18 test-daimos-pi-restore
 
-# Every direct PDP-6 target sweep also checks optimized 9-bit character
-# accesses when a stack-local array crosses a 36-bit word boundary.
-target: test-pdp10-gcc-char-word-boundary-v45
-
-.PHONY: test-pdp10-gcc-char-word-boundary-v45
-test-pdp10-gcc-char-word-boundary-v45: check-prefix
-	@PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
-		sh tests/validation/pdp10-gcc-char-word-boundary-v45.sh
+# Compiler and assembler code-generation regressions are owned by
+# ../pdp10-testkit, never by this DAIMOS OS target sweep.
 
 target-swap-pure-text-pdp6: check-prefix
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
@@ -768,10 +731,6 @@ target-d6lz-pdp6:
 target-wordtoken-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
 		DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' tests/target/daimos-wordtoken-pdp6-v1/run.sh
-
-target-kcc-indexed-byteptr-pdp6:
-	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
-		tests/target/daimos-kcc-sixarg-char-pdp6-v1/run.sh
 
 target-stage1-d6lz-pdp6:
 	@TMPDIR='$(TMPDIR)' PDP10_PREFIX='$(PDP10_PREFIX)' \
@@ -1395,13 +1354,6 @@ test-daimos-kinit-sixbit-lifetime: check-prefix
 	@DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" TMPDIR="$(TMPDIR)" \
 	    tests/validation/daimos-kinit-sixbit-lifetime-v1.sh
 
-test-daimos-kcc-pdp6-codegen: check-prefix
-	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
-	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
-	@PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$(TMPDIR)" \
-	    DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
-	    tests/validation/daimos-kcc-pdp6-codegen-v1.sh
-
 test-daimos-monitorfs-devices-online: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
@@ -1701,30 +1653,6 @@ clean:
 	$(MAKE) -C tests/system/stand clean DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' BUILD_ROOT='$(abspath $(BUILD_ROOT))'
 	rm -rf build reports/*.md stand-test-report.txt
 
-.PHONY: test-daimos-kcc-foldtrna-conditional-20261008-v1
-test-daimos-kcc-foldtrna-conditional-20261008-v1: check-prefix
-	DAIMOS_REPO='${DAIMOS_REPO}' PDP10_PREFIX='${PDP10_PREFIX}' TMPDIR='${TMPDIR}' sh tests/validation/daimos-kcc-foldtrna-conditional-20261008-v1.sh
-
-# Deliberately opt-in: full PDP-6 KCC source compilation can take many minutes.
-# Preserve all build artifacts, simulator output and the harness report.
-.PHONY: test-daimos-kcc-manual-rebuild-20261008-v1
-test-daimos-kcc-manual-rebuild-20261008-v1:
-	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" PDP10_PREFIX="$(PDP10_PREFIX)" \
-	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" KCC_REPO="$${KCC_REPO:-$$HOME/git/kcc}" \
-	 DAS_REPO="$${DAS_REPO:-$$HOME/git/das}" \
-	 DAIMOS_TOOLS_REPO="$${DAIMOS_TOOLS_REPO:-$$HOME/git/daimos-tools}" \
-	 KCC_TIMEOUT="$${KCC_TIMEOUT:-900}" \
-	 sh tests/validation/daimos-kcc-manual-rebuild-20261008-v1.sh
-
-# Opt-in fresh-image KCC source-build regression. Never reuse test disk images.
-.PHONY: test-daimos-kcc-make-all-fresh-20261008-v1
-test-daimos-kcc-make-all-fresh-20261008-v1:
-	@DAIMOS_REPO="$(abspath $(DAIMOS_REPO))" PDP10_PREFIX="$(PDP10_PREFIX)" \
-	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" KCC_REPO="$${KCC_REPO:-$$HOME/git/kcc}" \
-	 DAS_REPO="$${DAS_REPO:-$$HOME/git/das}" \
-	 DAIMOS_TOOLS_REPO="$${DAIMOS_TOOLS_REPO:-$$HOME/git/daimos-tools}" \
-	 sh tests/validation/daimos-kcc-make-all-fresh-20261008-v1.sh
-
 .PHONY: test-daimos-libc-memcpy-20261008-v1
 test-daimos-libc-memcpy-20261008-v1:
 	@mkdir -p "$${TMPDIR:-$$HOME/tmp}"
@@ -1827,7 +1755,6 @@ test-daimos-oom-disk-pi6-v1154: check-prefix
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-oom-disk-pi6-v1154.sh
 
-.PHONY: test-daimos-p10fold-local-section-v1141
 .PHONY: test-daimos-fold-plan-fields-v1277
 test-daimos-fold-plan-fields-v1277: check-prefix
 	@PDP10_PREFIX='$(PDP10_PREFIX)' \
@@ -1841,13 +1768,6 @@ test-daimos-fatal-exec-physical-uarea-v1142: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-fatal-exec-physical-uarea-v1142.sh
-
-test-daimos-p10fold-local-section-v1141: check-prefix
-	@PDP10_PREFIX='$(PDP10_PREFIX)' \
-	 P10FOLD="$${P10FOLD:-$(PDP10_PREFIX)/bin/p10fold}" \
-	 DLINK="$${DLINK:-$(PDP10_PREFIX)/bin/dlink}" \
-	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
-	 sh tests/validation/daimos-p10fold-local-section-v1141.sh
 
 test-daimos-fatal-exec-release-breaks-v1139: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
@@ -1868,6 +1788,54 @@ test-daimos-fatal-exec-return-break-v1136: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
 	 TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
 	 sh tests/validation/daimos-fatal-exec-return-break-v1136.sh
+
+# The following explicit OS tests were formerly misplaced among compiler
+# and assembler tests.  The host checks are safe and bounded.  Boot/media
+# and guest-native DAS checks remain operator-selected, never part of the
+# ordinary compiler sweep in pdp10-testkit.
+PDP10_TESTKIT_REPO ?= $(abspath ../pdp10-testkit)
+
+.PHONY: test-testkit-scope-v1 test-daimos-migrated-os-host-v1
+test-testkit-scope-v1:
+	@PDP10_TESTKIT_REPO='$(PDP10_TESTKIT_REPO)' \
+	 python3 '$(PDP10_TESTKIT_REPO)/tools/test-testkit-boundary-v1.py'
+
+test-daimos-migrated-os-host-v1:
+	@set -e; for test in \
+	 test-aap-kernel-coverage-v1.py \
+	 test-aap-daimos-asm-coverage-v1.py \
+	 test-pdp6-boot-failure-v1.py \
+	 test-pdp6-kernel-boot-profile-v1.py \
+	 test-pdp6-root-media-v1.py \
+	 test-pdp6-root-snapshot-v1.py \
+	 test-pdp6-linked-profile-v1.py \
+	 test-pdp6-fresh-media-profile-v1.py; do \
+	  PDP10_TESTKIT_REPO='$(PDP10_TESTKIT_REPO)' python3 "tests/validation/$$test"; \
+	 done
+
+.PHONY: test-daimos-rm-recursive-os-20261117-v1
+test-daimos-rm-recursive-os-20261117-v1:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 sh tests/host/daimos-rm-recursive-os-20261117-v1.sh
+
+.PHONY: test-daimos-aap-stage1-v1 test-daimos-aap-stage1-trace-v1
+.PHONY: test-daimos-aap-alt-stage1-media-v1 test-daimos-aap-ptr-handoff-v1
+.PHONY: test-daimos-simh-ptr-tsfs-boot-v1 test-daimos-native-das-guest-v1
+test-daimos-aap-stage1-v1:
+	@sh tests/validation/test-aap-daimos-stage1-v1.sh
+test-daimos-aap-stage1-trace-v1:
+	@sh tests/validation/test-aap-daimos-stage1-trace-v1.sh
+test-daimos-aap-alt-stage1-media-v1:
+	@sh tests/validation/test-aap-alt-stage1-media-v1.sh
+test-daimos-aap-ptr-handoff-v1:
+	@python3 tests/validation/test-aap-ptr-handoff-v1.py
+test-daimos-simh-ptr-tsfs-boot-v1:
+	@sh tests/validation/test-simh-ptr-tsfs-boot-v1.sh
+test-daimos-native-das-guest-v1:
+	@PDP10_PREFIX='$(PDP10_PREFIX)' DAS_ROOT='$(DAS_REPO)' \
+	 DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 NATIVE_BUILD_DIR='$(NATIVE_BUILD_DIR)' TMPDIR='$${TMPDIR:-$$HOME/tmp}' \
+	 sh tests/validation/das-native-guest-v1/run-das-native-daimos.sh
 
 test-daimos-fatal-exec-return-state-v1135: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
