@@ -1,5 +1,8 @@
 #!/bin/sh
 # PDP-6 DTFS source-linked raw failure, shared directory and BCACHE.
+# v1656: exercise the real v1561 physical-unit mount-intent gateway
+# with a published V1 unit owner, rather than bypassing its pre-write
+# policy. No V2 first-write arm is expected in this V1 fixture.
 set -eu
 : "${DAIMOS_REPO:?}" "${PDP10_PREFIX:?}"
 export TMPDIR=${TMPDIR:-$HOME/tmp}
@@ -43,6 +46,7 @@ header = ('.text\n.globl dtfs_dtc_read\n.globl dtfs_dtc_write\n'
           '.globl bcache_state\n.globl bcache_workspace_tag\n')
 # Full BCACHE source gives the test real clean tags and data copying.
 source = header + bridge + load + '\n' + cache
+assert source.count('pushj   17,dtfs_intent_mount_gate_v1561') == 1
 (out / 'source-v1518.s').write_text(source)
 
 # Each unsafe source edit is executed, not merely checked textually.
@@ -57,8 +61,10 @@ for name, old, new in (
          '        setzm   dtfs_cache_mount\n        push    17,1',
          '        jrst    dtfs_dtc_write_done_v1518\n        push    17,1'),
         ('skip-write-cache-invalidation',
-         'dtfs_dtc_write:\n        ; Invalidate',
-         'dtfs_dtc_write:\n        jrst    dtfs_dtc_write_jump\n        ; Invalidate')):
+         '        pushj   17,bcache_invalidate_all\n'
+         '        pushj   17,dtfs_dtc_write_jump',
+         '        move    4,4                    ; unsafe old BCACHE tag\n'
+         '        pushj   17,dtfs_dtc_write_jump')):
     if source.count(old) != 1:
         raise AssertionError('v1518 source mutation ambiguity: ' + name)
     (out / ('mutant-' + name + '-v1518.s')).write_text(
@@ -74,6 +80,7 @@ run_case() {
         --expect __test_exit=0 \
         "$self/daimos-test-crt0-v1.s" \
         "$self/daimos-dtfs-io-error-cache-v1518.s" \
+        "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_mount_gate_v1561.s" \
         "$source" > "$work/$label.log" 2>&1
 }
 

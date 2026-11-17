@@ -1,5 +1,7 @@
 #!/bin/sh
 # Execute actual DTFS/BCACHE PDP-6 failure and mounted-ID transitions.
+# v1656: adapt to original v1572 mounted V1 source and the real v1561
+# physical-unit intent gateway. No test bypass of live source policy.
 set -eu
 : "${DAIMOS_REPO:?}" "${PDP10_PREFIX:?}"
 export TMPDIR=${TMPDIR:-$HOME/tmp}
@@ -41,13 +43,11 @@ bridge = bridge.replace('dtfs_dtc_write_jump:\n        jrst    0',
 assert 'dtfs_mark_unit_suspect_v1522:' in bridge
 parser = section('dtfs_identity_validate_v1522:\n', 'dtfs_lookup:\n')
 sync = section('dtfs_sync:\n', '; Shared clean DTC block-cache veneers.')
-# v1531 added its independent administrative replacement validator between
-# dtfs_space and the MRES vector. It reuses the same physical-ID operands,
-# but does not belong to this v1522 loader/write-mark oracle; including it
-# makes the high-half mutation anchor ambiguous and tests unrelated code.
-# Extract only the original FSINFO space function and retain its full exits.
+# The v1575 poisoned-owner drain now follows dtfs_space. Keep the exact
+# original FSINFO operation and exits but exclude the separate operator
+# discard path from this source-linked read/write/identity oracle.
 space = section('dtfs_space:\n',
-                '; Accept replacement ONLY when a genuinely different')
+                '; v1575 trusted-operator poisoned-owner discard drain.')
 assert 'dtfs_space_failed_revalidate_v1522:' in space
 native = text.index('.else\n; Native-only build:')
 load = text[native:]
@@ -59,6 +59,7 @@ source = ('.text\n.globl dtfs_dtc_read\n.globl dtfs_dtc_write\n'
           '.globl dtfs_load\n.globl dtfs_sync\n.globl dtfs_space\n'
           + bridge + parser + sync + space + load + '\n' + guard
           + '\n' + cache)
+assert source.count('pushj   17,dtfs_intent_mount_gate_v1561') == 1
 (out / 'source-v1522.s').write_text(source)
 
 # Native oracle must reject source-level violations, not just compare text.
@@ -82,8 +83,12 @@ mutations = (
      'trne    5,0400000              ; WRITE_UNCERTAIN',
      'trne    5,0                    ; WRITE_UNCERTAIN'),
     ('lose-raw-slot',
-     '        pop     17,6\n        move    4,tsfs_file_shape_base',
-     '        pop     17,5\n        move    4,tsfs_file_shape_base'),
+     'dtfs_revalidate_valid_v1556:\n'
+     '        pop     17,5                    ; original mount media word\n'
+     '        pop     17,6',
+     'dtfs_revalidate_valid_v1556:\n'
+     '        pop     17,5                    ; original mount media word\n'
+     '        pop     17,5                  ; destroy original mount slot'),
     ('stale-workspace-tag-v1527',
      '        pushj   17,bcache_workspace_invalidate',
      '        move    4,4'),
@@ -104,6 +109,7 @@ run_native() {
         "$self/daimos-test-crt0-v1.s" \
         "$self/daimos-dtfs-mounted-id-v1522.s" \
         "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_validate_v1550.s" \
+        "$DAIMOS_REPO/system/kernel/fs/dtfs_intent_mount_gate_v1561.s" \
         "$source" > "$work/$name.log" 2>&1
 }
 
