@@ -1,3 +1,32 @@
+## 2026-11-18 v1662: native prepared bitmap MM atomic commit PASS
+
+Based on pushed v1661, the new source-linked C89 prepared-only
+bitmap commit independently verifies exact RAW and canonical encoded
+words, executable backing, mode2 and exactly two MM owners before
+entering PI exclusion. A new optional PDP-6 MM assembler leaf
+validates the once-pinned RAW and unpinned compressed owners, then
+deletes RAW without a separate fallible unpin/free. The C caller
+publishes mode3 in the same PI-excluded section, with no fallible
+work after RAW retirement. No new registry or permanent KCORE code.
+
+Full original v1661/v1660/v1659 native baseline PASS. Source-linked
+PDP-6 native tests use the original production MM allocator/free,
+fit, insert and pin/unpin assembly, not a C allocation model. The
+3,456 RAW/65 nonzero/161 packed geometry fits the original 883-word
+gap at physical `050122` octal. Postcommit, the actual allocator
+successfully reuses the freed RAW region at `040000` for an
+independent 02000-octal-word owner. Complete decode and v1661
+compressed terminal release PASS. Twenty-four wrapper and twenty-one
+direct MM refusal cases PASS; source-first deletion and full
+136-descriptor capacity PASS. Two independently executed unsafe
+mutants (bitmap validation bypass and duplicate MM owner) rejected.
+
+Unlinked C commit 606 TEXT words, MM retire ASM 125 TEXT words,
+both 0 DATA/BSS. Preparation and rollback frontend, mode3 FULL
+restore, terminal dispatch, scheduler PI6 and real physical guest
+RAM accounting are NOT implemented. PURE OFF by default, strict
+32K physical acceptance deferred.
+
 ## 2026-11-18 v1661: source-linked compressed PURE terminal MM proof
 
 Based on pushed v1660, new opt-in terminal source validates the sole
