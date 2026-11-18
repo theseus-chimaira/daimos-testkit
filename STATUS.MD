@@ -1,3 +1,27 @@
+## 2026-11-18 v1671: native KINIT stack high-water, 48K/64K TSFS/PURE
+
+With unchanged DAIMOS production code and existing diagnostic
+`KINIT_STACK_WATERMARK=1`, two source-matched GCC lowmem general/
+strict TSFS/PURE KINIT images run on real PDP-6 SIMH at physical
+48K and 64K, with independent DECtape media and no AUXSTORE.
+All four runs reach the first `vm_enter_initial_user` breakpoint.
+The original KINIT stack sentinel scanner reports highest touched
+offset **129 decimal** of the fixed 256-word `0400` reserve in
+all four. Independently examining ALL physical stack words
+confirms the highest nonsentinel address is exactly offset129,
+leaving **126 untouched high-end stack words** at both sizes.
+The strict candidate omission does not increase observed stack
+depth and still removes 1877 source-matched transient KINIT words.
+
+Instrumented KCORE adds exactly one diagnostic-only word:
+`__kcore_low_end` 024076->024077 octal, low resident 48K
+17725->17726, 64K 17741->17742. The default nonwatermarked
+production image is unchanged. Four executed unsafe measurement
+mutations (counter, high sentinel, missing initialization, forged
+report) are independently rejected. These tests cover the
+observed boot path only; they do NOT authorize a lower default
+KINIT reserve or establish post-user process-pressure peak.
+
 ## 2026-11-18 v1670: physical PDP-6 MM event high-water through INIT handoff
 
 No DAIMOS kernel or permanent KCORE changes. daimos-testkit uses
