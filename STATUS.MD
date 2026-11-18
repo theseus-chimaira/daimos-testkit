@@ -1,3 +1,49 @@
+## 2026-11-18 v1659: source-linked native PDP-6 bounded bitmap MM probe PASS
+
+The new test-only actual C89 PDP-6 MM probe pins the sole RAW
+PACKED_PROCESS owner, computes exact v1451 bitmap size, allocates
+a disjoint provisional extent without reclaim, executes the original
+30-word v1451 codec, validates every decoded RAW word and trailing
+mask bit, unpins/frees provisional MM and returns exact size. It
+preserves original RAW, backing and PACKED storage; no mode3 owner
+or fixed KCORE/MRES/KINIT path is published or installed.
+
+Original v1658 FULL/fault/owner native matrix and twelve new v1659
+native cases PASS. The native exact 3,456-word/65 nonzero source
+produces 161 encoded words. NOMEM, target pin/unpin/free, source
+unpin, duplicate owner, overlap, high-density no gain and literal/
+last-mask corruption all fail closed. Independently compiled and
+executed stream-verification-bypass mutant is rejected by original
+PDP-6 oracle (__test_exit octal 001604). Codec source has EXACT
+v1451 native instruction stream, 30 TEXT/0 DATA/0 BSS. The C probe
+adds 586 standalone TEXT/0 DATA/0 BSS, test-only.
+
+Native MM allocator/provider failures are controlled fixtures;
+this is NOT an executed 48K/64K compressed process or a measured
+physical continuous peak RAM reduction. Permanent storage-mode3,
+terminal and full-restoration support remains unimplemented;
+strict 32K acceptance is still deferred.
+
+The independent original production `mm_pdp6.s` allocator-leaf
+PDP-6 run uncovered the previously unrecognized refusal of the
+declared type4 PACKED_PROCESS allocation. The corrected type check
+admits only MM types 1..4; actual 883-word free-gap/161-word bitmap
+owner insertion, pin/unpin/free, 884-word NOMEM, descriptor exhaustion
+and invalid type 0/5/7/8/-1 all PASS. Original v1111/v1552 MM native
+tests still PASS. Two separately assembled historical and overbroad
+type-guard mutations execute and are rejected by the native oracle.
+The permanent KCORE source now grows two words for the type4 guard;
+bitmap codec/C probe remain unlinked.
+
+Fresh original source-derived GCC 48K selected TSFS-root and
+secondary-DTC3 PURE six-child physical guest completes its exact
+PIPE/WAIT/EXIT sequence and normal HALT PC000000 with the changed
+MM allocator. The fixed KCORE low-end map is 024255 octal (v1658:
+024253); KINIT image end 113643 (v1658:113641); two-word growth.
+New fixed KCORE stream SHA256:
+0a547e28dd9223e1a26420e4a75f8a6a5ca39836dd62b6a3c3d531ced57fc8f8.
+No bitmap mode3 or actual compressed MM data is installed.
+
 ## 2026-11-17 v1658: native PDP-6 PURE owner and actual 48K lifecycle
 
 On the exact v1657 source base, v1658 real MM PREFIX retype now

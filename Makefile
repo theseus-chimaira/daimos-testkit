@@ -1,3 +1,9 @@
+.PHONY: test-kcore-pure-bitmap-probe-v1659
+test-kcore-pure-bitmap-probe-v1659: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/pure-bitmap-probe-v1659/run-v1659.sh
+
 .PHONY: test-kcore-pure-mm-owner-v1658
 test-kcore-pure-mm-owner-v1658: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
