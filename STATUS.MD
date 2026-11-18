@@ -1,3 +1,32 @@
+## 2026-11-18 v1663: complete bounded PURE bitmap frontend, native PASS
+
+New opt-in C89 compressor requires a stopped/sleeping RAW-mode2
+TRANSITION process and immutable PURE executable backing. It pins
+the only RAW owner, computes exact bit masks + nonzero payload,
+rejects dense/no-gain without allocation, reserves an exact HIGH
+candidate using original no-reclaim MM, validates disjoint exact
+owner geometry before native encoding and calls the v1662 fully
+verified atomic RAW-retirement/mode3 commit after candidate unpin.
+On ordinary refusal the candidate is freed before RAW unpin and
+every fallible cleanup result is followed by an exact owner/pin
+check. Uncertain owner or mode returns BUSY under TRANSITION.
+
+Full v1662/v1661/v1660/v1659 source-linked native baseline PASS.
+Original PDP-6 MM allocation/fit/insert/pin/unpin/free is linked,
+not emulated by a C allocator. 3,456 RAW/65 nonzero ->161 bitmap
+words at `050122` octal, with reclaimed 02000-octal-word RAW-core
+reuse at `040000`, full decode and compressed terminal PASS.
+All-zero RAW compresses into 96 masks at `050223` and likewise
+passes decode/core reuse/terminal. Dense RAW refuses before
+allocating. 44 v1663 native scenarios (three successful, 41
+refusal/no-gain) PASS. Independently executed unsafe target-geometry
+and target-unpin-bypass source mutants rejected.
+
+Standalone compressor object 776 TEXT, zero DATA/BSS, unlinked.
+No production mode3 FULL restore, terminal dispatcher, PI6 scheduler
+or physical 48K/64K guest RAM acceptance. Default PURE OFF,
+strict physical 32K deferred. No installed net RAM savings claimed.
+
 ## 2026-11-18 v1662: native prepared bitmap MM atomic commit PASS
 
 Based on pushed v1661, the new source-linked C89 prepared-only
