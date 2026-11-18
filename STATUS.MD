@@ -1,3 +1,24 @@
+## 2026-11-18 v1661: source-linked compressed PURE terminal MM proof
+
+Based on pushed v1660, new opt-in terminal source validates the sole
+unpinned mode3 compressed MM owner, saved PURE backing, absent APR,
+TRANSITION, encoded/RAW size, valid 18-bit physical span, then uses
+the actual production PDP-6 MM-free assembler under PI exclusion;
+only successful MM release clears the exact two-bit mode3 pair to
+mode0. Test-only controlled PI stub; no production integration.
+
+Original v1660/v1659 native decoder and MM baseline PASS. Native
+compressed 3,456 RAW / 161 encoded terminal free PASS, eighteen
+MM/mode/record/geometry refusal cases preserve ownership. Exact
+01000000-octal exclusive physical upper boundary accepted. An
+independently compiled duplicate-owner-bypass mutant is executed
+and rejected. Prototype terminal C = 314 TEXT words, zero DATA/BSS.
+The unlinked v1660 decoder also corrects its exclusive-end check.
+
+Mode3 remains disallowed in fixed KCORE. Compressed DROP commitment,
+FULL restore, terminal dispatch, PI6 scheduler and physical 48K/64K
+RAM savings remain OPEN. PURE default OFF; strict 32K deferred.
+
 ## 2026-11-18 v1660: native bounded bitmap FULL decode preflight
 
 New test-only KCC/PDP-6 source checks the entire encoded stream and
