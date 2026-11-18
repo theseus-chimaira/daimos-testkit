@@ -1,3 +1,44 @@
+## 2026-11-18 v1667: stage bitmap mode3 exclusively in PURE MRES
+
+Opt-in `DAIMOS_PBM_V1667=1`, requiring an enabled TSFS-capable
+PURE MRES, links the v1661 compressed terminal, v1660 bounded
+decoder, original v1451 bitmap codec, v1664 FULL APR restore and
+atomic MM finish exclusively into PURE MRES. The module's third
+export becomes a mode2/mode3 PURE dispatcher; mode2 keeps the
+actual v1609 RAW MM leaf and mode3 uses the exact v1661 free.
+The v1612 PURE slot-0 service now selects v1664 mode3 FULL restore
+only under the opt-in and requires the shared authoritative v1664
+unpin/ownership retry proof after failure. DISK MRES and fixed
+KCORE unchanged, including the fixed vm_space_destroy mode3
+refusal. The compressor is NOT connected to live reclaim: no
+production mode3 can be created or torn down yet.
+
+The original v1666 terminal baseline, native PDP-6 actual C/ASM
+mode2/mode3 terminal matrix (21 cases) and unsafe RAW-dispatch
+mutation PASS. Original v1664 source-linked allocator/codec/MM
+FULL restore and new real v1612 service slot-0 mode3 matrix
+(16 cases) PASS. Invalid TSFS/PURE build combinations are
+rejected; actual KCC and GCC image maps show the same fixed
+KCORE end and all new bitmap symbols exclusively in PURE MRES.
+
+KCC FULL PURE MRES 2307->3992 (+1685 resident words) and GCC
+lowmem PURE MRES 1863->3186 (+1323 resident words); zero new
+fixed KCORE RAM. Transient KINIT images grow 1778 KCC / 1396
+GCC words. These are costs before a real process compresses and
+must NOT be called net system RAM savings. The v1663 native
+sparse case 3456 RAW->161 encoded saves 3295 process words in
+isolation, but full live RUN/EXIT/WAIT, PI6, resident peak and
+physical 48K/64K acceptance remain open. Default PURE and bitmap
+stage OFF; strict physical 32K deferred.
+
+The second executed unsafe mutation (bypassing the failed-restore
+retry ownership proof) is rejected at PDP-6 runtime. Source-built
+physical 64K TSFS/no-AUXST1 with the staged bitmap PURE MRES
+boots to PURE LOADED and INIT V1. The initial versioned smoke
+script failed on a mistyped KCORE symbol before SIMH; corrected
+assertion and existing source-built image PASS. This proves boot
+reachability, not real compressed-mode3 guest lifecycle.
+
 ## 2026-11-18 v1666: terminal memory owner moved to exclusive MRES
 
 Fixed `proc_swap_detach()` now calls one default-refusing KINIT-
