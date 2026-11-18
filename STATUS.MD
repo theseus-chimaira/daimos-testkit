@@ -1,3 +1,42 @@
+## 2026-11-18 v1672: native zombie accounting and physical post-user pressure
+
+DAIMOS native `syscall_info.s` was fixed so zombie VM_SPACE_NONE
+(-1, LH 0777777) does not report 262143 nonexistent image words.
+Both source-extracted PDP-6 assembler leaves pass native
+resident/swapped/zombie/free process tests, and both unsafe
+guard-removal mutants are executed/rejected. Necessary fixed
+KCORE +4 words, no new global/per-process data. GCC lowmem KCORE
+end 024076->024102 octal, KCC FULL 024353->024357. KCC FULL
+ROOT=auto also links. No change to default PURE/mode3 admission.
+
+Actual PDP-6 RUN/EXIT/WAIT test-only PID1+child images (disposable
+TSFS only) exercise 4 live children on 48K, 7 on 64K, for BOTH
+general tape/PURE and strict swapless tape/PURE. The host takes
+three synchronized CTY-held physical MM snapshots: baseline,
+all children alive and after WAIT of every EXIT(0). Unlike the
+abandoned user-PC breakpoint experiment, this method never
+confuses user virtual PCs with physically identical KCORE PCs.
+Every snapshot validates the original physical MM arena/extent
+tables, unique process APR owners, pins, installed resident,
+conserved free+allocated words and genuine native SYS_MEMINFO
+fields. All four physical simulations and the four-way strict
+comparator PASS. Four unsafe physical/summary mutations are
+independently executed and rejected.
+
+48K physical free: 27441->18193->27441, MM allocation
+3934->13182->3934, APRs 1->5->1. 64K free:
+43793->27609->43793, allocation 3950->20134->3950,
+APRs 1->8->1. Both profiles give IDENTICAL free, largest gap,
+APR ownership and pin state. Each child adds/removes exactly
+2048 APR + 264 u-area words; all are recovered after WAIT.
+Existing 256-word pinned kernel owner remains unchanged. The
+strict v1668 image still removes 1877 transient KINIT words,
+but there is no additional permanent/runtime free RAM benefit.
+
+These are three real stable RUN/EXIT/WAIT checkpoints, not
+continuous post-user memory peaks, forced PURE reclaim, or
+compressed mode3 RUN/EXIT/WAIT/PI6. Those remain open.
+
 ## 2026-11-18 v1671: native KINIT stack high-water, 48K/64K TSFS/PURE
 
 With unchanged DAIMOS production code and existing diagnostic
