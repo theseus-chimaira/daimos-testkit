@@ -1,3 +1,39 @@
+## 2026-11-18 v1664: source-linked bitmap FULL APR restore, native PASS
+
+The unlinked v1664 C89 restore requires a stopped/sleeping mode3
+compressed PURE process or SRUN restoration from slot 0. It
+validates immutable backing, saved u-area and the unique unpinned
+MM source, pins it, allocates and pins one aligned full-size APR
+through original PDP-6 MM without reclaim, uses the bounded v1391
+FULL loader ABI, then validates the entire compressed bitmap
+through v1660 before decoding the authoritative RAW suffix.
+
+The new PDP-6 `mm_pure_bitmap_finish_v1664.s` checks both exact
+once-pinned MM source/target extents and consumes their pins,
+retiring the encoded owner without a fallible unpin/free gap.
+VM APR base, backing, mode3->RESIDENT and TRANSITION are published
+in the same PI-disabled interval. An ordinary failure unpins/
+frees the APR before unpinning the compressed source; false MM
+results or altered lifecycle identity refuse cleanup and remain
+quarantined instead of publishing an unsafe process.
+
+Native PDP-6 links the original no-reclaim MM allocator,
+fit/insertion, pin/unpin/free and 30-word bitmap codec; an exact
+4,096-word APR is reconstructed and compared word-for-word with
+the independent immutable-prefix loader fixture and 3,456-word
+decoded suffix. Sparse and all-zero compressed sources, SRUN from
+slot 0, and an independent same-ID MODULE PASS. Source-first and
+APR-first descriptor order and full 136-entry MM capacity PASS.
+62 new scenarios (8 positive, 54 refusal/corruption) PASS and
+two executed unsafe full-decoder/extra-MM-owner mutants rejected.
+Full original v1663/v1662/v1661/v1660/v1659 native baseline PASS.
+
+Unlinked C restore 969 TEXT words, MM finish assembler 133 TEXT,
+zero DATA/BSS. Permanent fixed KCORE continues to reject mode3;
+physical guest VFS loading, EXIT/WAIT, scheduler PI6 and real
+48K/64K net/peak RAM measurement remain open. PURE default OFF,
+strict 32K physical acceptance deferred.
+
 ## 2026-11-18 v1663: complete bounded PURE bitmap frontend, native PASS
 
 New opt-in C89 compressor requires a stopped/sleeping RAW-mode2
