@@ -1,3 +1,30 @@
+## 2026-11-18 v1669: physical PDP-6 pre-reclaim KINIT MM accounting
+
+With unchanged v1668 DAIMOS sources, daimos-testkit now stops
+independently built general and strict GCC TSFS/PURE 48K/64K
+PDP-6 guests at the real `kinit_late_start` entry. The simulator
+reads actual MM arenas, sorted extent descriptors, core/count
+globals and resident immediate directly from physical memory.
+Original-map/physical descriptor conservation tests PASS at all
+four checkpoints; three forged/unsafe MM measurement mutants are
+executed and rejected. All four runs install PURE with no AUX.
+
+At 48K: general/strict managed free 21947/22013 (+66), largest
+contiguous free 10022/11899 (+1877), MM allocations both 598,
+resident low both 17725 words. At 64K: free 38299/38365 (+66),
+largest 26406/28283 (+1877), allocations both 614, permanent
+low both 17741 words. In both cases high arena grows 1877 but
+pre-reclaim middle arena shrinks 1811 due to the late KINIT
+source/layout shift: the true net free MM change at this
+checkpoint is only +66, NOT +1877. The 1877 link-image words
+improve the largest contiguous free block, not total MM free.
+
+An independently source-built 48K strict TSFS/no-AUX guest also
+reaches PURE LOADED and INIT V1 and continues until the controlled
+85-second timeout. Continuous temporal MM/KINIT peak, after
+reclaim process RAM, bitmap-mode3 runtime and strict 32K remain
+OPEN. No DAIMOS kernel or permanent memory change was necessary.
+
 ## 2026-11-18 v1668: strict swapless TSFS KINIT candidate pruning
 
 Dedicated build option `DAIMOS_SWAPLESS_ONLY_V1668=1` requires
