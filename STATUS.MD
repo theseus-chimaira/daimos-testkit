@@ -1,3 +1,36 @@
+## 2026-11-18 v1668: strict swapless TSFS KINIT candidate pruning
+
+Dedicated build option `DAIMOS_SWAPLESS_ONLY_V1668=1` requires
+ROOT=tape and enabled PURE; incompatible ROOT=auto/disk/drum and
+PURE-disabled options fail Make configuration. General ROOT=auto
+continues to link both candidates unchanged. A strict module
+table uses a zero SWAP MRES package address; the disk-swap
+candidate is absent from linked KINIT, with no new fixed KCORE
+or installed PURE source changes. DSK/DRM physical drivers remain
+available for independent LOGSTORE and other auxiliary services.
+
+The production KINIT selection now fails closed on actual
+positive validated BACKSTORE, wrong root, and a later positive
+BACKSTORE discovered by the full AUXSTORE MINIT; zero/absent
+swap installs PURE. Original source-extracted C89 tests PASS,
+as do two executed unsafe skip-fatal mutants, real Makefile
+policy matrix and historical v1665/v1613 selector regressions.
+
+Actual 64K GCC lowmem strict source-built TSFS/no-AUXSTORE guest
+boots with PURE LOADED and INIT V1. The SAME image with real
+DRM0/AUXST1 BACKSTORE present prints SWAP FAIL and CPU HALTs
+before PURE or INIT. Source-matched general-vs-strict lowmem
+builds retain fixed KCORE 024076 octal and PURE 1863 installed
+words; transient KINIT image end 113732->110205 octal saves
+**1877 words**, excluding DISK MRES 1837 words and package
+overhead. This is boot image memory, not measured peak/core MM
+free words. Bitmap mode3 remains production OFF.
+
+Independent source-matched KCC FULL general/strict links also
+PASS: fixed KCORE 024353 octal and PURE MRES 2307 words unchanged;
+KINIT end 131475->125775 octal saves **1856** transient words.
+The disk-swap package is absent from both strict KINIT maps.
+
 ## 2026-11-18 v1667: stage bitmap mode3 exclusively in PURE MRES
 
 Opt-in `DAIMOS_PBM_V1667=1`, requiring an enabled TSFS-capable
