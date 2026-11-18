@@ -1,3 +1,29 @@
+## 2026-11-18 v1670: physical PDP-6 MM event high-water through INIT handoff
+
+No DAIMOS kernel or permanent KCORE changes. daimos-testkit uses
+the actual KINIT/KCORE map symbols to install SIMH execution
+breakpoints at MM-ready start, MM extent insertion/boot reserve,
+free arena publication, exact free, possible process extent
+resizing/compaction, and first `vm_enter_initial_user`. All
+physical MM arena/extent/capacity/owner words are captured at
+each event. Four source-matched GCC TSFS/PURE 48K/64K real PDP-6
+traces PASS (general has 53 events, strict 52); three unsafe
+arena/terminal/high-water corruptions are executed and rejected.
+
+48K general/strict minimum sampled free: 11944/13821 words;
+maximum sampled occupied-or-reserved: 37208/35331 words.
+64K free: 28312/30189; maximum nonfree: 37224/35347.
+Strict therefore saves **1877 physical nonfree words at the
+sampled boot high-water boundary** at both physical memory sizes.
+All measured maxima occur at `mres_init` MM-ready start. Final
+first-user handoff free MM is identical: 26421 at 48K, 42773 at
+64K, with identical permanent resident and process/MM owners.
+
+This is stable MM **event-boundary** high-water, NOT exact
+instruction-level peak or post-user process-pressure peak.
+No live bitmap mode3 compression is enabled; whole-runtime
+RAM/PI6/EXIT/WAIT and strict physical 32K remain open.
+
 ## 2026-11-18 v1669: physical PDP-6 pre-reclaim KINIT MM accounting
 
 With unchanged v1668 DAIMOS sources, daimos-testkit now stops
