@@ -1,3 +1,16 @@
+## 2026-11-18 v1660: native bounded bitmap FULL decode preflight
+
+New test-only KCC/PDP-6 source checks the entire encoded stream and
+physical geometry before calling the original unchecked 30-word
+v1451 decoder. 73 RAW words with three literals yield six encoded
+words; native decoded output matches RAW. Corrupt literal, illegal
+trailing-mask bit, extra presence bit, truncated and overlong streams
+and overlapping input/output are rejected without writing output.
+The independently compiled and executed exact-consumption-bypass
+mutant is rejected by the native oracle. Original v1659 MM and
+bitmap baseline PASS. No production mode3 publication, no KCORE
+growth, no installed compression or physical net RAM saving.
+
 ## 2026-11-18 v1659: source-linked native PDP-6 bounded bitmap MM probe PASS
 
 The new test-only actual C89 PDP-6 MM probe pins the sole RAW
