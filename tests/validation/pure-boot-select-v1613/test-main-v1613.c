@@ -15,6 +15,7 @@ check_case_v1613(int rc, kword_t blocks, unsigned int expect_pure,
     pure_diag_v1613 = 0U;
     proc_swap_reclaim = 0UL;
     proc_swap_service_one = 0UL;
+    proc_swap_term_v1666 = 0UL;
     backstore_bitmap_words = 0UL;
     backstore_init = 0UL;
     backstore_alloc = 0UL;
@@ -28,7 +29,7 @@ check_case_v1613(int rc, kword_t blocks, unsigned int expect_pure,
         pure_diag_v1613 != expect_pure ||
         disk_installs_v1613 != expect_disk ||
         post_calls_v1613 != (expect_discover && expect_disk ? 1U : 0U) ||
-        patches_v1613 != (expect_pure ? 2U : expect_disk ? 7U : 0U)) {
+        patches_v1613 != (expect_pure ? 3U : expect_disk ? 8U : 0U)) {
         fprintf(stderr, "FAIL KINIT v1613 rc=%d blocks=%lu:"
             " discover=%u pure=%u disk=%u post=%u patch=%u fatal=%u\n",
             rc, blocks, discover_calls_v1613, pure_installs_v1613,
@@ -37,11 +38,14 @@ check_case_v1613(int rc, kword_t blocks, unsigned int expect_pure,
         return 1;
     }
     if ((expect_pure && (proc_swap_reclaim != 06000UL ||
-        proc_swap_service_one != 06001UL)) ||
+        proc_swap_service_one != 06001UL ||
+        proc_swap_term_v1666 != 06002UL)) ||
         (expect_disk && (proc_swap_reclaim != 07000UL ||
-        proc_swap_service_one != 07001UL)) ||
+        proc_swap_service_one != 07001UL ||
+        proc_swap_term_v1666 != 07007UL)) ||
         (!expect_pure && !expect_disk &&
-        (proc_swap_reclaim || proc_swap_service_one))) {
+        (proc_swap_reclaim || proc_swap_service_one ||
+         proc_swap_term_v1666))) {
         fputs("FAIL KINIT v1613: wrong resident trampoline patches\n",
             stderr);
         return 1;

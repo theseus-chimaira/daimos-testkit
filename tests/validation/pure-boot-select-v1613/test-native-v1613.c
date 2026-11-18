@@ -31,6 +31,7 @@ root_select_class(void)
 static const kword_t proc_pure_mres_package_v1612[1] = { 1UL };
 static kword_t proc_swap_reclaim;
 static kword_t proc_swap_service_one;
+static kword_t proc_swap_term_v1666;
 static kword_t backstore_bitmap_words;
 static kword_t backstore_init;
 static kword_t backstore_alloc;
@@ -91,7 +92,7 @@ unsigned int
 mres_export(const kword_t *p, unsigned int base, unsigned int index)
 {
     if (p != proc_pure_mres_package_v1612 || base != 04000U ||
-        index > 1U)
+        index > 2U)
         return 0U;
     return 06000U + index;
 }
@@ -108,7 +109,7 @@ static unsigned int
 minit_export(kword_t name, unsigned int base, unsigned int index)
 {
     (void)name;
-    if (base != 05000U || index > 6U)
+    if (base != 05000U || index > 7U)
         return 0U;
     return 07000U + index;
 }

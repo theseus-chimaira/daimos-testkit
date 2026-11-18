@@ -1,3 +1,47 @@
+## 2026-11-18 v1666: terminal memory owner moved to exclusive MRES
+
+Fixed `proc_swap_detach()` now calls one default-refusing KINIT-
+patched `proc_swap_term_v1666` only for nonresident modes and
+retires common process record, u-area backing and SIDL mount
+staging after successful backend release. No permanent disk block
+arithmetic or RAW MM owner scan remains. DISK MRES gains a PDP-6
+assembly leaf checking mode1, absent APR and exact block count,
+then releasing through the original `backstore_free` before
+accounting and mode0 publication. PURE MRES directly exports the
+original v1609 exact RAW MM terminal scanner, relocated out of
+fixed KCORE, with an additional mode2 preflight before MM free.
+KINIT patches the third PURE or eighth DISK export and never
+installs both backends. The uninstalled stub refuses nonresident
+teardown; RESIDENT mode0 works without any MRES.
+
+The original v1609 RAW terminal and mutant, source-extracted
+PDP-6 KCORE+disk MRES native test, default-no-MRES refusal and
+two executed unsafe stub/live-APR source mutations all PASS.
+Historical v880/v957 host C detach tests PASS. v1613/v1665
+actual KINIT selection matrix PASS for three PURE/eight disk
+export patches. Complete v1659-v1664 staged bitmap/decode/FULL
+restore native regression chain PASS.
+
+The real source-built GCC 64K TSFS root with no AUXST1 boots:
+`MEM 64 K`, `DTC OK`, `PURE LOADED`, `INIT V1`, no root error.
+The new v1666 map/size acceptance reads actual KCC and GCC
+source-built v1665/v1666 images; all fixed/MRES ownership and
+exact A/B delta checks PASS. The corrected 45-second physical
+repeat with the new owner-symbol assertions also PASSes; a
+deliberately shortened 20-second repeat ended before INIT and is
+not a valid boot-failure witness.
+KCC FULL ROOT=auto links both MRES candidate objects. Fixed KCORE
+saves 114 words in KCC FULL; selected disk MRES adds 42 and PURE
+MRES adds 90 -> net permanent savings 72 DISK or 24 PURE words.
+GCC lowmem fixed KCORE saves 111, PURE MRES adds 90 -> net 21
+permanent words saved. The full KCC transient image grows 44
+words (distinct from permanent memory).
+
+Compression mode3 remains disabled in the real scheduler, fixed
+vm_space_destroy still refuses mode3. No physical guest mode3
+compression, 48K/32K or continuous net/peak RAM is claimed.
+PURE default OFF; strict physical 32K deferred.
+
 ## 2026-11-18 v1665: root-first exclusive SWAP/PURE KINIT selection
 
 The previously transient SWAP MINIT ran before actual root

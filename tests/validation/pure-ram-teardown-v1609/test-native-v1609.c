@@ -35,6 +35,10 @@ int mm_extent_count;
 static int free_count_v1609;
 static int refuse_free_v1609;
 static int disk_free_count_v1609;
+/* v1666 source-linked disk MRES tests may accept exact verified disk
+ * release; the historical RAW tests still refuse disk by default.
+ */
+static int disk_accept_v1666;
 static int failed_invariant_v1609;
 kword_t *backstore_bitmap;
 kword_t backstore_blocks;
@@ -63,9 +67,9 @@ vfs_dtfs_owner_admit_v1562(vnode_t node)
 int
 backstore_free(kword_t first, kword_t blocks)
 {
-        (void)first;
-        (void)blocks;
         ++disk_free_count_v1609;
+        if (disk_accept_v1666 && first == 0500UL && blocks == 4UL)
+                return 0;
         return -1;
 }
 
@@ -143,6 +147,7 @@ prepare_v1609(void)
             MM_TYPE_PACKED_PROCESS, V1609_SLOT, 0U);
         free_count_v1609 = 0;
         disk_free_count_v1609 = 0;
+        disk_accept_v1666 = 0;
         refuse_free_v1609 = 0;
         failed_invariant_v1609 = 0;
         /* VFS is intentionally absent: terminal release may not wait

@@ -21,6 +21,7 @@ case_v1665(unsigned int root, int discovery, kword_t blocks,
     pure_diag_v1613 = 0U;
     proc_swap_reclaim = 0UL;
     proc_swap_service_one = 0UL;
+    proc_swap_term_v1666 = 0UL;
     backstore_bitmap_words = 0UL;
     backstore_init = 0UL;
     backstore_alloc = 0UL;
@@ -29,7 +30,7 @@ case_v1665(unsigned int root, int discovery, kword_t blocks,
 
     proc_swap_minit_v481();
 
-    expected_patches = expected_pure ? 2U : expected_disk ? 7U : 0U;
+    expected_patches = expected_pure ? 3U : expected_disk ? 8U : 0U;
     if (discover_calls_v1613 != expected_probe ||
         pure_installs_v1613 != expected_pure ||
         disk_installs_v1613 != expected_disk ||
@@ -38,12 +39,15 @@ case_v1665(unsigned int root, int discovery, kword_t blocks,
             (expected_probe && expected_disk ? 1U : 0U) ||
         patches_v1613 != expected_patches || fatals_v1613 ||
         (expected_pure && (proc_swap_reclaim != 06000UL ||
-            proc_swap_service_one != 06001UL)) ||
+            proc_swap_service_one != 06001UL ||
+            proc_swap_term_v1666 != 06002UL)) ||
         (expected_disk && (proc_swap_reclaim != 07000UL ||
             proc_swap_service_one != 07001UL ||
-            backstore_verify_allocated_v795 != 07006UL)) ||
+            backstore_verify_allocated_v795 != 07006UL ||
+            proc_swap_term_v1666 != 07007UL)) ||
         (!expected_pure && !expected_disk &&
-            (proc_swap_reclaim || proc_swap_service_one))) {
+            (proc_swap_reclaim || proc_swap_service_one ||
+             proc_swap_term_v1666))) {
         fprintf(stderr,
             "FAIL v1665 root=%u discovery=%d blocks=%lu: "
             "probe=%u pure=%u disk=%u post=%u patches=%u fatal=%u\n",

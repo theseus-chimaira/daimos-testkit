@@ -33,12 +33,24 @@ incs="-I$src/proc -I$src/core -I$src/mm -I$src/fs -I$src/storage -I$src/modules 
     cat "$src/proc/proc_pure_packed_detach_v1609.s"
 } > "$work/packed-detach-v1609.s"
 
+# v1666: terminal service is no longer resident in fixed KCORE.
+# The real v1609 PURE leaf is an MRES export, reached from the
+# KINIT-patched entry. These native tests set that patch target
+# directly; v1666 KINIT selector tests verify the export mapping.
+cat >"$work/pure-terminal-entry-v1666.s" <<'EOF'
+        .text
+        .globl proc_swap_term_v1666
+proc_swap_term_v1666:
+        jrst pdp6_pure_detach_v1609
+EOF
+
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode go --start 1000 --timeout 30 \
     --workdir "$work/guest" --name pure-ram-teardown-v1609 \
     --expect __test_exit=0 \
     "$testkit/tests/validation/daimos-test-crt0-v1.s" \
     "$work/vm-pdp6-swap-v1609.s" "$work/vm-leaf-v1609.s" \
+    "$work/pure-terminal-entry-v1666.s" \
     "$work/packed-detach-v1609.s" \
     "$src/core/ret.s" \
     "$src/proc/proc_storage_runtime_v30.s" \
@@ -68,6 +80,7 @@ if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --expect __test_exit=0 \
     "$testkit/tests/validation/daimos-test-crt0-v1.s" \
     "$work/vm-pdp6-swap-v1609.s" "$work/vm-leaf-v1609.s" \
+    "$work/pure-terminal-entry-v1666.s" \
     "$work/unsafe-detach-v1609.s" "$src/core/ret.s" \
     "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" \
