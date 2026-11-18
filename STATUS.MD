@@ -1,3 +1,36 @@
+## 2026-11-18 v1665: root-first exclusive SWAP/PURE KINIT selection
+
+The previously transient SWAP MINIT ran before actual root
+selection; the ROOT=auto build consequently used D6FS compilation
+as a proxy and could not install opt-in PURE on selected swapless
+TSFS. The v1665 MINIT table now executes drivers -> root select ->
+SWAP/PURE service select -> AUXSTORE. Source-linked real
+`proc_swap_minit_v481()` examines `root_select_class()` and
+validated AUXST1 BACKSTORE capacity. DTC/TSFS without validated
+swap chooses optional PURE; DTC with positive verified BACKSTORE
+and DSK/DRM roots choose original disk swap. Unresolved/unsupported
+root classes install neither. One MRES per boot; existing scheduler
+trampolines are patched without a resident dual dispatcher.
+
+Six strict C89 original-KINIT-source build variants, the genuine
+root/driver/SWAP/AUXSTORE MINIT order, six live Makefile candidate
+selection policies and the original v1613 source tests PASS.
+Unsafe inverse-MINIT-order and wrong-root source mutations are
+executed and rejected. Full KCC ROOT=auto PURE=1 image links
+successfully with two transient candidates; fixed octal KCORE
+bound 024535, KINIT end 140154. Actual source-built GCC lowmem
+64K TSFS no-AUXSTORE physical boot PASS: MEM 64 K, DTC OK,
+PURE LOADED, INIT V1, no root or INIT failure.
+
+The historical v1613 smoke test's hardcoded octal KCORE bound
+024254 is stale on current sources (024255) and stopped before
+running SIMH. A versioned v1665 physical test checks the current
+bound and reports successful boot, retaining both evidences.
+No compressed mode3 admission or KCORE memory backend duplication;
+no physical net/peak RAM benefit yet claimed. Root=auto full
+physical boot and swapless-only link pruning remain open.
+PURE default OFF, strict physical 32K acceptance deferred.
+
 ## 2026-11-18 v1664: source-linked bitmap FULL APR restore, native PASS
 
 The unlinked v1664 C89 restore requires a stopped/sleeping mode3

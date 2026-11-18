@@ -35,6 +35,7 @@ for profile in '0 1' '0 0' '1 0'; do
         "$here/test-main-v1613.c" >"$work/full.c"
     cc -std=c89 -pedantic -Wall -Wextra -Werror \
         -DD6FS_FS_ENABLED="$root" \
+        -DKINIT_TAPE_BOOT="$((1-root))" \
         -DDAIMOS_PURE_MRES_ENABLED="$pure" \
         "$work/full.c" -o "$work/guest"
     "$work/guest"
@@ -43,7 +44,8 @@ done
 cat "$here/test-native-v1613.c" "$work/mutant.c" \
     "$here/test-main-v1613.c" >"$work/unsafe.c"
 cc -std=c89 -pedantic -Wall -Wextra -Werror \
-    -DD6FS_FS_ENABLED=0 -DDAIMOS_PURE_MRES_ENABLED=1 \
+    -DD6FS_FS_ENABLED=0 -DKINIT_TAPE_BOOT=1 \
+    -DDAIMOS_PURE_MRES_ENABLED=1 \
     "$work/unsafe.c" -o "$work/unsafe"
 if "$work/unsafe" >"$work/mutant.log" 2>&1; then
     echo 'FAIL v1613: ignored absent-AUXST1 mutant was accepted' >&2

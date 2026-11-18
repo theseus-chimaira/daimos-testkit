@@ -11,6 +11,23 @@
 typedef unsigned long kword_t;
 #define SIXBIT(s) 0UL
 
+/* Root selection now runs before SWAP MINIT. Preserve the historic
+ * dedicated-root v1613 matrix, while enabling source-linked tests
+ * to supply an actual selected root for ROOT=auto in v1665.
+ */
+#define KINIT_ROOT_AUTO 0U
+#define KINIT_ROOT_DSK  1U
+#define KINIT_ROOT_DTC  2U
+#define KINIT_ROOT_DRM  3U
+static unsigned int selected_root_v1613 =
+    D6FS_FS_ENABLED ? KINIT_ROOT_DSK : KINIT_ROOT_DTC;
+
+static unsigned int
+root_select_class(void)
+{
+    return selected_root_v1613;
+}
+
 static const kword_t proc_pure_mres_package_v1612[1] = { 1UL };
 static kword_t proc_swap_reclaim;
 static kword_t proc_swap_service_one;
