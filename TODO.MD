@@ -1,12 +1,16 @@
 # DAIMOS testkit - open work
 
-Updated 2026-11-17. Only unresolved OS-testkit work belongs here.
+Updated 2026-11-19. Only unresolved OS-testkit work belongs here.
 Completed v1062-v1064 checkpoint notes are preserved in Git history;
 older verification observations are retained in `STATUS.MD` and the
 historical status archive. Do not treat a dated 2026-09-30 run as a
 current complete regression result.
 
 ## Native toolchain integration after re-home (2026-11-19)
+
+- [ ] Validate each suite's prerequisites and expected output against
+  current staged KCC/DAS/DLINK sources; fix stale expectations rather
+  than weakening actual assertions.
 
 - [ ] Run the 25 relocated guest-native KCC/DAS/DLINK suites individually
   with their prerequisite staged builds and check their original oracles.
@@ -54,7 +58,8 @@ these administrative decisions must not be moved into the kernel.
   prove the full OS test suite has executed.
 - [ ] Recheck historical compiler/toolchain-in-guest integration reports
   before interpreting their old paths as current OS test ownership.
-  Native compiler assertions belong to PDP10 even when run under DSH.
+  Guest-native compiler integration tests now belong here (v4 return),
+  while standalone compiler assertions remain in PDP10.
 
 The authoritative transfer is
 `tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.tsv`, with the
