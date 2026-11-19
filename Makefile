@@ -2479,3 +2479,9 @@ test-pure-terminal-pin-native-v1680:
 test-pure-prevm-finalizer-native-v1680:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS tree required}" \
 	 sh tests/validation/pure-prevm-finalizer-v1680/run-v1680.sh
+
+# v1681: original PDP-6 MM pin/unpin + VM/PURE terminal + FINALIZE/PREVM.
+.PHONY: test-pure-terminal-finalizer-native-v1681
+test-pure-terminal-finalizer-native-v1681:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS source required}" \
+	 sh tests/validation/pure-terminal-finalizer-v1681/run-v1681.sh
