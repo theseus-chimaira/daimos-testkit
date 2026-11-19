@@ -45,7 +45,7 @@ end
 probe kcc-native-dry-run-first-assembly
 command MAKE -N -C /OPTION/SOURCE/KCC B/CCASMB.DOBJ; ECHO STATUS:$?
 contains STATUS:0
-contains /OPTION/BASE/EXEC/DAS
+contains DAS -F -C -O
 contains B/CCASMB.DOBJ B/CCASMB.S
 not_contains CANNOT PARSE
 timeout 240

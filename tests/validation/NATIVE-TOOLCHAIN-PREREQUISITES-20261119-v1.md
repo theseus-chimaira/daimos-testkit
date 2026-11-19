@@ -29,10 +29,10 @@ not. Directory existence alone is not a passing acceptance oracle.
 
 The native MAKE dry-run suite still expects the historical literal
 `/OPTION/BASE/EXEC/DAS`; current `kcc/daimos.mk` instead sets
-`NATIVE_DAS = DAS`. Before accepting the suite, validate its expected
-MAKE output and repair the stale literal oracle without removing the
-actual command/exit-status assertions. Do not claim it passes based on
-static verification.
+`NATIVE_DAS = DAS`. The stale literal oracle has been corrected to expect the
+actual `DAS -F -C -O` invocation from the current Makefile. The
+object-name and exit-status assertions remain. The guest test still
+requires execution before a pass can be claimed.
 
 Do not use `run-all` to paper over missing stage artifacts. Execute each
 suite in dependency order, retain reports and failure logs, and record
