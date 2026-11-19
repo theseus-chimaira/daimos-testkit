@@ -15,7 +15,7 @@ assert all(row["status"] == "pending-migration" for row in rows)
 with patch.object(module.subprocess, "run", side_effect=AssertionError("unexpected execution")):
     assert module.main(["list"]) == 0
     assert module.main(["run", rows[0]["id"]]) == 2
-    assert module.main(["run-all"]) == 0
+    assert module.main(["run-all"]) == 2
     try:
         module.main(["run", "missing-test"])
     except SystemExit:

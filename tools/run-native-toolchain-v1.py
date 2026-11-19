@@ -38,9 +38,12 @@ def main(args):
     else:
         raise SystemExit("usage: run-native-toolchain-v1.py list | run ID | run-all")
     failures = 0
+    executed = 0
+    skipped = 0
     for row in chosen:
         if row["status"] != "ready":
             print("SKIP %s: migration not complete" % row["id"], flush=True)
+            skipped += 1
             if args[0] == "run":
                 return 2
             continue
@@ -53,6 +56,7 @@ def main(args):
             print("ERROR %s: invalid runner" % row["id"], flush=True)
             failures += 1
             continue
+        executed += 1
         try:
             timeout = int(row["timeout"])
             if timeout <= 0:
@@ -67,7 +71,9 @@ def main(args):
         except (ValueError, subprocess.TimeoutExpired) as error:
             failures += 1
             print("FAIL %s: %s" % (row["id"], error), flush=True)
-    return 1 if failures else 0
+    print("native toolchain: %d executed, %d skipped, %d failed" %
+          (executed, skipped, failures), flush=True)
+    return 1 if failures else (2 if executed == 0 else 0)
 
 
 if __name__ == "__main__":
