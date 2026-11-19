@@ -1,26 +1,38 @@
 # DAIMOS testkit - current verified status
 
-Updated: 2026-11-17. This file records **verified** testkit ownership
+Updated: 2026-11-19. This file records **verified** testkit ownership
 and focused checks only; it does **not** certify a full DAIMOS release
 or regression sweep.
 
 ## Ownership and migration
 
-The compiler/assembler and OS repositories have separate active owners:
+The compiler/assembler and OS repositories have separate active owners
+under the 2026-11-19 v4 native return:
 
-- `pdp10-testkit`: GCC, KCC, DAS, DLINK, compiler ABI, codegen, optimizer
-  and standalone PDP-6/PDP-10 ISA tests.
+- `pdp10-testkit`: standalone GCC, KCC, DAS, DLINK, compiler ABI,
+  codegen, optimizer and PDP-6/PDP-10 ISA tests.
 - `daimos-testkit`: DAIMOS boot, KCORE/MRES/KINIT, DSH, devices,
-  storage/filesystems, processes, syscalls and runtime acceptance.
+  storage/filesystems, processes, syscalls and runtime acceptance,
+  including all 25 boot-backed native toolchain integration suites.
 
 The 2026-11-17 v3 transfer reconciles 150 original source identities:
 127 compiler/assembler identities moved or deduplicated into PDP10
 (99 relocated, 28 already owned) and 23 OS tests/helpers moved here.
-Native compiler tests using a DAIMOS guest remain **manual compiler
-assertions** in PDP10; they are not OS regressions merely because they
-need a booted system as their environment.
+The later v4 return restores 71 guest-native script/fixture files
+from PDP10 to DAIMOS, removes their 25 manual PDP10 registrations, and
+registers them as explicitly selected native integration suites here.
+Cross-repository ownership and static dispatch checks pass. **No guest
+compiler or full DAIMOS regression suite was executed during v4.**
 
-## Latest focused verification (2026-11-17)
+## Focused verification (2026-11-19)
+
+- All 25 native test roots are registered in DAIMOS with 71 restored files.
+- Shell and Python static checks and the source/fixture hash audit pass.
+- The PDP10 cross-boundary audit and both dispatch tests pass without
+  launching SIMH, KCC, DAS or a guest operating system.
+- The 25 native runtime oracles remain unverified pending staged builds.
+
+## Earlier focused verification (2026-11-17)
 
 - The shared cross-repository source/fixture/ownership guard passed.
 - Eight relocated bounded DAIMOS host validations passed.

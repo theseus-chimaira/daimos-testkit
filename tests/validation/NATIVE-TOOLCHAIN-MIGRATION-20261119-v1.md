@@ -1,3 +1,5 @@
+> Historical checkpoint. Current ownership: `tests/validation/NATIVE-TOOLCHAIN-MIGRATION-20261119-v2.md`.
+
 # DAIMOS guest-native toolchain migration: preparation v1
 
 This repository will own the 25 explicitly selected guest-native KCC,

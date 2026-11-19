@@ -6,6 +6,8 @@ No guest, compiler, or simulator is executed. All subprocesses are mocked.
 import ast
 import csv
 import hashlib
+import io
+import contextlib
 import importlib.util
 from pathlib import Path
 import subprocess
@@ -54,7 +56,8 @@ def fake_run(args, cwd, env, timeout, check):
     calls.append(Path(args[1]).relative_to(ROOT).as_posix())
     return Result(1 if args[1].endswith(rows[0]["path"]) else 0)
 
-with patch.object(runner.subprocess, "run", side_effect=fake_run):
+with patch.object(runner.subprocess, "run", side_effect=fake_run), \
+     contextlib.redirect_stdout(io.StringIO()):
     assert runner.main(["list"]) == 0
     assert not calls
     assert runner.main(["run", rows[1]["id"]]) == 0

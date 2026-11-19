@@ -1,3 +1,5 @@
+> Historical checkpoint. Current ownership: `tests/validation/NATIVE-TOOLCHAIN-MIGRATION-20261119-v2.md`.
+
 # DAIMOS operating-system test ownership (2026-11-17 v3)
 
 `daimos-testkit` owns DAIMOS boot, KINIT/KCORE/MRES, DSH, D6FS/TSFS,
