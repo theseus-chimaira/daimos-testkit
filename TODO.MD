@@ -86,3 +86,11 @@ workarounds. The only release-grade result is a full, provenance-matched
 DAIMOS OS acceptance sweep; isolated host/ownership checks are not a
 substitute. Tools and compiler fixes belong in their production source
 repos, with their tests in `pdp10-testkit`.
+
+## 2026-11-19 KINIT PDP-6 codegen test ownership
+
+The production-KINIT source-based PDP-6 ADJSP exclusion test is owned
+here, not in PDP10-testkit. `make test-daimos-kcc-pdp6-codegen` passes
+against DAIMOS `01e58f2`; its Makefile stack stamp prerequisite is
+fixed, and no KCC compiler modification is implied. See
+`tests/validation/daimos-kinit-pdp6-stack-codegen-v1.md`.

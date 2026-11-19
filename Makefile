@@ -1354,6 +1354,13 @@ test-daimos-kinit-sixbit-lifetime: check-prefix
 	@DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" TMPDIR="$(TMPDIR)" \
 	    tests/validation/daimos-kinit-sixbit-lifetime-v1.sh
 
+.PHONY: test-daimos-kcc-pdp6-codegen
+test-daimos-kcc-pdp6-codegen: check-prefix
+	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
+	@DAIMOS_REPO="$$(cd "$(DAIMOS_REPO)" && pwd -P)" \
+	    PDP10_PREFIX="$(PDP10_PREFIX)" TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	    sh tests/validation/daimos-kinit-pdp6-stack-codegen-v1.sh
+
 test-daimos-monitorfs-devices-online: check-prefix
 	@test -n "$(DAIMOS_REPO)" || { echo "DAIMOS_REPO must be set" >&2; exit 2; }
 	@test -n "$(TMPDIR)" || { echo "TMPDIR must be set" >&2; exit 2; }
