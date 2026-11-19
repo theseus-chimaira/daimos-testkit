@@ -16,18 +16,21 @@ probe kcc-native-default-target
 command MAKE -Q -C /OPTION/SOURCE/KCC; ECHO STATUS:$?
 contains STATUS:1
 not_contains CANNOT PARSE
+not_contains DON'T KNOW HOW TO MAKE
 timeout 240
 end
-probe kcc-native-all-single-graph
-command MAKE -Q -C /OPTION/SOURCE/KCC ALL; ECHO STATUS:$?
+probe kcc-native-native-single-graph
+command MAKE -Q -C /OPTION/SOURCE/KCC NATIVE; ECHO STATUS:$?
 contains STATUS:1
 not_contains CANNOT PARSE
+not_contains DON'T KNOW HOW TO MAKE
 timeout 240
 end
 probe kcc-native-dry-run-first-object
-command MAKE -N -C /OPTION/SOURCE/KCC B/CC-CPP.S; ECHO STATUS:$?
+command MAKE -N -C /OPTION/SOURCE/KCC BUILD/CC-CPP.S; ECHO STATUS:$?
 contains STATUS:0
 not_contains CANNOT PARSE
+not_contains DON'T KNOW HOW TO MAKE
 timeout 240
 end
 probe kcc-native-dry-run-clean
@@ -36,18 +39,20 @@ contains STATUS:0
 timeout 120
 end
 probe kcc-native-kcpp-subgraph
-command MAKE -N -C /OPTION/SOURCE/KCC B/KCPP1.DARC; ECHO STATUS:$?
+command MAKE -N -C /OPTION/SOURCE/KCC BUILD/KCPP1.DARC; ECHO STATUS:$?
 contains STATUS:0
-contains B/CC-CPP.S
+contains BUILD/CC-CPP.S
 not_contains CANNOT PARSE
+not_contains DON'T KNOW HOW TO MAKE
 timeout 240
 end
 probe kcc-native-dry-run-first-assembly
-command MAKE -N -C /OPTION/SOURCE/KCC B/CCASMB.DOBJ; ECHO STATUS:$?
+command MAKE -N -C /OPTION/SOURCE/KCC BUILD/CCASMB.DOBJ; ECHO STATUS:$?
 contains STATUS:0
 contains DAS -F -C -O
-contains B/CCASMB.DOBJ B/CCASMB.S
+contains BUILD/CCASMB.DOBJ B/CCASMB.S
 not_contains CANNOT PARSE
+not_contains DON'T KNOW HOW TO MAKE
 timeout 240
 end
 EOF_PROBES

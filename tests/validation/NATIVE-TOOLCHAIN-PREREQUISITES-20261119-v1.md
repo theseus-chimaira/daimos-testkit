@@ -52,3 +52,23 @@ by the script's normal cleanup. No full guest-native acceptance run was
 performed. Future attempts must allocate an appropriately long build
 window and capture durable reports, rather than inferring an oracle
 result from this timeout.
+
+## Ten-minute preflight and real oracle failure
+
+A 600-second invocation completed in about 223 seconds. Three guest
+probes passed; the fourth, `kcc-native-first-object`, failed. A second
+600-second run with `KEEP_WORK=1` reproduced the 3 PASS / 1 FAIL
+result and retained the SIMH report in the user's TMPDIR. Its
+`run/norm.4` proves the issue: `MAKE: DON'T KNOW HOW TO MAKE:
+B/CC-CPP-V1.S`, followed by `STATUS:1`. The staged current KCC
+`daimos.mk` has `BUILD/CC-CPP.S`, not `B/CC-CPP-V1.S`, and its
+aggregate target is `NATIVE`, not `ALL`. The previous `ALL` probe
+incorrectly passed merely because `STATUS:1` was expected, even
+though native MAKE reported `DON'T KNOW HOW TO MAKE: ALL`.
+
+Both native MAKE test scripts have been updated to request the actual
+`NATIVE` and `BUILD/...` targets and to reject `DON'T KNOW HOW TO MAKE`
+output. The preflight now also checks the first-object exit status and
+build announcement against the real target. These are corrections of
+stale test oracles, not changes to DAIMOS or KCC production sources.
+The corrected execution result must be reported separately.

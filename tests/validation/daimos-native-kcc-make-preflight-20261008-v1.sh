@@ -15,12 +15,14 @@ probe kcc-native-default-target
 command MAKE -Q -C /OPTION/SOURCE/KCC; ECHO STATUS:$?
 contains STATUS:1
 not_contains CANNOT PARSE
+not_contains DON'T KNOW HOW TO MAKE
 timeout 240
 end
-probe kcc-native-all-single-graph
-command MAKE -Q -C /OPTION/SOURCE/KCC ALL; ECHO STATUS:$?
+probe kcc-native-native-single-graph
+command MAKE -Q -C /OPTION/SOURCE/KCC NATIVE; ECHO STATUS:$?
 contains STATUS:1
 not_contains CANNOT PARSE
+not_contains DON'T KNOW HOW TO MAKE
 timeout 240
 end
 probe kcc-native-clean
@@ -29,7 +31,7 @@ contains STATUS:0
 timeout 120
 end
 probe kcc-native-first-object
-command MAKE -C /OPTION/SOURCE/KCC B/CC-CPP-V1.S; ECHO STATUS:$?
+command MAKE -C /OPTION/SOURCE/KCC BUILD/CC-CPP.S; ECHO STATUS:$?
 contains MAKE: BUILD
 contains STATUS:0
 timeout 120
