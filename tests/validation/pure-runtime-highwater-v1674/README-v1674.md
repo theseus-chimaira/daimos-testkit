@@ -124,6 +124,29 @@ v1674 oracles still require every expected lifecycle, owner and
 memory checkpoint, and the child is released by a pipe event rather
 than by a timer.
 
+## Cross-profile build fingerprint gate
+
+The first independent v1674 general/strict physical control runs passed
+individually but were NOT comparable: their KCORE executables and all
+PURE MRES DOBJ inputs had identical SHA256 hashes, yet the general PURE
+MRES contained two obsolete cross-object folds (103+25 donor words) and
+was 88 words smaller at runtime. `p10fold` was replaced between the
+builds, at 10:54 CET on 2026-11-19. The newer tool includes commit
+`01e58f21`, rejecting folds where numerically identical local relocation
+offsets belong to different DOBJ objects. Rechecking both identical
+input sets with the newer binary emits zero folds. The original general
+physical free baseline was 27427, whereas strict was 27339; both
+reclaimed 24647 process/MM words and returned to their own baseline.
+
+This was a mixed-toolchain comparison, not evidence that strict swapless
+requires extra resident RAM. The corrected requirement is to source-build
+both variants using the same updated tools. The v1674 paired comparison
+now also requires a byte-identical linked `pure-mres-v1612.dxr` SHA256,
+in addition to matching fixed KCORE, test fixture and physical checkpoints.
+A read of the *current* installed tool's hash alone would not prove the
+version that produced an earlier image, hence the linked output hash is
+the actual identity gate.
+
 ## Gates not covered
 
 No post-user continuous memory result is accepted until the full new

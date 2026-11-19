@@ -56,7 +56,8 @@ def run(args):
     a, b = load(args[1]), load(args[2])
     for key in ("min_event_free", "max_event_nonfree", "watches",
                 "baseline_free", "pressure_free", "reaped_free",
-                "fixture_map_sha256", "kernel_map_sha256"):
+                "fixture_map_sha256", "kernel_map_sha256",
+                "pure_mres_sha256"):
         if a[key] != b[key]:
             raise ValueError("physical general/strict %s differ" % key)
     print("PASS v1674: GENERAL / STRICT original-MM physical write-watch "

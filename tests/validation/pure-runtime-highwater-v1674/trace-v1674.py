@@ -241,7 +241,15 @@ def run(argv):
     # observed in a validated physical checkpoint.
     expect(minimum["free"] <= pressure["free_words"],
            "physical high-water missed accepted pressure checkpoint")
+    # KCORE map equality alone cannot establish common production MRES.
+    # v1674: a p10fold update correctly rejected unsafe cross-object
+    # relocations between two builds made minutes apart, making the
+    # original PURE MRES differ by 88 resident words. Require identical
+    # linked PURE service images before comparing general and strict.
+    pure_image = coremap.parent / "pure-mres-v1612.dxr"
+    expect(pure_image.is_file(), "missing source-built PURE MRES image")
     report = dict(kernel_map_sha256=hashlib.sha256(coremap.read_bytes()).hexdigest(),
+                  pure_mres_sha256=hashlib.sha256(pure_image.read_bytes()).hexdigest(),
                   fixture_map_sha256=hashlib.sha256(fixture.read_bytes()).hexdigest(),
                   core_kwords=48,
                   watches=len(watched), event_count=order,
