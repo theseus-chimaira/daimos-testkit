@@ -115,3 +115,13 @@ The retained diagnostic tree is
 A separate opt-in `daimos-native-kcc-hello-v1.sh` now stages and
 compiles a real `puts("Hello, world!")` source. It validates compilation
 and assembly-file creation only, not linking or executing the result.
+
+## Hello-world native compile attempt
+
+The independent `puts("Hello, world!")` compile-only smoke test
+also reached native KCC but failed to finish within 600 seconds. The
+last output was `KCC: KCC000005`, matching the smaller `return 0`
+compile test. Its retained evidence is
+`$TMPDIR/daimos-native-kcc-hello-v1-29860/`. Both attempts are
+**incomplete/timeouts**, not accepted native compiler passes.
+Investigate KCC progress before running more full-image rebuilds.
