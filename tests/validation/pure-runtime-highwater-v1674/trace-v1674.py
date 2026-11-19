@@ -60,6 +60,7 @@ def replay(text, watched, shadow, addresses, index):
     commits = 0
     resizes = 0
     pure_spans = 0
+    brk_spans = 0
     staging = 0
     # Only MM data arrays and count may mutate. Any arena/core change is
     # an unexpected runtime contract change, not an allowable new peak.
@@ -70,6 +71,7 @@ def replay(text, watched, shadow, addresses, index):
         pc, address, value = (int(v, 8) for v in match.groups())
         expect(address in watched, "unwatched physical MM address")
         expect(address in mutable, "runtime changed permanent MM geometry")
+        previous = shadow[address]
         shadow[address] = value
         is_commit = address == addresses["mm_extent_count"]
         is_span = (addresses["mm_extents"] <= address <
@@ -82,16 +84,39 @@ def replay(text, watched, shadow, addresses, index):
             addresses["mm_pin"])
         generic_shift = (addresses["mm_extent_insert"] - 0o20 <= pc <
                          addresses["mm_is_pinned"])
-        pure_span = is_span and not generic_shift and not typed_resize
-        is_resize = typed_resize or pure_span
+        brk_span = is_span and (
+            addresses["vm_space_brk_current"] <= pc <
+            addresses["vm_space_create"])
+        pure_span = is_span and pc >= addresses["__kcore_low_end"]
+        is_resize = typed_resize or pure_span or brk_span
+        # The genuine in-place BRK commit uses MOVEM 4,(6) in vm_pdp6.s,
+        # not the PURE MRES. Only the later relocatable PURE service
+        # adjusts a span by the immutable 128-word prefix. Never label
+        # all non-generic MM span writes as PURE: that falsely counts
+        # five ordinary BRK expansions as PURE reclamation.
+        if is_span and not generic_shift and not typed_resize:
+            expect(brk_span or pure_span,
+                   "unclassified original-MM span writer PC %06o" % pc)
+        if brk_span:
+            old_size = (previous >> 18) & ((1 << 18) - 1)
+            new_size = (value >> 18) & ((1 << 18) - 1)
+            expect(old_size > 0 and new_size > 0 and
+                   old_size != new_size and
+                   (new_size - old_size) % 1024 == 0,
+                   "invalid in-place process BRK quantum")
+        if pure_span:
+            old_size = (previous >> 18) & ((1 << 18) - 1)
+            new_size = (value >> 18) & ((1 << 18) - 1)
+            old_base = previous & ((1 << 18) - 1)
+            new_base = value & ((1 << 18) - 1)
+            expect(abs(new_size - old_size) == 128 and
+                   new_base + new_size == old_base + old_size,
+                   "PURE span did not preserve 128-word suffix endpoint")
         # mm_delete shifts before SOS count; mm_extent_insert shifts
         # before AOS count. Their partial descriptor views are NOT
-        # allocations and can look valid by accident. Conversely the
-        # typed MM shrink/grow and source-linked PURE MRES rebase/claim/
-        # release change a span in place without changing extent_count.
-        # These must count as real RAM occupancy changes. Physical
-        # watchpoints make the MRES PC classification safe from user PC
-        # aliases. The source mutation graph is checked by run().
+        # allocations, even if they happen to look geometrically valid.
+        # The typed MM shrink/grow, in-place BRK, and source-linked PURE
+        # rebase/claim/release are real physical occupancy changes.
         if not is_commit and not is_resize:
             staging += 1
             index += 1
@@ -102,6 +127,8 @@ def replay(text, watched, shadow, addresses, index):
             resizes += 1
             if pure_span:
                 pure_spans += 1
+            if brk_span:
+                brk_spans += 1
         entry = dict(event="mm-count" if is_commit else "mm-resize",
                      words=shadow)
         try:
@@ -119,13 +146,14 @@ def replay(text, watched, shadow, addresses, index):
                           by_type=state["by_type"],
                           extent_count=state["extents"],
                           committed=is_commit, resize=is_resize,
-                          pure_span=pure_span))
+                          pure_span=pure_span, brk_span=brk_span))
         index += 1
     expect(commits > 0, "no actual physical MM extent-count commits")
     expect(commits + resizes + staging == len(matched),
            "MM physical write sequence not fully classified")
     return dict(observed=len(matched), commits=commits,
                 resizes=resizes, pure_span_events=pure_spans,
+                brk_span_events=brk_spans,
                 staging_writes=staging,
                 stable=valid), index
 
@@ -158,6 +186,10 @@ def run(argv):
         original = (pure_mm / name).read_text(encoding="ascii")
         expect(original.count(opcode) == expected,
                "untracked PURE MRES span mutation in " + name)
+    vm_source = (Path(root) / "system/kernel/proc/vm_pdp6.s").read_text(
+        encoding="ascii")
+    expect(vm_source.count("movem   4,(6)") == 1,
+           "untracked in-place VM BRK descriptor commit")
     expect(physical["core_kwords"] == 48 and
            physical["children_requested"] == 9,
            "v1673 physical acceptance is not 48K nine-child RAW PURE")
@@ -172,7 +204,9 @@ def run(argv):
                  "mm_arena_count", "sys_resident_words_immediate",
                  "mm_arenas", "mm_extents", "mm_process_shrink_pinned",
                  "mm_process_grow_pinned", "mm_pin",
-                 "mm_extent_insert", "mm_is_pinned")
+                 "mm_extent_insert", "mm_is_pinned",
+                 "vm_space_brk_current", "vm_space_create",
+                 "__kcore_low_end")
     addresses = {name: P1673.lookup(coremap, name) for name in locations}
     watched = set(range(addresses["mm_extents"],
                         addresses["mm_extents"] + 2 * 32))
@@ -257,6 +291,8 @@ def run(argv):
                   resize_events=sum(p["resizes"] for p in phase_reports),
                   pure_span_events=sum(p["pure_span_events"]
                                        for p in phase_reports),
+                  brk_span_events=sum(p["brk_span_events"]
+                                      for p in phase_reports),
                   staging_writes=sum(p["staging_writes"]
                                      for p in phase_reports),
                   min_event_free=minimum["free"],

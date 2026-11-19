@@ -33,6 +33,13 @@ def source_fixture_contract():
     assert "movei 01,052" in child  # actual BRK extension selector
     assert "uuo 077,0(1)" in child
     assert "came 04,[01234567]" in child
+    # The original v1673 CTY oracle rejects repeated physical words.
+    # Reading mm_extent_capacity a second time during A setup broke the
+    # original full physical run despite an otherwise valid guest.
+    monitor_source = (HERE / "host-cty-v1674.py").read_text(
+        encoding="ascii")
+    assert "capacity = read_word(snapshot_text, source_symbol(" in monitor_source
+    assert "capacity = examine_word(" not in monitor_source
 
 def run():
     source_fixture_contract()
@@ -40,9 +47,14 @@ def run():
                      mm_process_shrink_pinned=0o2277,
                      mm_process_grow_pinned=0o2341,
                      mm_pin=0o2473, mm_extent_insert=0o1222,
-                     mm_is_pinned=0o1267)
+                     mm_is_pinned=0o1267,
+                     vm_space_brk_current=0o21732,
+                     vm_space_create=0o22320,
+                     __kcore_low_end=0o24102)
     watched = set(range(0o24102, 0o24102 + 64)) | {0o23471}
-    shadow = {0o23471: 10, 0o24102: 5, 0o24104: 6}
+    shadow = {0o23471: 10, 0o24102: 5, 0o24104: 6,
+              0o24106: (2048 << 18) | 0o10000,
+              0o24110: (3072 << 18) | 0o12000}
     original_decode = trace.P1670.decode
 
     def physical(state, addresses, core, index):
@@ -62,14 +74,16 @@ def run():
                   event(0o1252, 0o24102, 5) +
                   event(0o1253, 0o23471, 11) +
                   event(0o2317, 0o24104, 33) +
-                  event(0o22163, 0o24106, 33))
+                  event(0o22163, 0o24106, (3072 << 18) | 0o10000) +
+                  event(0o34435, 0o24110, (2944 << 18) | 0o12200))
         report, length = trace.replay(window, watched, shadow, addresses, 0)
-        assert length == 5
+        assert length == 6
         assert report["commits"] == 1
-        assert report["resizes"] == 2
+        assert report["resizes"] == 3
         assert report["pure_span_events"] == 1
+        assert report["brk_span_events"] == 1
         assert report["staging_writes"] == 2
-        assert [x["free"] for x in report["stable"]] == [100, 100, 100]
+        assert [x["free"] for x in report["stable"]] == [100] * 4
         assert not any(x["free"] == 1 for x in report["stable"])
         try:
             trace.replay(event(0o1253, 0o23472, 11), watched,

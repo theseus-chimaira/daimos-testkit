@@ -26,15 +26,40 @@ trap cleanup EXIT HUP INT TERM
 # much slower than the ordinary guest: this timeout is host wall time,
 # not a child's synthetic sleep or a kernel scheduling deadline.
 V1673_TIMEOUT=${V1673_TIMEOUT:-3600}
-V1673_TIMEOUT="$V1673_TIMEOUT" \
-V1673_WORK_DIR="$work" \
-V1673_GUEST_C="$here/proc-pressure-v1674.c" \
-V1673_CHILD_ASM="$here/pipe-child-v1674.s" \
-V1673_CTY_DRIVER="$here/host-cty-v1674.py" \
-KEEP_TEST=1 sh "$here/../pure-runtime-reclaim-v1673/run-physical-v1673.sh"
 fixture=${V1673_FIXTURE_BUILD:-$work/fixture}
+case "${V1674_ONLY_VARIANT:-both}" in
+    general|strict|both) ;;
+    *) echo 'FAIL v1674: unknown physical profile' >&2; exit 2 ;;
+esac
+# The v1673 legacy pair comparator intentionally checks the original
+# timer-based test's 17729-word resident baseline. The deterministic
+# v1674 pipe owner uses 14 more stable MM words, so run each profile
+# through the unmodified v1673 *physical-source* verifier separately.
+# v1674 compares both actual linked MRES images and source-derived
+# high-water results only after both individual full guests pass.
 for variant in general strict; do
-    if [ -n "${V1674_ONLY_VARIANT:-}" ] && \
+    if [ "${V1674_ONLY_VARIANT:-both}" != both ] && \
+        [ "$variant" != "$V1674_ONLY_VARIANT" ]; then
+        continue
+    fi
+    if [ -s "$fixture/v1673-test-init.dxr" ]; then
+        V1673_FIXTURE_BUILD="$fixture" V1673_ONLY_VARIANT="$variant" \
+        V1673_TIMEOUT="$V1673_TIMEOUT" V1673_WORK_DIR="$work" \
+        V1673_GUEST_C="$here/proc-pressure-v1674.c" \
+        V1673_CHILD_ASM="$here/pipe-child-v1674.s" \
+        V1673_CTY_DRIVER="$here/host-cty-v1674.py" \
+        KEEP_TEST=1 sh "$here/../pure-runtime-reclaim-v1673/run-physical-v1673.sh"
+    else
+        V1673_ONLY_VARIANT="$variant" V1673_TIMEOUT="$V1673_TIMEOUT" \
+        V1673_WORK_DIR="$work" \
+        V1673_GUEST_C="$here/proc-pressure-v1674.c" \
+        V1673_CHILD_ASM="$here/pipe-child-v1674.s" \
+        V1673_CTY_DRIVER="$here/host-cty-v1674.py" \
+        KEEP_TEST=1 sh "$here/../pure-runtime-reclaim-v1673/run-physical-v1673.sh"
+    fi
+done
+for variant in general strict; do
+    if [ "${V1674_ONLY_VARIANT:-both}" != both ] && \
         [ "$variant" != "$V1674_ONLY_VARIANT" ]; then
         continue
     fi
@@ -53,7 +78,7 @@ for variant in general strict; do
         exit 1
     }
 done
-if [ -n "${V1674_ONLY_VARIANT:-}" ]; then
+if [ "${V1674_ONLY_VARIANT:-both}" != both ]; then
     variant=$V1674_ONLY_VARIANT
     case "$variant" in
         general) build=${V1673_GENERAL_BUILD:-$work/general-build} ;;

@@ -29,7 +29,12 @@ def load(path):
             report["resize_events"] or \
             sum(p["pure_span_events"] for p in report["phases"]) != \
             report["pure_span_events"] or \
-            report["pure_span_events"] < 9 or \
+            [p["pure_span_events"] for p in report["phases"]] != [9, 9] or \
+            report["pure_span_events"] != 18 or \
+            sum(p["brk_span_events"] for p in report["phases"]) != \
+            report["brk_span_events"] or \
+            report["brk_span_events"] != 5 or \
+            [p["brk_span_events"] for p in report["phases"]] != [5, 0] or \
             sum(p["staging_writes"] for p in report["phases"]) != \
             report["staging_writes"]:
         raise ValueError("forged MM write classification")

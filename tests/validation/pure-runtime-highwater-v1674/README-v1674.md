@@ -124,6 +124,29 @@ v1674 oracles still require every expected lifecycle, owner and
 memory checkpoint, and the child is released by a pipe event rather
 than by a timer.
 
+## Rejected first instrumented trial: duplicate A monitor word
+
+The first complete 48K general write-watch run reached nine-child
+reclamation, PIPE release, EXIT/WAIT and the guest PASS marker, but the
+v1673 physical transcript verifier rejected the A checkpoint with
+`duplicate physical MM word 23416`. The v1674 host controller had
+issued a second EX of the already observed `mm_extent_capacity` when
+arming the 71 -W watches. The physical console is retained as a
+**rejected diagnostic**, not an accepted v1674 result. The controller
+now reads that capacity once from the original first A snapshot and
+never re-examines it. A fast native source/monitor regression asserts
+that duplicate-read error cannot silently recur. Both physical profiles
+are rerun under the same fixed p10fold toolchain; the old mixed-tool
+run is not eligible for paired acceptance.
+
+The actual logged write stream exposed three distinct legitimate span
+mutations: five in-place `vm_space_brk_current` growth commits in fixed
+KCORE, nine PURE MRES 128-word suffix rebase commits and nine PURE MRES
+128-word prefix restoration commits. The v1674 oracle now classifies
+these separately, validates exact span deltas/ends, and requires 5/9/9
+per original A-to-B/B-to-C intervals. Ordinary MM descriptor shifts
+remain excluded from committed high-water even when transiently valid.
+
 ## Cross-profile build fingerprint gate
 
 The first independent v1674 general/strict physical control runs passed

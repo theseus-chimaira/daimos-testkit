@@ -127,11 +127,13 @@ def run(argv):
 
 
             watches = []
-            def set_watchpoints():
-                # MM extent capacity is bounded by physical installed RAM.
-                # The monitor is stopped at A, so all these addresses are
-                # from a stable source-linked live original-MM snapshot.
-                capacity = examine_word(source_symbol(
+            def set_watchpoints(snapshot_text):
+                # Reuse the original stable A snapshot. A second EX of
+                # mm_extent_capacity would duplicate one physical word
+                # inside the CTY checkpoint and rightly fail the strict
+                # original v1673 unique-word verifier. Arm watches only;
+                # do not re-examine the same monitor/MM address.
+                capacity = read_word(snapshot_text, source_symbol(
                     coremap, "mm_extent_capacity"))
                 if capacity != 32:
                     raise ValueError("v1674 requires 48K MM capacity 32")
@@ -199,7 +201,8 @@ def run(argv):
                         uarea = (meta >> 18) & ((1 << 18) - 1)
                         examine_range(uarea + 0o406, 1, core)
                 if token == "A":
-                    set_watchpoints()
+                    set_watchpoints(output[snapshot_start:].decode(
+                        "ascii", errors="ignore"))
                 if token == "C":
                     clear_watchpoints()
                 start = len(output)
