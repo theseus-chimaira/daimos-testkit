@@ -5,6 +5,31 @@ extension follows the accepted v1673 RAW PURE 48K pressure test and must
 not be presented as accepted until the general and strict variants and
 the v1674 negative tests pass.
 
+## Deterministic source-matched child fixture
+
+The original v1673 sleeping child has a finite 600-second clock
+interval. SIMH physical write watches change wall-clock scheduling,
+so that child is not an adequate high-water stress fixture.
+
+An initial v1674 pipe-based fixture also failed: its RUN FD map
+reversed the child and parent descriptor operands and its child used
+TTY-style SYS_READCHAR on the wrong descriptor. The genuine physical
+console printed `V1673 UNEXPECTED TRIGGER ADMISSION` before HALT;
+those results and the incomplete high-water minimum are **rejected**.
+Do not classify this as a proven kernel defect or accept the earlier
+1,362-word preliminary minimum as an end-to-end result.
+
+The revised PID1 creates one ordinary native PIPE before checkpoint A
+and passes the **parent reader as child FD0** through RUN FD mapping.
+Each child blocks in native SYS_READ_WORDS; original kernel code drops
+its user mapping before the wait, making it eligible for normal PURE
+reclamation. PID1 retains the writer and, strictly after physical B,
+writes one checked 36-bit release token per child. Each restored child
+verifies both that token and its original PID-specific writable-suffix
+canary before native EXIT. No timeout, debugger-specific guest hook or
+kernel change controls child release. The PIPE object remains alive in
+PID1 at A and C, preserving the expected baseline after WAIT.
+
 ## Why a new measurement is needed
 
 The v1673 CTY checkpoints A/B/C prove stable original physical MM state

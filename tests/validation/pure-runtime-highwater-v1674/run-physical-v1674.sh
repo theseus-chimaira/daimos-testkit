@@ -24,7 +24,7 @@ trap cleanup EXIT HUP INT TERM
 # the physical A checkpoint, so KINIT is not sampled or slowed.
 V1673_WORK_DIR="$work" \
 V1673_GUEST_C="$here/proc-pressure-v1674.c" \
-V1673_CHILD_ASM="$here/sleep-child-v1674.s" \
+V1673_CHILD_ASM="$here/pipe-child-v1674.s" \
 V1673_CTY_DRIVER="$here/host-cty-v1674.py" \
 KEEP_TEST=1 sh "$here/../pure-runtime-reclaim-v1673/run-physical-v1673.sh"
 fixture=${V1673_FIXTURE_BUILD:-$work/fixture}

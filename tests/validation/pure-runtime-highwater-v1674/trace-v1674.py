@@ -163,6 +163,11 @@ def run(argv):
            "v1673 physical acceptance is not 48K nine-child RAW PURE")
     expect(content.count("V1673 PASS RUN EXIT WAIT") == 1,
            "incomplete native RUN/EXIT/WAIT guest")
+    expect(content.count("V1674 PIPE RELEASED") == 1 and
+           content.index("V1673 RELEASE B") <
+           content.index("V1674 PIPE RELEASED") <
+           content.index("V1673 HOLD C"),
+           "no deterministic pipe-held child release after B")
     locations = ("mm_core_words", "mm_extent_capacity", "mm_extent_count",
                  "mm_arena_count", "sys_resident_words_immediate",
                  "mm_arenas", "mm_extents", "mm_process_shrink_pinned",
@@ -225,10 +230,13 @@ def run(argv):
     # independently. The event stream is NOT their replacement.
     baseline, pressure, reaped = (physical[name] for name in
                                    ("baseline", "pressure", "reaped"))
-    expect(baseline["free_words"] == reaped["free_words"] == 27441 and
-           pressure["free_words"] == 2794 and
-           pressure["packed_apr_count"] == 9,
-           "v1673 original physical RAW reclaim gate failed")
+    expect(baseline["free_words"] == reaped["free_words"] and
+           baseline["free_words"] > pressure["free_words"] >= 2048 and
+           pressure["largest_free_words"] < 2048 and
+           pressure["packed_apr_count"] == 9 and
+           baseline["process_apr_count"] == reaped["process_apr_count"] == 1 and
+           baseline["packed_apr_count"] == reaped["packed_apr_count"] == 0,
+           "source-checked v1674 physical RAW reclaim gate failed")
     # Final result bounds: we cannot see less free physical MM than
     # observed in a validated physical checkpoint.
     expect(minimum["free"] <= pressure["free_words"],

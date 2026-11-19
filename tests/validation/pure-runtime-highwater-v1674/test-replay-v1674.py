@@ -16,7 +16,26 @@ def event(pc, addr, value):
         pc, addr, value)
 
 
+
+
+def source_fixture_contract():
+    pid1 = (HERE / "proc-pressure-v1674.c").read_text(encoding="ascii")
+    child = (HERE / "pipe-child-v1674.s").read_text(encoding="ascii")
+    # RUN_FD_MAP(child_fd, parent_fd): reversed arguments silently
+    # map the parent's CTY instead of the PIPE reader into child fd0.
+    assert "SYS_RUN_FD_MAP(0U, (unsigned int)readfd)" in pid1
+    assert "SYS_RUN_FD_MAP((unsigned int)readfd, 0U)" not in pid1
+    assert "dsys_pipe()" in pid1
+    assert "dsys_write_words(pipe_write_fd, &release_token, 1U)" in pid1
+    assert "V1674 PIPE RELEASED" in pid1
+    assert "uuo 055,0(1)" in child
+    assert "uuo 061,0(1)" not in child
+    assert "movei 01,052" in child  # actual BRK extension selector
+    assert "uuo 077,0(1)" in child
+    assert "came 04,[01234567]" in child
+
 def run():
+    source_fixture_contract()
     addresses = dict(mm_extents=0o24102, mm_extent_count=0o23471,
                      mm_process_shrink_pinned=0o2277,
                      mm_process_grow_pinned=0o2341,

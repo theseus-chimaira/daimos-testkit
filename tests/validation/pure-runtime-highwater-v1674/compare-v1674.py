@@ -11,9 +11,9 @@ def load(path):
     if report["core_kwords"] != 48 or report["watches"] != 71 or \
             report["event_count"] < 25 or \
             report["committed_events"] < 10 or \
-            report["baseline_free"] != 27441 or \
-            report["pressure_free"] != 2794 or \
-            report["reaped_free"] != 27441 or \
+            report["baseline_free"] != report["reaped_free"] or \
+            report["baseline_free"] <= report["pressure_free"] or \
+            report["pressure_free"] < 2048 or \
             report["max_event_nonfree"] != 49152-report["min_event_free"]:
         raise ValueError("invalid 48K physical write-watch report")
     if len(report["phases"]) != 2 or [x["phase"] for x in
@@ -55,7 +55,8 @@ def run(args):
         raise ValueError("usage: compare-v1674.py general.json strict.json")
     a, b = load(args[1]), load(args[2])
     for key in ("min_event_free", "max_event_nonfree", "watches",
-                "baseline_free", "pressure_free", "reaped_free"):
+                "baseline_free", "pressure_free", "reaped_free",
+                "fixture_map_sha256", "kernel_map_sha256"):
         if a[key] != b[key]:
             raise ValueError("physical general/strict %s differ" % key)
     print("PASS v1674: GENERAL / STRICT original-MM physical write-watch "

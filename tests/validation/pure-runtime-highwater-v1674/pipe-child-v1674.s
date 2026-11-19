@@ -1,4 +1,6 @@
-; Minimal test-only child, event-blocked on inherited PIPE fd0.
+; v1674: test-only PURE child with deterministic pipe read + EXIT.
+; Its standard SYS_READ_WORDS blocks on inherited FD0 until PID1 releases
+; the nine children after the physical MM B checkpoint. No timer expiry.
 ; No C runtime or large TSFS executable; all outputs are ASCII comments.
         .text
         .globl _start
@@ -22,11 +24,16 @@ _start:
         uuo 077,0(1)
         jumpl 01,__bad_brk
 __sleep:
-        movei 01,0              ; inherited reader pipe, mapped as fd0
-        uuo 061,0(1)            ; real SYS_READCHAR: blocks in PROC_SLEEP
-        caie 01,0122            ; 'R': explicit PID1 release token
-        jrst __bad_canary
-        uuo 076,0               ; recover own PID, not pre-SLEEP AC state
+        movei 01,0              ; inherited pipe read end in child FD0
+        movei 02,02501          ; one writable suffix word, no APR pin while blocked
+        movei 03,1              ; request exactly one 36-bit word
+        uuo 055,0(1)             ; native SYS_READ_WORDS, blocks as PROC_SLEEP
+        caie 01,1              ; exactly one release token expected
+        jrst __bad_pipe
+        move 04,02501           ; verify the unique parent release value
+        came 04,[01234567]
+        jrst __bad_pipe
+        uuo 076,0               ; recover own PID, not pre-pipe AC state
         movei 03,012345
         xor 03,1
         came 03,02500          ; compare retained writable suffix
@@ -38,22 +45,21 @@ __bad_brk:
         movei 01,17            ; BRK rejected: never silently continue
         uuo 040,0(1)
         halt .
+__bad_pipe:
+        movei 01,15            ; invalid/missing pipe release
+        uuo 040,0(1)
+        halt .
 __bad_canary:
         movei 01,16            ; retained RAW suffix was lost/corrupted
         uuo 040,0(1)
         halt .
 
-; Retain the original fixed DXR2 text extent: eleven added canary
-; instructions replace eleven original padding words.
+; Retain the original fixed DXR2 text extent: the v1674 blocking
+; read, token verification and error path replace six padding words.
 ; One full explicit DXR2 text sector, unreachable in normal execution.
 ; This gives the actual PURE loader an immutable prefix to release.
 ; Without sufficient TX2 text, the PDP-6 sector skip is zero, and
 ; no RAW eviction is legal. This is a source-backed test fixture.
-        .word 0
-        .word 0
-        .word 0
-        .word 0
-        .word 0
         .word 0
         .word 0
         .word 0

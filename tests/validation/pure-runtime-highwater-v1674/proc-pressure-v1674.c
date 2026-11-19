@@ -1,4 +1,4 @@
-/* Physical PDP-6 deterministic blocked-child memory pressure v1674.
+/* v1674 physical RAW PURE MM pressure, deterministic pipe-held children.
  * The production KCORE and original INIT executable are NOT modified.
  * This C89 fixture replaces /SYSTEM/INIT only in a disposable TSFS image.
  */
@@ -11,8 +11,10 @@ extern void v1673_before(void);
 extern void v1673_pressure(void);
 extern void v1673_reaped(void);
 
-/* A disposable TSFS manifest substitutes the tiny v1673 sleep-and-exit
- * assembly test under MOUNTALL. Never alter the production MOUNTALL. */
+/* Test-only MOUNTALL child reads one word from an inherited pipe.
+ * A blocked pipe read is a normal native PROC_SLEEP and has no timer;
+ * it is safe to resume after arbitrarily slow host-side MM watchpoints.
+ * Never replace the production INIT/MOUNTALL except on disposable media. */
 static const char *const v1673_init_name = "/SYSTEM/EXEC/MOUNTALL";
 
 static void
@@ -24,7 +26,7 @@ v1673_line(const char *text, kword_t number)
 }
 
 static int
-v1673_run_child(int reader_fd)
+v1673_run_child(int readfd)
 {
         kword_t words[V1673_RUN_WORDS];
         kword_t path[U_PATH_WORDS];
@@ -64,7 +66,7 @@ v1673_run_child(int reader_fd)
         }
         for (i = 0U; i < child_words; ++i)
                 words[arg1 + i] = child[i];
-        words[maps] = SYS_RUN_FD_MAP((unsigned int)reader_fd, 0U);
+        words[maps] = SYS_RUN_FD_MAP(0U, (unsigned int)readfd);
         words[maps + 1U] = SYS_RUN_FD_MAP(1U, 1U);
         words[maps + 2U] = SYS_RUN_FD_MAP(2U, 2U);
         return dsys_run(run);
@@ -85,7 +87,7 @@ v1673_meminfo(const char *phase)
         v1673_line("V1673 TOTAL ", mem.total_words);
         v1673_line("V1673 RESIDENT ", mem.resident_words);
         v1673_line("V1673 PROCESS-WORDS ", mem.process_words);
-    v1673_line("V1673 PROC-SLOTS ", mem.process_slots_used);
+        v1673_line("V1673 PROC-SLOTS ", mem.process_slots_used);
 }
 
 /* Guest-only deterministic checkpoint. The host pauses SIMH at the
@@ -122,39 +124,43 @@ main(int argc, kword_t **argv)
         int children[V1673_MAX_CHILDREN];
         int pid;
         kword_t status;
-        kword_t pair;
-        int reader_fd;
-        int writer_fd;
         struct sys_meminfo mem;
+        kword_t pipe_pair;
+        kword_t release_token;
+        int pipe_read_fd;
+        int pipe_write_fd;
 
         if (argc == 2 && u_s6_eq(argv[1], "CHILD"))
-                return 39; /* Only the assembly child may run. */
+                return 39; /* Only the assembly test child is valid. */
         if (dsys_getpid() != 1 || argc < 1 ||
             dsys_meminfo(&mem) != 0) {
                 (void)u_puts(1, "V1673 BAD INITIAL PROCESS");
                 (void)u_crlf(1);
                 return 31;
         }
-        /* Physically test the 48K PDP-6 only. Its 12 process slots
-         * allow nine retained children plus a final pressure RUN.
-         * The last RUN must refuse when all nine eligible PURE
-         * sleepers retain only their RAW suffix in fragmented core.
-         * This is a tested pressure trigger, not a fake allocation. */
+        /* Test only 48K PDP-6. Nine pipe-blocked PURE children must
+         * remain eligible for RAW reclamation until B, regardless of
+         * host wall-clock and simulator single-step throughput.
+         * A tenth RUN must refuse due to original-MM fragmentation. */
         if (mem.total_words != 49152UL)
                 return 37;
         count = 9U;
-        /* Original PIPE event sleep is indefinite until PID1 writes an
-         * explicit release token. This is the same PROC_SLEEP state as
-         * timer sleep, without wall-clock expiry under SIMH watchpoints.
-         * Establish the stable pipe allocation BEFORE checkpoint A and
-         * keep its descriptors until after C; no MM baseline drift. */
-        pair = dsys_pipe();
-        if (pair == (kword_t)-1)
+        /* Create exactly one native word pipe before the baseline sample.
+         * Children inherit its read end as their FD0.  PID1 alone retains
+         * the write end, so the children cannot exit until checkpoint B
+         * has been physically examined and PID1 writes release tokens.
+         * Unlike timed SLEEP, this remains deterministic under unlimited
+         * simulator-side write-watch overhead. */
+        pipe_pair = dsys_pipe();
+        if (pipe_pair == (kword_t)-1)
+                return 39;
+        pipe_read_fd = (int)((pipe_pair >> 18U) & 0777777UL);
+        pipe_write_fd = (int)(pipe_pair & 0777777UL);
+        if (pipe_read_fd < 3 || pipe_read_fd >= (int)SYS_RUN_FD_MAX ||
+            pipe_write_fd < 3 || pipe_write_fd >= (int)SYS_RUN_FD_MAX ||
+            pipe_read_fd == pipe_write_fd)
                 return 40;
-        reader_fd = (int)((pair >> 18U) & 0777777UL);
-        writer_fd = (int)(pair & 0777777UL);
-        if (reader_fd < 3 || writer_fd < 3 || reader_fd == writer_fd)
-                return 41;
+        release_token = 01234567UL;
         v1673_line("V1673 START CHILDREN ", count);
         v1673_meminfo("V1673 BASELINE");
         v1673_before();
@@ -164,7 +170,7 @@ main(int argc, kword_t **argv)
         actual = 0U;
         for (i = 0U; i < count; ++i) {
                 v1673_line("V1673 LAUNCH ", i);
-                pid = v1673_run_child(reader_fd);
+                pid = v1673_run_child(pipe_read_fd);
                 if (pid <= 0) {
                         (void)u_puts(1, "V1673 RUN FAILURE");
                         (void)u_crlf(1);
@@ -174,7 +180,7 @@ main(int argc, kword_t **argv)
                 v1673_line("V1673 CHILD PID ", (kword_t)pid);
         }
         v1673_line("V1673 TRIGGER RUN ", count);
-        pid = v1673_run_child(reader_fd);
+        pid = v1673_run_child(pipe_read_fd);
         if (pid > 0) {
                 (void)u_puts(1, "V1673 UNEXPECTED TRIGGER ADMISSION");
                 (void)u_crlf(1);
@@ -186,11 +192,18 @@ main(int argc, kword_t **argv)
         v1673_pressure();
         if (v1673_host_hold('B') != 0)
                 return 35;
-        /* Release each blocked native PROC_SLEEP child exactly once.
-         * No timer, signal, scheduler hook, or kernel debug control. */
-        for (i = 0U; i < actual; ++i)
-                if (dsys_writechar(writer_fd, 'R') < 0)
-                        return 42;
+        /* Exactly one word releases one ordinary blocked pipe reader.
+         * The pipe ring holds only eight words. Repeated single-word
+         * writes naturally block/wake and avoid staging a ninth word. */
+        for (i = 0U; i < actual; ++i) {
+                if (dsys_write_words(pipe_write_fd, &release_token, 1U) != 1) {
+                        (void)u_puts(1, "V1674 PIPE RELEASE FAILURE");
+                        (void)u_crlf(1);
+                        return 41;
+                }
+        }
+        (void)u_puts(1, "V1674 PIPE RELEASED");
+        (void)u_crlf(1);
         for (i = 0U; i < actual; ++i) {
                 if (dsys_wait((unsigned int)children[i], &status, 0U) !=
                         children[i] ||
