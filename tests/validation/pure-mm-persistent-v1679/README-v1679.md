@@ -51,7 +51,7 @@ restore, terminal/uncertain-owner policy and continuous original-MM
 write-watch remain unaccepted. Do not count this native test as a
 physical P1-E release gate.
 
-## Physical 48K repeated-refusal experiment (not yet accepted)
+## Physical 48K repeated-refusal experiment (scoped PASS, 2026-11-19)
 
 `proc-pressure-v1679.c` is a strictly test-only C89 PID1 derived from
 the accepted v1674 deterministic PIPE-held nine-child fixture. After
@@ -80,10 +80,74 @@ exact C-recovery oracle unchanged. Three corruptions of the original
 JRST/MRES counter are rejected, along with two altered repeated RUN
 milestones and all five v1678 original MM/PROC/MEMINFO mutations.
 
-Both independent GENERAL/STRICT 48K source images must match in
-fixed KCORE and test-only PURE MRES DXR/map. All physical results are
-unaccepted until the recorded runs complete, including full EXIT/WAIT
-and paired source-linked report comparison. `V1679_FAST=1` intentionally
-omits 71 continuous MM write watches; its results cannot establish
+Both independently executed GENERAL and STRICT 48K source images
+match byte-for-byte in fixed KCORE and test-only PURE MRES DXR/map.
+The full original nine-child RUN/EXIT/WAIT and paired source-linked
+physical report comparison PASS. `V1679_FAST=1` intentionally omits
+71 continuous MM write watches; this scoped positive does not establish
 the fault-injected intermediate high-water or all PI6 schedules.
-The complete original physical MM write-watch test is a separate gate.
+Non-fast physical mode fails closed until a genuine eight-PACKED,
+one-RESIDENT continuous-write MM oracle is implemented.
+
+## Accepted original physical result: GENERAL and STRICT PASS
+
+Two source-built independently booted PDP-6 48K swapless TSFS guests
+with identical fixed KCORE and test-only PURE MRES use original native
+RUN/BRK, three MM pressure/fragmentation-based refused RUN attempts,
+nine actual PIPE-held child processes, original PURE reclaim/restore,
+EXIT and WAIT. The first reclaim refuses original MM geometry for
+sleeping child slot 2, preserving a full RESIDENT process and its
+complete image. Two repeated genuine native RUN failures force the
+original MM rebase assembler to refuse the same original owner again,
+for **exactly three physical faults at checkpoint B** in each guest.
+The source-linked installed service JRST and optional MRES local map
+locate the counter at physical octal `035532`, returning
+`000000000003` independently in GENERAL and STRICT. This is an actual
+original assembler rejection count, not a forged fault return.
+
+| Physical MM measurement (48K = 49152 words) | GENERAL | STRICT |
+| --- | ---: | ---: |
+| A free / largest | 27324 / 27324 | 27324 / 27324 |
+| B free / largest | 2549 / 1524 | 2549 / 1524 |
+| C free / largest | 27324 / 27324 | 27324 / 27324 |
+| Real native refused RUNs after nine admitted children | 3 | 3 |
+| Real original MM rebase invalid-geometry refusals | 3 | 3 |
+| RAW PACKED original child owners at B | 8 | 8 |
+| Original intact RESIDENT failed child | slot 2 | slot 2 |
+| Native SYS_MEMINFO vs original MM/PROC | PASS | PASS |
+| Exact original active MM and pin recovery | PASS | PASS |
+| Original nine-child EXIT/WAIT | PASS | PASS |
+| Original physical JRST/MRES witness corruptions | 3 rejected | 3 rejected |
+| Original MM/PROC/MEMINFO corruptions | 5 rejected | 5 rejected |
+| Missing repeated RUN refusal milestones | 2 rejected | 2 rejected |
+
+`measure-v1679.py` requires two unique extra refused RUN events and
+invokes the unmodified source-linked v1678 mixed-mode MM owner oracle:
+exactly 8 PACKED and one RESIDENT, exact source/pins/TRANSITION, correct
+native MEMINFO and fully recovered live descriptor state at C. No
+stale, inactive MM descriptor slot is treated as a live owner.
+The paired v1679 comparator verifies the exact source-linked general
+and strict binaries/maps and independently constructed physical reports.
+The reports are byte-identical, SHA256
+`f731089e19ec472dc57a7537180a3988edb1d266a036cadb85d745a9a823de8e`.
+A separately altered paired pressure report is rejected by the same
+comparator. Three installed-JRST/fault-count mutations, five physical
+MM/PROC/MEMINFO mutations, and two missing refused-RUN markers fail
+in each original recording. The native four-refusal, two-owner source
+preflight and its two compiled unsafe source mutants also PASS.
+
+The fixed KCORE DXR is **byte-identical to accepted v1674**:
+SHA256 `66296e13440e1f4db3bf263e181dc33e085f55dc4b0f07c09f147e6c1c88b506`.
+The separately compiled test-only repeated-refusal PURE MRES is
+identical across GENERAL/STRICT:
+SHA256 `a24748d9ca7c3ab2451a411444c833c5a9ca80b8ec8ab643a61898f5e726b74b`.
+
+**Scope limit:** This proves three persistent *precommit geometry*
+refusals of the same original MM owner, all original state conserved,
+progress of eight healthy RAW owners and final native EXIT/WAIT.
+It does not prove a permanently pinned or terminally uncertain owner,
+real interrupt timing inside the slot-0 service, failed FULL loader or
+source loss, fault-injected continuous write-watch high-water, KA10 or
+complete P1-E. The ordinary-workload v1674 1255-word minimum may NOT
+be substituted for v1679's unsampled transient MM minimum. No
+production DAIMOS/MM/KCORE code was changed or installed by this test.

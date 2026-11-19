@@ -7,6 +7,12 @@ set -eu
 : "${V1679_BUILD:?absolute source-built injected image directory}"
 : "${V1679_FIXTURE:?exact deterministic pipe fixture directory}"
 case "$V1679_VARIANT" in general|strict) ;; *) exit 2 ;; esac
+if [ "${V1679_FAST:-0}" != 1 ]; then
+    echo 'FAIL v1679: only source-linked physical A/B/C mode is accepted.' >&2
+    echo 'The 71-write mixed 8-PACKED/1-RESIDENT high-water oracle is still open.' >&2
+    echo 'Use V1679_FAST=1 for the scoped nine-child physical fault test.' >&2
+    exit 2
+fi
 TMPDIR=${TMPDIR:-$HOME/tmp}
 PDP10_PREFIX=${PDP10_PREFIX:-$HOME/cross}
 export TMPDIR PDP10_PREFIX
@@ -52,22 +58,6 @@ python3 "$here/run-negative-v1679.py" \
     "$work/$variant-48-console.clean" \
     "$V1679_FIXTURE/v1673-test-init.map" "$V1679_BUILD/kcore.map" \
     "$work/$variant-48-report.json" "$work/unsafe-mm-v1679" "$variant"
-if [ "${V1679_FAST:-0}" = 1 ]; then
-    echo "PASS v1679: $variant original physical A/B/C, three-or-more original rebase refusals and MM/PROC negative suite"
-    echo "v1679 scoped no-write-watch evidence: $work"
-    echo 'NOT ACCEPTED: continuous physical MM writes and full PI6 fault matrix'
-    exit 0
-fi
-python3 "$v1674/trace-v1674.py" \
-    "$V1679_FIXTURE/v1673-test-init.map" "$V1679_BUILD/kcore.map" \
-    "$work/$variant-48-console.clean" \
-    "$work/$variant-48-report.json" \
-    "$work/$variant-48-highwater.json"
-KEEP_TEST=1 sh "$v1674/run-negative-v1674.sh" \
-    "$work/$variant-48-console.clean" \
-    "$V1679_FIXTURE/v1673-test-init.map" "$V1679_BUILD/kcore.map" \
-    "$work/$variant-48-report.json" \
-    "$work/$variant-48-highwater.json"
-echo "PASS v1679: $variant real 48K physical fault-injected RAW PURE"
-echo "v1679 evidence: $work"
-echo 'NOT YET ACCEPTED: paired general/strict and actual MM fault recovery remain separate gates'
+echo "PASS v1679: $variant original physical A/B/C, repeated MM refusal and 10 original negative cases"
+echo "v1679 scoped physical evidence: $work"
+echo 'NOT ACCEPTED: continuous write-watch high-water or full PI6 fault matrix'
