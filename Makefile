@@ -2467,3 +2467,9 @@ test-pure-mm-precommit-native-v1678:
 test-pure-mm-persistent-native-v1679:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source required}" \
 	 sh tests/validation/pure-mm-persistent-v1679/run-v1679.sh
+
+# v1680: native PDP-6 terminal pinned-owner retry, isolation and mutation.
+.PHONY: test-pure-terminal-pin-native-v1680
+test-pure-terminal-pin-native-v1680:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS tree required}" \
+	 sh tests/validation/pure-terminal-pin-v1680/run-v1680.sh
