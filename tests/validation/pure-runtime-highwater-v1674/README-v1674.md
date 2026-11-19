@@ -208,3 +208,20 @@ The pipe and descriptors are allocated before baseline A and remain
 live through C; the test still requires exact original MM restoration
 relative to A. The C89 PID1 and target assembly child exist only in
 the testkit. There are no new kernel hooks, timers or ABI changes.
+
+## 2026-11-19 matched candidate binary pair (pre-acceptance)
+
+The fixed-toolchain general and strict 48K source-built test candidates
+use DAIMOS PURE branch `9d8f3646` and the same original v1674
+pipe-controlled PID1/child fixtures on isolated three-member TSFS.
+Both actual `kcore.dxr` binaries have SHA256
+`66296e13440e1f4db3bf263e181dc33e085f55dc4b0f07c09f147e6c1c88b506`.
+Both original `pure-mres-v1612.dxr` binaries have SHA256
+`834a99cc9d11668e761f679c7bf500be7aeff5d1db1216540edae9996ea27e49`.
+The `kcore.map` and `pure-mres-v1612.map` hashes also match across
+profiles. This isolates the strict KINIT's omission of the DISK SWAP
+MRES while keeping original KCORE and PURE runtime code bit-identical.
+The prior mixed-toolchain candidate had a different PURE MRES, and
+**cannot** be included in a paired accepted comparison. This is an
+accepted *build-identity preflight only*; it does not establish the
+continuous post-user physical high-water.
