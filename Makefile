@@ -2439,3 +2439,11 @@ test-daimos-swap-in-checked-release-v1405: check-prefix
 test-daimos-d6codec-release-selection-v1464:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	 sh tests/validation/d6codec-release-selection-v1464.sh
+
+# v1673: opt-in source-matched 48K PDP-6 RAW PURE reclamation.
+# Keep out of the default regression matrix until physical acceptance.
+.PHONY: test-pure-runtime-reclaim-v1673
+test-pure-runtime-reclaim-v1673:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		PDP10_PREFIX='$(PDP10_PREFIX)' \
+		sh tests/validation/pure-runtime-reclaim-v1673/run-physical-v1673.sh
