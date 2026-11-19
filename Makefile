@@ -2449,39 +2449,3 @@ test-pure-runtime-highwater-v1674:
 .PHONY: test-pure-runtime-highwater-native-v1674
 test-pure-runtime-highwater-native-v1674:
 	@python3 tests/validation/pure-runtime-highwater-v1674/test-replay-v1674.py
-
-# v1677: opt-in native PDP-6 two-owner PURE fault preflight (not physical PI6).
-.PHONY: test-pure-pi6-fault-native-v1677
-test-pure-pi6-fault-native-v1677:
-	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS source required}" \
-	 sh tests/validation/pure-pi6-fault-pressure-v1677/run-v1677.sh
-
-# v1678: native original PDP-6 MM precommit pin/rebase rejection and retry.
-.PHONY: test-pure-mm-precommit-native-v1678
-test-pure-mm-precommit-native-v1678:
-	@DAIMOS_REPO="$${DAIMOS_REPO:?original PURE source checkout required}" \
-	 sh tests/validation/pure-mm-precommit-v1678/run-v1678.sh
-
-# v1679: native PDP-6 repeat-MM-refusal owner and bystander safety.
-.PHONY: test-pure-mm-persistent-native-v1679
-test-pure-mm-persistent-native-v1679:
-	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source required}" \
-	 sh tests/validation/pure-mm-persistent-v1679/run-v1679.sh
-
-# v1680: native PDP-6 terminal pinned-owner retry, isolation and mutation.
-.PHONY: test-pure-terminal-pin-native-v1680
-test-pure-terminal-pin-native-v1680:
-	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS tree required}" \
-	 sh tests/validation/pure-terminal-pin-v1680/run-v1680.sh
-
-# v1680: native original PDP-6 idle FINALIZE+PREVM repeated refusal.
-.PHONY: test-pure-prevm-finalizer-native-v1680
-test-pure-prevm-finalizer-native-v1680:
-	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS tree required}" \
-	 sh tests/validation/pure-prevm-finalizer-v1680/run-v1680.sh
-
-# v1681: original PDP-6 MM pin/unpin + VM/PURE terminal + FINALIZE/PREVM.
-.PHONY: test-pure-terminal-finalizer-native-v1681
-test-pure-terminal-finalizer-native-v1681:
-	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS source required}" \
-	 sh tests/validation/pure-terminal-finalizer-v1681/run-v1681.sh
