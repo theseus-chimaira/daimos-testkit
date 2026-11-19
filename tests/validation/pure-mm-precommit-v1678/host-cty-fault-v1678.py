@@ -225,7 +225,7 @@ def run(argv):
                     if observed != 1:
                         raise ValueError("v1678 actual injected fault count "
                                          "is %o, not 1" % observed)
-                    print("PASS v1678: physical MRES committed-return "
+                    print("PASS v1678: original physical MM rebase-refusal "
                           "fault fired exactly once", flush=True)
                 if os.environ.get("V1678_FAST", "0") != "1":
                     if token == "A":

@@ -13,7 +13,15 @@ case "$V1678_VARIANT" in
 esac
 TMPDIR=${TMPDIR:-$HOME/tmp}
 PDP10_PREFIX=${PDP10_PREFIX:-$HOME/cross}
+# A disposable source copy is not next to the normal DevSpace2 das/kcc
+# checkout aliases. Use the exact current external source repos rather
+# than leaving a broken relative-include/make dependency.
+KCC_REPO=${KCC_REPO:-$HOME/git/kcc}
+DAS_REPO=${DAS_REPO:-$HOME/git/das}
 export TMPDIR PDP10_PREFIX
+for f in "$KCC_REPO/Makefile" "$DAS_REPO/Makefile"; do
+    test -s "$f" || { echo "FAIL v1678: missing build dependency $f" >&2; exit 1; }
+done
 mkdir -p "$V1678_BASE"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 scratch="$V1678_BASE/source-copy-v1678"
@@ -34,6 +42,7 @@ for f in "$V1678_FIXTURE/v1673-test-init.dxr" \
 done
 make -s -C "$scratch/system/boot/pdp6" image \
     BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
+    KCC_REPO="$KCC_REPO" DAS_REPO="$DAS_REPO" \
     ROOT=tape BOOT=dtc BOOT_PROFILE=lowmem COMPILER=gcc \
     BOOT_CORE_WORDS=0200000 SIMH_CPU_KWORDS=64 \
     TSFS_ROOT_MEMBERS=3 TSFS_INPLACE_BOOT=1 \

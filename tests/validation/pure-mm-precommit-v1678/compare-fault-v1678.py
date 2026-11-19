@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Paired real PDP-6 physical owner-state acceptance for one MRES fault.
 
-Run only after both independent source-linked 48K original v1673
+Run only after both independent source-linked 48K original v1673-parser-backed v1678
 physical-state oracles and v1678 counter/negative cases have passed.
 This deliberately does not claim original MM write-watch high-water.
 """

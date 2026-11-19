@@ -1,5 +1,5 @@
 #!/bin/sh
-# v1678 physical 48K MRES MM-rebase-refusal reply test; KCORE is unchanged.
+# v1678 physical 48K real MM precommit rebase refusal; fixed KCORE unchanged.
 # Run one profile at a time with a source-linked injected MRES build.
 set -eu
 : "${DAIMOS_REPO:?source-matched PURE checkout required}"
@@ -38,6 +38,7 @@ V1673_FIXTURE_BUILD="$V1678_FIXTURE" \
 V1673_GUEST_C="$v1674/proc-pressure-v1674.c" \
 V1673_CHILD_ASM="$v1674/pipe-child-v1674.s" \
 V1673_CTY_DRIVER="$here/host-cty-fault-v1678.py" \
+V1673_MEASURE="$here/measure-v1678.py" \
 V1673_TIMEOUT=${V1673_TIMEOUT:-3600} \
 KEEP_TEST=1 sh "$v1673/run-physical-v1673.sh"
 variant=$V1678_VARIANT
@@ -47,8 +48,12 @@ python3 "$here/verify-fault-v1678.py" \
 python3 "$here/test-fault-negative-v1678.py" \
     "$work/$variant-48-console.clean" "$V1678_BUILD/kcore.map" \
     "$V1678_BUILD/pure-mres-v1612.map" "$work/unsafe-witness-v1678"
+python3 "$here/run-negative-v1678.py" \
+    "$work/$variant-48-console.clean" \
+    "$V1678_FIXTURE/v1673-test-init.map" "$V1678_BUILD/kcore.map" \
+    "$work/$variant-48-report.json" "$work/unsafe-mm-v1678" "$variant"
 if [ "${V1678_FAST:-0}" = 1 ]; then
-    echo "PASS v1678: $variant physical A/B/C and real MRES fault witness"
+    echo "PASS v1678: $variant original physical A/B/C, one genuine rebase refusal, and MM/PROC negative suite"
     echo "v1678 scoped no-write-watch evidence: $work"
     echo 'NOT ACCEPTED: continuous physical MM writes and full PI6 fault matrix'
     exit 0
