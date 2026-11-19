@@ -1,6 +1,7 @@
 #!/bin/sh
 # v1674: physical 48K RAW PURE original-MM write-watch high-water.
-# Reuse the exact v1673 full guest and negative tests; no KCORE probes.
+# Reuse v1673 source-build/CTY verification with a deterministic pipe
+# fixture. No KCORE or production guest modifications.
 set -eu
 : "${DAIMOS_REPO:?set source-matched DAIMOS development worktree}"
 TMPDIR=${TMPDIR:-$HOME/tmp}
@@ -19,9 +20,13 @@ cleanup()
     fi
 }
 trap cleanup EXIT HUP INT TERM
-# The accepted v1673 source-built images and CTY barriers are unchanged.
-# Only the SIMH monitor driver is substituted. Watchpoints are armed at
-# the physical A checkpoint, so KINIT is not sampled or slowed.
+# Reuse the proven v1673 source build and three CTY barriers with the
+# v1674 pipe-controlled PID1/child fixtures. Watchpoints are armed at A;
+# KINIT is not sampled or slowed. Physical debugger write stops can be
+# much slower than the ordinary guest: this timeout is host wall time,
+# not a child's synthetic sleep or a kernel scheduling deadline.
+V1673_TIMEOUT=${V1673_TIMEOUT:-3600}
+V1673_TIMEOUT="$V1673_TIMEOUT" \
 V1673_WORK_DIR="$work" \
 V1673_GUEST_C="$here/proc-pressure-v1674.c" \
 V1673_CHILD_ASM="$here/pipe-child-v1674.s" \

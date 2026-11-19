@@ -30,6 +30,32 @@ canary before native EXIT. No timeout, debugger-specific guest hook or
 kernel change controls child release. The PIPE object remains alive in
 PID1 at A and C, preserving the expected baseline after WAIT.
 
+## 2026-11-19 corrected-fixture physical control (general PASS)
+
+The new v1674 C89 PID1 and 36-bit PIPE child were source-built with the
+unmerged DAIMOS PURE development source. The uninstrumented 48K general
+PDP-6 run completed all three original physical CTY checkpoints:
+
+| State | Free MM | Largest gap | Packed RAW owners |
+| --- | ---: | ---: | ---: |
+| Before A | 27427 | 27427 | 0 |
+| Pressure B | 2780 | 1627 | 9 |
+| After WAIT C | 27427 | 27427 | 0 |
+
+The original v1673 physical-state verifier PASSed; all nine owners had
+exact 128-word RAW-suffix reclamation and resumed after the explicit
+PIPE release. Native MEMINFO reported 5712 resident process words at
+B. A separately executed v1673 native negative run on this exact
+original physical console rejected five witness mutations plus a
+forged summary. The physical console SHA256 is
+`325949e838260231496c0acaffadf1b52b5acd8c1429f3ffe0b32529b2437314`;
+the independently derived v1673 JSON SHA256 is
+`de654d4ecac7b8971cf3927ed585582c4147203a1d0fae4d864b5f9402de6d97`.
+
+This closes only the **corrected fixture's general-profile physical
+control**, not v1674's write-watch high-water, general/strict paired
+acceptance, PI6 fault pressure or production integration.
+
 ## Why a new measurement is needed
 
 The v1673 CTY checkpoints A/B/C prove stable original physical MM state
@@ -90,8 +116,13 @@ v1673 images may be reused through `V1673_FIXTURE_BUILD`,
 `V1673_GENERAL_BUILD` and `V1673_STRICT_BUILD`, but the original root
 manifest must match the supplied fixture path. This diagnostic option
 skips the paired profile comparison and **does not close acceptance**.
-Set `KEEP_TEST=1` to retain disposable evidence; `V1673_TIMEOUT` is
-the host wall-time timeout for each physical CTY checkpoint.
+Set `KEEP_TEST=1` to retain disposable evidence. `V1673_TIMEOUT` is
+the host wall-time timeout per physical CTY checkpoint, with v1674
+defaulting to 3600 seconds to accommodate instruction-level debugger
+stops. This cannot make a failed guest pass: the physical v1673 and
+v1674 oracles still require every expected lifecycle, owner and
+memory checkpoint, and the child is released by a pipe event rather
+than by a timer.
 
 ## Gates not covered
 
