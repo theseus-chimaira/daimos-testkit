@@ -99,3 +99,19 @@ internal error, not an independent diagnosis. No production compiler
 source has been modified. The next priority is a KCC-side reproducer
 and root-cause fix before retrying native acceptance; do not relax the
 `STATUS:0` assertion.
+
+## Deferred compiler defect and minimal C acceptance
+
+Per the revised acceptance plan, the KCC self-hosting `gaddress()`
+compiler defect is deferred. The existing minimal native compile test
+(`int main(void) { return 0; }`) was run with a 600-second limit.
+The image build completed, but the guest printed `KCC: KCC000005`
+and never returned the expected exit status before the outer timeout.
+The harness recorded `SIMH exited before expected terminal` after
+termination; this is an **incomplete/timeout** result, not a pass.
+The retained diagnostic tree is
+`$TMPDIR/daimos-native-kcc-compile-20261008-v1-16867/`.
+
+A separate opt-in `daimos-native-kcc-hello-v1.sh` now stages and
+compiles a real `puts("Hello, world!")` source. It validates compilation
+and assembly-file creation only, not linking or executing the result.
