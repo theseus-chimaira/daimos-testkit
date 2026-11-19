@@ -2461,3 +2461,9 @@ test-pure-pi6-fault-native-v1677:
 test-pure-mm-precommit-native-v1678:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?original PURE source checkout required}" \
 	 sh tests/validation/pure-mm-precommit-v1678/run-v1678.sh
+
+# v1679: native PDP-6 repeat-MM-refusal owner and bystander safety.
+.PHONY: test-pure-mm-persistent-native-v1679
+test-pure-mm-persistent-native-v1679:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source required}" \
+	 sh tests/validation/pure-mm-persistent-v1679/run-v1679.sh
