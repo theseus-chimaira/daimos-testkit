@@ -6,6 +6,12 @@ older verification observations are retained in `STATUS.MD` and the
 historical status archive. Do not treat a dated 2026-09-30 run as a
 current complete regression result.
 
+## Native toolchain integration after re-home (2026-11-19)
+
+- [ ] Run the 25 relocated guest-native KCC/DAS/DLINK suites individually
+  with their prerequisite staged builds and check their original oracles.
+  Static fixture and dispatch validation is not guest execution evidence.
+
 ## P1 - complete DAIMOS regression acceptance
 
 - [ ] Obtain a clean, source-fingerprinted **full** `make regression`

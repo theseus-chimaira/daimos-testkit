@@ -1795,6 +1795,15 @@ test-daimos-fatal-exec-return-break-v1136: check-prefix
 # ordinary compiler sweep in pdp10-testkit.
 PDP10_TESTKIT_REPO ?= $(abspath ../pdp10-testkit)
 
+.PHONY: test-daimos-native-toolchain-list-v1 test-daimos-native-toolchain-run-v1 test-daimos-native-toolchain-verify-v2
+test-daimos-native-toolchain-list-v1:
+	@python3 tools/run-native-toolchain-v1.py list
+test-daimos-native-toolchain-run-v1:
+	@test -n "$(TEST_ID)" || { echo "TEST_ID is required" >&2; exit 2; }
+	@python3 tools/run-native-toolchain-v1.py run "$(TEST_ID)"
+test-daimos-native-toolchain-verify-v2:
+	@python3 tools/test-native-toolchain-dispatch-v2.py
+
 .PHONY: test-testkit-scope-v1 test-daimos-migrated-os-host-v1
 test-testkit-scope-v1:
 	@PDP10_TESTKIT_REPO='$(PDP10_TESTKIT_REPO)' \

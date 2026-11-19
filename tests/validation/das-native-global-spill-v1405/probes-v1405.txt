@@ -1,0 +1,27 @@
+probe v1405-compile-c89
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1405-KCC.A7 /CONFIG/V1403.C; ECHO COMPILE:$?
+contains COMPILE:0
+timeout 240
+end
+probe v1405-direct-dxr-unchanged
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1405-DIRECT.DXR /SCRATCH/V1405-KCC.A7; ECHO DIRECT:$?
+contains DIRECT:0
+timeout 190
+end
+probe v1405-kcc-single-global
+command /OPTION/BASE/EXEC/DAS -A -C -O /SCRATCH/V1405-SINGLE.DOBJ /SCRATCH/V1405-KCC.A7; ECHO SINGLE:$?
+contains G000001E000000
+contains SINGLE:1
+timeout 190
+end
+probe v1405-multiple-duplicate-entry-globals
+command /OPTION/BASE/EXEC/DAS -A -C -O /SCRATCH/V1405-MULTI.DOBJ /CONFIG/V1405-METADATA.A7; ECHO MULTI:$?
+contains G000003E000001
+contains MULTI:1
+timeout 190
+end
+probe v1405-no-invalid-dobj
+command CMP /SCRATCH/V1405-MULTI.DOBJ /CONFIG/V1403-MAIN.DOBJ; ECHO NOOBJECT:$?
+not_contains NOOBJECT:0
+timeout 90
+end

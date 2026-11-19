@@ -1,0 +1,36 @@
+# Distinguish native DLINK failure due to location vs object content.
+probe v1405-guest-kcc
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1405M.A7 /CONFIG/V1403.C; ECHO KCC:$?
+contains KCC:0
+timeout 200
+end
+probe v1405-native-dobj
+command /OPTION/BASE/EXEC/DAS -A -C -O /SCRATCH/V1405M.DOBJ /SCRATCH/V1405M.A7; ECHO OBJECT:$?
+contains OBJECT:0
+timeout 140
+end
+probe v1405-dobj-exact
+command CMP /SCRATCH/V1405M.DOBJ /CONFIG/V1403-MAIN.DOBJ; ECHO OBJECTCMP:$?
+contains OBJECTCMP:0
+timeout 60
+end
+probe v1405-control-link-config
+command /OPTION/BASE/EXEC/DLINK -O /SCRATCH/V1405H.DXR -B 020 /CONFIG/V1403-CRT0.DOBJ /CONFIG/V1403-MAIN.DOBJ /CONFIG/V1403-SYSCALL.DOBJ; ECHO HOSTLINK:$?
+contains HOSTLINK:0
+timeout 120
+end
+probe v1405-control-link-equality
+command CMP /SCRATCH/V1405H.DXR /CONFIG/V1403-HOST.DXR; ECHO HOSTCMP:$?
+contains HOSTCMP:0
+timeout 70
+end
+probe v1405-control-run
+command /SCRATCH/V1405H.DXR; ECHO HOSTRUN:$?
+contains HOSTRUN:7
+timeout 70
+end
+probe v1405-native-link-scratch
+command /OPTION/BASE/EXEC/DLINK -O /SCRATCH/V1405N.DXR -B 020 /CONFIG/V1403-CRT0.DOBJ /SCRATCH/V1405M.DOBJ /CONFIG/V1403-SYSCALL.DOBJ; ECHO NATLINK:$?
+contains NATLINK:0
+timeout 100
+end

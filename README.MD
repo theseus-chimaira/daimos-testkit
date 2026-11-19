@@ -3,23 +3,22 @@
 This repository tests the **DAIMOS operating system** on PDP-6/PDP-10:
 boot and root selection, KINIT/KCORE/MRES, filesystems, device drivers,
 DSH, processes, memory management, scheduling, syscalls and user runtime.
-Generic GCC/KCC, DAS/DLINK, optimizer, ABI, assembler-output and CPU ISA
-tests belong in the separate `../pdp10-testkit` repository.
+Standalone GCC/KCC, DAS/DLINK, optimizer, ABI, assembler-output and CPU
+ISA tests belong in the separate `../pdp10-testkit` repository. The
+operator-selected guest-native toolchain integration suites live here.
 
 ## Boundary between the testkits
 
-Ownership is determined by the **primary assertion**, not the tool or
-execution environment. A D6FS test may invoke DAS or KCC and remains
-an OS test. Conversely, **native KCC/DAS/DLINK toolchain assertions run
-inside a booted DAIMOS guest still belong to `pdp10-testkit`** as manual
-compiler/assembler tests. They call this testkit's OS harness through
-`DAIMOS_TESTKIT_REPO`, but are not duplicated here.
+Ownership is divided by execution domain for native integration: guest
+toolchain tests requiring a booted DAIMOS instance belong here, alongside
+OS tests. Standalone compiler and assembler regression tests remain in
+`pdp10-testkit`, even when they examine DAIMOS-generated code.
 
-The current cross-repository migration is documented in
-`tests/validation/TESTKIT-SCOPE-MIGRATION-20261117-v3.md`; its canonical
-150-original-source transfer manifest is the matching v3 TSV here and
-in `pdp10-testkit/docs/`. Intermediate v1/v2 manifests are available
-from Git history, not maintained as active alternative inventories.
+The historical split is recorded by the 150-source v3 manifest, and
+the subsequent native re-home by
+`tests/validation/NATIVE-TOOLCHAIN-MIGRATION-20261119-v2.md` and its
+71-file v4 return ledger. Neither a transfer nor a static test is a
+record of guest execution.
 
 ## Requirements
 
@@ -77,6 +76,20 @@ The DSH guest harness, `tools/daimos-simh-harness-v4.sh` (and the
 v6 native phase variant), drives PDP-6 SIMH through `tools/pty-run-v1.c`
 using a persistent FIFO. The declarative probes assert guest output and
 exit/terminal conditions. No Python `pexpect`/Tcl `expect` is needed.
+
+## Explicit native toolchain guest integration
+
+The 25 native KCC/DAS/DLINK guest suites are not part of normal OS or
+compiler runs. List and execute them independently:
+
+```sh
+python3 tools/run-native-toolchain-v1.py list
+python3 tools/run-native-toolchain-v1.py run TEST_ID
+python3 tools/test-native-toolchain-dispatch-v2.py
+```
+
+The last command validates dispatch and fixture integrity without
+launching DAIMOS. Guest runs still need staged build prerequisites.
 
 ## Explicit boot and guest-native OS tests
 

@@ -1,0 +1,40 @@
+probe v1373-debug-kcc
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1373-CURRENT.A7 /CONFIG/V1373.C; ECHO KCCSTATUS:$?
+contains KCCSTATUS:0
+timeout 170
+end
+probe v1373-debug-output
+command HEXDUMP /SCRATCH/V1373-CURRENT.A7
+contains 000000
+timeout 30
+end
+probe v1373-debug-kcpp
+command /OPTION/BASE/LIBEXEC/KCC/KCPP -R=/SCRATCH/V1373.KPT /CONFIG/V1373.C; ECHO CPPSTATUS:$?
+contains CPPSTATUS:0
+timeout 120
+end
+probe v1373-debug-kparse
+command /OPTION/BASE/LIBEXEC/KCC/KPARSE -R=/SCRATCH/V1373.KIR /SCRATCH/V1373.KPT; ECHO PARSESTATUS:$?
+contains PARSESTATUS:0
+timeout 135
+end
+probe v1373-debug-kir
+command HEXDUMP /SCRATCH/V1373.KIR
+contains 000000
+timeout 60
+end
+probe v1373-debug-kgen
+command /OPTION/BASE/LIBEXEC/KCC/KGEN -R=/SCRATCH/V1373.KP2 /SCRATCH/V1373.KIR; ECHO GENSTATUS:$?
+contains GENSTATUS:0
+timeout 180
+end
+probe v1373-debug-kp2
+command HEXDUMP /SCRATCH/V1373.KP2
+contains 000000
+timeout 60
+end
+probe v1373-debug-kopt
+command /OPTION/BASE/LIBEXEC/KCC/KOPT -R=/SCRATCH/V1373-REPLAY.A7 /SCRATCH/V1373.KP2; ECHO OPTSTATUS:$?
+contains OPTSTATUS:0
+timeout 90
+end

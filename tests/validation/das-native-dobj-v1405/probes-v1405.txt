@@ -1,0 +1,32 @@
+# All six status gates must succeed; object bytes must match host DAS.
+probe v1405-guest-kcc
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1405M.A7 /CONFIG/V1403.C; ECHO KCC:$?
+contains KCC:0
+timeout 230
+end
+probe v1405-native-dobj
+command /OPTION/BASE/EXEC/DAS -A -C -O /SCRATCH/V1405M.DOBJ /SCRATCH/V1405M.A7; ECHO OBJECT:$?
+contains OBJECT:0
+not_contains UUO
+timeout 200
+end
+probe v1405-dobj-exact
+command CMP /SCRATCH/V1405M.DOBJ /CONFIG/V1403-MAIN.DOBJ; ECHO OBJECTCMP:$?
+contains OBJECTCMP:0
+timeout 60
+end
+probe v1405-native-dlink
+command /OPTION/BASE/EXEC/DLINK -O /SCRATCH/V1405M.DXR -B 020 /CONFIG/V1403-CRT0.DOBJ /SCRATCH/V1405M.DOBJ /CONFIG/V1403-SYSCALL.DOBJ; ECHO LINK:$?
+contains LINK:0
+timeout 230
+end
+probe v1405-dxr-exact
+command CMP /SCRATCH/V1405M.DXR /CONFIG/V1403-HOST.DXR; ECHO IMAGECMP:$?
+contains IMAGECMP:0
+timeout 60
+end
+probe v1405-native-c89-run
+command /SCRATCH/V1405M.DXR; ECHO RUN:$?
+contains RUN:7
+timeout 80
+end

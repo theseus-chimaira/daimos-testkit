@@ -1,0 +1,27 @@
+probe v1403-native-kcc
+command /OPTION/BASE/EXEC/KCC -Pgnu99 -O -x=pdp6 -m=gas -S -O /SCRATCH/V1403-KCC.A7 /CONFIG/V1403.C; ECHO COMPILE:$?
+contains COMPILE:0
+not_contains UUO
+timeout 240
+end
+probe v1403-native-das-compiled
+command /OPTION/BASE/EXEC/DAS -A -O /SCRATCH/V1403-DAS.DXR /SCRATCH/V1403-KCC.A7; ECHO ASSEMBLE:$?
+contains ASSEMBLE:0
+timeout 190
+end
+probe v1403-native-dlink
+command /OPTION/BASE/EXEC/DLINK -O /SCRATCH/V1403-LINK.DXR -B 020 /CONFIG/V1403-CRT0.DOBJ /CONFIG/V1403-MAIN.DOBJ /CONFIG/V1403-SYSCALL.DOBJ; ECHO LINK:$?
+contains LINK:0
+not_contains UUO
+timeout 240
+end
+probe v1403-native-host-link-equality
+command CMP /SCRATCH/V1403-LINK.DXR /CONFIG/V1403-HOST.DXR; ECHO LINKCMP:$?
+contains LINKCMP:0
+timeout 90
+end
+probe v1403-native-linked-c89-run
+command /SCRATCH/V1403-LINK.DXR; ECHO RUNSTATUS:$?
+contains RUNSTATUS:7
+timeout 90
+end
