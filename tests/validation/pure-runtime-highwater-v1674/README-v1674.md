@@ -1,9 +1,64 @@
 # v1674 physical PDP-6 runtime MM write-watch high-water
 
-**Status: experimental; physical positive gate pending.** This testkit-only
-extension follows the accepted v1673 RAW PURE 48K pressure test and must
-not be presented as accepted until the general and strict variants and
-the v1674 negative tests pass.
+**Status: PASS for the bounded 48K PDP-6 post-user RAW PURE committed-MM
+high-water workload (2026-11-19).** This testkit-only extension follows
+the accepted v1673 RAW PURE pressure gate. Scope is original physical
+MM descriptor changes, not every possible scheduler schedule or a
+process-instruction trace. The PURE development branch is unmerged.
+
+## 2026-11-19 paired physical write-watch acceptance (PASS)
+
+The corrected, unmodified original PDP-6 physical console captures
+completed in **both** 48K GENERAL and STRICT swapless configurations.
+Both used the same source-built KCORE (`66296e13440e1f4db3bf263e181dc33e085f55dc4b0f07c09f147e6c1c88b506`
+SHA256) and PURE MRES (`834a99cc9d11668e761f679c7bf500be7aeff5d1db1216540edae9996ea27e49`
+SHA256), the identical deterministic pipe-held test PID1 and nine
+children, isolated three-member TSFS roots and no attached DSK/DRM
+swap media. Mode3 bitmap compression was OFF.
+
+| Source-linked physical MM observation | GENERAL | STRICT |
+| --- | ---: | ---: |
+| Before A free / largest extent | 27339 / 27339 | 27339 / 27339 |
+| Pressure B free / largest extent | 2692 / 1539 | 2692 / 1539 |
+| After nine EXIT/WAIT, C free / largest | 27339 / 27339 | 27339 / 27339 |
+| Minimum free at committed MM write | **1255** | **1255** |
+| Maximum physically nonfree (of 49152) | **47897** | **47897** |
+| Physical MM write-watch events A-to-C | 3122 | 3122 |
+| MM count commits | 194 | 194 |
+| In-place BRK size changes | 5 | 5 |
+| In-place PURE drop / restore span changes | 9 / 9 | 9 / 9 |
+| Other replayed descriptor writes | 2905 | 2905 |
+
+Both completed original v1673 physical-state verifiers PASS, including
+nine packed RAW owners and native SYS_MEMINFO, and the tenth native
+RUN refuses at pressure. Both complete original v1674 physical
+write-watch replays PASS: 1660 A-to-B writes (121 count commits,
+5 BRK and 9 PURE span changes) and 1462 B-to-C writes (73 count
+commits, 9 PURE restorations). Every watched physical MM word after
+replay exactly equals the independently examined B/C snapshot. The
+active original MM extent/owner table, process records and free ranges
+return to their original A values after WAIT. Inactive descriptor slots
+may retain old data after the count shrinks; they are not live owners.
+
+Every original physical recording also passed **five executed negative
+transcript mutations** (removed watchpoint, mutated count write,
+missing write event, corrupted PURE span and corrupted BRK span) and
+a separate forged high-water JSON rejection. The six independent
+rejections are source-linked to the exact tested KCORE and console.
+The original paired `compare-v1674.py` passed on the actual source-
+matched general/strict outputs with byte-identical reports:
+
+- High-water report SHA256:
+  `088deea77704e6f5716045844013aea1a1fab7df3ecadf6e50880e46a7d00305`
+- Original v1673 physical report SHA256:
+  `29e052c9372d0175aab02f6b39587e40edfca3d1184499d12f08d0f4a5f87a88`
+
+The high-water is **a committed physical-MM observation**, not an
+instruction-bound latency or an unchanged-scheduler timing guarantee.
+The more demanding RUN/EXIT/WAIT pattern remains real PDP-6 physical
+execution, not an emulator of the MM allocator. This closes only the
+specified 48K RAW-mode general/strict post-user high-water gate; no
+production KCORE text/data was altered by v1674 instrumentation.
 
 ## Deterministic source-matched child fixture
 
@@ -174,10 +229,12 @@ the actual identity gate.
 
 ## Gates not covered
 
-No post-user continuous memory result is accepted until the full new
-physical trace passes. If it does pass, scope is original MM descriptor
-mutation high-water on 48K TSFS/PURE only. Separate gates remain for
-root=auto/DSK/DRM, mode3, PI6 fault injection, KA10 and full 32K boot.
+The accepted post-user event-commit high-water is bounded to the
+original MM descriptors and this source-matched 48K TSFS/PURE workload.
+It does not prove non-MM temporary CPU-register use or all possible
+scheduler interleavings. Independent gates remain for ROOT=auto,
+DSK/DRM and KCC full-profile regression, PI6 fault injection,
+compressed bitmap mode3, KA10 and full 32K boot.
 
 The fast `make test-pure-runtime-highwater-native-v1674` target exercises
 the replay classifier with synthetic descriptor writes: a geometrically
