@@ -60,13 +60,15 @@ if [ -z "${V1673_FIXTURE_BUILD:-}" ]; then
     "$cc" -std=c89 -Os $incs -S \
         "$DAIMOS_REPO/userland/libc/u.c" -o "$fixture/u.s"
     "$das" -F -C -O "$fixture/u.dobj" "$fixture/u.s"
-    "$cc" -std=c89 -Os $incs -S "$here/proc-pressure-v1673.c" \
+    guest_c=${V1673_GUEST_C:-$here/proc-pressure-v1673.c}
+    guest_child=${V1673_CHILD_ASM:-$here/sleep-child-v1673.s}
+    "$cc" -std=c89 -Os $incs -S "$guest_c" \
         -o "$fixture/pressure.s"
     "$das" -F -C -O "$fixture/pressure.dobj" "$fixture/pressure.s"
     "$das" -F -C -O "$fixture/checkpoint.dobj" \
         "$here/checkpoint-v1673.s"
     "$das" -F -C -O "$fixture/sleep-child.dobj" \
-        "$here/sleep-child-v1673.s"
+        "$guest_child"
     "$link" -b 020 --pure -o "$fixture/v1673-test-sleep.dxr" \
         -M "$fixture/v1673-test-sleep.map" "$fixture/sleep-child.dobj"
     libgcc=$($cc -print-libgcc-file-name)

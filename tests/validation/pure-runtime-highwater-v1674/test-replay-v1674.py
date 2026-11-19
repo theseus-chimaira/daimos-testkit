@@ -20,7 +20,8 @@ def run():
     addresses = dict(mm_extents=0o24102, mm_extent_count=0o23471,
                      mm_process_shrink_pinned=0o2277,
                      mm_process_grow_pinned=0o2341,
-                     mm_pin=0o2473)
+                     mm_pin=0o2473, mm_extent_insert=0o1222,
+                     mm_is_pinned=0o1267)
     watched = set(range(0o24102, 0o24102 + 64)) | {0o23471}
     shadow = {0o23471: 10, 0o24102: 5, 0o24104: 6}
     original_decode = trace.P1670.decode
@@ -32,7 +33,8 @@ def run():
         v = state["words"][0o24102]
         free = 1 if v == 900 else 100
         return dict(free=free, largest_free=free,
-                    allocated=200-free,
+                    allocated=200-free, extents=10,
+                    by_type={"1": 200-free},
                     occupied_or_reserved=core * 1024 - free)
 
     trace.P1670.decode = physical
@@ -40,13 +42,15 @@ def run():
         window = (event(0o1251, 0o24102, 900) +
                   event(0o1252, 0o24102, 5) +
                   event(0o1253, 0o23471, 11) +
-                  event(0o2317, 0o24104, 33))
+                  event(0o2317, 0o24104, 33) +
+                  event(0o22163, 0o24106, 33))
         report, length = trace.replay(window, watched, shadow, addresses, 0)
-        assert length == 4
+        assert length == 5
         assert report["commits"] == 1
-        assert report["resizes"] == 1
+        assert report["resizes"] == 2
+        assert report["pure_span_events"] == 1
         assert report["staging_writes"] == 2
-        assert [x["free"] for x in report["stable"]] == [100, 100]
+        assert [x["free"] for x in report["stable"]] == [100, 100, 100]
         assert not any(x["free"] == 1 for x in report["stable"])
         try:
             trace.replay(event(0o1253, 0o23472, 11), watched,

@@ -27,6 +27,9 @@ def load(path):
         raise ValueError("forged MM commit counter")
     if sum(p["resizes"] for p in report["phases"]) != \
             report["resize_events"] or \
+            sum(p["pure_span_events"] for p in report["phases"]) != \
+            report["pure_span_events"] or \
+            report["pure_span_events"] < 9 or \
             sum(p["staging_writes"] for p in report["phases"]) != \
             report["staging_writes"]:
         raise ValueError("forged MM write classification")
@@ -39,6 +42,8 @@ def load(path):
     if min(x["free"] for x in samples) != report["min_event_free"] or \
             max(x["occupied_or_reserved"] for x in samples) != \
             report["max_event_nonfree"] or \
+            max(samples, key=lambda x: x["occupied_or_reserved"]) != \
+            report["peak_event"] or \
             sum(1 for x in samples if x["committed"]) != \
             report["committed_events"]:
         raise ValueError("forged MM high-water summary")

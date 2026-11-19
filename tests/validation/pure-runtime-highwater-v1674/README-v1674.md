@@ -26,9 +26,11 @@ replays **every** watched store in source order, and requires the
 reconstructed table to equal the independently examined original MM
 at both B and C. Count writes are the atomic insert/delete commits;
 they must always leave a valid extent table. In-place extent size edits
-are source-qualified by the original MM shrink/grow instruction ranges
-and are likewise validated as commits. Every other descriptor write
-(shift or metadata update) is replayed but NOT counted as an allocation
+are source-qualified by the original typed MM shrink/grow ranges and
+by the distinct PURE MRES rebase/claim/release span writers. They are
+likewise validated as commits; a PURE prefix claim can temporarily
+increase RAM use without changing the extent count. Every other descriptor write
+(generic table shift or metadata update) is replayed but NOT counted as an allocation
 sample, even when a partly shifted table happens to look geometrically
 valid. This avoids reporting a non-committed intermediate copy as a
 real memory high-water.
@@ -36,8 +38,12 @@ real memory high-water.
 This establishes high-water among the captured valid MM states after
 every original physical descriptor write, not the transient consumption
 of an allocator's CPU registers or a non-MM subsystem. In particular,
-SIMH stop-and-examine affects host elapsed time; this is **not** a
-performance benchmark or an instruction-by-instruction execution trace.
+SIMH stop-and-examine affects host elapsed time and can perturb the
+scheduler/PCLK interleaving compared with an uninstrumented run. This
+is **not** a performance benchmark, a timing-neutral experiment, or an
+instruction-by-instruction execution trace. Acceptance establishes a
+measured event-commit peak for the explicitly observed physical run,
+not a theorem about all possible future process schedules.
 
 ## Execute
 
@@ -76,3 +82,25 @@ high-water; a subsequent count commit and an in-place resize must be
 counted. Unknown physical watch addresses and unpaired breakpoint
 headers must fail. These native checks do not replace the real physical
 test and are never called physical acceptance evidence.
+
+## Deterministic event-blocked children (v1674 correction)
+
+A first exploratory write-watch run of the original v1673 timer-sleep
+fixture was **not accepted**: the tenth pressure RUN unexpectedly
+succeeded after enough 600-second physical PCLK time elapsed during
+slow SIMH monitor instrumentation. This is a workload synchronization
+failure and not evidence of a kernel memory regression. Longer timer
+sleep values alone do not correct this test-design flaw.
+
+The v1674-only fixture now gives each child an inherited PIPE reader
+on fd0 and makes it block in the existing `SYS_READCHAR` syscall.
+The original kernel pipe event wait sets `PROC_SLEEP`, so these are
+normal reclaimable sleeping processes. PID1 keeps the shared writer
+open and sends nine explicit 'R' release characters **after** the
+physical B checkpoint. Each child verifies its writable PURE suffix
+canary after restoration before EXIT(0). This bounds the experiment
+by a logical event rather than host elapsed time or guest timer expiry.
+The pipe and descriptors are allocated before baseline A and remain
+live through C; the test still requires exact original MM restoration
+relative to A. The C89 PID1 and target assembly child exist only in
+the testkit. There are no new kernel hooks, timers or ABI changes.
