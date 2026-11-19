@@ -144,6 +144,14 @@ def run(argv):
     armed = {int(value, 8) for value in re.findall(
         r"^(?:sim> )?SET BREAK -W ([0-7]+);", watch_setup, re.M)}
     expect(armed == watched, "not all MM physical write watches were armed")
+    # The original host snapshots a guest blocked on CTY. Explicitly
+    # reject any physical MM writes between HOLD and RELEASE so that
+    # the A/B/C boundaries used below cannot omit hidden allocations.
+    for token in "ABC":
+        hold = segment(content, "V1673 HOLD " + token,
+                       "V1673 RELEASE " + token)
+        expect("Breakpoint, PC:" not in hold,
+               "physical MM mutation crossed CTY checkpoint " + token)
     snapshots = P1673.observations(content, fixture)
     source = [event["words"] for event in snapshots]
     shadow = dict(source[0])
