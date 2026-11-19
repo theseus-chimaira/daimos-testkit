@@ -41,6 +41,18 @@ V1673_CTY_DRIVER="$here/host-cty-fault-v1677.py" \
 V1673_TIMEOUT=${V1673_TIMEOUT:-3600} \
 KEEP_TEST=1 sh "$v1673/run-physical-v1673.sh"
 variant=$V1677_VARIANT
+python3 "$here/verify-fault-v1677.py" \
+    "$work/$variant-48-console.clean" "$V1677_BUILD/kcore.map" \
+    "$V1677_BUILD/pure-mres-v1612.map"
+python3 "$here/test-fault-negative-v1677.py" \
+    "$work/$variant-48-console.clean" "$V1677_BUILD/kcore.map" \
+    "$V1677_BUILD/pure-mres-v1612.map" "$work/unsafe-witness-v1677"
+if [ "${V1677_FAST:-0}" = 1 ]; then
+    echo "PASS v1677: $variant physical A/B/C and real MRES fault witness"
+    echo "v1677 scoped no-write-watch evidence: $work"
+    echo 'NOT ACCEPTED: continuous physical MM writes and full PI6 fault matrix'
+    exit 0
+fi
 python3 "$v1674/trace-v1674.py" \
     "$V1677_FIXTURE/v1673-test-init.map" "$V1677_BUILD/kcore.map" \
     "$work/$variant-48-console.clean" \

@@ -227,11 +227,12 @@ def run(argv):
                                          "is %o, not 1" % observed)
                     print("PASS v1677: physical MRES committed-return "
                           "fault fired exactly once", flush=True)
-                if token == "A":
-                    set_watchpoints(output[snapshot_start:].decode(
-                        "ascii", errors="ignore"))
-                if token == "C":
-                    clear_watchpoints()
+                if os.environ.get("V1677_FAST", "0") != "1":
+                    if token == "A":
+                        set_watchpoints(output[snapshot_start:].decode(
+                            "ascii", errors="ignore"))
+                    if token == "C":
+                        clear_watchpoints()
                 start = len(output)
                 send(b"go\n")
                 time.sleep(0.2)

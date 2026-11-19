@@ -53,3 +53,13 @@ original v1673 process/MM/pin state and v1674 full write-event replay
 and corruption negatives. Neither this design nor a native preflight
 alone establishes physical acceptance; both general and strict guests
 must complete and their unmodified ORIGINAL MM results must agree.
+
+For a faster bounded *original checkpoint-state* preflight, set
+`V1677_FAST=1` in `run-physical-fault-v1677.sh`. This still requires
+real A/B/C physical MM/process/owner snapshots through the original
+v1673 verifier, exact runtime MRES relocation and one fault witness,
+plus three independent negative witness mutations. It intentionally
+skips the expensive 71-write-watch continuous-MM replay. It therefore
+cannot replace the full v1677 physical PI6/high-water fault matrix.
+After both fast variants PASS, run `compare-fault-v1677.py` with their
+build and run directories to prove paired binary/state identity.
