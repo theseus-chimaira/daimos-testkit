@@ -21,7 +21,14 @@ esac
 mkdir -p "$TMPDIR"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 kit=$(CDPATH= cd -- "$here/../../.." && pwd)
-work=$(mktemp -d "$TMPDIR/daimos-v1673-runtime-physical.XXXXXX")
+# An independent later test may select a caller-owned evidence directory;
+# the default v1673 acceptance still uses its isolated mktemp directory.
+work=${V1673_WORK_DIR:-}
+if [ -n "$work" ]; then
+    test -d "$work" || { echo 'FAIL v1673: no evidence directory' >&2; exit 2; }
+else
+    work=$(mktemp -d "$TMPDIR/daimos-v1673-runtime-physical.XXXXXX")
+fi
 keep=${KEEP_TEST:-0}
 cleanup()
 {
@@ -170,7 +177,8 @@ for variant in general strict; do
         # Never set a raw SIMH breakpoint on a user fixture symbol.
         # PID1 holds on CTY while the host interrupts SIMH and examines
         # original physical MM fields at each phase A/B/C.
-        if ! python3 "$here/host-cty-v1673.py" \
+        cty_driver=${V1673_CTY_DRIVER:-$here/host-cty-v1673.py}
+        if ! python3 "$cty_driver" \
             "$work/pty-run" "$PDP10_PREFIX/bin/pdp6" \
             "$work/$variant-$core-noaux.ini" "$build/kcore.map" \
             "$work/$variant-$core-console.log" \

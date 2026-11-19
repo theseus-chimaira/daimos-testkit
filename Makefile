@@ -2447,3 +2447,10 @@ test-pure-runtime-reclaim-v1673:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		PDP10_PREFIX='$(PDP10_PREFIX)' \
 		sh tests/validation/pure-runtime-reclaim-v1673/run-physical-v1673.sh
+
+# v1674: opt-in physical 48K RAW PURE MM write-watch high-water.
+.PHONY: test-pure-runtime-highwater-v1674
+test-pure-runtime-highwater-v1674:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		PDP10_PREFIX='$(PDP10_PREFIX)' \
+		sh tests/validation/pure-runtime-highwater-v1674/run-physical-v1674.sh
