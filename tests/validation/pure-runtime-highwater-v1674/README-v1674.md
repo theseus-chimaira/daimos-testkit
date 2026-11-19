@@ -106,9 +106,11 @@ The v1673 runner builds isolated three-member TSFS test media and
 executes the original general+strict 48K nine-child pressure test,
 including its accepted negative checks. The v1674 runner substitutes
 only its SIMH host controller, then replays each source-linked console,
-compares the two high-water reports and executes its own four negative
-mutations (missing watch registration, corrupted original write value,
-missing original write event, and forged peak summary).
+compares the two high-water reports and executes six original-physical negative mutations (missing watch
+registration, corrupted original count-write value, missing actual MM
+write event, damaged PURE MRES span, damaged BRK span) plus a separately
+forged peak summary. The two span mutants are selected using the
+original linked KCORE symbol map and real committed write PCs.
 
 For debugging only, set `V1674_ONLY_VARIANT=general` or `strict` and
 `V1673_ONLY_VARIANT` to the same selection. Existing source-built
