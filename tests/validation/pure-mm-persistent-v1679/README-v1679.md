@@ -50,3 +50,40 @@ multi-owner repeated failure under PI6/scheduler, failed FULL source
 restore, terminal/uncertain-owner policy and continuous original-MM
 write-watch remain unaccepted. Do not count this native test as a
 physical P1-E release gate.
+
+## Physical 48K repeated-refusal experiment (not yet accepted)
+
+`proc-pressure-v1679.c` is a strictly test-only C89 PID1 derived from
+the accepted v1674 deterministic PIPE-held nine-child fixture. After
+all nine real children are blocked and the genuine tenth RUN refuses
+under APR fragmentation, PID1 makes **two additional native RUN**
+attempts with unchanged process ownership, requires both to refuse,
+then exposes original CTY barrier B. The same original child has a
+canary in its writable suffix and all children EXIT/WAIT after B.
+
+`make-physical-fault-v1679.py` substitutes only a versioned disposable
+copy of the original PURE DROP C source. Every rebase attempt for
+**slot 2** first pins the real source, then calls the **original PDP-6
+MM rebase assembler** with invalid sector geometry. The original
+assembler refuses before changing a descriptor. The original C DROP
+unpins and keeps the process RESIDENT and retryable; other children
+can still become exactly PACKED without extra kernel state.
+
+`host-cty-fault-v1679.py` derives the installed optional PURE MRES
+base from the actual permanent `proc_swap_reclaim` JRST and the
+source-built MRES map, and requires at least **three actual invalid
+MM rebase returns** in its real physical counter at B. It reads the
+original A/B/C MM and process snapshots. `measure-v1679.py` adds
+exactly two repeated native refused-RUN milestones and uses the
+v1678 source-linked eight-PACKED/one-RESIDENT MM/PROC/MEMINFO and
+exact C-recovery oracle unchanged. Three corruptions of the original
+JRST/MRES counter are rejected, along with two altered repeated RUN
+milestones and all five v1678 original MM/PROC/MEMINFO mutations.
+
+Both independent GENERAL/STRICT 48K source images must match in
+fixed KCORE and test-only PURE MRES DXR/map. All physical results are
+unaccepted until the recorded runs complete, including full EXIT/WAIT
+and paired source-linked report comparison. `V1679_FAST=1` intentionally
+omits 71 continuous MM write watches; its results cannot establish
+the fault-injected intermediate high-water or all PI6 schedules.
+The complete original physical MM write-watch test is a separate gate.
