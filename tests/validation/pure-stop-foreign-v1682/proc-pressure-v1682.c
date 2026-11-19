@@ -179,11 +179,28 @@ main(int argc, kword_t **argv)
                 children[actual++] = pid;
                 v1673_line("V1673 CHILD PID ", (kword_t)pid);
                 if (i == 0U) {
-                        /* Stop the nonblocking user spin child before
-                         * it can own any private PIPE kernel stack.
-                         * The actual source/MM view is checked at B. */
-                        if (pid != 2 ||
-                            dsys_procctl(SYS_PROCCTL_EVENT_PID,
+                        struct sys_procinfo child_info;
+                        unsigned int attempts;
+                        /* RUN returns before the child necessarily BRKs.
+                         * Require the original 06000-word APR before
+                         * TSTP, or the 10th RUN may incorrectly fit.
+                         * This user-mode spin child has no PIPE wait. */
+                        if (pid != 2)
+                                return 42;
+                        for (attempts = 0U; attempts < 2000U; ++attempts) {
+                                if (dsys_procinfo((unsigned int)pid,
+                                        &child_info) == 0 &&
+                                    child_info.words == 06000UL)
+                                        break;
+                                (void)dsys_sleep(1U);
+                        }
+                        if (attempts == 2000U) {
+                                (void)u_puts(1, "V1682 BRK TIMEOUT");
+                                (void)u_crlf(1);
+                                return 44;
+                        }
+                        v1673_line("V1682 APR WORDS ", child_info.words);
+                        if (dsys_procctl(SYS_PROCCTL_EVENT_PID,
                                 SYS_EVENT_ARG((unsigned int)pid,
                                     SYS_EVENT_TSTP)) != 0) {
                                 (void)u_puts(1, "V1682 STOP FAILURE");
