@@ -26,3 +26,30 @@ runs. All three two-owner fault cases pass, and the compiled unsafe pin
 predicate mutant is rejected specifically by the **new** two-owner
 case (guest exit `000000002202`) with prior baseline tests omitted
 from the negative run. No production source or linked KCORE change.
+
+## Source-linked physical PDP-6 lost-success experiment (in progress)
+
+`make-service-fault-v1677.py` creates a **disposable source copy** of
+only the PURE MRES service. After a real successful original RAW DROP,
+it returns MM_ERR_BUSY exactly once and increments the MRES-only
+`v1677_fault_return_count` word. The real kernel MM and scheduler,
+source-identity checks, and process state are unmodified. A lost return
+on a committed MM operation must be resolved from the single original
+owner/pin state, never by a second fictitious owner.
+
+`build-physical-fault-v1677.sh` builds a 48K GENERAL or STRICT test
+image from that source using an isolated `$V1677_BASE` and exact
+`$V1677_FIXTURE` pipe-controlled PID1/child. The source override is
+relative to the kernel Makefile; it never copies source into DAIMOS.
+Optional `V1677_CONTROL_KCORE` requires a byte-identical fixed KCORE.
+
+`run-physical-fault-v1677.sh` runs the ORIGINAL PDP-6 nine-owner
+RUN/EXIT/WAIT workload and original 71 physical MM write watches.
+Its controller reads the actual patched `proc_swap_reclaim` JRST,
+computes the relocated PURE MRES base using the linked function
+symbol, reads the new counter word at checkpoint B, and requires the
+lost-success fault to have happened **exactly once**. It then requires
+original v1673 process/MM/pin state and v1674 full write-event replay
+and corruption negatives. Neither this design nor a native preflight
+alone establishes physical acceptance; both general and strict guests
+must complete and their unmodified ORIGINAL MM results must agree.
