@@ -2455,3 +2455,9 @@ test-pure-runtime-highwater-native-v1674:
 test-pure-pi6-fault-native-v1677:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS source required}" \
 	 sh tests/validation/pure-pi6-fault-pressure-v1677/run-v1677.sh
+
+# v1678: native original PDP-6 MM precommit pin/rebase rejection and retry.
+.PHONY: test-pure-mm-precommit-native-v1678
+test-pure-mm-precommit-native-v1678:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?original PURE source checkout required}" \
+	 sh tests/validation/pure-mm-precommit-v1678/run-v1678.sh
