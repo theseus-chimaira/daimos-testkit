@@ -2485,3 +2485,9 @@ test-pure-prevm-finalizer-native-v1680:
 test-pure-terminal-finalizer-native-v1681:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS source required}" \
 	 sh tests/validation/pure-terminal-finalizer-v1681/run-v1681.sh
+
+# v1684: native C89 two-source PURE ownership under original FULL + VFS.
+.PHONY: test-pure-multiowner-source-native-v1684
+test-pure-multiowner-source-native-v1684:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS required}" \
+	 sh tests/validation/pure-multiowner-source-v1684/run-v1684.sh
