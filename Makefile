@@ -2473,3 +2473,9 @@ test-pure-mm-persistent-native-v1679:
 test-pure-terminal-pin-native-v1680:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS tree required}" \
 	 sh tests/validation/pure-terminal-pin-v1680/run-v1680.sh
+
+# v1680: native original PDP-6 idle FINALIZE+PREVM repeated refusal.
+.PHONY: test-pure-prevm-finalizer-native-v1680
+test-pure-prevm-finalizer-native-v1680:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS tree required}" \
+	 sh tests/validation/pure-prevm-finalizer-v1680/run-v1680.sh
