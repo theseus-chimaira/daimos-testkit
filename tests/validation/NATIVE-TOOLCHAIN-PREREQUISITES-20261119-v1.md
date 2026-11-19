@@ -37,3 +37,18 @@ requires execution before a pass can be claimed.
 Do not use `run-all` to paper over missing stage artifacts. Execute each
 suite in dependency order, retain reports and failure logs, and record
 runtime outcomes separately from the static dispatcher checks.
+
+## First execution attempt (2026-11-19)
+
+Executed the selected `native-kcc-daimos-native-kcc-make-preflight-20261008-v1`
+through the new DAIMOS dispatcher, with `DAIMOS_REPO=$HOME/git/DAIMOS`
+and the installed `$PDP10_PREFIX`. An outer 180-second wall-clock
+limit was imposed for the initial smoke run. The prerequisite DAIMOS
+`system/boot/pdp6 image` build was still processing its userland/manual
+stage at the limit, so the attempt returned **124 (timed out)** before
+the native KCC MAKE probes could start. This is **incomplete**, not a
+compiler test failure and not a pass. The temporary build was removed
+by the script's normal cleanup. No full guest-native acceptance run was
+performed. Future attempts must allocate an appropriately long build
+window and capture durable reports, rather than inferring an oracle
+result from this timeout.
