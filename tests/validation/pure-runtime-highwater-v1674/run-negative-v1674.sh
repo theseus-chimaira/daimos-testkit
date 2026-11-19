@@ -148,4 +148,4 @@ grep -q '^FAIL v1674 paired original-MM high-water:' \
     cat "$work/unsafe-peak-refused.log" >&2
     keep=1; exit 1
 }
-echo 'PASS v1674: six original MM watch/write/owner mutants plus forged summary rejected'
+echo 'PASS v1674: five original MM watch/write/owner mutants plus forged summary rejected'
