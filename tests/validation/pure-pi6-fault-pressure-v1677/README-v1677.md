@@ -63,3 +63,57 @@ skips the expensive 71-write-watch continuous-MM replay. It therefore
 cannot replace the full v1677 physical PI6/high-water fault matrix.
 After both fast variants PASS, run `compare-fault-v1677.py` with their
 build and run directories to prove paired binary/state identity.
+
+## 2026-11-19 scoped 48K physical result: PASS
+
+Both original, independently booted GENERAL and STRICT 48K swapless
+PDP-6 guests, with *identical* fixed KCORE and a test-only modified
+PURE MRES, completed the original 9-child PIPE-held native RUN /
+EXIT / WAIT workload. Each actually refused the tenth RUN because
+of MM fragmentation, physically showed nine RAW PACKED owners at B,
+and recovered the exact original A owner/pin/mode/free state at C.
+The original `measure-v1673.py` physical owner and native SYS_MEMINFO
+verifier PASSed for both; the paired `compare-fault-v1677.py` also PASSed
+with byte-identical original v1673 report SHA256
+`7ba78a492c00f4b99f17d8ebecee8e0a170e4907c62424066bd9a08e4db6779a`.
+
+| Original physical MM checkpoint | GENERAL | STRICT |
+| --- | ---: | ---: |
+| A free / largest | 27332 / 27332 | 27332 / 27332 |
+| B free / largest | 2685 / 1532 | 2685 / 1532 |
+| C free / largest | 27332 / 27332 | 27332 / 27332 |
+| Native failed tenth RUN | 1 | 1 |
+| Original RAW PACKED owners at B | 9 | 9 |
+| Test-only lost-success return after actual DROP | 1 | 1 |
+| Original MM/pin and SYS_MEMINFO physical verifier | PASS | PASS |
+| Original JRST/relocated MRES witness + 3 mutants | PASS | PASS |
+
+Original `proc_swap_reclaim` physical address octal `023401` contains
+`254000032065` (real installed JRST). Source-linked PURE MRES base
+is computed from its original `proc_pure_mres_reclaim_v1612` symbol,
+then the isolated fault counter is physically read at octal `035522`
+with value `000000000001`, **exactly once** in both independent guests.
+The independent negative witness test rejects a zeroed count, a
+corrupted original service JRST and a duplicated counter reading.
+
+Fixed KCORE image SHA256 (byte-for-byte v1674 control):
+`66296e13440e1f4db3bf263e181dc33e085f55dc4b0f07c09f147e6c1c88b506`.
+Test-only PURE MRES image SHA256, identical in both profiles:
+`ebb45033ecacb80fb99c783c59ed6ef78ee027f323e9279e8f5c35fc112512c0`.
+Unlike the v1674 control PURE module, the versioned injected MRES
+requires seven more physically managed words (v1674 A=27339, here
+A=27332), not seven added fixed-KCORE words. The control images and
+original v1674 results are not overwritten or silently mixed.
+
+**Exact acceptance scope:** ONE test-only lost-success return after
+a real, successful RAW suffix MM rebase/unpin; its original process
+ownership and bystander restore stay valid throughout normal guest
+RUN/EXIT/WAIT. PI6 slot-0 real-interrupt exclusion is separately
+accepted by original v1650 native regression and three mutants.
+The two full v1677 71-watch diagnostic attempts were terminated
+**before B**, retained as diagnostics and never counted as successful.
+This fast physical test intentionally has no continuous write-watch
+trace; it does not establish the v1677 intermediate high-water,
+arbitrary persistent MM failure, genuine faulting PI6 handler
+interleaving, source-loss cancellation, or full P1-E acceptance.
+All those items remain open in the DAIMOS TODO.
