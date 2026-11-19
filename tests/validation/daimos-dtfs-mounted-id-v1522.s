@@ -20,6 +20,8 @@
         .globl vfs_mount_root_base
         .globl vfs_mount_policy
         .globl vfs_mount_limit
+        .globl vfs_mount_aux_base_v1560
+        .globl dtfs_intent_first_write_v1553
         .globl tsfs_file_shape_base
         .globl tsfs_extent_media_base
         .globl kconst_2_2
@@ -359,6 +361,11 @@ dtfs_owner:
 mm_alloc_aligned_noreclaim:
 mm_free:
         jrst    kret_neg1
+; The source-backed test uses V1 media on DTC3, so the original
+; v1561 gateway must authorize that V1 ownership directly.
+; Entering the V2 first-write barrier is invalid in this fixture.
+dtfs_intent_first_write_v1553:
+        jrst    kret_neg1
 kret_zero:
         setz    1,
         popj    17,
@@ -374,6 +381,7 @@ kconst_2_2: .word 2,,2
 vfs_mount_root_base: .word mount_roots_v1522
 vfs_mount_policy: .word 0
 vfs_mount_limit: .word 4
+vfs_mount_aux_base_v1560: .word 0
 dtfs_media_base: .word media_v1522
 tsfs_file_shape_base: .word shape_v1522
 tsfs_extent_media_base: .word extent_v1522

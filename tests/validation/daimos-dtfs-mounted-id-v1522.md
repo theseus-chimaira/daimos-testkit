@@ -1,3 +1,18 @@
+# v1656 current-source reacceptance
+
+The old v1522 full native mounted V1 volume-ID and
+raw DTC wrapper integration now PASSes on current
+source. The original v1561 mount-intent gate is
+linked (V1 accepted only through real published
+VFS ownership), the source-extractor end anchor
+was updated to the actual v1575 discard boundary,
+and saved mount-slot negative mutation was aligned
+to the v1556 original source. All eight unsafe
+source mutations still execute and fail the native
+oracle, including both 36-bit ID halves and BCACHE
+workspace invalidation. No production change.
+See tests/validation/dtfs-integration-v1656/README-v1656.md.
+
 # v1527 correction: real BCACHE workspace identity (2026-11-13)
 
 The original v1522 test fixture declared local

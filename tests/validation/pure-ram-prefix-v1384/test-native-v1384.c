@@ -279,6 +279,73 @@ test_blocked_gap_v1384(void)
         return 0;
 }
 
+/*
+ * v1609: a previously valid PURE backing can lose its provider before
+ * an inactive process is selected for in-place reconstruction.
+ * The fast path must refuse before MM prefix claim/pinning, preserve the
+ * raw suffix, and retain TRANSITION for a correctly sourced retry.
+ */
+static int
+test_missing_prefix_source_v1609(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        vnode_t *roots;
+        int rc;
+
+        reset_prefix_v1384();
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
+                return 1;
+        PROC_SET_TRANSITION(p);
+        roots = vfs_mount_root_base;
+        vfs_mount_root_base = (vnode_t *)0;
+        rc = proc_pure_restore_v1384(SLOT, prefix_plain_v1384);
+        vfs_mount_root_base = roots;
+        if (rc != MM_ERR_INVAL || prefix_reads_v1384 ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_BASE(&mm_extents[0]) != SOURCE + OMIT ||
+            MM_EXTENT_WORDS(&mm_extents[0]) != SUFFIX ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PACKED_PROCESS ||
+            MM_EXTENT_PINNED(&mm_extents[0]) ||
+            VM_PDP6_BASE(p) || !PROC_TRANSITION(p) ||
+            !check_suffix_v1384())
+                return 2;
+        return 0;
+}
+
+/*
+ * Actual v1610 slot-0 wake preflight against source-linked prefix
+ * restoration. The one-shot selection remains a scheduler concern.
+ */
+static int
+test_slot0_run_prefix_v1610(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t old_current = proc_current_slot;
+
+        reset_prefix_v1384();
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
+                return 1;
+        PROC_SET_TRANSITION(p);
+        PROC_SET_STATE(p, PROC_SRUN);
+        proc_current_slot = SLOT;
+        if (proc_pure_restore_v1384(SLOT, prefix_plain_v1384) !=
+            MM_ERR_INVAL || prefix_reads_v1384 ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PACKED_PROCESS ||
+            !PROC_TRANSITION(p) || VM_PDP6_BASE(p))
+                return 2;
+        proc_current_slot = 0UL;
+        if (proc_pure_restore_v1384(SLOT, prefix_plain_v1384) !=
+            MM_OK || prefix_reads_v1384 != 1U ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PROCESS ||
+            VM_PDP6_BASE(p) != SOURCE || PROC_TRANSITION(p) ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT) != 0 ||
+            !check_suffix_v1384())
+                return 3;
+        proc_current_slot = old_current;
+        return 0;
+}
+
 #ifdef DAIMOS_TEST_PLAIN_DXR_V1385
 /* Exact public exec.h values, without another nested legacy KCC include. */
 #define EXEC_DXR_F_PURE 0200000UL
@@ -304,7 +371,12 @@ extern int proc_pure_ram_restore_v1391(unsigned int,
     int (*)(kword_t, kword_t, kword_t, kword_t));
 #endif
 #endif
-static vnode_t roots_v1385[26];
+/* Earlier MM/restore tests run before the v1385 loader cases set
+ * their per-case roots. Preserve a valid initial KINIT mount identity.
+ */
+static vnode_t roots_v1385[26] = {
+    VFS_NODE(6U, VFS_MOUNT_KIND(1U, 1U), 1U)
+};
 vnode_t *vfs_mount_root_base = roots_v1385;
 kword_t vfs_mount_limit = 26UL;
 static int read_mode_v1385;
@@ -739,6 +811,12 @@ main(void)
         rc = test_blocked_gap_v1384();
         if (rc)
                 return 0500 + rc;
+        rc = test_missing_prefix_source_v1609();
+        if (rc)
+                return 01500 + rc;
+        rc = test_slot0_run_prefix_v1610();
+        if (rc)
+                return 01600 + rc;
 #ifdef DAIMOS_TEST_PLAIN_DXR_V1385
         rc = test_plain_loader_v1385(0U, 1U);
         if (rc)

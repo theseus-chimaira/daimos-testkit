@@ -1,3 +1,17 @@
+# v1656 current-source reacceptance
+
+The original standalone v1518 full raw DTC wrapper/
+BCACHE/native-loader integration now PASSes again
+against production v1561/v1572/v1575 source. The
+testkit links the ACTUAL v1561 physical-unit
+mount-intent gate and publishes a valid V1 DTC3
+mount instead of bypassing the pre-write check.
+Four original unsafe native source mutations
+execute and fail, including the corrected actual
+pre-write BCACHE invalidation mutation anchor.
+No production change; full reproducibility:
+tests/validation/dtfs-integration-v1656/README-v1656.md.
+
 # KCORE v1518: observed DTFS I/O failure invalidates shared cached identity
 
 Date: 2026-11-12. Source-linked native PDP-6 acceptance of fail-closed

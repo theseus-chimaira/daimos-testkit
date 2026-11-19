@@ -23,12 +23,21 @@
         .globl  dtfs_identity_revalidate_v1522
         .globl  vfs_mount_root_base
         .globl  vfs_mount_limit
+        .globl  vfs_mount_policy
+        .globl  vfs_mount_aux_base_v1560
+        .globl  dtfs_intent_first_write_v1553
 
 ; V1518 tests only the original physical-failure/clean-cache ABI.
 ; Its 128-word media stub does not implement v1522 DTVOL1; the separate
 ; v1522 native test exercises the genuine revalidation helper and flags.
 dtfs_identity_revalidate_v1522:
         jrst    kret_zero
+
+; The full original v1561 pre-write gate is linked by the fixture.
+; This is a genuine V1 mounted source, so the production V2-only
+; physical intent arm must NEVER be called. Refuse if it is reached.
+dtfs_intent_first_write_v1553:
+        jrst    kret_neg1
 
 main:
         setzm   dtfs_cache_mount
@@ -220,8 +229,13 @@ kconst_2_2: .word 2,,2
 dtfs_dir: .word dtfs_dir_words_v1518
 dtfs_media_base: .word dtfs_media_words_v1518
 dtfs_cache_mount: .word 0
-vfs_mount_root_base: .word 0
-vfs_mount_limit: .word 0
+vfs_mount_root_base: .word roots_v1656
+vfs_mount_limit: .word 2
+vfs_mount_policy: .word 0
+vfs_mount_aux_base_v1560: .word 0
+roots_v1656:
+        .word 0
+        .word 050201000000       ; actual V1 secondary DTFS / DTC3
 dtfs_media_words_v1518: .block 4
 
         .bss

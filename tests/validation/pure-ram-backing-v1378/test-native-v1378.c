@@ -16,6 +16,15 @@
 #define HIGH_BACKING_V1378 +    ((TEXT << PROC_SWAP_TEXT_SHIFT) | +     (((kword_t)HI_SLOT_V1378 & PROC_SWAP_MOUNT_MASK) << +        PROC_SWAP_MOUNT_SHIFT) | 012345UL)
 #define HI_NODE_V1378 +    VFS_NODE(6U, VFS_MOUNT_KIND(HI_MOUNT_V1378, 1U), 012345U)
 
+#ifdef DAIMOS_TEST_INPLACE_V1382
+/* The original v1378 guard checks used only the process table.
+ * v1608 also requires KINIT's real public mount-slot binding.
+ * This fixture publishes the SAME mount 18 used by its backing.
+ */
+static vnode_t roots_v1608[26];
+extern vnode_t *vfs_mount_root_base;
+#endif
+
 unsigned int proc_high_slot = SLOTS;
 extern int proc_swap_backing_busy(vnode_t node);
 extern int proc_swap_mount_busy(unsigned int mount);
@@ -108,6 +117,12 @@ main(void)
         p->sched = (kword_t)PROC_SLEEP << PROC_STATE_SHIFT;
         swap_slots[SLOT].state = HIGH_BACKING_V1378;
         uarea[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
+#ifdef DAIMOS_TEST_INPLACE_V1382
+        roots_v1608[HI_MOUNT_V1378 - 1U] =
+            VFS_NODE(6U, VFS_MOUNT_KIND(HI_MOUNT_V1378, 1U), 1U);
+        vfs_mount_root_base = roots_v1608;
+        vfs_mount_limit = 26UL;
+#endif
 
         if (!guard_active_v1378())
                 return 2;

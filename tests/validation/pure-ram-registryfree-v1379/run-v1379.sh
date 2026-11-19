@@ -22,4 +22,5 @@ include="-I$DAIMOS_REPO/system/kernel/proc -I$DAIMOS_REPO/system/kernel/core -I$
     "$testkit/tests/validation/daimos-test-crt0-v1.s" \
     "$work/proc_pure_ram_v1379.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" \
+    "$DAIMOS_REPO/system/kernel/drivers/device_state.s" \
     "$work/test-native-v1379.s"

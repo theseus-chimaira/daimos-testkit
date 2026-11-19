@@ -1,3 +1,15 @@
+.PHONY: test-kcore-pure-bitmap-probe-v1659
+test-kcore-pure-bitmap-probe-v1659: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/pure-bitmap-probe-v1659/run-v1659.sh
+
+.PHONY: test-kcore-pure-mm-owner-v1658
+test-kcore-pure-mm-owner-v1658: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR="$${TMPDIR:-$$HOME/tmp}" \
+	 sh tests/validation/pure-mm-owner-v1658/run-v1658.sh
+
 .PHONY: test-daimos-swap-physical-final-v1349-preflight
 test-daimos-swap-physical-final-v1349-preflight: check-prefix
 	@python3 tests/validation/daimos-f07-swapstack-schema-v1349.py
@@ -2417,3 +2429,23 @@ test-daimos-swap-in-checked-release-v1405: check-prefix
 test-daimos-d6codec-release-selection-v1464:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	 sh tests/validation/d6codec-release-selection-v1464.sh
+
+# v1673: opt-in source-matched 48K PDP-6 RAW PURE reclamation.
+# Keep out of the default regression matrix until physical acceptance.
+.PHONY: test-pure-runtime-reclaim-v1673
+test-pure-runtime-reclaim-v1673:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		PDP10_PREFIX='$(PDP10_PREFIX)' \
+		sh tests/validation/pure-runtime-reclaim-v1673/run-physical-v1673.sh
+
+# v1674: opt-in physical 48K RAW PURE MM write-watch high-water.
+.PHONY: test-pure-runtime-highwater-v1674
+test-pure-runtime-highwater-v1674:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+		PDP10_PREFIX='$(PDP10_PREFIX)' \
+		sh tests/validation/pure-runtime-highwater-v1674/run-physical-v1674.sh
+
+# v1674: lightweight native MM write-replay invariant test.
+.PHONY: test-pure-runtime-highwater-native-v1674
+test-pure-runtime-highwater-native-v1674:
+	@python3 tests/validation/pure-runtime-highwater-v1674/test-replay-v1674.py

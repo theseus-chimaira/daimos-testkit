@@ -48,5 +48,6 @@ done
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_expand_v1384.s" \
     "$testkit/tests/validation/pure-ram-prefix-v1385/exec_prefix_fixture_v1385.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" \
+    "$DAIMOS_REPO/system/kernel/drivers/device_state.s" \
     "$work/unpack-backing-v1385.s" \
     "$work/test-native-v1385.s"

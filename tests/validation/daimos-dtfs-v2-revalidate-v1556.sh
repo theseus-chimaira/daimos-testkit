@@ -105,12 +105,15 @@ cases=[
     ('mid-read WRITE_UNCERTAIN', 'v2_clean','v2_clean',v2s,root,1,4,-1,v2s|0o400000,1,1),
     ('mid-read high ID change', 'v2_clean','v2_clean',v2s,root,1,5,-1,v2s,1,1),
     ('mid-read low ID change', 'v2_clean','v2_clean',v2s,root,1,6,-1,v2s,1,1),
-    ('mid-read RW promotion', 'v2_clean','v2_clean',v2s,root,1,7,-1,v2s,1,1),
+    ('mid-read RW promotion', 'v2_clean','v2_clean',v2s,root,1,7,0,v2ok,1,1),
     ('mid-read wrong provider', 'v2_clean','v2_clean',v2s,root,1,8,-1,v2s,1,1),
     ('mid-read changed mount ID', 'v2_clean','v2_clean',v2s,root,1,9,-1,v2s,1,1),
     ('initial wrong provider', 'v2_clean','v2_clean',v2s,foreign,1,0,-1,v2s,1,1),
     ('initial wrong mount ID', 'v2_clean','v2_clean',v2s,other_mount,1,0,-1,v2s,1,1),
-    ('initial writable V2 slot', 'v2_clean','v2_clean',v2s,root,0,0,-1,v2s,1,1),
+    ('initial writable V2 slot', 'v2_clean','v2_clean',v2s,root,0,0,0,v2ok,1,1),
+    ('armed RO V2 DIRTY must not recover',
+     'v2_dirty','v2_clean',v2s|0o40000,root,1,0,-1,
+     v2s|0o40000,1,1),
     ('WRITE_UNCERTAIN refuses even if clean', 'v2_clean','v2_clean',v2s|0o400000,root,1,0,-1,v2s|0o400000,0,0),
     ('legacy V1 recovery unaffected', 'v1','v1',v1s,root,0,0,0,3,1,1),
     ('legacy V1 replacement rejected', 'v2_clean','v1',v1s,root,0,0,-1,v1s,1,1),
@@ -156,9 +159,9 @@ mutants=(
      'setz    1,                       ; ignore V2 seal/state'),
     ('admit-dirty-v2',
      'jumpn   1,dtfs_identity_revalidate_pop_fail_v1522\n'
-     '        ; Only DTVOL2/CLEAN',
-     'jumpe   1,dtfs_identity_revalidate_pop_fail_v1522\n'
-     '        ; Only DTVOL2/CLEAN'),
+     '        jrst    dtfs_revalidate_valid_v1556',
+     'jrst    dtfs_revalidate_valid_v1556\n'
+     '        jrst    dtfs_revalidate_valid_v1556'),
     ('wrong-v2-branch',
      'trnn    5,0100000              ; FORMAT_V2 on this mount',
      'trne    5,0100000              ; wrong record parser'),
@@ -188,9 +191,9 @@ mutants=(
     ('ignore-mount-change',
      'came    3,7                     ; original published mount slot',
      'came    3,3                     ; wrong mount check'),
-    ('ignore-readonly-policy',
-     'trnn    1,1                     ; VFS_MOUNT_RDONLY still set',
-     'trne    1,1                     ; wrong RO polarity'),
+    ('ignore-armed-readonly-policy',
+     'trne    5,0040000              ; cannot have ARMED on RO mount',
+     'trne    5,0                    ; ignore physical ARMED/RO state'),
     ('skip-cache-tag-invalidation',
      'pushj   17,bcache_workspace_invalidate',
      'move    4,4                     ; old workspace BCACHE tag'),
@@ -224,13 +227,13 @@ if ! run_case baseline "$work/native-source-v1556.s"; then
     echo 'FAIL v1556: native mounted V2 physical read-fault recovery' >&2
     exit 1
 fi
-echo 'PASS v1556: 29 native PDP-6 DTVOL2/V1 recovery cases'
+echo 'PASS v1655: 30 current-source PDP-6 DTVOL2/V1 recovery cases'
 
 for mutant in bypass-v2-physical-validation admit-dirty-v2 wrong-v2-branch \
     skip-scratch-clear ignore-physical-read-failure skip-high-identity \
     skip-low-identity ignore-pending-write-uncertain \
     skip-concurrent-media-change ignore-provider-change \
-    ignore-mount-change ignore-readonly-policy skip-cache-tag-invalidation \
+    ignore-mount-change ignore-armed-readonly-policy skip-cache-tag-invalidation \
     wrong-physical-rbn; do
     if run_case "$mutant" "$work/mutant-$mutant-v1556.s"; then
         echo "FAIL v1556: unsafe recovery source mutant accepted: $mutant" >&2
@@ -243,4 +246,4 @@ for mutant in bypass-v2-physical-validation admit-dirty-v2 wrong-v2-branch \
     }
     echo "PASS v1556: rejected $mutant"
 done
-echo 'PASS v1556: physically authenticated DTVOL2 RO recovery'
+echo 'PASS v1655: current-source physically authenticated V1/V2 recovery'

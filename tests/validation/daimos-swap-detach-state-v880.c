@@ -16,7 +16,7 @@ static int publish_calls;
 static int failures;
 
 struct proc *proc_table = slots;
-static int disk_mode = 1;
+int test_disk_mode_v1666 = 1;
 kword_t *backstore_bitmap = &allocated;
 kword_t backstore_blocks = 040;
 kword_t backstore_blocks_used;
@@ -34,7 +34,7 @@ setup(kword_t first, kword_t blocks, kword_t mask)
     allocated = mask;
     free_calls = 0;
     publish_calls = 0;
-    disk_mode = 1;
+    test_disk_mode_v1666 = 1;
 }
 
 int
@@ -74,11 +74,11 @@ proc_storage_publish_v30(unsigned int slot, unsigned int old_state,
 {
     ++publish_calls;
     if (slot != 2U || old_state != 1U || new_state != 0U ||
-        disk_mode != 1) {
+        test_disk_mode_v1666 != 1) {
         ++failures;
         return -1;
     }
-    disk_mode = 0;
+    test_disk_mode_v1666 = 0;
     return 0;
 }
 
@@ -116,7 +116,8 @@ main(void)
     check(swaps[2].state == 0UL, "complete allocation clears record");
     check(proc_swap_blocks_used == 0UL, "complete allocation correct count");
     check(allocated == 0UL, "complete allocation releases backing bits");
-    check(free_calls == 2 && publish_calls == 1 && disk_mode == 0,
+    check(free_calls == 2 && publish_calls == 1 &&
+        test_disk_mode_v1666 == 0,
         "complete allocation publishes state exactly once");
     check(proc_swap_detach(2) == 0 && free_calls == 2,
         "duplicate detach does not free again");

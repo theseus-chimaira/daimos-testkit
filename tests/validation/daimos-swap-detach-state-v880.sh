@@ -22,6 +22,7 @@ cc -std=c99 -O2 -ffunction-sections -fdata-sections \
 cc -std=c99 -O2 -ffunction-sections -fdata-sections \
     $inc -I"${PDP10_PREFIX:-$HOME/cross}/include" \
     -Wl,--gc-sections "$self/daimos-swap-detach-state-v880.c" \
+    "$self/daimos-swap-detach-host-helpers-v1609.c" \
     "$work/swap.o" -o "$work/test"
 "$work/test"
 echo 'v880: actual C swap-detach ownership preservation and retry PASS'

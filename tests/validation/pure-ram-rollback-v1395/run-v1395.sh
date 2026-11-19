@@ -22,7 +22,7 @@ for spec in 'proc_pure_ram_v1381 DAIMOS_SWAPLESS_PURE_RAM_V1381' 'proc_pure_rest
     fi
 done
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas \
-    -DDAIMOS_SWAPLESS_PURE_RAM_RESTORE_V1391=1 \
+    -DDAIMOS_PURE_FULL_V1391=1 \
     -Dmm_unpin=mm_unpin_fault_v1395 -Dmm_free=mm_free_fault_v1395 \
     $include -S "$src/proc/proc_pure_ram_restore_v1391.c" \
     -o "$work/proc-pure-restore-v1395.s"
