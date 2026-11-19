@@ -2449,3 +2449,9 @@ test-pure-runtime-highwater-v1674:
 .PHONY: test-pure-runtime-highwater-native-v1674
 test-pure-runtime-highwater-native-v1674:
 	@python3 tests/validation/pure-runtime-highwater-v1674/test-replay-v1674.py
+
+# v1677: opt-in native PDP-6 two-owner PURE fault preflight (not physical PI6).
+.PHONY: test-pure-pi6-fault-native-v1677
+test-pure-pi6-fault-native-v1677:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS source required}" \
+	 sh tests/validation/pure-pi6-fault-pressure-v1677/run-v1677.sh
