@@ -72,3 +72,30 @@ output. The preflight now also checks the first-object exit status and
 build announcement against the real target. These are corrections of
 stale test oracles, not changes to DAIMOS or KCC production sources.
 The corrected execution result must be reported separately.
+
+## Corrected ten-minute guest preflight: compiler defect
+
+The corrected preflight finished within the 600-second limit, with
+**3 PASS / 1 FAIL**. `kcc-native-default-target`,
+`kcc-native-native-single-graph`, and `kcc-native-clean` passed.
+`kcc-native-first-object` now resolves the real target
+`BUILD/CC-CPP.S` and invokes the native KCC compiler. It fails during
+compilation, not target lookup:
+
+```
+KCC: KCC000006
+[Internal error] gaddress: bad Sclass 0 (node -1: 34=Q_IDENT)
+kgen: truncated KIR1 input
+MAKE: RECIPE FAILED: BUILD/CC-CPP.S
+STATUS:1
+```
+
+The retained evidence is in the local TMPDIR directory
+`daimos-native-kcc-make-preflight-20261008-v1.wctYaS/`, notably
+`report.md` and `run/raw-norm.4`. The error message originates from
+`kcc/ccgen2.c` near the `gaddress()` Sclass dispatch (line 9619 in
+the inspected checkout). The truncated KIR is downstream of the first
+internal error, not an independent diagnosis. No production compiler
+source has been modified. The next priority is a KCC-side reproducer
+and root-cause fix before retrying native acceptance; do not relax the
+`STATUS:0` assertion.
