@@ -68,3 +68,11 @@ No post-user continuous memory result is accepted until the full new
 physical trace passes. If it does pass, scope is original MM descriptor
 mutation high-water on 48K TSFS/PURE only. Separate gates remain for
 root=auto/DSK/DRM, mode3, PI6 fault injection, KA10 and full 32K boot.
+
+The fast `make test-pure-runtime-highwater-native-v1674` target exercises
+the replay classifier with synthetic descriptor writes: a geometrically
+valid but uncommitted intermediate shift must not be counted as an MM
+high-water; a subsequent count commit and an in-place resize must be
+counted. Unknown physical watch addresses and unpaired breakpoint
+headers must fail. These native checks do not replace the real physical
+test and are never called physical acceptance evidence.

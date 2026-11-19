@@ -2454,3 +2454,8 @@ test-pure-runtime-highwater-v1674:
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 		PDP10_PREFIX='$(PDP10_PREFIX)' \
 		sh tests/validation/pure-runtime-highwater-v1674/run-physical-v1674.sh
+
+# v1674: lightweight native MM write-replay invariant test.
+.PHONY: test-pure-runtime-highwater-native-v1674
+test-pure-runtime-highwater-native-v1674:
+	@python3 tests/validation/pure-runtime-highwater-v1674/test-replay-v1674.py
