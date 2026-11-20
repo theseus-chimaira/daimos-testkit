@@ -19,13 +19,12 @@ fi
     printf '.globl file_open\n.globl file_new_fd\n.globl file_close_entry_v865\n'
     sed -n '/^file_open:$/,/^; kword_t vfs_current_owner/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
-    sed -n '/^file_close_entry_v865:$/,/^; int file_dup(int fd)/p' \
+    sed -n '/^file_close_entry_v865:$/,/^; Root explicitly abandons/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     sed -n '/^file_new_fd:$/,/^; kword_t file_seek(int fd/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
-    # The post-v1531 FILE close slice includes administrative DTFS code
-    # that references the ordinary descriptor lookup, even though FIFO
-    # OPEN does not execute it. Link the unchanged real lookup leaf.
+    # The ordinary file lookup is still needed by FIFO OPEN; exclude
+    # unrelated DTFS abandonment code and its external admin dependency.
     sed -n '/^file_find:$/,/^; int file_new_fd(vnode_t node/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     sed -n '/^pipe_fifo_find:$/,/^; Remove AC1 object/p' \

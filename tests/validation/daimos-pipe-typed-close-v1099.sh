@@ -10,7 +10,8 @@ work=$(mktemp -d "$TMPDIR/daimos-pipe-typed-v1099.XXXXXX")
 trap 'if [ "${KEEP_TEST:-0}" != 1 ]; then rm -rf "$work"; else echo "v1099 work: $work"; fi' EXIT HUP INT TERM
 {
     printf '.text\n.globl file_close_entry_v865\n'
-    sed -n '/^file_close_entry_v865:$/,/^; int file_dup(int fd)/p' \
+    # Keep DTFS administrative-abandon outside this PIPE-only leaf test.
+    sed -n '/^file_close_entry_v865:$/,/^; Root explicitly abandons/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     printf '.globl pipe_fifo_unlink_object\n'
     sed -n '/^pipe_fifo_unlink_object:$/,/^; kword_t pipe_create/p' \
