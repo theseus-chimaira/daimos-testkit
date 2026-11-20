@@ -24,6 +24,9 @@ swap="$DAIMOS_REPO/system/kernel/proc/proc_swap_pdp6.s"
         sed -n '1,/^        jumpn   1,/p'
     printf '%s\n' '        jrst proc_swap_free_ok_v1683'
 } > "$work/production.s"
+printf '.text\n' >> "$work/production.s"
+sed -n '/^        \.globl mach_pi_disable$/,$p' \
+    "$DAIMOS_REPO/system/kernel/core/kcore_pi_pdp6.s" >> "$work/production.s"
 run()
 {
     name=$1

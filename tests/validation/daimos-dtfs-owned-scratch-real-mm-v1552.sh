@@ -43,6 +43,9 @@ for required in ('mm_find_base:', 'mm_extent_insert:',
 Path(sys.argv[2]).write_text(decls + constants + body)
 print('v1552: extracted actual MM allocate/pin/unpin/free leaves')
 PY
+printf '.text\n' >> "$work/real-mm-v1552.s"
+sed -n '/^        \.globl mach_pi_disable$/,$p' \
+    "$DAIMOS_REPO/system/kernel/core/kcore_pi_pdp6.s" >> "$work/real-mm-v1552.s"
 
 if ! "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 160000 --timeout 20 \

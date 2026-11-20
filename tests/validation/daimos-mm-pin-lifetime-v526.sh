@@ -9,11 +9,17 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 src="$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s"
 # Keep the production routines verbatim rather than replacing their logic.
-sed -n '/^mm_delete:/,/^; Find a fitting free gap\./p' "$src" | sed '$d' > "$work/pin.s"
-sed -n '/^mm_free:/,/^        \.bss$/p' "$src" | sed '$d' >> "$work/pin.s"
+sed -n '/^mm_delete:$/,/^; int mm_extent_insert/p' "$src" | sed '$d' > "$work/pin.s"
+sed -n '/^mm_find_base:$/,/^; Read-only u-area extent ownership/p' "$src" | sed '$d' >> "$work/pin.s"
+sed -n '/^mm_free:$/,/^; int mm_process_transfer_pinned/p' "$src" | sed '$d' >> "$work/pin.s"
+sed -n '/^mm_pin_adjust:$/,/^        \.bss$/p' "$src" | sed '$d' >> "$work/pin.s"
 printf '%s\n' '.text' '.globl mm_free' '.globl mm_pin' '.globl mm_unpin' \
   '.globl mm_is_pinned' '.globl mm_extent_count' '.globl mm_extents' \
-  '.equ MM_PIN_ONE,010000000' '.equ MM_PIN_FIELD,03770000000' >> "$work/pin.s"
+  '.equ MM_PIN_ONE,010000000' '.equ MM_PIN_FIELD,03770000000' \
+  '.equ MM_TYPE_PROCESS,1' >> "$work/pin.s"
+printf '.text\n' >> "$work/pin.s"
+sed -n '/^        \.globl mach_pi_disable$/,$p' \
+    "$DAIMOS_REPO/system/kernel/core/kcore_pi_pdp6.s" >> "$work/pin.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step \
   --start 1000 --step-limit 120000 --timeout 20 --workdir "$work/run" \
   --name daimos-mm-pin-lifetime-v526 --expect __test_exit=0 \

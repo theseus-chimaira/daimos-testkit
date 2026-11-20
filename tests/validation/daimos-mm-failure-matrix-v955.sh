@@ -27,6 +27,9 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
     sed -n '/^proc_control_getteardown_v886:$/,/^proc_control_getpgrp:$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
+printf '.text\n' >> "$work/leaf.s"
+sed -n '/^        \.globl mach_pi_disable$/,$p' \
+    "$DAIMOS_REPO/system/kernel/core/kcore_pi_pdp6.s" >> "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 220000 --timeout 25 \
     --workdir "$work/run" --name mm-failure-matrix-v955 --expect __test_exit=0 \

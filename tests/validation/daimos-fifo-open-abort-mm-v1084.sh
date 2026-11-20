@@ -47,6 +47,9 @@ fi
     sed -n '/^mm_pin_adjust:$/,/^[[:space:]]*\.bss$/p' \
         "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
+printf '.text\n' >> "$work/leaf.s"
+sed -n '/^        \.globl mach_pi_disable$/,$p' \
+    "$DAIMOS_REPO/system/kernel/core/kcore_pi_pdp6.s" >> "$work/leaf.s"
 expect=0
 if [ "${DAIMOS_V1084_NEGATIVE:-0}" = 1 ]; then
     expect=1

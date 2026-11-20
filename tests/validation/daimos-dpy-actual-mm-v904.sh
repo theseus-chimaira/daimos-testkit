@@ -33,7 +33,7 @@ Path(sys.argv[2]).write_text('.text\n.globl dpy_list_stop\n' + fragment)
 PY
 {
     printf '.text\n.globl file_close_entry_v865\n.globl dpy_close_words_call\n'
-    sed -n '/^file_close_entry_v865:$/,/^; int file_dup(int fd)/p' \
+    sed -n '/^file_close_entry_v865:$/,/^; Root explicitly abandons ONE poisoned DTFS FILE/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     cat "$work/stop.s"
     printf '.globl mm_unpin\n.equ MM_PIN_FIELD,03770000000\n.equ MM_PIN_ONE,010000000\n'
@@ -46,6 +46,9 @@ PY
     sed -n '/^mm_pin_adjust:$/,/^[[:space:]]*\.bss$/p' \
         "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
 } > "$work/leaf.s"
+printf '.text\n' >> "$work/leaf.s"
+sed -n '/^        \.globl mach_pi_disable$/,$p' \
+    "$DAIMOS_REPO/system/kernel/core/kcore_pi_pdp6.s" >> "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 250000 --timeout 25 \
     --workdir "$work/run" --name dpy-actual-mm-v904 --expect __test_exit=0 \
