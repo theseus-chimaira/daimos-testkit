@@ -21,6 +21,15 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 } > "$work/production.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step --start 1000 \
  --step-limit 300000 --timeout 25 --workdir "$work/run" --name daimos-mm-user-fetch-v541 \
- --expect __test_exit=0 "$self/daimos-test-crt0-v1.s" \
+ --set "break 0102" --expect __test_exit=1 --examine 020200 \
+ --report "$work/v541.report" "$self/daimos-test-crt0-v1.s" \
  "$self/daimos-mm-user-fetch-v541.s" "$work/production.s" >/dev/null
-printf '%s\n' 'daimos-mm-user-fetch-v541: PASS (production compaction, VM, FS move, runqueue)'
+grep -Eq 'Breakpoint, PC: 000102' "$work/v541.report" || {
+ echo 'v541: relocated user instruction stream did not reach logical 0102' >&2
+ exit 1
+}
+grep -Eq '^0*20200:[[:space:]]+0*12345([[:space:]]|$)' "$work/v541.report" || {
+ echo 'v541: mapped user MOVEM did not write the physical result' >&2
+ exit 1
+}
+printf '%s\n' 'daimos-mm-user-fetch-v541: PASS (relocated user instruction fetch and mapped MOVEM)'

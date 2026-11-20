@@ -14,6 +14,7 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
  sed -n '/^mm_delete:/,/^; int mm_alloc_aligned_noreclaim/p' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
  sed -n '/^mm_alloc_aligned_noreclaim:/,/^; Move one process extent upward/p' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
  sed -n '/^mm_move_extent:/,/^; int mm_alloc(words,type,owner,preference,basep)/p' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
+ sed -n '/^mm_arena_fits_v1260:/,/^mm_alloc_aligned:/p' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
  sed -n '/^mm_alloc_aligned:/,/^; int mm_free(base,type,owner)/p' "$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s" | sed '$d'
  sed -n '/^vm_activate_current:/,/^        popj    17,/p' "$DAIMOS_REPO/system/kernel/proc/vm_pdp6.s"
  sed -n '/^vm_extent_move:/,/^\/\*\*/p' "$DAIMOS_REPO/system/kernel/proc/vm_pdp6.s" | sed '$d'

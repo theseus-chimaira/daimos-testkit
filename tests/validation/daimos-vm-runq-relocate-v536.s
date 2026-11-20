@@ -2,6 +2,8 @@
 .text
 .globl main
 main:
+        movei   1,2
+        movem   1,proc_slots
         movei 1,7
         movem 1,proc_current_slot
         movei 1,proc_records
@@ -91,6 +93,8 @@ bad8:   movei 1,010
 proc_table: .block 1
 proc_records: .block 6
 proc_current_slot: .block 1
+        .globl proc_slots
+proc_slots: .block 1
 .globl proc_runq_head
 proc_runq_head: .block 1
 .globl __test_exit

@@ -3,6 +3,8 @@
 .text
 .globl main
 main:
+        movei   1,2
+        movem   1,proc_slots
         movei 1,7
         movem 1,proc_current_slot
         movei 1,proc_records
@@ -83,6 +85,8 @@ proc_runq_add:
 proc_table: .block 1
 proc_records: .block 6
 proc_current_slot: .block 1
+        .globl proc_slots
+proc_slots: .block 1
 runq_calls: .block 1
 .globl __test_exit
 __test_exit: .block 1

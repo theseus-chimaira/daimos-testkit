@@ -2,6 +2,8 @@
 .text
 .globl main
 main:
+        movei   1,2
+        movem   1,proc_slots
         movei 1,4
         movem 1,mm_extent_capacity
         movei 1,3
@@ -129,6 +131,8 @@ mm_arenas: .block 3
 proc_table: .block 1
 proc_records: .block 6
 proc_current_slot: .block 1
+        .globl proc_slots
+proc_slots: .block 1
 proc_runq_head: .block 1
 .globl proc_current_ptr
 proc_current_ptr: .block 1
