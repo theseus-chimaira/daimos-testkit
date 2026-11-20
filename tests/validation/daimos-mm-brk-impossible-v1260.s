@@ -86,6 +86,10 @@ fail12_v1260: movei 1,014
         popj 17,
 
         .globl proc_swap_reclaim
+        .globl fs_provider_reg_call
+fs_provider_reg_call:
+        seto    1,                     ; no borrowed XIP extent
+        popj    17,
 proc_swap_reclaim:
         aos     calls_swap_v1260
         seto    1,
