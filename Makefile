@@ -2449,3 +2449,15 @@ test-pure-runtime-highwater-v1674:
 .PHONY: test-pure-runtime-highwater-native-v1674
 test-pure-runtime-highwater-native-v1674:
 	@python3 tests/validation/pure-runtime-highwater-v1674/test-replay-v1674.py
+
+# DAIMOS WRITECHAR integration (explicit opt-in; never in default sweeps).
+# The first test records calls; only the second boots a real OS guest.
+.PHONY: test-daimos-gcc-stdio-console-abi-v1
+test-daimos-gcc-stdio-console-abi-v1: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-gcc-stdio-console-abi-v1.sh
+
+.PHONY: test-daimos-gcc-stdio-console-guest-v1
+test-daimos-gcc-stdio-console-guest-v1: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 sh tests/validation/daimos-gcc-stdio-console-guest-v1.sh

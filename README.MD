@@ -79,6 +79,18 @@ exit/terminal conditions. No Python `pexpect`/Tcl `expect` is needed.
 
 ## Explicit native toolchain guest integration
 
+DAIMOS-specific GCC console integration is owned here:
+`make test-daimos-gcc-stdio-console-abi-v1` validates the
+GCC variadic console adapter against a recording WRITECHAR sink;
+`make test-daimos-gcc-stdio-console-guest-v1` tests the real monitor
+in a booted PDP-6 guest. The latter is currently unverified: the
+first full guest attempt halted in boot/root I/O before the application
+executed. Neither is part of the default regression sweep. See
+`tests/validation/DAIMOS-GCC-STDIO-CONSOLE-20261120-v1.md`.
+
+Generic GCC sprintf/snprintf/stdarg tests remain in
+`pdp10-testkit/misc/compat/`, without duplicate sources here.
+
 The 25 native KCC/DAS/DLINK guest suites are not part of normal OS or
 compiler runs. List and execute them independently:
 
