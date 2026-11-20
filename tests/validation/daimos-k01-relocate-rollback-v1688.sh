@@ -73,10 +73,16 @@ src = Path(sys.argv[1]).read_text()
 old = '''        move    1,010
         movei   2,-5(17)
         pushj   17,mm_extent_insert
+        ; Failure here means the source owner was removed from MM.
+        ; Neither fragmentation nor a retry may be reported safely.
+        jumpn   1,mm_move_rollback_lost_v1690
         skipn   (17)'''
 new = '''        move    1,010
         movei   2,-5(17)
         setz    1,
+        ; Failure here means the source owner was removed from MM.
+        ; Neither fragmentation nor a retry may be reported safely.
+        jumpn   1,mm_move_rollback_lost_v1690
         skipn   (17)'''
 assert src.count(old) == 1
 Path(sys.argv[2]).write_text(src.replace(old, new, 1))
