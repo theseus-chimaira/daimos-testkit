@@ -11,7 +11,7 @@ self=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
 src="$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s"
 {
     printf '%s\n' '.text' '.globl mm_move_extent' \
-        '.equ MM_ALLOC_HIGH,1'
+        '.equ MM_ALLOC_HIGH,1' '.equ MM_TYPE_PROCESS,1'
     sed -n '/^mm_delete:/,/^; AC1=base\. Return/p' "$src" | sed '$d'
     sed -n '/^mm_move_extent:/,/^; int mm_compact(words, alignment)/p' "$src" | sed '$d'
 } > "$work/leaves.s"
