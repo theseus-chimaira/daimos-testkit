@@ -391,17 +391,20 @@ daimos_test_vm_mm_other_v1106:
         camn    4,5
         aos     daimos_test_vm_mm_busy_v1106
         movni   1,5''')
+    # v1704: v1697 now restores the caller's PI state after mm_delete.
+    # Keep the production success tail rather than synthesizing an
+    # early POPJ which would abandon that PI restoration.
     patch('mm/mm_pdp6.s',
           '''        pushj   17,mm_delete
         setz    1,
-        popj    17,
+        jrst    mm_free_restore_pi_v1697
 mm_free_inval:''',
           '''        move    4,daimos_test_vm_base_v1106
         camn    4,5
         aos     daimos_test_vm_mm_frees_v1106
         pushj   17,mm_delete
         setz    1,
-        popj    17,
+        jrst    mm_free_restore_pi_v1697
 mm_free_inval:''')
     p = root / 'mm/mm_pdp6.s'
     p.write_text(p.read_text() + '''
@@ -636,7 +639,7 @@ daimos_dpy_original_v1144:
     patch('mm/mm_pdp6.s',
           '''        pushj   17,mm_delete
         setz    1,
-        popj    17,
+        jrst    mm_free_restore_pi_v1697
 mm_free_inval:''',
           '''        move    4,daimos_test_pipe_base_v1103
         camn    4,5
@@ -649,7 +652,7 @@ mm_free_inval:''',
         aos     daimos_dpy_frees_v1144
         pushj   17,mm_delete
         setz    1,
-        popj    17,
+        jrst    mm_free_restore_pi_v1697
 mm_free_inval:''')
     p = root / 'mm/mm_pdp6.s'
     names = ('base', 'calls', 'pins', 'unpins', 'busy', 'frees', 'errors')
