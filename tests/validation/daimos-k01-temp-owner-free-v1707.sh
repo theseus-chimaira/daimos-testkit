@@ -28,6 +28,9 @@ d6fs_part = d6fs.split('d6fs_mount_free:\n', 1)[1].split(
     'd6fs_mount_bad:\n', 1)[0]
 tsfs_error = tsfs.split('tsfs_read_block_free:\n', 1)[1].split(
     'tsfs_read_words_io_error_v1538:', 1)[0]
+# The native test must use the *production* owner value. Do not make a
+# self-consistent fixture by silently substituting another owner ID.
+assert tsfs.count('        .equ    TSFS_DECODE_OWNER,011\n') == 1
 
 before_error = tsfs.split('tsfs_read_block_free:\n', 1)[0]
 start_free = ('''        move    1,(17)
@@ -214,18 +217,18 @@ for name, (snippet, label, frame, owner, entry) in cases.items():
                if name.startswith('tsfs') else '')
     header = ('.text\n.globl normal_calls_v1707\n' + imports +
               '.equ FRAME_WORDS,%d\n' % frame +
-              '.equ TSFS_DECODE_OWNER,014\n'
+              '.equ TSFS_DECODE_OWNER,011\n'
               '.globl ' + label + '\n')
     # Each snippet is directly extracted from the live production leaf.
     (work / (name + '-production.s')).write_text(header + snippet)
     (work / (name + '-unsafe.s')).write_text(
         header + snippet.replace(guard, '        move    0,0  ; unsafe dropped invariant guard\n', 1))
-    args = ('        caie    3,014\n' if name.startswith('tsfs')
+    args = ('        caie    3,011\n' if name.startswith('tsfs')
             else owner.replace('movei', 'caie'))
     args += '        setom   bad_args_v1707\n'
     fixture = ('.text\n.globl normal_calls_v1707\n' + imports +
                '.equ FRAME_WORDS,%d\n' % frame +
-               '.equ TSFS_DECODE_OWNER,014\n' + common + args +
+               '.equ TSFS_DECODE_OWNER,011\n' + common + args +
                common_end + '\n.text\n' + entry +
                '\n.data\nkconst_1_1: .word 1,,1\n')
     # D6FS and PIPE use a normal continuation from the extracted leaf.

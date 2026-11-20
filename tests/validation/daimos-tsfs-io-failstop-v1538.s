@@ -18,6 +18,7 @@
         .globl kconst_1_1
         .globl mm_alloc
         .globl mm_free
+        .globl proc_swap_storage_invariant_v30
         .globl d6codec_decode_buffer_v1458
         .globl kret_zero
         .globl kret_neg1
@@ -104,6 +105,12 @@ mm_free:
 d6codec_decode_buffer_v1458:
         seto    1,
         popj    17,
+
+; v1707: the real TSFS decode buffer free now fail-stops when its only
+; local MM owner cannot be released. This existing I/O test does not
+; exercise that cleanup; unexpected entry must be a distinct HALT.
+proc_swap_storage_invariant_v30:
+        halt    .
 
         .data
 kconst_1_1: .word 1,,1
