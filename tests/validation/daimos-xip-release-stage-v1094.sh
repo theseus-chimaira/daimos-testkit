@@ -43,14 +43,14 @@ bad_guard = vm_leaf.replace(guard,
     '        jrst    vm_space_destroy_maybe_process\n'
     '        jrst    vm_space_destroy_maybe_process', 1)
 (work / 'unsafe-fallback.s').write_text(body(bad_guard, mem_leaf))
-bad_mm = vm_leaf.replace('        jumpn   1,vm_space_destroy_fail\n'
-                             'vm_space_destroy_detach:',
-                         '        jumpe   1,vm_space_destroy_fail\n'
-                             'vm_space_destroy_detach:', 1)
+bad_mm = vm_leaf.replace('        pushj   17,mm_free\n'
+                          '        jumpn   1,vm_space_destroy_fail',
+                         '        pushj   17,mm_free\n'
+                          '        jumpe   1,vm_space_destroy_fail', 1)
 assert bad_mm != vm_leaf
 (work / 'unsafe-mm.s').write_text(body(bad_mm, mem_leaf))
 bad_swap = vm_leaf.replace(
-    '        jumpn   1,vm_space_destroy_fail  ; keep VM and swap record retryable',
+    '        jumpn   1,vm_space_destroy_fail  ; keep unreleased backing retryable',
     '        jumpe   1,vm_space_destroy_fail  ; unsafe detach commit', 1)
 assert bad_swap != vm_leaf
 (work / 'unsafe-swap.s').write_text(body(bad_swap, mem_leaf))
