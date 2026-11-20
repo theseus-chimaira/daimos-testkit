@@ -8,7 +8,7 @@ main:
         movem   1,proc_current_slot
         movei   1,proc_records
         movem   1,proc_table
-        movei   1,010000
+        move    1,[1,,010000]
         movem   1,proc_records+1
         setzm   proc_records
         setzm   proc_records+2
@@ -25,6 +25,7 @@ main:
         came    1,[-5]
         jrst    bad1
         move    1,proc_records+1
+        hrrz    1,1
         caie    1,010000
         jrst    bad2
         move    1,012000
@@ -41,6 +42,7 @@ main:
         pushj   17,vm_extent_move
         jumpn   1,bad5
         move    1,proc_records+1
+        hrrz    1,1
         caie    1,012000
         jrst    bad6
         move    1,012000

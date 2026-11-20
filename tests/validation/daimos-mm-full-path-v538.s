@@ -30,7 +30,7 @@ main:
         movem 1,proc_current_slot
         move 1,[026000,,0400000]
         movem 1,proc_records+3
-        movei 1,014000
+        move 1,[02000,,014000]
         movem 1,proc_records+4
         move 1,[0200000,,0]
         movem 1,proc_records+5
@@ -46,6 +46,7 @@ main:
         pushj 17,mm_compact
         jumpn 1,bad1
         move 1,proc_records+4
+        hrrz 1,1
         caie 1,020000
         jrst bad2
         move 1,020000

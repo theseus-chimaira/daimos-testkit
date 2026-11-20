@@ -10,7 +10,7 @@ main:
         movei   1,7
         movem   1,proc_current_slot
         ; Two live slots, 0 and 1. Slot 2 is deliberately beyond count.
-        movei   1,010000
+        move    1,[1,,010000]
         movem   1,proc_records+7
         movei   1,012345
         movem   1,010000
@@ -24,6 +24,7 @@ main:
         came    1,[-5]
         jrst    fail_1_v1692
         move    1,proc_records+7
+        hrrz    1,1
         caie    1,010000
         jrst    fail_2_v1692
         move    1,012000
@@ -38,7 +39,7 @@ main:
         came    1,[-5]
         jrst    fail_4_v1692
         ; A real slot may still relocate using the same physical words.
-        movei   1,010000
+        move    1,[1,,010000]
         movem   1,proc_records+4
         movei   1,1
         movei   2,010000
@@ -47,6 +48,7 @@ main:
         pushj   17,vm_extent_move
         jumpn   1,fail_5_v1692
         move    1,proc_records+4
+        hrrz    1,1
         caie    1,012000
         jrst    fail_6_v1692
         move    1,012000

@@ -10,7 +10,7 @@ main:
         movem 1,proc_table
         move 1,[014000,,0400000] ; stable u-area at 014000
         movem 1,proc_records+3
-        movei 1,010000
+        move    1,[4,,010000]
         movem 1,proc_records+4
         move 1,[0200000,,0] ; resident SRUN state
         movem 1,proc_records+5
@@ -33,6 +33,7 @@ main:
         came 1,[-5]
         jrst bad1
         move 1,proc_records+4
+        hrrz    1,1
         caie 1,010000
         jrst bad1
         move 1,proc_runq_head
@@ -47,6 +48,7 @@ main:
         pushj 17,vm_extent_move
         jumpn 1,bad2
         move 1,proc_records+4
+        hrrz    1,1
         caie 1,012000
         jrst bad3
         move 1,012000
