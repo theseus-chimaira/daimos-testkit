@@ -1,15 +1,22 @@
-; Exact PDP-6 RUN fd-map loop: inherited two-bit mount extension on source
-; descriptor 7 is copied to child descriptor 5, preserving the two-word FILE.
+; Source-linked PDP-6 RUN fd-map: current v417 FILE encoding embeds the
+; complete six-bit mount directly in the descriptor's canonical vnode.
+; Inherit TSFS mount 63 from parent fd7 to child fd5, including offset.
         .text
         .globl main
 main:
-        move    5,[006002000017]      ; arbitrary packed parent node
+        movei   5,7                    ; TSFS provider
+        lsh     5,036
+        movei   6,077                  ; highest legal six-bit mount
+        lsh     6,030
+        ior     5,6
+        movei   6,1                    ; local kind
+        lsh     6,022
+        ior     5,6
+        iori    5,01234               ; local inode/index
+        tlo     5,400000              ; readable FILE
         movem   5,parent_fd_table+016 ; parent fd7 word 0
         movei   5,012345
         movem   5,parent_fd_table+017 ; full source word offset
-        movei   5,3
-        lsh     5,016                 ; extension bits for parent fd7
-        movem   5,parent_fd_table+041
         movei   014,child_uarea
         movei   015,fdmap
         movei   3,1
@@ -22,9 +29,12 @@ main:
         move    5,parent_fd_table+017
         came    5,child_uarea+041
         jrst    check_copy_fail
-        move    5,child_uarea+067
-        caie    5,06000              ; extension 3 at 2*fd5 = bit 10
+        ; Old extension u-area word 067 must remain untouched. This word
+        ; is now owned by process finalization/FILE error diagnostics.
+        skipn   child_uarea+067
+        jrst    check_copy_ok
         jrst    check_copy_fail
+check_copy_ok:
         setz    1,
         popj    17,
 check_copy_fail:
