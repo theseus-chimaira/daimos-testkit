@@ -13,7 +13,7 @@ src="$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s"
  echo '.equ MM_PIN_FIELD,03770000000'
  echo '.equ MM_PIN_ONE,010000000'
  echo '.globl mm_process_transfer_pinned'
- sed -n '/^mm_process_transfer_pinned:$/,/^; AC1=base, AC2=+1\/-1/p' "$src" | sed '$d'
+ sed -n '/^mm_process_transfer_pinned:$/,/^; int mm_process_shrink_pinned/p' "$src" | sed '$d'
 } > "$work/transfer.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step \
  --start 1000 --step-limit 200000 --timeout 20 --workdir "$work/run" \
