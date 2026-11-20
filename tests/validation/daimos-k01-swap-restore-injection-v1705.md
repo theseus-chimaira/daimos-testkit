@@ -26,5 +26,8 @@ fast source-level acceptance check.
 
 The existing local v1494 stack-witness edit (`-3(17)` to `-4(17)`)
 preceded this repair and is not included in the v1705 commit. The
-v1705 injection test uses the current worktree for that witness,
-without silently staging the unrelated edit.
+v1705 event-boundary injection test accepts either exact stack-witness
+spelling, and v1495 explicitly normalizes both. Both the committed
+baseline (old offset) and the local, separately corrected worktree
+pass the v1705 source gate. This does **not** certify the old stack
+offset for full-guest physical acceptance.

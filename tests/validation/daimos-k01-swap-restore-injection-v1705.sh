@@ -60,8 +60,12 @@ assert swap.count('        pushj   17,daimos_v1494_arm\n') == 1
 assert swap.index('        pushj   17,proc_event_apply\n'
                   '        pushj   17,daimos_v1494_term_witness') > swap.index(
                       'proc_swap_service_failed_event_v1507:')
-assert '        ; three additional PUSH instructions put that slot at -4(17).' in swap
-assert '        move    4,-4(17)' in swap
+# The separate v1494 TERM stack-witness correction may be present in
+# an uncommitted local worktree. Neither spelling is a prerequisite for
+# the v1705 event-boundary fix; the v1495 diagnostic handles both.
+old_stack = '        move    4,-3(17)               ; service\'s pending slot'
+new_stack = '        move    4,-4(17)               ; service\'s pending slot'
+assert (old_stack in swap) != (new_stack in swap)
 store = (target / leaves[1]).read_text()
 assert store.count('daimos_v1494_free_original:') == 1
 assert store.count('daimos_v1494_retry_marked:') == 1
