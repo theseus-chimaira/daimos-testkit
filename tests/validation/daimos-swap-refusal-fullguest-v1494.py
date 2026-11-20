@@ -41,9 +41,9 @@ def inject(kernel):
 
     # The service still uses the authentic event helper. This read-only
     # witness executes after it; it never changes the fatal decision.
-    old = ('proc_swap_service_failed:\n'
-           '        move    1,(17)\n'
-           '        movem   1,proc_sched_cursor\n'
+    # v1705: the v1507 failure epoch is recorded before the TERM event.
+    # Instrument the post-epoch event boundary, preserving retry metadata.
+    old = ('proc_swap_service_failed_event_v1507:\n'
            '        movei   2,SYS_EVENT_TERM\n'
            '        pushj   17,proc_event_apply\n'
            '        sub     17,kconst_1_1\n')
