@@ -96,7 +96,9 @@ daimos_v1494_term_witness:
         push    17,4
         push    17,5
         push    17,6
-        move    4,-3(17)               ; service's pending slot
+        ; PUSHJ saved the return PC above the service's pending slot;
+        ; three additional PUSH instructions put that slot at -4(17).
+        move    4,-4(17)               ; service's pending slot
         came    4,daimos_v1494_slot
         jrst    daimos_v1494_term_done
         aos     daimos_v1494_terms
