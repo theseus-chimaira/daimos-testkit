@@ -9,7 +9,10 @@ work=$(mktemp -d "$TMPDIR/daimos-pipe-close-v870.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 {
     printf '.text\n.globl file_close_entry_v865\n'
-    sed -n '/^file_close_entry_v865:$/,/^; int file_dup(int fd)/p' \
+    # Extract only the close transaction. The newer adjacent DTFS
+    # administrative-abandon entry is a separate feature and depends
+    # on file_find and DTFS mount state, neither used by this test.
+    sed -n '/^file_close_entry_v865:$/,/^; Root explicitly abandons/p' \
         "$DAIMOS_REPO/system/kernel/fs/file_runtime.s" | sed '$d'
     printf '.globl pipe_fifo_unlink_object\n'
     sed -n '/^pipe_fifo_unlink_object:$/,/^; kword_t pipe_create/p' \
