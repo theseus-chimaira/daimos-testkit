@@ -26,6 +26,8 @@ The fresh full 256K KCC guest
 login, DSH ECHO, external TRUE status 0, orderly HALT, and CLEAN
 D6FS postflight. No image limit increase, disk retry workaround,
 or fatal-root classification weakening was used.
+The physical runner transcript SHA256 is
+`b5addef58278179f07221499187ed4fe190fc1d57b44bd91fad8d5370a6c6244`.
 
 This test does not establish the strict 32K KCORE RAM budget, all
 possible MM critical sections, or a full post-change K03 physical
