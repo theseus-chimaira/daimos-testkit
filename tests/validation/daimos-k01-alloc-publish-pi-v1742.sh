@@ -22,7 +22,8 @@ mm="$DAIMOS_REPO/system/kernel/mm/mm_pdp6.s"
         "$mm" | sed '$d'
 } > "$work/base.s"
 python3 - "$work/base.s" "$work/production.s" \
-    "$work/unsafe-pi.s" "$work/unsafe-frame.s" <<'PY'
+    "$work/unsafe-pi.s" "$work/unsafe-frame.s" \
+    "$work/unsafe-global.s" <<'PY'
 from pathlib import Path
 import sys
 s = Path(sys.argv[1]).read_text()
@@ -57,6 +58,8 @@ lock = '        cono    0004,01002             ; inhibit scheduler PI6 only\n'
 assert s.count(lock) == 1
 Path(sys.argv[3]).write_text(s.replace(
     lock, '        move    0,0  ; unsafe: PI6 remains enabled\n', 1))
+Path(sys.argv[5]).write_text(s.replace(
+    lock, '        cono    0004,000400  ; unsafe: starve DCT\n', 1))
 frame = '        movem   1,-011(17)             ; previous PI6 enable state\n'
 assert s.count(frame) == 1
 Path(sys.argv[4]).write_text(s.replace(
@@ -77,7 +80,7 @@ run production "$work/production.s" || {
     tail -55 "$work/production.log" >&2
     exit 1
 }
-for name in unsafe-pi unsafe-frame; do
+for name in unsafe-pi unsafe-frame unsafe-global; do
     if run "$name" "$work/$name.s"; then
         echo "K01 v1742: $name mutation unexpectedly passed" >&2
         exit 1
@@ -87,4 +90,4 @@ for name in unsafe-pi unsafe-frame; do
         exit 1
     }
 done
-echo 'K01 v1742: native PDP-6 PI6-only fit/insert, live disk levels, typed refusals, AC16, nested PI and two mutants PASS'
+echo 'K01 v1742: native PDP-6 PI6-only fit/insert, live disk levels, typed refusals, AC16, nested PI and three mutants PASS'
