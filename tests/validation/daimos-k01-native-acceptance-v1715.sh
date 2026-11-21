@@ -40,7 +40,7 @@ daimos-k01-mm-pin-pi-v1698
 daimos-k01-pinned-mutate-pi-v1699
 daimos-k01-verify-pi-v1700
 daimos-k01-uarea-probe-pi-v1701
-daimos-k01-alloc-publish-pi-v1702
+daimos-k01-alloc-publish-pi-v1742
 daimos-k01-recovery-injection-v1704
 daimos-k01-swap-restore-injection-v1705
 daimos-k01-exec-launch-free-v1706
