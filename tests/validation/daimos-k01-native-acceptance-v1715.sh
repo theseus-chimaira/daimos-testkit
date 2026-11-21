@@ -32,7 +32,8 @@ daimos-k01-relocate-publication-v1690
 daimos-k01-pure-restore-v1691
 daimos-k01-relocate-slot-v1692
 daimos-k01-relocate-length-v1693
-daimos-k01-relocate-pin-race-v1694
+daimos-k01-relocate-pin-race-v1745
+daimos-k01-vm-sleep-wake-v1745
 daimos-k01-vm-retire-v1695
 daimos-k01-brk-reclaim-v1696
 daimos-k01-mm-free-pi-v1697
