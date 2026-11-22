@@ -1,4 +1,18 @@
 .PHONY: test-kcore-pure-bitmap-probe-v1659
+.PHONY: test-toolchain-extern-expiry-v1812
+.PHONY: test-toolchain-extern-expiry-simh-v1812
+test-toolchain-extern-expiry-v1812: check-prefix
+	@TOOL_SRC_DIR='$(abspath $(PDP10_TOOLS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	 HOST_CC='$(HOST_CC)' \
+	 sh tests/host/toolchain-extern-expiry-v1812/run-v1812.sh
+
+test-toolchain-extern-expiry-simh-v1812: check-prefix
+	@TOOL_SRC_DIR='$(abspath $(PDP10_TOOLS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	 HOST_CC='$(HOST_CC)' \
+	 sh tests/host/toolchain-extern-expiry-v1812/real-simh-v1812.sh
+
 test-kcore-pure-bitmap-probe-v1659: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
 	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR="$${TMPDIR:-$$HOME/tmp}" \

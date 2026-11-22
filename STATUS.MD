@@ -1,5 +1,24 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-22 v1812: source-linked host toolchain correctness PASS
+
+`make test-toolchain-extern-expiry-v1812` passed with the current
+DAIMOS host sources and the standalone pdp10-tools dirty candidates.
+Actual DAS DOBJ1 fixtures exercise unused EXTERN declarations, missing
+referenced definitions, selective DARC archive extraction, and both
+right- and left-half symbol relocations. Direct P10RUN source evaluation
+rejects SIMH step/time expiry with an initialized zero status, while
+accepting the completed-zero control. The old DLINK and P10RUN sources
+failed their respective negative controls. This is host acceptance,
+not native guest execution or full DAIMOS regression acceptance. See
+`tests/host/toolchain-extern-expiry-v1812/README-v1812.md`.
+The opt-in native PDP-6 simulator test also PASSED: the unchanged v014
+guest completed successfully in GO mode, while a one-step limit
+produced `Step expired` and was rejected. This runs a bare-machine
+guest, not a native DLINK program under DAIMOS.
+Running the same actual forced-one-step guest against the original
+P10RUN source reproduced the false PASS as a negative control.
+
 Updated: 2026-11-19. This file records **verified** testkit ownership
 and focused checks only; it does **not** certify a full DAIMOS release
 or regression sweep.
