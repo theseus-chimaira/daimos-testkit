@@ -26,3 +26,9 @@ the test fixture owns the process/scheduler symbols.
 No production KCORE source or binary changes. These fixture
 updates do **not** reopen K01-K04, establish physical
 PI6 interrupt acceptance, or accept RAW PURE for mainline.
+
+Run `make test-pure-integration-native-v1807` with
+`DAIMOS_REPO` pointing to the integration checkout to
+execute the combined native source, owner/refusal, terminal,
+and multiowner regression matrix. This target is opt-in and
+does not replace the original physical 48K/64K workloads.

@@ -2511,6 +2511,21 @@ test-pure-integration-native-v1804:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
 	 sh tests/validation/pure-integration-v1804/run-v1804.sh
 
+# v1807: opt-in RAW PURE + K04 native integration matrix.
+# No synthetic physical or 48K/64K acceptance is inferred.
+.PHONY: test-pure-integration-native-v1807
+test-pure-integration-native-v1807: \
+ test-pure-pi6-fault-native-v1677 \
+ test-pure-mm-precommit-native-v1678 \
+ test-pure-mm-persistent-native-v1679 \
+ test-pure-terminal-pin-native-v1680 \
+ test-pure-prevm-finalizer-native-v1680 \
+ test-pure-terminal-finalizer-native-v1681 \
+ test-pure-multiowner-source-native-v1684 \
+ test-pure-runtime-highwater-native-v1674 \
+ test-pure-integration-native-v1804
+	@echo 'PASS v1807: native RAW PURE/K04 integration matrix (physical acceptance separate)'
+
 # v1805: physical default-OFF PDP-6 disk-root smoke (requires built image).
 .PHONY: test-pure-integration-dsk-smoke-v1805
 test-pure-integration-dsk-smoke-v1805:
