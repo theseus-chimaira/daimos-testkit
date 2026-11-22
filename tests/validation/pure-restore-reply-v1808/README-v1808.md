@@ -26,3 +26,9 @@ An executed negative variant restores the old reply-only check in
 a disposable service copy and must fail at an exact guest oracle.
 No physical PI6 interrupt interleaving or persistent ambiguous-MM
 owner recovery is claimed.
+
+The separately opt-in bitmap-mode3 path shares the same service
+predicate. Its original v1667 source-linked native FULL/owner/retry
+test and unsafe-owner mutation also PASS against this source using
+`make test-pure-k05-mode3-compat-native-v1808`. This is not
+mode3 production or physical acceptance.

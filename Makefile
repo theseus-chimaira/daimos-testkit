@@ -2537,6 +2537,12 @@ test-pure-integration-native-v1808: test-pure-integration-native-v1807 \
  test-pure-k05-restore-reply-native-v1808
 	@echo 'PASS v1808: v1807 native suite plus K05 restore lost-success regression'
 
+# Optional mode3 shares v1612 readiness, but is NOT production-accepted.
+.PHONY: test-pure-k05-mode3-compat-native-v1808
+test-pure-k05-mode3-compat-native-v1808:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS v1808 integration source required}" \
+	 sh tests/validation/pure-mres-bitmap-v1667/run-service-v1667.sh
+
 # v1805: physical default-OFF PDP-6 disk-root smoke (requires built image).
 .PHONY: test-pure-integration-dsk-smoke-v1805
 test-pure-integration-dsk-smoke-v1805:
