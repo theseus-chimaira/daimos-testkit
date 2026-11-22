@@ -2545,7 +2545,7 @@ test-pure-integration-tsfs64-v1807:
 .PHONY: test-pure-integration-pressure48-v1807
 test-pure-integration-pressure48-v1807:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
-	 V1673_SOURCE_PROFILE_V1807=integration \
+	 V1673_SOURCE_PROFILE_V1807=integration KEEP_TEST=1 \
 	 sh tests/validation/pure-runtime-reclaim-v1673/run-physical-v1673.sh
 
 # v1807: verify retained independent GENERAL/STRICT physical A/B/C evidence.

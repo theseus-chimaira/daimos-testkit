@@ -7,6 +7,10 @@ sets, both KCORE and KINIT maps, actual `INIT` fixture source-map
 symbol, disk-SWAP inclusion only in GENERAL, and successful native
 RUN/EXIT/WAIT.
 
+The `test-pure-integration-pressure48-v1807` target sets
+`KEEP_TEST=1` to preserve the expensive source-built physical
+evidence required by the paired verifier.
+
 The original `measure-v1673.py` creates each report from **actual
 SIMH physical MM reads**, not a fabricated model. The paired comparator
 uses the explicitly selected v1807 18,173-word resident footprint.
