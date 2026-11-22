@@ -2,6 +2,7 @@
 """Compare physical 48K general/strict RAW PURE eviction and restoration."""
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -9,8 +10,20 @@ from pathlib import Path
 PHASES = ("baseline", "pressure", "reaped")
 
 
+def resident_bound():
+    # Do not erase the historical source-specific RAM budget. The v1807
+    # mainline K01-K04 merge has a different independently measured resident
+    # low footprint; require an explicit, versioned integration profile.
+    profile = os.environ.get("V1673_SOURCE_PROFILE_V1807", "historical")
+    expected = {"historical": 17729, "integration": 18173}
+    if profile not in expected:
+        raise ValueError("unknown source-matched resident profile")
+    return expected[profile]
+
+
 def load(path):
     report = json.loads(Path(path).read_text(encoding="ascii"))
+    expected_resident = resident_bound()
     if report["core_kwords"] != 48 or report["children_requested"] != 9:
         raise ValueError("v1673 requires physical 48K and nine real children")
     if len(report["samples"]) != 3 or any(
@@ -21,7 +34,7 @@ def load(path):
     for name in PHASES:
         state = report[name]
         if state["physical_core_words"] != 49152 or \
-                state["resident_words"] != 17729 or \
+                state["resident_words"] != expected_resident or \
                 state["managed_words"] != (state["free_words"] +
                                            state["mm_allocated_words"]) or \
                 state["largest_free_words"] > state["free_words"]:

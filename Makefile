@@ -2538,3 +2538,12 @@ test-pure-integration-tsfs64-v1807:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
 	 V1665_MAP_MODE_V1807=integration \
 	 sh tests/validation/pure-boot-select-v1665/run-physical-v1665.sh
+
+# v1807: full opt-in paired physical 48K PURE reclaim/restore regression.
+# The integrated source has a different verified permanent RAM baseline;
+# preserve the v1673 historical default and all MM mutation rejections.
+.PHONY: test-pure-integration-pressure48-v1807
+test-pure-integration-pressure48-v1807:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
+	 V1673_SOURCE_PROFILE_V1807=integration \
+	 sh tests/validation/pure-runtime-reclaim-v1673/run-physical-v1673.sh

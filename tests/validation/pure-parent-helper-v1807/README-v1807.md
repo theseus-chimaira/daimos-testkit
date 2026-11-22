@@ -40,3 +40,19 @@ the merged source exports a valid low-resident address within
 the 16K low-resident bound. The historical default remains
 unchanged. Neither mode relaxes the live `PURE LOADED` and
 `INIT V1` guest requirements.
+
+The source-linked physical 48K GENERAL/STRICT reclaim
+runner is also available as
+`make test-pure-integration-pressure48-v1807`. Its
+`V1673_SOURCE_PROFILE_V1807=integration` option pins the
+merged K01-K04 source's observed 18,173-word resident
+baseline, compared with the historical 17,729-word
+baseline. The verifier still enforces all exact A/B/C
+MM/owner invariants, nine 128-word RAW prefix releases,
+and general/strict equality. Without the explicit
+integration profile, the historical bound is unchanged.
+The integrated GENERAL physical transcript passes the
+five original mutation rejections and forged-summary
+check under the new source profile. A complete paired
+acceptance still requires an independently executed
+STRICT guest and post-WAIT physical checkpoint.
