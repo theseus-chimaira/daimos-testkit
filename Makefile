@@ -2503,3 +2503,10 @@ test-pure-terminal-finalizer-native-v1681:
 test-pure-multiowner-source-native-v1684:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS required}" \
 	 sh tests/validation/pure-multiowner-source-v1684/run-v1684.sh
+
+# v1804: opt-in combined K03/K04/RAW PURE source acceptance gate.
+# K04 witness replay is read-only; this does not boot an integrated guest.
+.PHONY: test-pure-integration-native-v1804
+test-pure-integration-native-v1804:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
+	 sh tests/validation/pure-integration-v1804/run-v1804.sh
