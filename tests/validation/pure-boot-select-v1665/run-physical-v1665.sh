@@ -47,7 +47,31 @@ for n in 0 1 2; do
 done
 grep -q '^proc_pure_mres_package_v1612[[:space:]]' "$boot/kinit.map"
 # The v1664 base already reports 024255; no fixed source changes.
-grep -q '^__kcore_low_end[[:space:]]*024255' "$boot/kcore.map"
+# v1665's source snapshot had this exact fixed end. The v1807
+# consolidated source has additional accepted K01-K04 code, so an
+# opt-in integration run checks its actual linked map and the bounded
+# low-resident address instead of pretending to retain the old size.
+case "${V1665_MAP_MODE_V1807:-historical}" in
+    historical)
+        grep -q '^__kcore_low_end[[:space:]]*024255' "$boot/kcore.map"
+        ;;
+    integration)
+        low=$(awk '$1=="__kcore_low_end" {print $2}' "$boot/kcore.map")
+        case "$low" in
+            ''|*[!0-7]*)
+                echo 'FAIL v1807: invalid source-linked KCORE low end' >&2
+                exit 1 ;;
+        esac
+        if [ "$((0$low))" -le 0 ] || [ "$((0$low))" -ge "$((040000))" ]; then
+            echo 'FAIL v1807: KCORE low resident exceeds 16K bound' >&2
+            exit 1
+        fi
+        echo "v1807: source-linked KCORE low end $low (octal)"
+        ;;
+    *)
+        echo 'FAIL v1807: unknown map mode' >&2
+        exit 2 ;;
+esac
 grep -qx 'set cpu 64k' "$boot/boot.ini"
 
 # Neither the installed backing descriptor nor a leftover drum image

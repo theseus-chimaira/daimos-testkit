@@ -32,3 +32,11 @@ Run `make test-pure-integration-native-v1807` with
 execute the combined native source, owner/refusal, terminal,
 and multiowner regression matrix. This target is opt-in and
 does not replace the original physical 48K/64K workloads.
+
+The old v1665 64K TSFS PURE physical smoke pins the historical
+`__kcore_low_end=024255`. Its explicit
+`V1665_MAP_MODE_V1807=integration` mode instead checks that
+the merged source exports a valid low-resident address within
+the 16K low-resident bound. The historical default remains
+unchanged. Neither mode relaxes the live `PURE LOADED` and
+`INIT V1` guest requirements.

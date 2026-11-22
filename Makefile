@@ -2531,3 +2531,10 @@ test-pure-integration-native-v1807: \
 test-pure-integration-dsk-smoke-v1805:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
 	 sh tests/validation/pure-integration-v1805/run-dsk-smoke-v1805.sh
+
+# v1807: opt-in 64K TSFS PURE boot for the reconciled K01-K04 source map.
+.PHONY: test-pure-integration-tsfs64-v1807
+test-pure-integration-tsfs64-v1807:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
+	 V1665_MAP_MODE_V1807=integration \
+	 sh tests/validation/pure-boot-select-v1665/run-physical-v1665.sh
