@@ -2547,3 +2547,10 @@ test-pure-integration-pressure48-v1807:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
 	 V1673_SOURCE_PROFILE_V1807=integration \
 	 sh tests/validation/pure-runtime-reclaim-v1673/run-physical-v1673.sh
+
+# v1807: verify retained independent GENERAL/STRICT physical A/B/C evidence.
+.PHONY: test-pure-integration-verify48-v1807
+test-pure-integration-verify48-v1807:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
+	 sh tests/validation/pure-integration-v1807/check-physical-pair-v1807.sh \
+	 "$${V1807_PHYSICAL_EVIDENCE_DIR:?set independent guest evidence directory}"
