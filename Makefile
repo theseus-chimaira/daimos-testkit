@@ -2510,3 +2510,9 @@ test-pure-multiowner-source-native-v1684:
 test-pure-integration-native-v1804:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
 	 sh tests/validation/pure-integration-v1804/run-v1804.sh
+
+# v1805: physical default-OFF PDP-6 disk-root smoke (requires built image).
+.PHONY: test-pure-integration-dsk-smoke-v1805
+test-pure-integration-dsk-smoke-v1805:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
+	 sh tests/validation/pure-integration-v1805/run-dsk-smoke-v1805.sh
