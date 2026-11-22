@@ -20,7 +20,8 @@ def main():
     old = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(old)
     content = Path(sys.argv[3]).read_text(encoding="ascii")
-    for marker in ("V1682 STOP PID 2", "V1682 TERM PID 2",
+    for marker in ("V1682 APR WORDS 3072", "V1682 STOP PID 2",
+                   "V1682 TERM PID 2",
                    "V1682 FOREIGN TERM ACCEPTED"):
         if content.count(marker) != 1:
             raise ValueError("missing or duplicate native source event: " +

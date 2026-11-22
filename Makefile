@@ -1,4 +1,10 @@
 .PHONY: test-kcore-pure-bitmap-probe-v1659
+.PHONY: test-pure-stop-foreign-negatives-v1815
+test-pure-stop-foreign-negatives-v1815:
+	@V1815_EVIDENCE_ROOT="$${V1815_EVIDENCE_ROOT:?set preserved v1682 evidence}" \
+	 TMPDIR="$(TMPDIR)" \
+	 sh tests/validation/pure-stop-foreign-v1682/replay-negatives-v1815.sh
+
 .PHONY: test-cat-make-consolidation-v1814
 test-cat-make-consolidation-v1814: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \

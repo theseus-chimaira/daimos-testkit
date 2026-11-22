@@ -1,5 +1,17 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-22 v1815: physical STOP/foreign-TERM evidence replay PASS
+
+The recovered v1682 STOP/foreign-TERM verifier requires the real APR
+growth event in addition to the existing preserved physical owner,
+scheduler, saved user-PC and MM source checks. Replaying the accepted
+48K GENERAL and STRICT v1682 original console evidence passed both
+original oracles, while ten mutations of original physical B words
+and event witnesses were rejected (five per profile). This is a
+bounded replay of preserved physical evidence, not a fresh guest run
+or release acceptance. See
+`tests/validation/pure-stop-foreign-v1682/README-NEGATIVES-V1815.md`.
+
 ## 2026-11-22 v1814: CAT/MAKE source consolidation host PASS
 
 The source-linked CAT regression passed exact native S6REC forwarding
