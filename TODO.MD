@@ -1,5 +1,14 @@
 # DAIMOS testkit - open work
 
+## v1814: CAT/MAKE guest acceptance after source-only consolidation
+
+- [ ] Source-linked CAT S6REC host tests and native MAKE frame tests
+  pass, but the fresh guest test is blocked by a DSH boot-image limit
+  (036133 > 036000) before simulator runtime. Investigate and fix the
+  actual DSH source/fold size; do not raise the image limit as a test
+  workaround. Then run current-source native MAKE options/goal tests
+  and CAT long-record file/terminal tests in a booted 256K DAIMOS.
+
 Updated 2026-11-19. Only unresolved OS-testkit work belongs here.
 Completed v1062-v1064 checkpoint notes are preserved in Git history;
 older verification observations are retained in `STATUS.MD` and the

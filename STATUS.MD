@@ -1,5 +1,19 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-22 v1814: CAT/MAKE source consolidation host PASS
+
+The source-linked CAT regression passed exact native S6REC forwarding
+for zero, 7, 258, 259 and 1000 characters, mock short word reads/
+writes, long terminal output, EOF and malformed records. The CAT-only
+archive object avoids 91 words of shared `libc/text.c` code growth.
+The native KCC/DAS MAKE frame comparator passed: octal `01113`
+(587 words) before -> `0172` (122 words) after, saving 465 stack
+words; TEXT 7876 -> 7748, BSS stays 839. Both native CAT and MAKE
+DXRs linked. A fresh source-matched native MAKE guest boot attempt
+stopped at DSH 036133 > 036000 before simulator runtime. This remains
+an open guest acceptance gate, not a PASS. Test and evidence details:
+`tests/host/cat-make-consolidation-v1814/README-v1814.md`.
+
 ## 2026-11-22 v1812: source-linked host toolchain correctness PASS
 
 `make test-toolchain-extern-expiry-v1812` passed with the current

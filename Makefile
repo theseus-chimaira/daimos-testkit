@@ -1,4 +1,14 @@
 .PHONY: test-kcore-pure-bitmap-probe-v1659
+.PHONY: test-cat-make-consolidation-v1814
+test-cat-make-consolidation-v1814: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	 HOST_CC='$(HOST_CC)' \
+	 sh tests/host/cat-make-consolidation-v1814/run-host-v1814.sh
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	 sh tests/host/cat-make-consolidation-v1814/run-native-frame-v1814.sh
+
 .PHONY: test-toolchain-extern-expiry-v1812
 .PHONY: test-toolchain-extern-expiry-simh-v1812
 test-toolchain-extern-expiry-v1812: check-prefix
