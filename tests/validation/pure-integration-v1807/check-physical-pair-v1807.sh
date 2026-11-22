@@ -18,7 +18,7 @@ for variant in general strict; do
     test -s "$work/$variant-build/kcore.map"
     test -s "$work/$variant-build/kinit.map"
     test -s "$work/$variant-48-noaux.ini"
-    grep -Fq "$work/$variant-48-media/" +        "$work/$variant-48-noaux.ini"
+    grep -Fq "$work/$variant-48-media/" "$work/$variant-48-noaux.ini"
     for gate in A B C; do
         grep -Fxq "V1673 HOLD $gate" "$work/$variant-48-console.clean"
         grep -Fq "V1673 RELEASE $gate" "$work/$variant-48-console.clean"
@@ -30,10 +30,15 @@ for variant in general strict; do
 done
 # Paired transcripts must come from separate simulator sessions.
 # Identical byte-for-byte captures are not independent evidence.
-if cmp -s "$work/general-48-console.clean" +    "$work/strict-48-console.clean"; then
-    echo 'FAIL v1807: duplicated guest transcript' >&2
-    exit 1
-fi
+set +e
+cmp -s "$work/general-48-console.clean" "$work/strict-48-console.clean"
+cmp_rc=$?
+set -e
+case "$cmp_rc" in
+    1) : ;;
+    0) echo 'FAIL v1807: duplicated guest transcript' >&2; exit 1 ;;
+    *) echo 'FAIL v1807: cannot compare guest transcripts' >&2; exit 1 ;;
+esac
 # Strict swapless has no disk SWAP service; GENERAL intentionally does.
 grep -q '^proc_swap_mres_package_v481[[:space:]]' \
     "$work/general-build/kinit.map"
