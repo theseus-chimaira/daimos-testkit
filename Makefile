@@ -2526,6 +2526,17 @@ test-pure-integration-native-v1807: \
  test-pure-integration-native-v1804
 	@echo 'PASS v1807: native RAW PURE/K04 integration matrix (physical acceptance separate)'
 
+# v1808: committed-state READY_ONCE after a lost PURE restore reply.
+.PHONY: test-pure-k05-restore-reply-native-v1808
+test-pure-k05-restore-reply-native-v1808:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS v1808 K05 source checkout required}" \
+	 sh tests/validation/pure-restore-reply-v1808/run-v1808.sh
+
+.PHONY: test-pure-integration-native-v1808
+test-pure-integration-native-v1808: test-pure-integration-native-v1807 \
+ test-pure-k05-restore-reply-native-v1808
+	@echo 'PASS v1808: v1807 native suite plus K05 restore lost-success regression'
+
 # v1805: physical default-OFF PDP-6 disk-root smoke (requires built image).
 .PHONY: test-pure-integration-dsk-smoke-v1805
 test-pure-integration-dsk-smoke-v1805:

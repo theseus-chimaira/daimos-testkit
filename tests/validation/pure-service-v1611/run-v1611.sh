@@ -69,15 +69,19 @@ done
 # Source-authentic negative: bypass the final readiness guard only in a
 # private copy. The executed PDP-6 guest must reject READY_ONCE on IO failure.
 python3 - "$src/proc/$service" \
-    "$work/unsafe-ready-v1611.c" <<'PY'
+    "$work/unsafe-ready-v1611.c" "$tag" <<'PY'
 from pathlib import Path
 import sys
 s = Path(sys.argv[1]).read_text()
-old = '''        if (rc == MM_OK &&
+old_v1611 = '''        if (rc == MM_OK &&
             !PROC_TRANSITION(p) && VM_PDP6_BASE(p) &&
             proc_storage_expect_v30(slot, PROC_STORAGE_RESIDENT) == 0) {
 '''
-assert s.count(old) == 1, 'v1611: ready publication anchor drift'
+old_v1612 = '''        if (!PROC_TRANSITION(p) && VM_PDP6_BASE(p) &&
+            proc_storage_expect_v30(slot, PROC_STORAGE_RESIDENT) == 0) {
+'''
+old = old_v1612 if sys.argv[3] == "v1612" else old_v1611
+assert s.count(old) == 1, 'v1611/v1612: ready publication anchor drift'
 Path(sys.argv[2]).write_text(s.replace(old, '        if (1) {\n', 1))
 PY
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $inc \
