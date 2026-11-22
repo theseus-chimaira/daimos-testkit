@@ -191,7 +191,8 @@ for variant in general strict; do
             echo "FAIL v1673: incomplete $variant $core CTY runtime test" >&2
             keep=1; exit 1
         fi
-        python3 "$here/measure-v1673.py" \
+        measure=${V1673_MEASURE:-$here/measure-v1673.py}
+        python3 "$measure" \
             "$fixture/v1673-test-init.map" "$build/kcore.map" \
             "$work/$variant-$core-console.clean" "$core" \
             "$work/$variant-$core-report.json" || {
