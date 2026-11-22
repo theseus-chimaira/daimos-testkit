@@ -32,6 +32,7 @@ def main():
     head += ".equ PROC_FINALIZE_OFFSET,067\n"
     head += ".equ PROC_FINALIZE_MARK_LH,0400000\n"
     head += ".equ PROC_FINALIZE_PREVM_LH,0100000\n"
+    head += ".equ PROC_FINISH_ARMED_LH_V1763,040000\n"
     head += ".equ PROC_FATAL_CLOSE_BIT,4\n.equ CTX_PC,020\n"
     head += ".equ PROC_WAIT_LH_MASK,060000\n"
     body = between(source, "proc_finish_slot:\n", "\nproc_slot_discard:\n")
@@ -61,9 +62,17 @@ def main():
         ".globl proc_session_teardown\n", 1)[1]
     fixture = once(fixture,
         "vm_space_destroy:\n aos __vm_calls\n setom 1(1)\n setz 1,\n popj 17,\n", "")
+    # Link the original v1768 parent eligibility leaf: a real RUN INIT
+    # is necessary for ZOMB publication. The old v881 fixture left slot
+    # 1 empty and incorrectly assumed any parent number was waitable.
     fixture = once(fixture,
         "__ptable: .block 6\n .word __uarea,,0400407\n .word 04000,,020000\n",
-        "__ptable: .block 6\n .word __uarea,,0400407\n .word 02000,,0\n")
+        "__ptable: .block 3\n"
+        " .word __init_uarea_v1807,,0400000\n"
+        " .word 04000,,020000\n"
+        " .word 0200000,,0\n"
+        " .word __uarea,,0400407\n .word 02000,,0\n")
+    fixture += "\n.data\n__init_uarea_v1807: .block 0407\n"
     # Original v881 fixture owns C-coded proc_table symbol and stable
     # u-area. It has no RAW backing. Install one at the exact v1609
     # u-area offset, leaving the rest of the fixture unchanged.

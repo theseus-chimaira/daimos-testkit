@@ -32,6 +32,7 @@ header = """.text
 .equ PROC_FINALIZE_OFFSET,067
 .equ PROC_FINALIZE_MARK_LH,0400000
 .equ PROC_FINALIZE_PREVM_LH,0100000
+.equ PROC_FINISH_ARMED_LH_V1763,040000
 .equ PROC_FATAL_CLOSE_BIT,4
 .equ CTX_PC,020
 .equ PROC_WAIT_LH_MASK,060000
@@ -58,6 +59,18 @@ vm_unpinned_v1680:
 if fixture.count(old) != 1:
     raise ValueError("source fixture modeled VM refusal anchor drift")
 fixture = fixture.replace(old, new, 1)
+# K04 v1768 requires the parent to be a genuinely WAIT-eligible INIT.
+# The historical v881 fixture left slot 1 empty, so its old ZOMB
+# expectation was invalid under the accepted orphan-release policy.
+old_parent = "__ptable: .block 6\n"
+new_parent = ( "__ptable: .block 3\n"
+    " .word __init_uarea_v1807,,0400000\n"
+    " .word 04000,,020000\n"
+    " .word 0200000,,0\n")
+if fixture.count(old_parent) != 1:
+    raise ValueError("v881 parent slot fixture anchor drifted")
+fixture = fixture.replace(old_parent, new_parent, 1)
+fixture += "\n.data\n__init_uarea_v1807: .block 0407\n"
 fixture += "\n.data\n.globl __vm_pins_v1680\n__vm_pins_v1680: .word 0\n"
 (work / "driver-v1680.s").write_text(
     test.read_text(encoding="ascii") + "\n" + fixture,
@@ -69,6 +82,8 @@ if leaf.count(mutant_old) != 1:
 (work / "unsafe-v1680.s").write_text(
     leaf.replace(mutant_old, mutant_new, 1), encoding="ascii")
 PY
+python3 "$kit/tests/validation/pure-parent-helper-v1807/extract-v1807.py" \
+    "$DAIMOS_REPO" "$work/production-parent-v1807.s"
 run_case() {
     name=$1
     leaf=$2
@@ -77,6 +92,7 @@ run_case() {
         --workdir "$work/$name" --name "pure-prevm-v1680-$name" \
         --expect __test_exit=0 \
         "$kit/tests/validation/daimos-test-crt0-v1.s" "$leaf" \
+        "$work/production-parent-v1807.s" \
         "$work/driver-v1680.s" \
         >"$work/$name.log" 2>&1
 }

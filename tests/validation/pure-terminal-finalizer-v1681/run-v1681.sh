@@ -11,6 +11,10 @@ kit=$(CDPATH= cd -- "$here/../../.." && pwd)
 work=$(mktemp -d "$TMPDIR/daimos-pure-terminal-finalizer-v1681.XXXXXX")
 trap 'echo "v1681 original-instruction evidence: $work"' EXIT
 python3 "$here/build-native-v1681.py" "$DAIMOS_REPO" "$kit" "$work"
+python3 "$kit/tests/validation/pure-parent-helper-v1807/extract-v1807.py" \
+    "$DAIMOS_REPO" "$work/production-parent-v1807.s"
+python3 "$kit/tests/validation/pure-pi-leaves-v1807/extract-v1807.py" \
+    "$DAIMOS_REPO" "$work/production-pi-v1807.s"
 src="$DAIMOS_REPO/system/kernel"
 inc="-I$src/proc -I$src/core -I$src/mm -I$src/fs -I$src/storage -I$src/modules -I$src/drivers -I$PDP10_PREFIX/include"
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $inc \
@@ -22,6 +26,8 @@ inc="-I$src/proc -I$src/core -I$src/mm -I$src/fs -I$src/storage -I$src/modules -
     --expect __test_exit=0 \
     "$kit/tests/validation/daimos-test-crt0-v1.s" \
     "$work/original-finalizer.s" "$work/original-vm-destroy.s" \
+    "$work/production-parent-v1807.s" \
+    "$work/production-pi-v1807.s" \
     "$work/original-mm.s" "$work/original-pure-term.s" \
     "$work/actual-detach.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$work/term-entry.s" "$work/test-fixture.s" >"$work/guest.log" 2>&1 || {
@@ -80,6 +86,8 @@ run_mutant_v1681()
         --expect __test_exit=0 \
         "$kit/tests/validation/daimos-test-crt0-v1.s" \
         "$finalizer" "$work/original-vm-destroy.s" \
+        "$work/production-parent-v1807.s" \
+        "$work/production-pi-v1807.s" \
         "$mm" "$work/original-pure-term.s" \
         "$work/actual-detach.s" "$src/proc/proc_storage_runtime_v30.s" \
         "$work/term-entry.s" "$work/test-fixture.s" >"$log" 2>&1; then
