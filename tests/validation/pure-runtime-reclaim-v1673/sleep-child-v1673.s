@@ -22,7 +22,7 @@ _start:
         uuo 077,0(1)
         jumpl 01,__bad_brk
 __sleep:
-        movei 02,0104600        ; 36000 decimal 60-Hz ticks = 600 seconds
+        movei 02,0104600        ; 35200 decimal 60-Hz ticks = 586 2/3 seconds
         movei 01,036            ; SYS_EXT_SLEEP selector
         uuo 077,0(1)
         uuo 076,0               ; recover own PID, not pre-SLEEP AC state
