@@ -9,6 +9,8 @@ import pathlib
 import re
 
 LIMITS = {"das1": 0o34000, "das2": 0o31000}
+STACK_WORDS = 0o2000
+PROCESS_LIMIT = 0o40000
 WORD_MASK = 0o777777777777
 MAGIC = 0o447062
 LABEL = re.compile(r"^([A-Za-z_][A-Za-z_0-9$]*):$")
@@ -46,10 +48,14 @@ def profile(phase, directory, top):
     limit = LIMITS[phase]
     print("%s image=%06o bss=%06o ceiling=%06o excess=%06o" %
           (phase, image, bss, limit, max(0, image - limit)))
+    process = image + bss + STACK_WORDS
+    print("%s process=%06o process_ceiling=%06o excess=%06o" %
+          (phase, process, PROCESS_LIMIT,
+           max(0, process - PROCESS_LIMIT)))
     print("%s largest assembly regions (source lines; not image words):" % phase)
     for lines, name in spans[:top]:
         print("  %-38s %5d lines" % (name, lines))
-    return image > limit
+    return image > limit or process > PROCESS_LIMIT
 
 
 def main():
@@ -63,9 +69,9 @@ def main():
     for phase in ("das1", "das2"):
         oversized |= profile(phase, args.build_dir, args.top)
     if oversized:
-        print("DIAGNOSTIC: native phase image ceilings exceeded; not accepted")
+        print("DIAGNOSTIC: native phase image/process ceilings exceeded; not accepted")
     else:
-        print("DIAGNOSTIC: native phase image sizes within ceilings")
+        print("DIAGNOSTIC: native phase image/process sizes within ceilings")
 
 
 if __name__ == "__main__":
