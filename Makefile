@@ -2620,6 +2620,19 @@ test-pure-k05-secondary-audit-v1845:
 	 V1845_WORK="$${V1845_WORK:?real physical trace required}" \
 	 sh tests/validation/pure-k05-secondary-physical-v1845/audit-v1845.sh
 
+# K05: physical PCLK PI6 with a retained PACKED owner after FULL failure.
+.PHONY: test-pure-k05-postfault-pi6-v1847
+test-pure-k05-postfault-pi6-v1847:
+	@V1847_BUILD="$${V1847_BUILD:?current v1845 48K image required}" \
+	 V1847_PROBE="$${V1847_PROBE:?actual current-source MRES probe required}" \
+	 sh tests/validation/pure-k05-postfault-pi6-v1847/run-v1847.sh
+
+.PHONY: test-pure-k05-postfault-pi6-audit-v1847
+test-pure-k05-postfault-pi6-audit-v1847:
+	@V1847_BUILD="$${V1847_BUILD:?current v1845 48K image required}" \
+	 V1847_WORK="$${V1847_WORK:?real physical evidence required}" \
+	 sh tests/validation/pure-k05-postfault-pi6-v1847/audit-v1847.sh
+
 # Optional mode3 shares v1612 readiness, but is NOT production-accepted.
 .PHONY: test-pure-k05-mode3-compat-native-v1808
 test-pure-k05-mode3-compat-native-v1808:
