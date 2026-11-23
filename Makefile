@@ -2615,6 +2615,21 @@ test-pure-k05-pinned-commit-native-v1855:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?current DAIMOS K05 source required}" \
 	 sh tests/validation/pure-k05-pinned-commit-v1855/run-v1855.sh
 
+# K05: physical 48K original FULL, debugger-injected exact MM target
+# pin2, original -5 quarantine and real PCLK with owner preservation.
+.PHONY: test-pure-k05-physical-overpin-v1890
+test-pure-k05-physical-overpin-v1890:
+	@V1890_BUILD="$${V1890_BUILD:?source-built v1855 48K image required}" \
+	 V1890_PROBE="$${V1890_PROBE:?original installed MRES probe required}" \
+	 V1890_PRIOR="$${V1890_PRIOR:?accepted v1848 physical FULL required}" \
+	 sh tests/validation/pure-k05-physical-overpin-v1890/run-v1890.sh
+
+.PHONY: test-pure-k05-physical-overpin-audit-v1890
+test-pure-k05-physical-overpin-audit-v1890:
+	@V1890_BUILD="$${V1890_BUILD:?source-built v1855 48K image required}" \
+	 V1890_WORK="$${V1890_WORK:?actual v1890 physical trace required}" \
+	 sh tests/validation/pure-k05-physical-overpin-v1890/audit-v1890.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
