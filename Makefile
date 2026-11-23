@@ -2646,6 +2646,27 @@ test-pure-k05-process-quarantine-audit-v1891:
 	 V1891_WORK="$${V1891_WORK:?completed physical process-table trace required}" \
 	 sh tests/validation/pure-k05-physical-overpin-v1890/audit-process-v1891.sh
 
+# K05: retain the identical original 48K KCORE/PURE/pressure path,
+# with a test-only already-resident parent user heartbeat after fault.
+.PHONY: test-pure-k05-resident-peer-build-v1892
+test-pure-k05-resident-peer-build-v1892:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?source-matched DAIMOS checkout required}" \
+	 sh tests/validation/pure-k05-resident-peer-v1892/build-v1892.sh
+
+.PHONY: test-pure-k05-resident-peer-physical-v1892
+test-pure-k05-resident-peer-physical-v1892:
+	@V1892_BUILD="$${V1892_BUILD:?original 48K resident-parent build required}" \
+	 V1892_PROBE="$${V1892_PROBE:?fresh installed MRES probe required}" \
+	 V1892_PRIOR="$${V1892_PRIOR:?accepted v1848 pinned FULL required}" \
+	 V1892_V1890="$${V1892_V1890:?accepted v1890 physical source trace required}" \
+	 sh tests/validation/pure-k05-resident-peer-v1892/run-v1892.sh
+
+.PHONY: test-pure-k05-resident-peer-audit-v1892
+test-pure-k05-resident-peer-audit-v1892:
+	@V1892_BUILD="$${V1892_BUILD:?original 48K resident-parent build required}" \
+	 V1892_WORK="$${V1892_WORK:?actual original physical HB evidence required}" \
+	 sh tests/validation/pure-k05-resident-peer-v1892/audit-v1892.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855

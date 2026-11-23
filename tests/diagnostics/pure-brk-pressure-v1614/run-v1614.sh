@@ -127,6 +127,16 @@ else
     fi
 fi
 
+# v1892: export the fully rebuilt original source-linked boot image for
+# a PRIVATE physical SIMH breakpoint controller. The regular v1614
+# lifecycle/WAIT/HALT checks are unchanged unless explicitly requested.
+# No simulator is run here: the v1892 controller owns private media,
+# physical MM pin injection and its own bounded completion oracle.
+if [ "${PURE_PREPARE_ONLY_V1892:-0}" = 1 ]; then
+    echo "v1892: source-built physical boot prepared: $boot"
+    exit 0
+fi
+
 awk '!/^attach -q (dsk[0-9]+|dr[0-9]+) /' \
     "$boot/boot.ini" >"$work/noaux.ini"
 if grep -Eq '^attach -q (dsk[0-9]+|dr[0-9]+) ' "$work/noaux.ini"; then
