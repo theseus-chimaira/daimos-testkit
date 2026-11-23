@@ -2765,6 +2765,23 @@ test-pure-k05-target-unpin-refusal-audit-v1898:
 	 V1898_WORK="$${V1898_WORK:?original real v1898 MM unpin refusal required}" \
 	 sh tests/validation/pure-k05-target-unpin-refusal-v1898/audit-v1898.sh
 
+# K05: original SOURCE native mm_unpin physically refuses -4 when
+# a test-only zero-source-pin is introduced at the real call.
+# The original target rollback must succeed, retaining PACKED
+# source and five child retry/typed EXIT-WAIT/parent HALT.
+.PHONY: test-pure-k05-source-unpin-refusal-physical-v1899
+test-pure-k05-source-unpin-refusal-physical-v1899:
+	@V1899_BUILD="$${V1899_BUILD:?original source-built 48K five-child guest required}" \
+	 V1899_PROBE="$${V1899_PROBE:?original installed PURE MRES probe required}" \
+	 V1899_PRIOR="$${V1899_PRIOR:?accepted original v1897 physical MM evidence required}" \
+	 sh tests/validation/pure-k05-source-unpin-refusal-v1899/run-v1899.sh
+
+.PHONY: test-pure-k05-source-unpin-refusal-audit-v1899
+test-pure-k05-source-unpin-refusal-audit-v1899:
+	@V1899_BUILD="$${V1899_BUILD:?original source-built 48K five-child guest required}" \
+	 V1899_WORK="$${V1899_WORK:?original physical source-unpin refusal trace required}" \
+	 sh tests/validation/pure-k05-source-unpin-refusal-v1899/audit-v1899.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
