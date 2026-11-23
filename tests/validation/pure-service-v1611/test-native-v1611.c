@@ -4,7 +4,29 @@
  * Only the VFS loader and MM compaction demand are test-controlled.
  */
 extern int proc_pure_mres_reclaim_v1611(kword_t, kword_t, unsigned int);
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+/* v1902 original KCORE passes an explicit tagged AC1 request only
+ * for the already-marked slot-0 recovery; ordinary request==0 is
+ * still selected from the original proc_sched_cursor. */
+extern int proc_pure_mres_service_v1611(kword_t);
+#define PURE_TEST_SERVICE_CALL_V1902() proc_pure_mres_service_v1611(0UL)
+/* Older standalone v1612 KCC guests do not link the entire original
+ * idle-finalizer KCORE. Only the accepted v1902 integrated native
+ * fixture must execute the real arm/backoff assembly. */
+static unsigned int pure_test_recover_arm_calls_v1902;
+unsigned int mm_extent_capacity = MM_MAX_EXTENTS;
+int
+proc_pure_recover_arm_v1902(kword_t uarea)
+{
+        if (uarea != UAREA)
+                return -1;
+        ++pure_test_recover_arm_calls_v1902;
+        return 0;
+}
+#else
 extern int proc_pure_mres_service_v1611(void);
+#define PURE_TEST_SERVICE_CALL_V1902() proc_pure_mres_service_v1611()
+#endif
 
 unsigned int proc_high_slot = SLOTS;
 kword_t proc_sched_cursor;
@@ -65,6 +87,10 @@ static void
 reset_service_v1611(void)
 {
         reset_prefix_v1384();
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+        mm_extent_capacity = MM_MAX_EXTENTS;
+        pure_test_recover_arm_calls_v1902 = 0U;
+#endif
         /* Direct v1384 component fixtures begin with ownership already
          * claimed. The actual MRES must claim TRANSITION itself. */
         PROC_CLEAR_TRANSITION(&process_slots[SLOT]);
@@ -113,7 +139,7 @@ test_drop_wake_v1611(unsigned int fallback)
         PROC_SET_STATE(p, PROC_SRUN);
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
         prefix_fallback_v1611 = fallback;
-        rc = proc_pure_mres_service_v1611();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         if (rc != (int)(01000U | SLOT) ||
             proc_sched_cursor != (01000UL | SLOT) ||
             proc_swap_pressure_ticks ||
@@ -155,7 +181,7 @@ test_refusal_v1611(void)
         PROC_SET_STATE(p, PROC_SRUN);
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
         vfs_mount_root_base = (vnode_t *)0;
-        rc = proc_pure_mres_service_v1611();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         vfs_mount_root_base = roots;
         if (rc != 0 || proc_sched_cursor != SLOT ||
             proc_swap_pressure_ticks != 0100UL ||
@@ -167,7 +193,7 @@ test_refusal_v1611(void)
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
         prefix_fallback_v1611 = 1U;
         full_refuse_v1611 = 1U;
-        rc = proc_pure_mres_service_v1611();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         if (rc != 0 || proc_sched_cursor != SLOT ||
             proc_swap_pressure_ticks != 0100UL ||
             !check_retained_v1611() ||
@@ -199,7 +225,7 @@ test_duplicate_packed_owner_v1612(void)
         mm_extent_count = 2;
         PROC_SET_STATE(p, PROC_SRUN);
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
-        rc = proc_pure_mres_service_v1611();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         if (rc || proc_sched_cursor != SLOT ||
             proc_swap_pressure_ticks != 0100UL ||
             !PROC_TRANSITION(p) || VM_PDP6_BASE(p) ||
@@ -224,7 +250,7 @@ test_pinned_packed_owner_v1612(void)
                 return 2;
         PROC_SET_STATE(p, PROC_SRUN);
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
-        rc = proc_pure_mres_service_v1611();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         if (rc || proc_sched_cursor != SLOT ||
             !PROC_TRANSITION(p) || VM_PDP6_BASE(p) ||
             MM_EXTENT_PINS(&mm_extents[0]) != 1U)

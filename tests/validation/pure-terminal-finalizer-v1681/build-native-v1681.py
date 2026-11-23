@@ -33,6 +33,11 @@ def main():
     head += ".equ PROC_FINALIZE_MARK_LH,0400000\n"
     head += ".equ PROC_FINALIZE_PREVM_LH,0100000\n"
     head += ".equ PROC_FINISH_ARMED_LH_V1763,040000\n"
+    # K05 v1902 also scans one mutually exclusive PURE rollback tag.
+    # This historical v1681 guest exercises ORIGINAL FINALIZE owners,
+    # never a PURE recovery. Extract the original new tag constant;
+    # fail the guest if an incorrect FINALIZE/PURE dispatch crosses it.
+    head += ".equ PROC_SWAP_RETRY_LH,040000\n"
     head += ".equ PROC_FATAL_CLOSE_BIT,4\n.equ CTX_PC,020\n"
     head += ".equ PROC_WAIT_LH_MASK,060000\n"
     body = between(source, "proc_finish_slot:\n", "\nproc_slot_discard:\n")
@@ -103,6 +108,11 @@ kconst_2_2: .word 2,,2
 .text
 proc_swap_storage_invariant_v30:
  movei 1,0777
+ movem 1,__test_exit
+ halt .
+.globl proc_swap_service_one
+proc_swap_service_one:
+ movei 1,0701
  movem 1,__test_exit
  halt .
 .globl fs_provider_reg_call

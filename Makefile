@@ -2839,6 +2839,38 @@ test-pure-k05-transition-term-audit-v1901:
 	 V1901_WORK="$${V1901_WORK:?completed original 48K native user TERM transcript required}" \
 	 sh tests/validation/pure-k05-transition-term-v1901/audit-physical-v1901.sh
 
+# v1902: original PDP-6 KCC PURE exact two-owner idle reconciliation.
+# This target is a native component test, NOT physical full-system acceptance.
+.PHONY: test-pure-k05-reconcile-native-v1902
+test-pure-k05-reconcile-native-v1902:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS checkout required}" \
+	 sh tests/validation/pure-k05-reconcile-v1902/run-native-v1902.sh
+
+.PHONY: test-pure-k05-reconcile-physical-v1902
+test-pure-k05-reconcile-physical-v1902:
+	@V1902_BUILD="$${V1902_BUILD:?original source-built 48K image required}" \
+	 V1902_PROBE="$${V1902_PROBE:?installed source-built PURE base trace required}" \
+	 sh tests/validation/pure-k05-reconcile-v1902/run-physical-v1902.sh
+
+.PHONY: test-pure-k05-reconcile-audit-v1902
+test-pure-k05-reconcile-audit-v1902:
+	@V1902_BUILD="$${V1902_BUILD:?original source-built 48K image required}" \
+	 V1902_PHYSICAL_WORK="$${V1902_PHYSICAL_WORK:?completed original PDP6 physical trace required}" \
+	 sh tests/validation/pure-k05-reconcile-v1902/audit-physical-v1902.sh
+
+# Stronger source-linked native MM target-free/slot0/CTX-PC proof.
+.PHONY: test-pure-k05-reconcile-commit-physical-v1902
+test-pure-k05-reconcile-commit-physical-v1902:
+	@V1902_BUILD="$${V1902_BUILD:?original source-built 48K image required}" \
+	 V1902_PROBE="$${V1902_PROBE:?installed source-built PURE base trace required}" \
+	 sh tests/validation/pure-k05-reconcile-v1902/run-physical-commit-v1902.sh
+
+.PHONY: test-pure-k05-reconcile-commit-audit-v1902
+test-pure-k05-reconcile-commit-audit-v1902:
+	@V1902_BUILD="$${V1902_BUILD:?original source-built 48K image required}" \
+	 V1902_COMMIT_WORK="$${V1902_COMMIT_WORK:?completed original native target-free trace required}" \
+	 sh tests/validation/pure-k05-reconcile-v1902/audit-physical-commit-v1902.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
