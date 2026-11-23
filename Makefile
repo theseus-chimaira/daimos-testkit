@@ -2608,6 +2608,18 @@ test-pure-integration-native-v1839: test-pure-integration-native-v1808 \
  test-pure-k05-source-free-native-v1839
 	@echo 'PASS v1839: integrated RAW PURE native suite and K05 source-free reply'
 
+# K05: both original FULL MM owners must be exactly singly pinned at
+# PI-atomic commit; persistent allocation failures may retry safely.
+.PHONY: test-pure-k05-pinned-commit-native-v1855
+test-pure-k05-pinned-commit-native-v1855:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?current DAIMOS K05 source required}" \
+	 sh tests/validation/pure-k05-pinned-commit-v1855/run-v1855.sh
+
+.PHONY: test-pure-integration-native-v1855
+test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
+ test-pure-k05-pinned-commit-native-v1855
+	@echo 'PASS v1855: complete RAW PURE native matrix plus exact pinned FULL commit'
+
 # K05: current-source physical secondary backing loss and FULL rollback.
 .PHONY: test-pure-k05-secondary-physical-v1845
 test-pure-k05-secondary-physical-v1845:
