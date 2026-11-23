@@ -94,5 +94,35 @@ The native test uses current original FULL transaction source and
 real PDP-6 native execution but controlled original MM API fixtures.
 It does not prove whole-machine physical pin corruption, independent
 bystander scheduler progress, KA10, all PI6 interleavings or optional
-PURE production enablement. The 48K physical five-child build/boot
-is a separate acceptance gate. K05-K09 remain OPEN.
+PURE production enablement. K05-K09 remain OPEN.
+
+## Independently completed 48K source-built normal-run gate
+
+The original v1845 source-matched five-child builder was rerun after
+the v1855 production correction with 48K PDP-6, TSFS root, one
+root-backed plain and four secondary-DTC3 compressed PURE children.
+Original physical RUN/PIPE/writable-data/EXIT/WAIT guest output was:
+
+    aaaaax[B013060/043565]<010000+010000>[A013060/043565]{013060-013060}LwwwwwZ
+    HALT instruction, PC: 000000
+
+The source-built simulator returned zero and the lifecycle runner
+printed `PASS lifecycle: physical 48K source-checked PIPE/WAIT/EXIT`.
+Physical evidence is preserved in versioned testkit scratch
+`$TMPDIR/pure-brk-pressure-v1614.qnobNT/`, with original
+`console.clean` SHA256
+`c090f8c2aa9475d876286f37c7cd6ab036a4f77b64353730f98a785c95335c8e`.
+
+The fixed KCORE DXR is byte-identical to the previously accepted
+v1845-v1848 image (SHA256
+`33bf700218a73fefcb36ebb1f1d835c1817f3a291a642898ccb3cbd5d9039d8b`).
+Linked optional PURE MRES image size increases `004000` -> `004027`
+octal (+23 decimal words), BSS unchanged at zero; the physical
+guest-reported memory accounting increases by exactly the same
+`000027` octal. New PURE DXR SHA256
+`a0fb25c51cf1c57f4bc70ca1dc83d8b9ea39b1ac3ddb3bba7b9ffcea17e5b3fd`.
+
+This physical PASS concerns **ordinary restored execution**. It does
+NOT inject an extra physical pin or prove full-system persistence of
+unknown MM owner faults. Those are still separate K05 acceptance
+requirements, as is production PURE enablement.
