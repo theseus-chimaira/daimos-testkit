@@ -2630,6 +2630,22 @@ test-pure-k05-physical-overpin-audit-v1890:
 	 V1890_WORK="$${V1890_WORK:?actual v1890 physical trace required}" \
 	 sh tests/validation/pure-k05-physical-overpin-v1890/audit-v1890.sh
 
+# K05: source-linked 48K physical process TRANSITION flag and peer
+# owner/scheduler descriptors after target pin2 FULL refusal and PCLK.
+.PHONY: test-pure-k05-process-quarantine-v1891
+test-pure-k05-process-quarantine-v1891:
+	@V1891_BUILD="$${V1891_BUILD:?source-built v1855 48K image required}" \
+	 V1891_PROBE="$${V1891_PROBE:?actual MRES probe required}" \
+	 V1891_PRIOR="$${V1891_PRIOR:?accepted v1848 owner stage required}" \
+	 V1891_V1890="$${V1891_V1890:?accepted v1890 original trace required}" \
+	 sh tests/validation/pure-k05-physical-overpin-v1890/run-process-v1891.sh
+
+.PHONY: test-pure-k05-process-quarantine-audit-v1891
+test-pure-k05-process-quarantine-audit-v1891:
+	@V1891_BUILD="$${V1891_BUILD:?source-built v1855 48K image required}" \
+	 V1891_WORK="$${V1891_WORK:?completed physical process-table trace required}" \
+	 sh tests/validation/pure-k05-physical-overpin-v1890/audit-process-v1891.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855

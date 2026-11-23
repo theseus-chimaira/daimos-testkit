@@ -76,3 +76,56 @@ proof that normal code spontaneously creates a second pin; its
 purpose is testing the production exact-owner rejection and
 quarantine policy. It is not a completed full-system user-level
 bystander scheduling test or a permission to enable PURE.
+
+## v1891: bounded physical process-table follow-up
+
+**Scoped original physical PDP-6 PASS, 2026-11-23.** A second complete
+SIMH run ended normally at the source-linked process-table checkpoint.
+The original v1890 overpin/MM/ROOT/PCLK oracle PASSes first; then
+the real three-word process descriptor snapshot shows slot3
+TRANSITION=1, user VM base=0, with slots4..6 nontransition SRUN.
+All four executed original physical process-table mutations are
+rejected by the independent verifier. The unmodified full v1891
+physical transcript SHA256 is
+`dfdefc29dd3f4665223192754a97693e4425a001b63e7f46459878cbc607e76b`.
+
+The original v1890 physical run confirms MM descriptor preservation
+and postfailure PCLK but does not examine individual process flags.
+The v1891 test extends the identical physical source/loader pin2
+experiment with a real KCORE process-table pointer and original
+three-word process descriptor snapshot **after** the later PCLK.
+The actual pointer is taken from the accepted v1890 physical PCLK
+observation and independently checked again in the new runtime.
+
+The v1891 source-linked verifier runs the entire v1890 MM/ROOT/PCLK
+oracle as a prerequisite. It additionally requires the original
+slot3 TRANSITION bit set and VM physical base still zero, while
+original independently owned slots 4..6 remain SRUN, not marked
+TRANSITION and without a fabricated resident APR. The parent retains
+the original SLEEP state awaiting the missing child. Four negative
+controls inject a missing slot3 TRANSITION, a fake published VM base,
+an erroneously TRANSITION-held bystander, and a forged process-table
+pointer, all rejected by their respective physical oracles.
+
+Run the bounded v1891 physical process-table case:
+
+    export V1891_BUILD=$V1890_BUILD
+    export V1891_PROBE=$V1890_PROBE
+    export V1891_PRIOR=$V1890_PRIOR
+    export V1891_V1890=$V1890_WORK/physical.clean
+    export V1891_WORK=$TMPDIR/daimos-k05-process-quarantine-v1891-real
+    make test-pure-k05-process-quarantine-v1891
+    make test-pure-k05-process-quarantine-audit-v1891
+
+The later v1891 case deliberately terminates cleanly at the
+process-descriptor snapshot rather than waiting for user WAIT/HALT.
+An additional test-only attempt to await a NEW secondary child `w`
+after the physical quarantine produced no such marker before its
+manually stopped diagnostic and is **not** counted as a completed
+simulator test, scheduler success or scheduler defect.
+At the actual captured physical MM geometry the largest free gap
+before alignment is insufficient to hold a properly aligned
+`010000`-word FULL APR; healthy inactive children cannot simply
+be assumed able to restore their own user images. A genuinely
+independent user-level bystander progress test needs more free core
+or a separately prepared already-resident user peer.
