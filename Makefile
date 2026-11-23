@@ -2682,6 +2682,23 @@ test-pure-k05-source-free-reply-audit-v1893:
 	 V1893_WORK="$${V1893_WORK:?original physical failed free-reply evidence required}" \
 	 sh tests/validation/pure-k05-source-free-reply-physical-v1893/audit-v1893.sh
 
+# K05: physically pin PACKED source AT the actual original mm_free
+# invocation, prove the real allocator refuses -5, then release only
+# the temporary owner pin so the exact-zero-pin pair can safely roll
+# back the provisional PROCESS target before original child retry.
+.PHONY: test-pure-k05-real-free-refusal-physical-v1894
+test-pure-k05-real-free-refusal-physical-v1894:
+	@V1894_BUILD="$${V1894_BUILD:?original v1855 source-built 48K guest required}" \
+	 V1894_PROBE="$${V1894_PROBE:?original physical installed PURE probe required}" \
+	 V1894_PRIOR="$${V1894_PRIOR:?accepted source-linked v1893 physical evidence required}" \
+	 sh tests/validation/pure-k05-real-free-refusal-v1894/run-v1894.sh
+
+.PHONY: test-pure-k05-real-free-refusal-audit-v1894
+test-pure-k05-real-free-refusal-audit-v1894:
+	@V1894_BUILD="$${V1894_BUILD:?original v1855 source-built 48K guest required}" \
+	 V1894_WORK="$${V1894_WORK:?original physical refused source-free evidence required}" \
+	 sh tests/validation/pure-k05-real-free-refusal-v1894/audit-v1894.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
