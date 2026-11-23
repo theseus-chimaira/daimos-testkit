@@ -2699,6 +2699,22 @@ test-pure-k05-real-free-refusal-audit-v1894:
 	 V1894_WORK="$${V1894_WORK:?original physical refused source-free evidence required}" \
 	 sh tests/validation/pure-k05-real-free-refusal-v1894/audit-v1894.sh
 
+# K05: genuine original fixed KCORE PACKED-source free refusal under
+# a persistently held external source pin. Exact unchanged MM owners,
+# process quarantine, and TWO new autonomous resident parent HBs.
+.PHONY: test-pure-k05-persistent-source-pin-physical-v1895
+test-pure-k05-persistent-source-pin-physical-v1895:
+	@V1895_BUILD="$${V1895_BUILD:?original 48K resident parent-HB source build required}" \
+	 V1895_PROBE="$${V1895_PROBE:?installed original PURE MRES probe required}" \
+	 V1895_PRIOR="$${V1895_PRIOR:?accepted original real v1894 source free refusal required}" \
+	 sh tests/validation/pure-k05-persistent-source-pin-v1895/run-v1895.sh
+
+.PHONY: test-pure-k05-persistent-source-pin-audit-v1895
+test-pure-k05-persistent-source-pin-audit-v1895:
+	@V1895_BUILD="$${V1895_BUILD:?original 48K resident parent-HB source build required}" \
+	 V1895_WORK="$${V1895_WORK:?original real v1895 physical evidence required}" \
+	 sh tests/validation/pure-k05-persistent-source-pin-v1895/audit-v1895.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
