@@ -1,3 +1,9 @@
+.PHONY: test-bcache-low-placement-v1819
+test-bcache-low-placement-v1819: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	 sh tests/diagnostics/bcache-low-v1819/run-v1819.sh
+
 .PHONY: test-dtfs-write-abi-v1818
 test-dtfs-write-abi-v1818: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \

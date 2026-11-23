@@ -1,5 +1,18 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-23 v1819: BCACHE LOW allocator assertion restored
+
+The pre-existing native BCACHE allocation test still asserted
+`MM_ALLOC_HIGH`, while production since v1636 requests LOW. Its
+pre-correction source-linked baseline failed. The fixture now verifies
+the actual production LOW preference and retains its 0201-word slab,
+owner-6, fetch and reclaim checks. A new native PDP-6 negative control
+reverts only the current LOW argument to the old HIGH argument: the
+original production test passes and the unsafe mutant is rejected by
+the guest exit oracle. Run `make test-bcache-low-placement-v1819`.
+This focused kernel-cache test does not provide fresh six-process
+physical PURE evidence or full guest memory-layout acceptance.
+
 ## 2026-11-23 v1818: historical DTFS write ABI test consolidated
 
 The recovered v206 raw DTC write-register probe used an obsolete

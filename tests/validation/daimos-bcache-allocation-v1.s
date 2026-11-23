@@ -33,8 +33,9 @@ main:
         caie    1,6
         jrst    allocation_fail
         move    1,alloc_preference
-        caie    1,1
-        jrst    allocation_fail
+        ; The reclaimable cache slab must occupy LOW kernel-dynamic
+        ; memory, leaving the highest aligned process APR available.
+        jumpn   1,allocation_fail
 
         setzm   result_block
         move    1,[01001,,5]
