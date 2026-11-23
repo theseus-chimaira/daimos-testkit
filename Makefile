@@ -2715,6 +2715,23 @@ test-pure-k05-persistent-source-pin-audit-v1895:
 	 V1895_WORK="$${V1895_WORK:?original real v1895 physical evidence required}" \
 	 sh tests/validation/pure-k05-persistent-source-pin-v1895/audit-v1895.sh
 
+# K05: two original native PDP-6 MM -5 replies, the second inside
+# the actual failure rollback mm_free(PROCESS). Keep source pin0 and
+# target pin1 live, TRANSITION quarantined, while resident parent
+# executes two new real user heartbeats and original PCLK advances.
+.PHONY: test-pure-k05-target-free-refusal-physical-v1896
+test-pure-k05-target-free-refusal-physical-v1896:
+	@V1896_BUILD="$${V1896_BUILD:?original 48K source-built resident parent required}" \
+	 V1896_PROBE="$${V1896_PROBE:?installed original PURE MRES probe required}" \
+	 V1896_PRIOR="$${V1896_PRIOR:?accepted original v1894 real-source-free evidence required}" \
+	 sh tests/validation/pure-k05-target-free-refusal-v1896/run-v1896.sh
+
+.PHONY: test-pure-k05-target-free-refusal-audit-v1896
+test-pure-k05-target-free-refusal-audit-v1896:
+	@V1896_BUILD="$${V1896_BUILD:?original 48K source-built resident parent required}" \
+	 V1896_WORK="$${V1896_WORK:?original real v1896 failed target-free evidence required}" \
+	 sh tests/validation/pure-k05-target-free-refusal-v1896/audit-v1896.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
