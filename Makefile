@@ -2815,6 +2815,30 @@ test-pure-k05-terminal-dual-owner-physical-audit-v1900:
 	 V1900_PHYSICAL_WORK="$${V1900_PHYSICAL_WORK:?actual original PDP6 physical trace required}" \
 	 sh tests/validation/pure-k05-terminal-dual-owner-v1900/audit-physical-v1900.sh
 
+# K05 v1901: original full 48K PDP6 native parent EVENT_TERM(3) on an
+# actually quarantined dual-owner child with an outstanding private
+# executive continuation. The simulator sets only a TEST-ONLY parent
+# user-APR gate AFTER the original MM -5 failure has been witnessed.
+# Do not weaken event TRANSITION or remote private-stack safety guards.
+.PHONY: test-pure-k05-transition-term-build-v1901
+test-pure-k05-transition-term-build-v1901:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?original DAIMOS checkout required}" \
+	 sh tests/validation/pure-k05-transition-term-v1901/build-source-v1901.sh
+
+.PHONY: test-pure-k05-transition-term-physical-v1901
+test-pure-k05-transition-term-physical-v1901:
+	@V1901_BUILD="$${V1901_BUILD:?real original 48K parent TERM guest required}" \
+	 V1901_PROBE="$${V1901_PROBE:?actual original PURE MRES base probe required}" \
+	 V1901_PRIOR="$${V1901_PRIOR:?original v1895 true MM owner fault evidence required}" \
+	 V1901_V1900="$${V1901_V1900:?accepted original v1900 physical snapshot required}" \
+	 sh tests/validation/pure-k05-transition-term-v1901/run-physical-v1901.sh
+
+.PHONY: test-pure-k05-transition-term-audit-v1901
+test-pure-k05-transition-term-audit-v1901:
+	@V1901_BUILD="$${V1901_BUILD:?real original 48K parent TERM guest required}" \
+	 V1901_WORK="$${V1901_WORK:?completed original 48K native user TERM transcript required}" \
+	 sh tests/validation/pure-k05-transition-term-v1901/audit-physical-v1901.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
