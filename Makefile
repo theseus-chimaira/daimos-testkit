@@ -21,6 +21,13 @@ test-dtfs-write-abi-v1818: check-prefix
 	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
 	 sh tests/validation/daimos-dtfs-write-preserve-v1818.sh
 
+.PHONY: test-d6codec-host-reference-v1824
+test-d6codec-host-reference-v1824:
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 DAIMOS_BUILD_DXR_DIR='$(abspath $(DAIMOS_REPO))/build/system/boot/pdp6' \
+	 TMPDIR='$(TMPDIR)' HOST_CC='$(HOST_CC)' \
+	 sh tests/validation/d6codec-host-reference-v1824/run-v1824.sh
+
 .PHONY: test-kcore-pure-bitmap-probe-v1659
 .PHONY: test-pure-stop-foreign-negatives-v1815
 test-pure-stop-foreign-negatives-v1815:

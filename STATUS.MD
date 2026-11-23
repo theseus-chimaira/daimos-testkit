@@ -1,5 +1,19 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-23 v1824: production D6 block host/reference identity PASS
+
+The recovered detached v1452 host codec comparison was adapted to
+the current KCORE/Stage-1 corpus. The actual production C host
+compressor and strict decoder are compiled from DAIMOS source; the
+independent v1421 Python encoder must produce identical words. All
+31 current boot DXRs, the real DSH DXR and eight deterministic
+stress streams (94,276 decoded source words) matched exactly, and
+seven malformed/trailing streams were rejected. The v1458 native
+component suite separately passed six valid fixed-core decodes,
+five malformed core cases, the VFS matrix and all five Stage-1
+native assemblies. Host equivalence is not a fresh guest cold boot.
+See `tests/validation/d6codec-host-reference-v1824/README-v1824.md`.
+
 ## 2026-11-23 v1821: D6CODEC fixed-low-core symbol check consolidated
 
 The detached v1459 `link-v1459.py` map assertion verifies an
