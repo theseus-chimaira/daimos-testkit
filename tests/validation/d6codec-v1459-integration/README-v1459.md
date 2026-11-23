@@ -10,6 +10,12 @@ is unchanged; the host encoder remains `d6block-v1452`.
 image in the linked KCORE DXR against all five Stage-1 assembled
 raw read-in images. This includes the inline LDB pointer word.
 
+The recovered v1821 `lowcore-map-v1821.py` also checks the linked
+symbol contract: fixed start at 000060, exact 53-word extent,
+nonoverlapping VFS/direct-buffer adapters and absence of retired
+v1452 decoder symbols. Five deliberately forged maps must be
+rejected. It does not replace the stronger raw-word comparison.
+
 `boot-v1459.py` runs the real image in SIMH, using independent
 copies of all attached writable media. It waits for login, logs
 in as ROOT, starts DSH and executes an ECHO command. Use unique

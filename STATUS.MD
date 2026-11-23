@@ -1,5 +1,17 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-23 v1821: D6CODEC fixed-low-core symbol check consolidated
+
+The detached v1459 `link-v1459.py` map assertion verifies an
+additional invariant beyond the existing byte-exact five-Stage-1/
+KCORE comparison: the shared decoder starts at 000060, occupies
+exactly 53 words, its VFS/buffer adapters are outside that region,
+and the retired v1452 symbols are absent. The v1821 test recovers
+this check against a source-matched KCORE build map and rejects five
+mutated symbol maps. This is a linked-map test, not a fresh device
+cold boot or proof of otherwise open DTC/MTC boot regressions. Run
+`make test-d6codec-lowcore-map-v1821` after building DAIMOS.
+
 ## 2026-11-23 v1820: native manual inventory from live manifests
 
 The recovered v1073 manual audit used an obsolete host MKSWAP

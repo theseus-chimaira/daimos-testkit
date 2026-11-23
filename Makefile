@@ -1,3 +1,8 @@
+.PHONY: test-d6codec-lowcore-map-v1821
+test-d6codec-lowcore-map-v1821:
+	@python3 tests/validation/d6codec-v1459-integration/lowcore-map-v1821.py \
+	 --build '$(abspath $(DAIMOS_REPO))/build'
+
 .PHONY: test-native-manual-coverage-v1820
 test-native-manual-coverage-v1820: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
