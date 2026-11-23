@@ -1,5 +1,18 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-23 v1818: historical DTFS write ABI test consolidated
+
+The recovered v206 raw DTC write-register probe used an obsolete
+`bcache_reclaim`-in-write ABI. Its assertion is now source-linked to
+the current production `dtfs_dtc_write` and `bcache_invalidate_all`.
+The real PDP-6 simulator baseline passed the exact UNIT/BLOCK/BUFFER
+contract after a deliberately clobbering intent gate. Two mutations
+(reintroducing write-time reclaim; corrupting AC2 in invalidation)
+reached the native oracle and were rejected. This is a focused
+source-linked unit test, not whole-guest DTFS/media acceptance. Run
+`make test-dtfs-write-abi-v1818`. The two original v206 files are
+preserved in a verified backup before their detached worktree cleanup.
+
 ## 2026-11-22 v1815: physical STOP/foreign-TERM evidence replay PASS
 
 The recovered v1682 STOP/foreign-TERM verifier requires the real APR

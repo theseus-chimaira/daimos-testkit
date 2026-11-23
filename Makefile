@@ -1,3 +1,9 @@
+.PHONY: test-dtfs-write-abi-v1818
+test-dtfs-write-abi-v1818: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' TMPDIR='$(TMPDIR)' \
+	 sh tests/validation/daimos-dtfs-write-preserve-v1818.sh
+
 .PHONY: test-kcore-pure-bitmap-probe-v1659
 .PHONY: test-pure-stop-foreign-negatives-v1815
 test-pure-stop-foreign-negatives-v1815:
