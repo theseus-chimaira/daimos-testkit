@@ -2667,6 +2667,21 @@ test-pure-k05-resident-peer-audit-v1892:
 	 V1892_WORK="$${V1892_WORK:?actual original physical HB evidence required}" \
 	 sh tests/validation/pure-k05-resident-peer-v1892/audit-v1892.sh
 
+# K05: original PDP6 MM successfully deletes PACKED source, then
+# simulator corrupts ONLY AC1 return into -5. The v1839 reconciliation
+# must recognize the sole exact PROCESS owner and finish normal WAIT.
+.PHONY: test-pure-k05-source-free-reply-physical-v1893
+test-pure-k05-source-free-reply-physical-v1893:
+	@V1893_BUILD="$${V1893_BUILD:?original source-built v1855 48K image required}" \
+	 V1893_PROBE="$${V1893_PROBE:?actual original MRES JRST probe required}" \
+	 sh tests/validation/pure-k05-source-free-reply-physical-v1893/run-v1893.sh
+
+.PHONY: test-pure-k05-source-free-reply-audit-v1893
+test-pure-k05-source-free-reply-audit-v1893:
+	@V1893_BUILD="$${V1893_BUILD:?original source-built v1855 48K image required}" \
+	 V1893_WORK="$${V1893_WORK:?original physical failed free-reply evidence required}" \
+	 sh tests/validation/pure-k05-source-free-reply-physical-v1893/audit-v1893.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
