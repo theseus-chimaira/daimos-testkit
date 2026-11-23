@@ -1,6 +1,7 @@
 #!/bin/sh
-# Reproduce unresolved GCC/KCC qsort callback guest trap (must PASS once fixed).
-# Current baseline (2026-11-23): guest reports UUO and STATUS:126.
+# Verify GCC callback execution through KCC-built qsort in real DAIMOS.
+# Older KCC loses the indirect target in AC16 during argument evaluation.
+# KCC_GUEST_COMPILER allows testing a rebuilt compiler before installing it.
 # No compiler test-only I/O stubs or KCC varargs entry are linked.
 set -eu
 : "${PDP10_PREFIX:?PDP10_PREFIX must be set}"
@@ -34,7 +35,7 @@ for file in "$stdio/libp10stdio-v2.a" \
 done
 
 make -C "$DAIMOS_REPO/userland/libc" build \
-    CC="$PDP10_PREFIX/bin/kcc" BUILD_ROOT="$libc_build" \
+    CC="${KCC_GUEST_COMPILER:-$PDP10_PREFIX/bin/kcc}" BUILD_ROOT="$libc_build" \
     PDP10_PREFIX="$PDP10_PREFIX" >"$work/libc-build.log" 2>&1 || {
     tail -45 "$work/libc-build.log" >&2
     exit 1
@@ -56,7 +57,7 @@ done
     "$obj/crt0.dobj" "$obj/kcc-qsort-v1829.dobj" \
     "$stdio/libp10stdio-daimos-v1.a" \
     "$stdio/libp10stdio-v2.a" "$libc_build/libc/libc.a" "$libgcc"
-# A GCC heap client cannot resolve malloc without the KCC libc archive.
+# The GCC callback client must resolve qsort from the KCC libc archive.
 # Reject accidental linkage through a compiler-owned or implicit libc.
 if "$dlink" --daimos-uuo-relax -b 020 \
     -o "$obj/no-kcc-libc-v1829.dxr" \
