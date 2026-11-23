@@ -2748,6 +2748,23 @@ test-pure-k05-target-free-lost-reply-audit-v1897:
 	 V1897_WORK="$${V1897_WORK:?original physical lost target-free reply evidence required}" \
 	 sh tests/validation/pure-k05-target-free-lost-reply-v1897/audit-v1897.sh
 
+# K05: original target unpin first commit and fail_target retry
+# both ACTUALLY fail MM_ERR_INVAL=-4 after test-only zero pin.
+# Prove no speculative RAW/target free, TRANSITION VM0 and real
+# unrelated resident parent HB progress with advancing PDP6 PCLK.
+.PHONY: test-pure-k05-target-unpin-refusal-physical-v1898
+test-pure-k05-target-unpin-refusal-physical-v1898:
+	@V1898_BUILD="$${V1898_BUILD:?original 48K resident parent source build required}" \
+	 V1898_PROBE="$${V1898_PROBE:?installed original PURE MRES probe required}" \
+	 V1898_PRIOR="$${V1898_PRIOR:?accepted v1897 original physical owner evidence required}" \
+	 sh tests/validation/pure-k05-target-unpin-refusal-v1898/run-v1898.sh
+
+.PHONY: test-pure-k05-target-unpin-refusal-audit-v1898
+test-pure-k05-target-unpin-refusal-audit-v1898:
+	@V1898_BUILD="$${V1898_BUILD:?original 48K resident parent source build required}" \
+	 V1898_WORK="$${V1898_WORK:?original real v1898 MM unpin refusal required}" \
+	 sh tests/validation/pure-k05-target-unpin-refusal-v1898/audit-v1898.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
