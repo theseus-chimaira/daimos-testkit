@@ -2633,6 +2633,19 @@ test-pure-k05-postfault-pi6-audit-v1847:
 	 V1847_WORK="$${V1847_WORK:?real physical evidence required}" \
 	 sh tests/validation/pure-k05-postfault-pi6-v1847/audit-v1847.sh
 
+# K05: real PCLK PI6 must interrupt FULL while BOTH original MM pins live.
+.PHONY: test-pure-k05-midfull-pi6-v1848
+test-pure-k05-midfull-pi6-v1848:
+	@V1848_BUILD="$${V1848_BUILD:?source-built 48K FULL image required}" \
+	 V1848_PROBE="$${V1848_PROBE:?physical MRES JRST probe required}" \
+	 sh tests/validation/pure-k05-midfull-pi6-v1848/run-v1848.sh
+
+.PHONY: test-pure-k05-midfull-pi6-audit-v1848
+test-pure-k05-midfull-pi6-audit-v1848:
+	@V1848_BUILD="$${V1848_BUILD:?source-built 48K FULL image required}" \
+	 V1848_WORK="$${V1848_WORK:?completed physical FULL PI6 trace required}" \
+	 sh tests/validation/pure-k05-midfull-pi6-v1848/audit-v1848.sh
+
 # Optional mode3 shares v1612 readiness, but is NOT production-accepted.
 .PHONY: test-pure-k05-mode3-compat-native-v1808
 test-pure-k05-mode3-compat-native-v1808:
