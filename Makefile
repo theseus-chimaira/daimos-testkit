@@ -2597,6 +2597,17 @@ test-pure-integration-native-v1808: test-pure-integration-native-v1807 \
  test-pure-k05-restore-reply-native-v1808
 	@echo 'PASS v1808: v1807 native suite plus K05 restore lost-success regression'
 
+# K05: MM source-free result ambiguity during bounded FULL restore.
+.PHONY: test-pure-k05-source-free-native-v1839
+test-pure-k05-source-free-native-v1839:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS K05 source checkout required}" \
+	 sh tests/validation/pure-full-free-reply-v1839/run-v1839.sh
+
+.PHONY: test-pure-integration-native-v1839
+test-pure-integration-native-v1839: test-pure-integration-native-v1808 \
+ test-pure-k05-source-free-native-v1839
+	@echo 'PASS v1839: integrated RAW PURE native suite and K05 source-free reply'
+
 # Optional mode3 shares v1612 readiness, but is NOT production-accepted.
 .PHONY: test-pure-k05-mode3-compat-native-v1808
 test-pure-k05-mode3-compat-native-v1808:
