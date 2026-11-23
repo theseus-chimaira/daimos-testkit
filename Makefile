@@ -2782,6 +2782,39 @@ test-pure-k05-source-unpin-refusal-audit-v1899:
 	 V1899_WORK="$${V1899_WORK:?original physical source-unpin refusal trace required}" \
 	 sh tests/validation/pure-k05-source-unpin-refusal-v1899/audit-v1899.sh
 
+# K05 v1900: SOURCE-LINKED original PDP-6 terminal code must release
+# an EXACT unpinned RAW PACKED source plus one complete provisional
+# PROCESS target left by a failed FULL, without releasing anyone else.
+# Real native checks include 4 executed unsafe assembler mutants.
+.PHONY: test-pure-k05-terminal-dual-owner-native-v1900
+test-pure-k05-terminal-dual-owner-native-v1900:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-k05-terminal-dual-owner-v1900/run-native-v1900.sh
+
+# Unlike the fixture MM return variants above, this also links and
+# EXECUTES the ORIGINAL PDP-6 allocator, idle FINALIZE+PREVM and
+# post-VM retry machinery with the precise two-owner RAW+target pair.
+.PHONY: test-pure-k05-terminal-dual-owner-finalizer-native-v1900
+test-pure-k05-terminal-dual-owner-finalizer-native-v1900:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-k05-terminal-dual-owner-v1900/run-finalizer-v1900.sh
+
+# Separate current-source 48K real PDP-6 PURE integration smoke with
+# unchanged KCORE and TEST-ONLY five-child resident parent markers.
+# This does NOT claim actual foreign termination of a quarantined slot.
+.PHONY: test-pure-k05-terminal-dual-owner-physical-v1900
+test-pure-k05-terminal-dual-owner-physical-v1900:
+	@V1900_BUILD="$${V1900_BUILD:?source-built corrected PURE 48K guest required}" \
+	 V1900_PROBE="$${V1900_PROBE:?actual original installed PURE JRST probe required}" \
+	 V1900_PRIOR="$${V1900_PRIOR:?accepted original v1895 pinned physical MM trace required}" \
+	 sh tests/validation/pure-k05-terminal-dual-owner-v1900/run-physical-v1900.sh
+
+.PHONY: test-pure-k05-terminal-dual-owner-physical-audit-v1900
+test-pure-k05-terminal-dual-owner-physical-audit-v1900:
+	@V1900_BUILD="$${V1900_BUILD:?source-built v1900 PURE 48K guest required}" \
+	 V1900_PHYSICAL_WORK="$${V1900_PHYSICAL_WORK:?actual original PDP6 physical trace required}" \
+	 sh tests/validation/pure-k05-terminal-dual-owner-v1900/audit-physical-v1900.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855

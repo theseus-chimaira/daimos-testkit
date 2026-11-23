@@ -23,7 +23,8 @@ def word(text, addr):
     return int(values[0], 8)
 
 
-def read(kit, build, work):
+def read(kit, build, work,
+         expected_pure_sha="a0fb25c51cf1c57f4bc70ca1dc83d8b9ea39b1ac3ddb3bba7b9ffcea17e5b3fd"):
     original = runpy.run_path(str(kit / "tests/diagnostics/"
                          "pure-full-restore-v1638/audit-v1638.py"))
     core = original["symbols"]((build / "kcore.map").read_text(encoding="ascii"))
@@ -34,7 +35,7 @@ def read(kit, build, work):
     if hashlib.sha256((build / "kcore.dxr").read_bytes()).hexdigest() != \
             "33bf700218a73fefcb36ebb1f1d835c1817f3a291a642898ccb3cbd5d9039d8b" or \
             hashlib.sha256((build / "pure-mres-v1612.dxr").read_bytes()).hexdigest() != \
-            "a0fb25c51cf1c57f4bc70ca1dc83d8b9ea39b1ac3ddb3bba7b9ffcea17e5b3fd":
+            expected_pure_sha:
         raise ValueError("original production PDP6 KCORE/PURE image changed")
     guest = (build.parent / "user/init-v1614.c").read_text(encoding="ascii")
     if guest.count("(void)p14_char('H');") != 1 or \

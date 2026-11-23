@@ -67,7 +67,7 @@ import sys
 source = Path(sys.argv[1]).read_text()
 old = '''        move    6,PROC_SWAP_BACKING_OFFSET(5)
         came    6,012
-        jrst    ppure_detach_bad_v1609
+        jrst    ppure_detach_bad_early_v1900
 '''
 assert source.count(old) == 1, "v1609: MM owner source check drift"
 Path(sys.argv[2]).write_text(source.replace(

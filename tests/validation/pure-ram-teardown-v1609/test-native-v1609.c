@@ -32,6 +32,7 @@ static kword_t modes_v1609[PROC_STORAGE_MAP_WORDS_V28(V1609_SLOTS)];
 struct proc *proc_table = process_v1609;
 struct mm_extent mm_extents[MM_MAX_EXTENTS];
 int mm_extent_count;
+unsigned int mm_extent_capacity = MM_MAX_EXTENTS;
 static int free_count_v1609;
 static int refuse_free_v1609;
 static int disk_free_count_v1609;
@@ -143,6 +144,7 @@ prepare_v1609(void)
         u[PROC_SWAP_BACKING_OFFSET] = V1609_BACKING;
         u[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
         mm_extent_count = 0;
+        mm_extent_capacity = MM_MAX_EXTENTS;
         add_extent_v1609(V1609_BASE, V1609_RAW,
             MM_TYPE_PACKED_PROCESS, V1609_SLOT, 0U);
         free_count_v1609 = 0;

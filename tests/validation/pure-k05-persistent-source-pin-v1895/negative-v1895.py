@@ -35,7 +35,7 @@ def physical_word(text, begin, end, address):
     return int(matches[0], 8)
 
 
-def run(kit, build, work):
+def run(kit, build, work, verifier=None):
     trace_file = work / "physical.clean"
     original = trace_file.read_text(encoding="ascii")
     expected = dict((k, int(v, 8)) for k, v in re.findall(
@@ -113,7 +113,7 @@ def run(kit, build, work):
         try:
             proc = subprocess.run([
                 sys.executable,
-                str(kit / "tests/validation/pure-k05-persistent-source-pin-v1895/"
+                str(verifier or kit / "tests/validation/pure-k05-persistent-source-pin-v1895/"
                     "verify-v1895.py"), str(kit), str(build), str(work)],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         finally:
@@ -125,8 +125,8 @@ def run(kit, build, work):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        raise SystemExit("usage: negative-v1895.py kit original-build physical-work")
+    if len(sys.argv) not in (4, 5):
+        raise SystemExit("usage: negative-v1895.py kit original-build physical-work [versioned-verifier]")
     try:
         run(*(Path(a) for a in sys.argv[1:]))
     except (ValueError, KeyError, OSError, AssertionError) as exc:

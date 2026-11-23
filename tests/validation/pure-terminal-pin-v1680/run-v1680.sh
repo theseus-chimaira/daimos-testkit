@@ -72,9 +72,11 @@ from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text(encoding='ascii')
 old='''        and     7,[PPURE_META_PIN_MASK_V1609]
-        jumpn   7,ppure_detach_bad_v1609'''
+        jumpn   7,ppure_detach_bad_v1609
+        hrrz    016,5'''
 new='''        and     7,[PPURE_META_PIN_MASK_V1609]
-        ; unsafe v1680: ignores original pinned owner guard.'''
+        ; unsafe v1680: ignores ORIGINAL PACKED RAW pin guard.
+        hrrz    016,5'''
 if s.count(old) != 1:
     raise SystemExit('v1680 original MM pin guard anchor drift')
 Path(sys.argv[2]).write_text(s.replace(old,new,1),encoding='ascii')

@@ -87,6 +87,8 @@ def main():
 mm_extents: .block 020
 .globl mm_extent_count
 mm_extent_count: .word 0
+.globl mm_extent_capacity
+mm_extent_capacity: .word 010
 __records_v1681: .block 4
 __modes_v1681: .word 0
 .globl vfs_mount_limit
