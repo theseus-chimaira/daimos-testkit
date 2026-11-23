@@ -1,0 +1,25 @@
+# Frozen native DAS extra-opcode mapping before v1883 compression
+PMOVE    0052
+PMOVEM   0053
+UJEN     0100
+GFAD     0102
+GFSB     0103
+JSYS     0104
+GFMP     0106
+GFDV     0107
+CIRC     0247
+APRID    0700
+UMOVE    0704
+UMOVEM   0705
+TIOE     0710
+TION     0711
+RDIO     0712
+WRIO     0713
+BSIO     0714
+BCIO     0715
+TIOEB    0720
+TIONB    0721
+RDIOB    0722
+WRIOB    0723
+BSIOB    0724
+BCIOB    0725
