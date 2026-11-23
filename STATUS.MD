@@ -1,5 +1,16 @@
 # DAIMOS testkit - current verified status
 
+## 2026-11-23 v1820: native manual inventory from live manifests
+
+The recovered v1073 manual audit used an obsolete host MKSWAP
+formatter path and expected a native KCC manual in a retired source
+location. The new v1820 check compares public+standalone DXR build
+targets to the current `PUBLIC_MANUAL_NAMES`, validates actual SIXMD
+pages and installed optional assembler utility pages, and checks that
+native MKSWAP is still planned rather than advertised as installed.
+It does not claim coverage for external compiler packaging or for the
+retired host MKSWAP utility. Run `make test-native-manual-coverage-v1820`.
+
 ## 2026-11-23 v1819: BCACHE LOW allocator assertion restored
 
 The pre-existing native BCACHE allocation test still asserted

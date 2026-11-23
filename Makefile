@@ -1,3 +1,9 @@
+.PHONY: test-native-manual-coverage-v1820
+test-native-manual-coverage-v1820: check-prefix
+	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
+	 PDP10_PREFIX='$(PDP10_PREFIX)' \
+	 python3 tests/validation/daimos-native-manual-coverage-v1820.py
+
 .PHONY: test-bcache-low-placement-v1819
 test-bcache-low-placement-v1819: check-prefix
 	@DAIMOS_REPO='$(abspath $(DAIMOS_REPO))' \
