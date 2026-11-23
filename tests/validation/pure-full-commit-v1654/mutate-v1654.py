@@ -11,7 +11,6 @@ import sys
 
 def mutate(original):
     early = (
-        "        pi_state = mach_pi_disable();\n"
         "        rc = mm_unpin(target);\n"
         "        if (rc != MM_OK) {\n"
         "                mach_pi_restore(pi_state);\n"
@@ -25,7 +24,12 @@ def mutate(original):
     )
     assert original.count(early) == 1
     assert original.count(late) == 1
-    changed = original.replace(early, "        pi_state = mach_pi_disable();\n", 1)
+    # v1855's exact-owner/pin preflight now sits between PI exclusion
+    # and the target unpin. Keep that new guard in the unsafe variant;
+    # move ONLY the original unpin block behind RESIDENT publication.
+    # Removing the new guard would make the historical v1654 mutant
+    # accidentally test v1855's different overpin failure instead.
+    changed = original.replace(early, "", 1)
     changed = changed.replace(
         late,
         "        pram_publish(slot, PROC_STORAGE_PACKED, PROC_STORAGE_RESIDENT);\n"
