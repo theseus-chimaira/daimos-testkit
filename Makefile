@@ -2732,6 +2732,22 @@ test-pure-k05-target-free-refusal-audit-v1896:
 	 V1896_WORK="$${V1896_WORK:?original real v1896 failed target-free evidence required}" \
 	 sh tests/validation/pure-k05-target-free-refusal-v1896/audit-v1896.sh
 
+# K05: original native target cleanup free ACTUALLY succeeds, then
+# only its returned AC1 is forged to -5. Prove the sole unpinned
+# PACKED source survives and five original children retry/WAIT/HALT.
+.PHONY: test-pure-k05-target-free-lost-reply-physical-v1897
+test-pure-k05-target-free-lost-reply-physical-v1897:
+	@V1897_BUILD="$${V1897_BUILD:?original v1855 five-child 48K source build required}" \
+	 V1897_PROBE="$${V1897_PROBE:?installed original PURE MRES probe required}" \
+	 V1897_PRIOR="$${V1897_PRIOR:?original v1894 source-free refusal physical evidence required}" \
+	 sh tests/validation/pure-k05-target-free-lost-reply-v1897/run-v1897.sh
+
+.PHONY: test-pure-k05-target-free-lost-reply-audit-v1897
+test-pure-k05-target-free-lost-reply-audit-v1897:
+	@V1897_BUILD="$${V1897_BUILD:?original v1855 five-child 48K source build required}" \
+	 V1897_WORK="$${V1897_WORK:?original physical lost target-free reply evidence required}" \
+	 sh tests/validation/pure-k05-target-free-lost-reply-v1897/audit-v1897.sh
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
