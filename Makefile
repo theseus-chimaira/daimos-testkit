@@ -2608,6 +2608,18 @@ test-pure-integration-native-v1839: test-pure-integration-native-v1808 \
  test-pure-k05-source-free-native-v1839
 	@echo 'PASS v1839: integrated RAW PURE native suite and K05 source-free reply'
 
+# K05: current-source physical secondary backing loss and FULL rollback.
+.PHONY: test-pure-k05-secondary-physical-v1845
+test-pure-k05-secondary-physical-v1845:
+	@V1845_BUILD="$${V1845_BUILD:?source-built v1845 guest required}" \
+	 sh tests/validation/pure-k05-secondary-physical-v1845/run-physical-v1845.sh
+
+.PHONY: test-pure-k05-secondary-audit-v1845
+test-pure-k05-secondary-audit-v1845:
+	@V1845_BUILD="$${V1845_BUILD:?source-built v1845 guest required}" \
+	 V1845_WORK="$${V1845_WORK:?real physical trace required}" \
+	 sh tests/validation/pure-k05-secondary-physical-v1845/audit-v1845.sh
+
 # Optional mode3 shares v1612 readiness, but is NOT production-accepted.
 .PHONY: test-pure-k05-mode3-compat-native-v1808
 test-pure-k05-mode3-compat-native-v1808:
