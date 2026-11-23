@@ -35,7 +35,8 @@ done
 # does NOT exercise DAIMOS's monitor.
 libgcc=$("$PDP10_GCC" -print-libgcc-file-name)
 "$PDP10_GCC" -std=c89 -ffreestanding -fno-builtin -march=pdp6 \
-    -O0 -S "$base/daimos-gcc-stdio-console-abi-v1.c" \
+    -O0 -I "$PDP10_PREFIX/pdp10-dec-none/include" \
+    -S "$base/daimos-gcc-stdio-console-abi-v1.c" \
     -o "$work/console-client-v1.s"
 "$PDP10_PREFIX/bin/das" -F -C -O "$work/console-client-v1.dobj" \
     "$work/console-client-v1.s"
@@ -64,6 +65,7 @@ for machine in pdp6 ka10 ki10 ks10; do
             --workdir "$work/run-$machine-$profile" \
             --name "gcc-console-abi-$machine-$profile-v1" \
             --gcc-extra "-$profile" \
+            --gcc-extra "-I$PDP10_PREFIX/pdp10-dec-none/include" \
             --expect __test_exit=0 --expect fail_id=0 \
             "$PDP10_TESTKIT_REPO/support/crt0-upstream-v1.s" \
             "$base/daimos-gcc-stdio-console-abi-v1.c" \

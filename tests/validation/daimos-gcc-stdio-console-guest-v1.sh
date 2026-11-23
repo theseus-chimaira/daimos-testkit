@@ -40,7 +40,8 @@ make -C "$DAIMOS_REPO/userland/libc" build \
 }
 
 "$gcc" -std=c89 -ffreestanding -fno-builtin -march=pdp6 \
-    -O0 -S "$base/daimos-gcc-stdio-console-guest-v1.c" \
+    -O0 -I "$PDP10_PREFIX/pdp10-dec-none/include" \
+    -S "$base/daimos-gcc-stdio-console-guest-v1.c" \
     -o "$obj/stdio-console-v1.s"
 for file in crt0 syscall; do
     "$das" -F -C -O "$obj/$file.dobj" \
