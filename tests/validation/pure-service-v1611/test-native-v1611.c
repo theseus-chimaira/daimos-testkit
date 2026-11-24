@@ -36,6 +36,10 @@ static unsigned int prefix_calls_v1611;
 static unsigned int full_calls_v1611;
 static unsigned int prefix_fallback_v1611;
 static unsigned int full_refuse_v1611;
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+static unsigned int compact_refuse_at_v1916;
+static int compact_refuse_rc_v1916;
+#endif
 
 int
 mm_is_pinned(kword_t base)
@@ -50,6 +54,10 @@ int
 mm_compact(kword_t words, kword_t alignment)
 {
         ++compact_calls_v1611;
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+        if (compact_calls_v1611 == compact_refuse_at_v1916)
+                return compact_refuse_rc_v1916;
+#endif
         if (words != 0200UL || alignment != 02000UL)
                 return MM_ERR_INVAL;
         if (mm_extent_count == 1 &&
@@ -90,6 +98,8 @@ reset_service_v1611(void)
 #ifdef DAIMOS_TEST_PURE_SERVICE_V1612
         mm_extent_capacity = MM_MAX_EXTENTS;
         pure_test_recover_arm_calls_v1902 = 0U;
+        compact_refuse_at_v1916 = 0U;
+        compact_refuse_rc_v1916 = 0;
 #endif
         /* Direct v1384 component fixtures begin with ownership already
          * claimed. The actual MRES must claim TRANSITION itself. */
@@ -257,6 +267,61 @@ test_pinned_packed_owner_v1612(void)
                 return 3;
         return 0;
 }
+
+/* A hard compactor refusal is not ordinary memory pressure.
+ * Test both before DROP and after an already committed DROP.
+ */
+static int
+test_compact_refusal_v1916(int refusal, unsigned int at)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t *u = (kword_t *)(unsigned long)UAREA;
+
+        reset_service_v1611();
+        compact_refuse_at_v1916 = at;
+        compact_refuse_rc_v1916 = refusal;
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) !=
+            refusal || compact_calls_v1611 != at ||
+            prefix_calls_v1611 || full_calls_v1611)
+                return 1;
+        if (at == 2U)
+                return check_retained_v1611() ? 0 : 2;
+        if (PROC_TRANSITION(p) || VM_PDP6_BASE(p) != SOURCE ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT) != 0 ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_BASE(&mm_extents[0]) != SOURCE ||
+            MM_EXTENT_WORDS(&mm_extents[0]) != WORDS ||
+            MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PROCESS ||
+            MM_EXTENT_OWNER(&mm_extents[0]) != SLOT ||
+            MM_EXTENT_PINNED(&mm_extents[0]) ||
+            u[PROC_SWAP_BACKING_OFFSET] ||
+            swap_slots[SLOT].state != BACKING || !check_suffix_v1384())
+                return 3;
+        return 0;
+}
+
+/* A DROP with unprovable original geometry must not be converted
+ * to ordinary no-victim pressure. The bad descriptor stays untouched.
+ */
+static int
+test_uncertain_drop_v1916(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t span, meta;
+
+        reset_service_v1611();
+        mm_extents[0].span = ((WORDS - 0200UL) << 18U) | SOURCE;
+        span = mm_extents[0].span;
+        meta = mm_extents[0].meta;
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) !=
+            MM_ERR_INVAL || compact_calls_v1611 != 1U ||
+            !PROC_TRANSITION(p) || VM_PDP6_BASE(p) != SOURCE ||
+            proc_storage_expect_v30(SLOT, PROC_STORAGE_RESIDENT) != 0 ||
+            mm_extent_count != 1 || mm_extents[0].span != span ||
+            mm_extents[0].meta != meta || !check_suffix_v1384())
+                return 1;
+        return 0;
+}
 #endif
 
 int
@@ -280,6 +345,21 @@ main(void)
         rc = test_pinned_packed_owner_v1612();
         if (rc)
                 return 0500 + rc;
+        rc = test_compact_refusal_v1916(MM_ERR_INVAL, 1U);
+        if (rc)
+                return 0600 + rc;
+        rc = test_compact_refusal_v1916(MM_ERR_BUSY, 1U);
+        if (rc)
+                return 0700 + rc;
+        rc = test_compact_refusal_v1916(MM_ERR_INVAL, 2U);
+        if (rc)
+                return 01000 + rc;
+        rc = test_compact_refusal_v1916(MM_ERR_BUSY, 2U);
+        if (rc)
+                return 01100 + rc;
+        rc = test_uncertain_drop_v1916();
+        if (rc)
+                return 01200 + rc;
 #endif
         return 0;
 }
