@@ -3084,6 +3084,29 @@ test-pure-k05-clock-wrap-audit-v1914:
 	 . "$${V1914_BUILD:?original v1910 48K guest required}" \
 	 "$${V1914_WORK:?completed native wrap physical trace required}"
 
+# v1915: a test-only parent USER BRK capacity request under an
+# unrepaired foreign FULL target; requester-only original OOM must
+# leave quarantined child authoritative MM owners unchanged.
+.PHONY: test-pure-k05-orphan-oom-build-v1915
+test-pure-k05-orphan-oom-build-v1915:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?current DAIMOS checkout required}" \
+	 sh tests/validation/pure-k05-orphan-oom-v1915/build-source-v1915.sh
+
+.PHONY: test-pure-k05-orphan-oom-physical-v1915
+test-pure-k05-orphan-oom-physical-v1915:
+	@V1915_BUILD="$${V1915_BUILD:?original source-built v1915 48K guest required}" \
+	 V1915_PROBE="$${V1915_PROBE:?source-matched PURE base probe required}" \
+	 sh tests/validation/pure-k05-orphan-oom-v1915/run-physical-v1915.sh
+
+.PHONY: test-pure-k05-orphan-oom-audit-v1915
+test-pure-k05-orphan-oom-audit-v1915:
+	@python3 tests/validation/pure-k05-orphan-oom-v1915/verify-physical-v1915.py \
+	 . "$${V1915_BUILD:?original source-built v1915 48K guest required}" \
+	 "$${V1915_WORK:?completed native requester OOM physical trace required}"
+	@python3 tests/validation/pure-k05-orphan-oom-v1915/negative-physical-v1915.py \
+	 . "$${V1915_BUILD:?original source-built v1915 48K guest required}" \
+	 "$${V1915_WORK:?completed native requester OOM physical trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
