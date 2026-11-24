@@ -2889,6 +2889,23 @@ test-pure-k05-full-commit-audit-v1903:
 	 . "$${V1903_BUILD:?source-built 48K PDP6 guest required}" \
 	 "$${V1903_PHYSICAL_WORK:?completed original 48K physical trace required}"
 
+# v1904: test the original v1902 idle rollback against a pinned target.
+# This also requires the full v1903 end-to-end typed WAIT/HALT proof.
+.PHONY: test-pure-k05-target-pin-physical-v1904
+test-pure-k05-target-pin-physical-v1904:
+	@V1904_BUILD="$${V1904_BUILD:?48K source-built v1903 guest required}" \
+	 V1904_PROBE="$${V1904_PROBE:?source-linked PURE base probe required}" \
+	 sh tests/validation/pure-k05-target-pin-idle-v1904/run-physical-v1904.sh
+
+.PHONY: test-pure-k05-target-pin-audit-v1904
+test-pure-k05-target-pin-audit-v1904:
+	@python3 tests/validation/pure-k05-target-pin-idle-v1904/verify-physical-v1904.py \
+	 . "$${V1904_BUILD:?48K source-built v1903 guest required}" \
+	 "$${V1904_PHYSICAL_WORK:?completed persistent target pin trace required}"
+	@python3 tests/validation/pure-k05-target-pin-idle-v1904/negative-physical-v1904.py \
+	 . "$${V1904_BUILD:?48K source-built v1903 guest required}" \
+	 "$${V1904_PHYSICAL_WORK:?completed persistent target pin trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
