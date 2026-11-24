@@ -2936,6 +2936,29 @@ test-pure-k05-foreign-audit-v1906:
 	 . "$${V1906_BUILD:?source-built fixed PURE 48K guest required}" \
 	 "$${V1906_PHYSICAL_WORK:?completed original foreign owner physical required}"
 
+# v1907: one real user TERM under the escrowed foreign FULL owner,
+# then original repaired rollback and typed WAIT/HALT. Four new
+# targeted mutants suffice; v1906's 16 owner mutants already PASS.
+.PHONY: test-pure-k05-foreign-term-build-v1907
+test-pure-k05-foreign-term-build-v1907:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?current DAIMOS source checkout required}" \
+	 sh tests/validation/pure-k05-foreign-term-v1907/build-source-v1907.sh
+
+.PHONY: test-pure-k05-foreign-term-physical-v1907
+test-pure-k05-foreign-term-physical-v1907:
+	@V1907_BUILD="$${V1907_BUILD:?source-built v1907 48K guest required}" \
+	 V1907_PROBE="$${V1907_PROBE:?v1907 original PURE base probe required}" \
+	 sh tests/validation/pure-k05-foreign-term-v1907/run-physical-v1907.sh
+
+.PHONY: test-pure-k05-foreign-term-audit-v1907
+test-pure-k05-foreign-term-audit-v1907:
+	@python3 tests/validation/pure-k05-foreign-term-v1907/verify-physical-v1907.py \
+	 . "$${V1907_BUILD:?source-built v1907 48K guest required}" \
+	 "$${V1907_WORK:?completed original TERM physical trace required}"
+	@python3 tests/validation/pure-k05-foreign-term-v1907/negative-physical-v1907.py \
+	 . "$${V1907_BUILD:?source-built v1907 48K guest required}" \
+	 "$${V1907_WORK:?completed original TERM physical trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
