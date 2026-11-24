@@ -2871,6 +2871,24 @@ test-pure-k05-reconcile-commit-audit-v1902:
 	 V1902_COMMIT_WORK="$${V1902_COMMIT_WORK:?completed original native target-free trace required}" \
 	 sh tests/validation/pure-k05-reconcile-v1902/audit-physical-commit-v1902.sh
 
+# v1903: original native FULL retry commit and parent five-child typed WAIT.
+# The separate read-only mutation audit never changes production images.
+.PHONY: test-pure-k05-full-commit-physical-v1903
+test-pure-k05-full-commit-physical-v1903:
+	@V1903_BUILD="$${V1903_BUILD:?source-built 48K PDP6 guest required}" \
+	 V1903_PROBE="$${V1903_PROBE:?source-built PURE JRST probe required}" \
+	 sh tests/validation/pure-k05-full-commit-v1903/run-physical-v1903.sh
+
+.PHONY: test-pure-k05-full-commit-audit-v1903
+test-pure-k05-full-commit-audit-v1903:
+	@python3 tests/validation/pure-k05-full-commit-v1903/verify-physical-v1903.py \
+	 . "$${V1903_BUILD:?source-built 48K PDP6 guest required}" \
+	 "$${V1903_PHYSICAL_WORK:?completed original 48K physical trace required}"
+	@python3 tests/validation/pure-k05-full-commit-v1903/negative-physical-v1903.py \
+	 tests/validation/pure-k05-full-commit-v1903/verify-physical-v1903.py \
+	 . "$${V1903_BUILD:?source-built 48K PDP6 guest required}" \
+	 "$${V1903_PHYSICAL_WORK:?completed original 48K physical trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
