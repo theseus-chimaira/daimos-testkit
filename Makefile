@@ -3050,6 +3050,23 @@ test-pure-k05-terminal-reconcile-audit-v1912:
 	 . "$${V1912_BUILD:?original v1910 48K guest required}" \
 	 "$${V1912_WORK:?completed actual last-user HALT trace required}"
 
+# v1913: no repair ever arrives; slot0 must preserve the sole live
+# foreign-owned orphan through another twelve clock-governed retries.
+.PHONY: test-pure-k05-permanent-orphan-physical-v1913
+test-pure-k05-permanent-orphan-physical-v1913:
+	@V1913_BUILD="$${V1913_BUILD:?original v1910 48K guest required}" \
+	 V1913_PROBE="$${V1913_PROBE:?original PURE physical base probe required}" \
+	 sh tests/validation/pure-k05-permanent-orphan-v1913/run-physical-v1913.sh
+
+.PHONY: test-pure-k05-permanent-orphan-audit-v1913
+test-pure-k05-permanent-orphan-audit-v1913:
+	@python3 tests/validation/pure-k05-permanent-orphan-v1913/verify-physical-v1913.py \
+	 . "$${V1913_BUILD:?original v1910 48K guest required}" \
+	 "$${V1913_WORK:?completed permanent orphan physical trace required}"
+	@python3 tests/validation/pure-k05-permanent-orphan-v1913/negative-physical-v1913.py \
+	 . "$${V1913_BUILD:?original v1910 48K guest required}" \
+	 "$${V1913_WORK:?completed permanent orphan physical trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
