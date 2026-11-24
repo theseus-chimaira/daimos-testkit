@@ -2959,6 +2959,23 @@ test-pure-k05-foreign-term-audit-v1907:
 	 . "$${V1907_BUILD:?source-built v1907 48K guest required}" \
 	 "$${V1907_WORK:?completed original TERM physical trace required}"
 
+# v1908: bounded original full-system observation of a held foreign
+# target WITHOUT operator repair or fabricated native EXIT/HALT.
+.PHONY: test-pure-k05-long-owner-physical-v1908
+test-pure-k05-long-owner-physical-v1908:
+	@V1908_BUILD="$${V1908_BUILD:?source-built v1907 48K guest required}" \
+	 V1908_PROBE="$${V1908_PROBE:?source-linked installed PURE probe required}" \
+	 sh tests/validation/pure-k05-permanent-owner-v1908/run-physical-v1908.sh
+
+.PHONY: test-pure-k05-long-owner-audit-v1908
+test-pure-k05-long-owner-audit-v1908:
+	@python3 tests/validation/pure-k05-permanent-owner-v1908/verify-physical-v1908.py \
+	 . "$${V1908_BUILD:?source-built v1907 48K guest required}" \
+	 "$${V1908_WORK:?completed original held-owner physical evidence required}"
+	@python3 tests/validation/pure-k05-permanent-owner-v1908/negative-physical-v1908.py \
+	 . "$${V1908_BUILD:?source-built v1907 48K guest required}" \
+	 "$${V1908_WORK:?completed original held-owner physical evidence required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
