@@ -2976,6 +2976,24 @@ test-pure-k05-long-owner-audit-v1908:
 	 . "$${V1908_BUILD:?source-built v1907 48K guest required}" \
 	 "$${V1908_WORK:?completed original held-owner physical evidence required}"
 
+# v1909: authentic original PI6 PCLK entry while the foreign FULL
+# owner remains quarantined; reuse v1908's complete held-owner audit.
+.PHONY: test-pure-k05-held-pi6-physical-v1909
+test-pure-k05-held-pi6-physical-v1909:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?current DAIMOS checkout required}" \
+	 V1909_BUILD="$${V1909_BUILD:?original 48K guest required}" \
+	 V1909_PROBE="$${V1909_PROBE:?original PURE base probe required}" \
+	 sh tests/validation/pure-k05-held-pi6-v1909/run-physical-v1909.sh
+
+.PHONY: test-pure-k05-held-pi6-audit-v1909
+test-pure-k05-held-pi6-audit-v1909:
+	@python3 tests/validation/pure-k05-held-pi6-v1909/verify-physical-v1909.py \
+	 . "$${V1909_BUILD:?original 48K guest required}" \
+	 "$${V1909_WORK:?completed original PI6 physical trace required}"
+	@python3 tests/validation/pure-k05-held-pi6-v1909/negative-physical-v1909.py \
+	 . "$${V1909_BUILD:?original 48K guest required}" \
+	 "$${V1909_WORK:?completed original PI6 physical trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
