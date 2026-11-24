@@ -3067,6 +3067,23 @@ test-pure-k05-permanent-orphan-audit-v1913:
 	 . "$${V1913_BUILD:?original v1910 48K guest required}" \
 	 "$${V1913_WORK:?completed permanent orphan physical trace required}"
 
+# v1914: test-only synchronized clock/epoch leap followed by real
+# original PCLK PI6 increments across the 17-bit retry timer wrap.
+.PHONY: test-pure-k05-clock-wrap-physical-v1914
+test-pure-k05-clock-wrap-physical-v1914:
+	@V1914_BUILD="$${V1914_BUILD:?original v1910 48K guest required}" \
+	 V1914_PROBE="$${V1914_PROBE:?original PURE physical base probe required}" \
+	 sh tests/validation/pure-k05-clock-wrap-v1914/run-physical-v1914.sh
+
+.PHONY: test-pure-k05-clock-wrap-audit-v1914
+test-pure-k05-clock-wrap-audit-v1914:
+	@python3 tests/validation/pure-k05-clock-wrap-v1914/verify-physical-v1914.py \
+	 . "$${V1914_BUILD:?original v1910 48K guest required}" \
+	 "$${V1914_WORK:?completed native wrap physical trace required}"
+	@python3 tests/validation/pure-k05-clock-wrap-v1914/negative-physical-v1914.py \
+	 . "$${V1914_BUILD:?original v1910 48K guest required}" \
+	 "$${V1914_WORK:?completed native wrap physical trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
