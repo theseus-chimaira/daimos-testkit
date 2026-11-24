@@ -3016,6 +3016,23 @@ test-pure-k05-parent-exit-audit-v1910:
 	 . "$${V1910_BUILD:?source-built v1910 48K guest required}" \
 	 "$${V1910_WORK:?completed original parent EXIT physical trace required}"
 
+# v1911: the three remaining genuine orphan children EXIT, leaving
+# the unrepaired foreign FULL child as the last live user.
+.PHONY: test-pure-k05-last-orphan-physical-v1911
+test-pure-k05-last-orphan-physical-v1911:
+	@V1911_BUILD="$${V1911_BUILD:?v1910 original 48K guest required}" \
+	 V1911_PROBE="$${V1911_PROBE:?original PURE base probe required}" \
+	 sh tests/validation/pure-k05-last-orphan-v1911/run-physical-v1911.sh
+
+.PHONY: test-pure-k05-last-orphan-audit-v1911
+test-pure-k05-last-orphan-audit-v1911:
+	@python3 tests/validation/pure-k05-last-orphan-v1911/verify-physical-v1911.py \
+	 . "$${V1911_BUILD:?original v1910 48K guest required}" \
+	 "$${V1911_WORK:?completed last-orphan physical evidence required}"
+	@python3 tests/validation/pure-k05-last-orphan-v1911/negative-physical-v1911.py \
+	 . "$${V1911_BUILD:?original v1910 48K guest required}" \
+	 "$${V1911_WORK:?completed last-orphan physical evidence required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
