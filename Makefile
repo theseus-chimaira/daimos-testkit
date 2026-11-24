@@ -2906,6 +2906,36 @@ test-pure-k05-target-pin-audit-v1904:
 	 . "$${V1904_BUILD:?48K source-built v1903 guest required}" \
 	 "$${V1904_PHYSICAL_WORK:?completed persistent target pin trace required}"
 
+# v1905: historical unescrowed PURE genuinely unlocks an orphaned
+# foreign-claimed target. This is a regression REPRO, not an acceptance.
+.PHONY: test-pure-k05-foreign-repro-physical-v1905
+test-pure-k05-foreign-repro-physical-v1905:
+	@V1905_BUILD="$${V1905_BUILD:?original unescrowed 48K guest required}" \
+	 V1905_PROBE="$${V1905_PROBE:?original PURE base probe required}" \
+	 sh tests/validation/pure-k05-foreign-target-v1905/run-physical-v1905.sh
+
+# v1906: escrow original FULL target in existing u-area word 067, then
+# prove fail-closed foreign owner and operator-repaired FULL/WAIT/HALT.
+.PHONY: test-pure-k05-foreign-native-v1906
+test-pure-k05-foreign-native-v1906:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?v1906 DAIMOS source checkout required}" \
+	 sh tests/validation/pure-k05-foreign-target-v1906/run-native-v1906.sh
+
+.PHONY: test-pure-k05-foreign-physical-v1906
+test-pure-k05-foreign-physical-v1906:
+	@V1906_BUILD="$${V1906_BUILD:?source-built fixed PURE 48K guest required}" \
+	 V1906_PROBE="$${V1906_PROBE:?v1906 original PURE base probe required}" \
+	 sh tests/validation/pure-k05-foreign-target-v1906/run-physical-v1906.sh
+
+.PHONY: test-pure-k05-foreign-audit-v1906
+test-pure-k05-foreign-audit-v1906:
+	@python3 tests/validation/pure-k05-foreign-target-v1906/verify-physical-v1906.py \
+	 . "$${V1906_BUILD:?source-built fixed PURE 48K guest required}" \
+	 "$${V1906_PHYSICAL_WORK:?completed original foreign owner physical required}"
+	@python3 tests/validation/pure-k05-foreign-target-v1906/negative-physical-v1906.py \
+	 . "$${V1906_BUILD:?source-built fixed PURE 48K guest required}" \
+	 "$${V1906_PHYSICAL_WORK:?completed original foreign owner physical required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
