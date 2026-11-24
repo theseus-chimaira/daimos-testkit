@@ -2994,6 +2994,28 @@ test-pure-k05-held-pi6-audit-v1909:
 	 . "$${V1909_BUILD:?original 48K guest required}" \
 	 "$${V1909_WORK:?completed original PI6 physical trace required}"
 
+# v1910: real user parent EXIT while the original failed-FULL child
+# target is foreign-owned, with exact source-built TSFS and KCORE/PURE.
+.PHONY: test-pure-k05-parent-exit-build-v1910
+test-pure-k05-parent-exit-build-v1910:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?current DAIMOS checkout required}" \
+	 sh tests/validation/pure-k05-parent-exit-v1910/build-source-v1910.sh
+
+.PHONY: test-pure-k05-parent-exit-physical-v1910
+test-pure-k05-parent-exit-physical-v1910:
+	@V1910_BUILD="$${V1910_BUILD:?source-built v1910 48K guest required}" \
+	 V1910_PROBE="$${V1910_PROBE:?source-linked PURE base probe required}" \
+	 sh tests/validation/pure-k05-parent-exit-v1910/run-physical-v1910.sh
+
+.PHONY: test-pure-k05-parent-exit-audit-v1910
+test-pure-k05-parent-exit-audit-v1910:
+	@python3 tests/validation/pure-k05-parent-exit-v1910/verify-physical-v1910.py \
+	 . "$${V1910_BUILD:?source-built v1910 48K guest required}" \
+	 "$${V1910_WORK:?completed original parent EXIT physical trace required}"
+	@python3 tests/validation/pure-k05-parent-exit-v1910/negative-physical-v1910.py \
+	 . "$${V1910_BUILD:?source-built v1910 48K guest required}" \
+	 "$${V1910_WORK:?completed original parent EXIT physical trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
