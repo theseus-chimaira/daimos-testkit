@@ -3033,6 +3033,23 @@ test-pure-k05-last-orphan-audit-v1911:
 	 . "$${V1911_BUILD:?original v1910 48K guest required}" \
 	 "$${V1911_WORK:?completed last-orphan physical evidence required}"
 
+# v1912: only after the last quarantined orphan remains, restore
+# the test-corrupted MM owner and observe original recovery/true HALT.
+.PHONY: test-pure-k05-terminal-reconcile-physical-v1912
+test-pure-k05-terminal-reconcile-physical-v1912:
+	@V1912_BUILD="$${V1912_BUILD:?original v1910 48K guest required}" \
+	 V1912_PROBE="$${V1912_PROBE:?original PURE base probe required}" \
+	 sh tests/validation/pure-k05-terminal-reconcile-v1912/run-physical-v1912.sh
+
+.PHONY: test-pure-k05-terminal-reconcile-audit-v1912
+test-pure-k05-terminal-reconcile-audit-v1912:
+	@python3 tests/validation/pure-k05-terminal-reconcile-v1912/verify-physical-v1912.py \
+	 . "$${V1912_BUILD:?original v1910 48K guest required}" \
+	 "$${V1912_WORK:?completed actual last-user HALT trace required}"
+	@python3 tests/validation/pure-k05-terminal-reconcile-v1912/negative-physical-v1912.py \
+	 . "$${V1912_BUILD:?original v1910 48K guest required}" \
+	 "$${V1912_WORK:?completed actual last-user HALT trace required}"
+
 .PHONY: test-pure-integration-native-v1855
 test-pure-integration-native-v1855: test-pure-integration-native-v1839 \
  test-pure-k05-pinned-commit-native-v1855
