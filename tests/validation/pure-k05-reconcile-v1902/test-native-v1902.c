@@ -21,7 +21,8 @@ v1902_prepare(void)
         PROC_SET_STATE(p, PROC_SRUN);
         PROC_SET_TRANSITION(p);
         add_extent(RESTORE, WORDS, MM_TYPE_PROCESS);
-        u[PROC_FINALIZE_OFFSET] = PROC_SWAP_RETRY_TAG_V1507;
+        u[PROC_FINALIZE_OFFSET] =
+            PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, RESTORE);
         u[020] = V1902_PC;
         u[PROC_FDCTL_OFFSET] = V1902_FDCTL;
         free_count_v1381 = 0U;
@@ -51,7 +52,8 @@ v1902_retained(unsigned int source_pins, unsigned int target_pins)
             swap_slots[SLOT].state == BACKING &&
             u[PROC_SWAP_BACKING_OFFSET] == BACKING &&
             u[020] == V1902_PC && u[PROC_FDCTL_OFFSET] == V1902_FDCTL &&
-            u[PROC_FINALIZE_OFFSET] == PROC_SWAP_RETRY_TAG_V1507 &&
+            u[PROC_FINALIZE_OFFSET] ==
+                PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, RESTORE) &&
             pi_depth_v1381 == 0U &&
             pi_disable_count_v1381 == pi_restore_count_v1381 &&
             check_suffix_v1384();
@@ -161,12 +163,12 @@ v1902_invalid_owner(void)
         v1902_prepare();
         mm_extents[1].meta &= ~((kword_t)MM_OWNER_MASK);
         mm_extents[1].meta |= SLOT + 1U;
-        /* An unrelated owner at a scratch-like address is NEVER
-         * released; a sole correct PACKED source may be unlocked. */
-        if (proc_pure_mres_service_v1611(V1902_RECOVER) != 0 ||
+        /* v1906/v1917: the original target has been claimed by
+         * another owner. It must neither be freed nor ignored. */
+        if (proc_pure_mres_service_v1611(V1902_RECOVER) != -1 ||
             mm_extent_count != 2 ||
             MM_EXTENT_OWNER(&mm_extents[1]) != SLOT + 1U ||
-            PROC_TRANSITION(&process_slots[SLOT]) ||
+            !PROC_TRANSITION(&process_slots[SLOT]) ||
             free_count_v1381)
                 return 12;
         v1902_prepare();

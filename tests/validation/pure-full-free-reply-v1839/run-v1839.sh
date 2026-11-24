@@ -73,7 +73,9 @@ echo 'PASS v1839: lost source-free reply, refused free, foreign owner and PI bal
 python3 "$here/mutate-v1839.py" \
     "$src/proc/proc_pure_ram_restore_v1391.c" \
     "$work/unsafe-old-rollback.c" "$work/unsafe-foreign-owner.c"
-for spec in 'unsafe-old-rollback 000000003003' \
+# v1917's rollback now protects the sole successor even in the old
+# reply mutant. It still fails the required successful publication.
+for spec in 'unsafe-old-rollback 000000003004' \
     'unsafe-foreign-owner 000000005002'; do
     set -- $spec
     compile_full "$work/$1.c" "$work/$1.s"

@@ -72,6 +72,7 @@ reset_prefix_v1384(void)
         kword_t *source = (kword_t *)(unsigned long)SOURCE;
         kword_t *uarea = (kword_t *)(unsigned long)UAREA;
         mm_extent_count = 0;
+        mm_extent_capacity = MM_MAX_EXTENTS;
         add_extent(SOURCE, WORDS, MM_TYPE_PROCESS);
         mm_arena_count = 1;
         mm_arenas[0] = ((kword_t)040000UL << 18U) | 040000UL;

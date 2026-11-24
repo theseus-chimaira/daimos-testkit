@@ -25,7 +25,8 @@ v1902_prepare(void)
          * escrow in the same u-area word as the existing retry bit.
          * Here the source-built MM fixture stages that post-arm state.
          */
-        u[PROC_FINALIZE_OFFSET] = PROC_SWAP_RETRY_TAG_V1507 | RESTORE;
+        u[PROC_FINALIZE_OFFSET] =
+            PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, RESTORE);
         u[020] = V1902_PC;
         u[PROC_FDCTL_OFFSET] = V1902_FDCTL;
         free_count_v1381 = 0U;
@@ -56,7 +57,7 @@ v1902_retained(unsigned int source_pins, unsigned int target_pins)
             u[PROC_SWAP_BACKING_OFFSET] == BACKING &&
             u[020] == V1902_PC && u[PROC_FDCTL_OFFSET] == V1902_FDCTL &&
             u[PROC_FINALIZE_OFFSET] ==
-                (PROC_SWAP_RETRY_TAG_V1507 | RESTORE) &&
+                PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, RESTORE) &&
             pi_depth_v1381 == 0U &&
             pi_disable_count_v1381 == pi_restore_count_v1381 &&
             check_suffix_v1384();
@@ -217,8 +218,8 @@ v1902_invalid_owner(void)
          */
         v1902_prepare();
         ((kword_t *)(unsigned long)UAREA)[PROC_FINALIZE_OFFSET] =
-            PROC_SWAP_RETRY_TAG_V1507 |
-            (RESTORE + VM_PDP6_ALIGN_WORDS);
+            PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT,
+                RESTORE + VM_PDP6_ALIGN_WORDS);
         if (proc_pure_mres_service_v1611(V1902_RECOVER) != -1 ||
             mm_extent_count != 2 || free_count_v1381 ||
             !PROC_TRANSITION(&process_slots[SLOT]))
@@ -238,6 +239,32 @@ v1902_invalid_owner(void)
             mm_extent_count != 2 || free_count_v1381 ||
             !PROC_TRANSITION(&process_slots[SLOT]))
                 return 19;
+        /* Same-slot RAW of the correct length at a different address
+         * cannot substitute for the original physical source. */
+        v1902_prepare();
+        mm_extents[0].span = (SUFFIX << 18U) |
+            (SOURCE + OMIT + VM_PDP6_ALIGN_WORDS);
+        if (proc_pure_mres_service_v1611(V1902_RECOVER) != -1 ||
+            mm_extent_count != 2 || free_count_v1381 ||
+            !PROC_TRANSITION(&process_slots[SLOT]))
+                return 20;
+        /* Source-only escrow records a failed initial pin/allocation.
+         * A second unproven owner cannot be released by this path. */
+        v1902_prepare();
+        ((kword_t *)(unsigned long)UAREA)[PROC_FINALIZE_OFFSET] =
+            PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, 0UL);
+        if (proc_pure_mres_service_v1611(V1902_RECOVER) != -1 ||
+            mm_extent_count != 2 || free_count_v1381)
+                return 21;
+        --mm_extent_count;
+        if (mm_pin(SOURCE + OMIT) != MM_OK ||
+            proc_pure_mres_service_v1611(V1902_RECOVER) != -1 ||
+            !PROC_TRANSITION(&process_slots[SLOT]) || free_count_v1381)
+                return 22;
+        if (mm_unpin(SOURCE + OMIT) != MM_OK ||
+            proc_pure_mres_service_v1611(V1902_RECOVER) != 0 ||
+            !v1902_unlocked() || free_count_v1381)
+                return 23;
         return 0;
 }
 

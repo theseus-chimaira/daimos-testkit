@@ -21,7 +21,7 @@ def main():
         after = "        /* TEST MUTANT: omit authoritative writable suffix. */"
     elif kind == "target-free":
         before = ("        if (mm_free(target, MM_TYPE_PROCESS, slot) != MM_OK)\n"
-                  "                return MM_ERR_BUSY;")
+                  "                rc = MM_ERR_BUSY;")
         # Leave the original v1395 fault cases intact.  Only after a
         # successful source unpin and a later invalid source-free
         # refusal is the provisional target incorrectly leaked.
@@ -29,10 +29,9 @@ def main():
         # already accepted baseline fixture.
         after = (
             "        /* TEST MUTANT: leak target after source free error. */\n"
-            "        if (source_pinned || rc != MM_ERR_INVAL) {\n"
-            "                if (mm_free(target, MM_TYPE_PROCESS, slot) != MM_OK)\n"
-            "                        return MM_ERR_BUSY;\n"
-            "        }")
+            "        if ((source_pinned || rc != MM_ERR_INVAL) &&\n"
+            "            mm_free(target, MM_TYPE_PROCESS, slot) != MM_OK)\n"
+            "                rc = MM_ERR_BUSY;")
     else:
         raise SystemExit("unknown v1648 mutant: " + kind)
     assert source.count(before) == 1, "production transaction changed"

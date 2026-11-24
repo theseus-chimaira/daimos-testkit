@@ -25,6 +25,13 @@ mm_pure_rebase_fault_v1397(kword_t base, unsigned int owner,
 int
 mm_unpin_fault_v1395(kword_t base)
 {
+        if (fault_kind_v1395 == 12U && base == RESTORE &&
+            fault_calls_v1395 == 0U) {
+                if (mm_unpin(base) != MM_OK)
+                        return MM_ERR_INVAL;
+                ++fault_calls_v1395;
+                return MM_ERR_BUSY; /* the original decrement committed */
+        }
         if ((fault_kind_v1395 == 1U && base == RESTORE) ||
             (fault_kind_v1395 == 3U && base == SOURCE + OMIT) ||
             (fault_kind_v1395 == 4U && base == RESTORE &&
@@ -225,6 +232,35 @@ case_slot0_full_v1610(void)
         return 0;
 }
 
+static int
+case_lost_target_unpin_v1917(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t *u = (kword_t *)(unsigned long)UAREA;
+
+        fault_kind_v1395 = 0U;
+        fault_calls_v1395 = 0U;
+        reset_prefix_v1384();
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
+                return 1;
+        PROC_SET_TRANSITION(p);
+        fault_kind_v1395 = 12U;
+        if (proc_pure_ram_restore_v1391(SLOT, accept_payload_v1395) !=
+            MM_ERR_BUSY || fault_calls_v1395 != 1U ||
+            !PROC_TRANSITION(p) || VM_PDP6_BASE(p) ||
+            mm_extent_count != 1 ||
+            MM_EXTENT_BASE(&mm_extents[0]) != SOURCE + OMIT ||
+            MM_EXTENT_PINNED(&mm_extents[0]) ||
+            u[PROC_FINALIZE_OFFSET] || !check_suffix_v1384())
+                return 2;
+        fault_kind_v1395 = 0U;
+        if (proc_pure_ram_restore_v1391(SLOT, accept_payload_v1395) !=
+            MM_OK || PROC_TRANSITION(p) || VM_PDP6_BASE(p) != RESTORE ||
+            mm_extent_count != 1 || MM_EXTENT_PINNED(&mm_extents[0]))
+                return 3;
+        return 0;
+}
+
 int
 main(void)
 {
@@ -243,5 +279,8 @@ main(void)
         rc = case_slot0_full_v1610();
         if (rc)
                 return 01600 + rc;
+        rc = case_lost_target_unpin_v1917();
+        if (rc)
+                return 01700 + rc;
         return 0;
 }

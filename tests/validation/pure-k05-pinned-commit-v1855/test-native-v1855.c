@@ -9,6 +9,7 @@
  */
 
 static unsigned int refuse_alloc_v1855;
+static unsigned int replace_source_v1917;
 static unsigned int alloc_hits_v1855;
 static unsigned int pin_kind_v1855;
 static unsigned int pin_hits_v1855;
@@ -25,6 +26,13 @@ mm_alloc_fault_v1855(kword_t words, kword_t align, unsigned int type,
     unsigned int owner, unsigned int pref, kword_t *basep)
 {
         ++alloc_hits_v1855;
+        if (replace_source_v1917) {
+                /* The original allocation may no longer be described
+                 * by this slot after a hard allocator refusal. */
+                mm_extents[0].meta =
+                    (mm_extents[0].meta & ~MM_OWNER_MASK) | (SLOT + 1U);
+                return MM_ERR_BUSY;
+        }
         if (refuse_alloc_v1855) {
                 --refuse_alloc_v1855;
                 return MM_ERR_NOMEM;
@@ -149,6 +157,33 @@ allocator_refusal_v1855(void)
 }
 
 static int
+allocator_foreign_source_v1917(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t *u = (kword_t *)(unsigned long)UAREA;
+        int rc;
+
+        reset_prefix_v1384();
+        fault_kind_v1395 = 0U;
+        if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
+                return 1;
+        PROC_SET_TRANSITION(p);
+        replace_source_v1917 = 1U;
+        rc = proc_pure_ram_restore_v1391(SLOT, accept_payload_v1395);
+        replace_source_v1917 = 0U;
+        if (rc != MM_ERR_BUSY || !PROC_TRANSITION(p) ||
+            VM_PDP6_BASE(p) || mm_extent_count != 1 ||
+            MM_EXTENT_OWNER(&mm_extents[0]) != SLOT + 1U ||
+            MM_EXTENT_PINS(&mm_extents[0]) != 1U ||
+            u[PROC_FINALIZE_OFFSET] !=
+                PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, 0UL) ||
+            pi_depth_v1381 || pi_disable_count_v1381 != pi_restore_count_v1381 ||
+            !check_suffix_v1384())
+                return 2;
+        return 0;
+}
+
+static int
 extra_pin_v1855(unsigned int kind)
 {
         struct proc *p = &process_slots[SLOT];
@@ -254,5 +289,8 @@ main(void)
         rc = extra_pin_v1855(2U);
         if (rc)
                 return 03000 + rc;
+        rc = allocator_foreign_source_v1917();
+        if (rc)
+                return 03400 + rc;
         return 0;
 }

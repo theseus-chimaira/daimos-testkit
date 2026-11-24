@@ -17,19 +17,17 @@ def main():
     end = source.index("        VM_PDP6_SET_BASE(p, target);", start)
     old = source[:start] + (
         "        if (rc != MM_OK) {\n"
-        "                mach_pi_restore(pi_state);\n"
-        "                goto fail_target;\n"
+        "                goto fail_target_locked;\n"
         "        }\n\n"
     ) + source[end:]
     Path(sys.argv[2]).write_text(old, encoding="ascii")
 
     check = (
-        "                if ((MM_EXTENT_BASE(e) == source ||\n"
-        "                     MM_EXTENT_BASE(e) == target) &&\n"
-        "                    (MM_EXTENT_OWNER(e) != slot ||\n"
-        "                     (type != MM_TYPE_PROCESS &&\n"
-        "                      type != MM_TYPE_PACKED_PROCESS)))\n"
-        "                        return -1;\n"
+        "                        if ((source && base < source + raw &&\n"
+        "                             source < base + size) ||\n"
+        "                            (target && base < target + words &&\n"
+        "                             target < base + size))\n"
+        "                                return -1;\n"
     )
     if source.count(check) != 1:
         raise SystemExit("v1839 foreign source guard anchor drift")

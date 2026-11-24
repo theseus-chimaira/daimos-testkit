@@ -38,6 +38,7 @@ struct proc_storage_map_v28 proc_storage_runtime_v29;
 struct proc_packed_layout_v36 proc_packed_runtime_v38;
 struct mm_extent mm_extents[MM_MAX_EXTENTS];
 int mm_extent_count;
+unsigned int mm_extent_capacity = MM_MAX_EXTENTS;
 kword_t backstore_blocks;
 unsigned int backstore_enabled;
 kword_t backstore_blocks_used;

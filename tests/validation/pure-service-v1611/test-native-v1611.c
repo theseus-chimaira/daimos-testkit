@@ -14,7 +14,6 @@ extern int proc_pure_mres_service_v1611(kword_t);
  * idle-finalizer KCORE. Only the accepted v1902 integrated native
  * fixture must execute the real arm/backoff assembly. */
 static unsigned int pure_test_recover_arm_calls_v1902;
-unsigned int mm_extent_capacity = MM_MAX_EXTENTS;
 int
 proc_pure_recover_arm_v1902(kword_t uarea)
 {
@@ -39,6 +38,7 @@ static unsigned int full_refuse_v1611;
 #ifdef DAIMOS_TEST_PURE_SERVICE_V1612
 static unsigned int compact_refuse_at_v1916;
 static int compact_refuse_rc_v1916;
+static unsigned int full_fault_v1917;
 #endif
 
 int
@@ -83,6 +83,29 @@ exec_image_full_bounded_v1391(kword_t backing, kword_t base,
         kword_t *data = (kword_t *)(unsigned long)base;
         unsigned int i;
         ++full_calls_v1611;
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+        if (full_fault_v1917) {
+                int src = find_extent(SOURCE + OMIT);
+                int dst = find_extent(base);
+                if (src < 0 || dst < 0)
+                        return -1;
+                if (full_fault_v1917 == 1U) {
+                        /* Foreign claim before deferred arm; the RAW
+                         * source has already lost its transaction pin. */
+                        mm_extents[dst].meta =
+                            (mm_extents[dst].meta & ~MM_OWNER_MASK) |
+                            (SLOT + 1U);
+                        (void)mm_unpin(SOURCE + OMIT);
+                } else if (full_fault_v1917 == 2U) {
+                        mm_extents[src].meta =
+                            (mm_extents[src].meta & ~MM_OWNER_MASK) |
+                            (SLOT + 1U);
+                } else {
+                        (void)mm_pin(base);
+                }
+                return -1;
+        }
+#endif
         if (full_refuse_v1611 || backing != BACKING ||
             base != RESTORE || uarea != UAREA || capacity != WORDS)
                 return -1;
@@ -100,6 +123,7 @@ reset_service_v1611(void)
         pure_test_recover_arm_calls_v1902 = 0U;
         compact_refuse_at_v1916 = 0U;
         compact_refuse_rc_v1916 = 0;
+        full_fault_v1917 = 0U;
 #endif
         /* Direct v1384 component fixtures begin with ownership already
          * claimed. The actual MRES must claim TRANSITION itself. */
@@ -322,6 +346,73 @@ test_uncertain_drop_v1916(void)
                 return 1;
         return 0;
 }
+
+static int
+test_full_cancel_v1917(unsigned int kind)
+{
+        struct proc *p = &process_slots[SLOT];
+        kword_t *u = (kword_t *)(unsigned long)UAREA;
+        int src, dst;
+
+        reset_service_v1611();
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) ||
+            !check_retained_v1611())
+                return 1;
+        PROC_SET_STATE(p, PROC_SRUN);
+        proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
+        prefix_fallback_v1611 = 1U;
+        full_fault_v1917 = kind;
+        if (PURE_TEST_SERVICE_CALL_V1902() || !PROC_TRANSITION(p) ||
+            VM_PDP6_BASE(p) || proc_sched_cursor != SLOT ||
+            mm_extent_count != 2 || free_count_v1381 ||
+            u[PROC_FINALIZE_OFFSET] !=
+                PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, RESTORE) ||
+            pure_test_recover_arm_calls_v1902 != 1U ||
+            !check_suffix_v1384())
+                return 2;
+        src = find_extent(SOURCE + OMIT);
+        dst = find_extent(RESTORE);
+        if (src < 0 || dst < 0 ||
+            MM_EXTENT_OWNER(&mm_extents[src]) !=
+                (kind == 2U ? SLOT + 1U : SLOT) ||
+            MM_EXTENT_OWNER(&mm_extents[dst]) !=
+                (kind == 1U ? SLOT + 1U : SLOT) ||
+            MM_EXTENT_PINS(&mm_extents[src]) != (kind == 1U ? 0U : 1U) ||
+            MM_EXTENT_PINS(&mm_extents[dst]) != (kind == 3U ? 2U : 1U) ||
+            pi_depth_v1381 || pi_disable_count_v1381 != pi_restore_count_v1381)
+                return 3;
+        if (proc_pure_mres_service_v1611(0400000UL | SLOT) != -1 ||
+            !PROC_TRANSITION(p) || free_count_v1381 ||
+            mm_extent_count != 2)
+                return 4;
+        return 0;
+}
+
+static int
+test_retry_overlap_v1917(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        vnode_t *roots;
+
+        reset_service_v1611();
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) ||
+            !check_retained_v1611())
+                return 1;
+        add_extent(SOURCE + OMIT + 0200UL, 0200UL, MM_TYPE_PROCESS);
+        mm_extents[1].meta =
+            (mm_extents[1].meta & ~MM_OWNER_MASK) | (SLOT + 1U);
+        PROC_SET_STATE(p, PROC_SRUN);
+        proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
+        roots = vfs_mount_root_base;
+        vfs_mount_root_base = (vnode_t *)0;
+        (void)PURE_TEST_SERVICE_CALL_V1902();
+        vfs_mount_root_base = roots;
+        if (!PROC_TRANSITION(p) || VM_PDP6_BASE(p) ||
+            mm_extent_count != 2 || free_count_v1381 ||
+            !check_suffix_v1384())
+                return 2;
+        return 0;
+}
 #endif
 
 int
@@ -360,6 +451,18 @@ main(void)
         rc = test_uncertain_drop_v1916();
         if (rc)
                 return 01200 + rc;
+        rc = test_full_cancel_v1917(1U);
+        if (rc)
+                return 01300 + rc;
+        rc = test_full_cancel_v1917(2U);
+        if (rc)
+                return 01400 + rc;
+        rc = test_full_cancel_v1917(3U);
+        if (rc)
+                return 01500 + rc;
+        rc = test_retry_overlap_v1917();
+        if (rc)
+                return 01600 + rc;
 #endif
         return 0;
 }

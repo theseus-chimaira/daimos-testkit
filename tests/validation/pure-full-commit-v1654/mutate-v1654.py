@@ -13,13 +13,14 @@ def mutate(original):
     early = (
         "        rc = mm_unpin(target);\n"
         "        if (rc != MM_OK) {\n"
-        "                mach_pi_restore(pi_state);\n"
-        "                goto fail_target;\n"
+        "                target_uncertain = 1;\n"
+        "                goto fail_target_locked;\n"
         "        }\n"
         "        target_pinned = 0;\n"
     )
     late = (
         "        pram_publish(slot, PROC_STORAGE_PACKED, PROC_STORAGE_RESIDENT);\n"
+        "        u[PROC_FINALIZE_OFFSET] = 0UL;\n"
         "        PROC_CLEAR_TRANSITION(p);\n"
     )
     assert original.count(early) == 1
@@ -39,6 +40,7 @@ def mutate(original):
         "                return MM_ERR_BUSY;\n"
         "        }\n"
         "        target_pinned = 0;\n"
+        "        u[PROC_FINALIZE_OFFSET] = 0UL;\n"
         "        PROC_CLEAR_TRANSITION(p);\n", 1)
     assert changed != original
     return changed
