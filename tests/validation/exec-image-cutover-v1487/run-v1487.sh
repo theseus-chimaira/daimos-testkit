@@ -22,16 +22,10 @@ python3 "$self/make-candidate-v1487.py" \
 cat > "$work/provider-v1487.s" <<'ASM'
         .text
         .globl fs_provider_reg_call
-        .globl d6codec_decode_vfs_v1458
-        .globl d6lz36_decode_vfs
         .globl proc_swap_unpack_backing
 fs_provider_reg_call:
         seto    1,
         popj    17,
-; The v1388 test supplies a decoder with the same four-register ABI
-; under its historical name. The real shared engine uses the v1458 ABI.
-d6codec_decode_vfs_v1458:
-        jrst    d6lz36_decode_vfs
 ; FULL backing is not exercised by the original DXR startup fixture.
 proc_swap_unpack_backing:
         setz    1,

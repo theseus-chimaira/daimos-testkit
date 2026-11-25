@@ -126,7 +126,7 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *dst,
 }
 
 int
-d6lz36_decode_vfs(vnode_t node, unsigned int off,
+d6codec_decode_vfs_v1458(vnode_t node, unsigned int off,
     unsigned int compressed_words, kword_t packed)
 {
         unsigned int i;
