@@ -2782,6 +2782,7 @@ test-pure-k05-source-unpin-refusal-audit-v1899:
 	 V1899_WORK="$${V1899_WORK:?original physical source-unpin refusal trace required}" \
 	 sh tests/validation/pure-k05-source-unpin-refusal-v1899/audit-v1899.sh
 
+# Historical v1900 only (superseded by v1920 exact terminal identity).
 # K05 v1900: SOURCE-LINKED original PDP-6 terminal code must release
 # an EXACT unpinned RAW PACKED source plus one complete provisional
 # PROCESS target left by a failed FULL, without releasing anyone else.
@@ -3184,3 +3185,13 @@ test-pure-integration-verify48-v1807:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?v1804 DAIMOS integration checkout required}" \
 	 sh tests/validation/pure-integration-v1807/check-physical-pair-v1807.sh \
 	 "$${V1807_PHYSICAL_EVIDENCE_DIR:?set independent guest evidence directory}"
+
+# K06 current terminal owner and integrated PREVM escrow gates.
+.PHONY: test-pure-terminal-identity-v1920 test-pure-terminal-finalizer-v1920
+test-pure-terminal-identity-v1920:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-terminal-identity-v1920/run-v1920.sh
+
+test-pure-terminal-finalizer-v1920:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-terminal-identity-v1920/run-finalizer-v1920.sh

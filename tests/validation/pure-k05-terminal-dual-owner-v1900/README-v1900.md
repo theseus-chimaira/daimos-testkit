@@ -1,5 +1,14 @@
 # K05 v1900: terminal cleanup of original RAW+PROCESS dual MM ownership
 
+**Historical gate:** v1920 supersedes the v1900 terminal policy. The
+v1900 direct dual-owner acceptance fixtures require a matching historical
+DAIMOS checkout (for example db2a59b2); they intentionally do not pass
+against v1920. Current source must reconcile uncertain FULL owners in
+the idle service before terminal release. Use
+`test-pure-terminal-identity-v1920` and
+`test-pure-terminal-finalizer-v1920` for the new contract. The earlier
+physical evidence remains historical evidence, not current acceptance.
+
 Date: 2026-11-23. Source-linked **native PDP-6 acceptance PASS**;
 the existing original terminal single-PACKED path rejected an
 otherwise legitimate FULL rollback state with exact PACKED RAW
