@@ -80,3 +80,9 @@ dtfs_media_base: .word 0
         .globl tsfs_extent_media_base
 tsfs_file_shape_base: .word 0
 tsfs_extent_media_base: .word 0
+
+        .text
+        .globl proc_exec_reserve_v1933
+proc_exec_reserve_v1933:
+        seto    1,
+        popj    17,

@@ -10,6 +10,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
  printf '.text\n.globl proc_swap_backing_busy\n'
  printf '.equ PROC_SWAP_BACKING_OFFSET,0406\n.equ PROC_SWAP_MOUNT_SHIFT,022\n.equ PROC_SWAP_TEXT_SHIFT,026\n.equ PROC_SWAP_TEXT_MASK,037777\n'
  sed -n '/^proc_swap_backing_busy:$/,/^\/\* Return nonzero while/p' "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
+ printf '.bss\n.globl proc_exec_resv_head_v1933\nproc_exec_resv_head_v1933: .block 1\n'
 } > "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
  --exec-mode step --start 1000 --step-limit 120000 --timeout 20 \

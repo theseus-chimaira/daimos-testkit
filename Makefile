@@ -3265,3 +3265,8 @@ test-pure-d6fs-unmount-v1931:
 test-pure-mutation-lease-v1932:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-mutation-lease-v1932/run-v1932.sh
+
+.PHONY: test-pure-load-reservation-v1933
+test-pure-load-reservation-v1933:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-load-reservation-v1933/run-v1933.sh

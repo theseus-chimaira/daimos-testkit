@@ -41,7 +41,7 @@ def guard(source, output, mutation):
     if before:
         assert body.count(before) == 1
         body = body.replace(before, after, 1)
-    Path(output).write_text(intro + body, encoding="ascii")
+    Path(output).write_text(intro + body + "\n.bss\n.globl proc_exec_resv_head_v1933\nproc_exec_resv_head_v1933: .block 1\n", encoding="ascii")
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ source = ('.text\n.globl proc_swap_backing_busy\n'
           '.equ PROC_SWAP_MOUNT_SHIFT,022\n'
           '.equ PROC_SWAP_TEXT_SHIFT,026\n'
           '.equ PROC_SWAP_TEXT_MASK,037777\n'
-          + swap[start:])
+          + swap[start:] + '\n.bss\n.globl proc_exec_resv_head_v1933\nproc_exec_resv_head_v1933: .block 1\n')
 assert source.count('proc_swap_backing_stable_v1563:') == 1
 assert source.count('proc_swap_mount_stable_v1563:') == 1
 

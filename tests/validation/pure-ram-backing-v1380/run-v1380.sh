@@ -31,6 +31,7 @@ include="-I$DAIMOS_REPO/system/kernel/proc -I$DAIMOS_REPO/system/kernel/core -I$
     printf '.equ PROC_SWAP_TEXT_MASK,037777\n'
     sed -n '/^proc_swap_backing_busy:$/,$p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s"
+ printf '.bss\n.globl proc_exec_resv_head_v1933\nproc_exec_resv_head_v1933: .block 1\n'
 } > "$work/pure-backing-guards-v1380.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode go --start 1000 --timeout 30 \

@@ -10,3 +10,9 @@ vfs_readonly:
 proc_swap_backing_busy:
         seto    1,
         popj    17,
+
+        .text
+        .globl proc_exec_reserve_v1933
+proc_exec_reserve_v1933:
+        seto    1,
+        popj    17,

@@ -33,7 +33,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
  sed -n '/^backstore_free:$/,/^        \.bss/p' "$DAIMOS_REPO/system/kernel/storage/backstore.s" | sed '$d'
  sed -n '/^blockset_direct_configure:$/,/^blockset_tail_blocks:$/p' "$DAIMOS_REPO/system/kernel/fs/fs_mres.s" | sed '$d'
  sed -n '/^fs_zero_words:$/,/^        \.globl  fs_zero_block_workspace/p' "$DAIMOS_REPO/system/kernel/fs/fs_mres.s" | sed '$d'
- sed -n '/^proc_swap_unpack_backing:$/,/^\/\* Provider-independent backing immutability guards/p' "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
+ sed -n '/^proc_swap_unpack_backing:$/,/^; Transient executable backing reservation/p' "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
 } > "$work/leaves.s"
 sed -i 's/^proc_swap_exchange_pure_v785:$/proc_swap_exchange_pure_impl_v855:/' "$work/leaves.s"
 printf '.globl proc_swap_exchange_pure_impl_v855\n' >> "$work/leaves.s"

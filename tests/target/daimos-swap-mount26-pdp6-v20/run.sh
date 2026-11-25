@@ -20,6 +20,7 @@ here=$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)
         "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
     sed -n '/^proc_swap_backing_busy:/,$p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s"
+    printf '\n.bss\n.globl proc_exec_resv_head_v1933\nproc_exec_resv_head_v1933: .block 1\n'
 } > "$work/unpack.s"
 
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \

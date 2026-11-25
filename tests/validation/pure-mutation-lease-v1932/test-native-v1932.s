@@ -235,3 +235,11 @@ wakes_v1932: .block 1
 fcb_calls_v1932: .block 1
         .globl __test_exit
 __test_exit: .block 1
+
+        .text
+        .globl proc_exec_reserve_v1933
+proc_exec_reserve_v1933:
+        jrst    kret_neg1
+        .bss
+        .globl proc_exec_resv_head_v1933
+proc_exec_resv_head_v1933: .block 1

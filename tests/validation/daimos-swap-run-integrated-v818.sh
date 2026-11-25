@@ -33,7 +33,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
  sed -n '/^backstore_free:$/,/^        \.bss/p' "$DAIMOS_REPO/system/kernel/storage/backstore.s" | sed '$d'
  sed -n '/^blockset_direct_configure:$/,/^blockset_tail_blocks:$/p' "$DAIMOS_REPO/system/kernel/fs/fs_mres.s" | sed '$d'
  sed -n '/^fs_zero_words:$/,/^        \.globl  fs_zero_block_workspace/p' "$DAIMOS_REPO/system/kernel/fs/fs_mres.s" | sed '$d'
- sed -n '/^proc_swap_unpack_backing:$/,/^\/\* Provider-independent backing immutability guards/p' "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
+ sed -n '/^proc_swap_unpack_backing:$/,/^; Transient executable backing reservation/p' "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
 } > "$work/leaves.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step --start 1000 --step-limit 200000 --timeout 20 --workdir "$work/run" --name run-integrated-v818 --expect __test_exit=0 "$self/daimos-test-crt0-v1.s" "$work/leaves.s" "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" "$self/daimos-swap-run-integrated-v818.s" > "$work/log" 2>&1 || { tail -35 "$work/log" >&2; exit 1; }
 echo 'v818: native PDP-6 metadata commit integration PASS'
