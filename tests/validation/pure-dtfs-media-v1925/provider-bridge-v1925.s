@@ -2,9 +2,8 @@
         .text
         .globl fs_provider_reg_call
 fs_provider_reg_call:
-        caie    7,5
-        cain    7,6
-        jrst    media_provider_v1927
+        cail    7,5
+        caile   7,7
         jrst    media_bad_v1925
 media_provider_v1927:
         caie    6,030

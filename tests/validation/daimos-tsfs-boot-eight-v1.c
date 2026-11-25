@@ -15,7 +15,7 @@
 #define TD_FIRST_ENTRY 7U
 
 static kword_t media[8][6][0200];
-static kword_t captured_handoff[3];
+static kword_t captured_handoff[TSFS_BOOT_HANDOFF_V1928];
 static unsigned int logical_to_unit[8] = { 4U, 1U, 6U, 2U, 5U, 3U, 0U, 7U };
 static unsigned int active_members = 8U;
 static unsigned int table_member = 7U;
@@ -122,9 +122,7 @@ kinit_call_fs_request(unsigned int address, const void *vp)
         (void)address;
         req = (const struct fs_mres_request *)vp;
         handoff = (const kword_t *)(unsigned long)req->a;
-        captured_handoff[0] = handoff[0];
-        captured_handoff[1] = handoff[1];
-        captured_handoff[2] = handoff[2];
+        memcpy(captured_handoff, handoff, sizeof(captured_handoff));
         rootp = (vnode_t *)(unsigned long)req->d;
         *rootp = 1U;
         return 0;
@@ -161,7 +159,12 @@ main(void)
             (captured_handoff[0] & 0777777UL) != 4U ||
             captured_handoff[1] != (expected_map | ((kword_t)unit_mask << 24)) ||
             tsfs_boot_unit_mask_v22() != unit_mask ||
-            captured_handoff[2] != 0U)
+            captured_handoff[2] != 0U ||
+            captured_handoff[3] != 01234567UL ||
+            captured_handoff[4] != 07654321UL ||
+            captured_handoff[5] != 7U ||
+            captured_handoff[6] != ((7UL << 18) | 3UL) ||
+            captured_handoff[7] != tdir_sum)
                 return 1;
 
         /* A sole root member in physical unit zero must not disappear into
@@ -173,7 +176,8 @@ main(void)
         make_member(0U, 0U, tdir_sum);
         if (tsfs_boot_select(0U) != 0 || tsfs_boot_mount_root() != 0 ||
             captured_handoff[1] != ((kword_t)1U << 24) ||
-            tsfs_boot_unit_mask_v22() != 1U)
+            tsfs_boot_unit_mask_v22() != 1U ||
+            captured_handoff[6] != 3UL || captured_handoff[7] != tdir_sum)
                 return 1;
 
         /* Two-member root on units zero and five, with metadata on member
@@ -189,7 +193,9 @@ main(void)
         make_member(5U, 1U, tdir_sum);
         if (tsfs_boot_select(0U) != 0 || tsfs_boot_mount_root() != 0 ||
             captured_handoff[1] != (((kword_t)041U << 24) | 050U) ||
-            tsfs_boot_unit_mask_v22() != 041U)
+            tsfs_boot_unit_mask_v22() != 041U ||
+            captured_handoff[6] != ((1UL << 18) | 3UL) ||
+            captured_handoff[7] != tdir_sum)
                 return 1;
 
         puts("daimos-tsfs-boot-eight-v1: PASS (8/1/2 members, root mask includes physical unit zero)");

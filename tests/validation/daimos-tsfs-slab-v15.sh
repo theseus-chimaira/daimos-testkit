@@ -39,6 +39,8 @@ PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
     "$self/daimos-test-crt0-v1.s" \
     "$self/daimos-tsfs-slab-v15.s" \
     "$DAIMOS_REPO/system/kernel/fs/tsfs_runtime.s" \
+    "$DAIMOS_REPO/system/kernel/proc/proc_swap_entry_v481.s" \
+    "$self/pure-tsfs-media-v1928/unused-media-v1928.s" \
     "$work/root-io-gate-v1538.s" \
     "$work/kconst.s" >/dev/null
 printf '%s\n' 'daimos-tsfs-slab-v15: PASS (third mount slot, cross-extent and cross-member read)'

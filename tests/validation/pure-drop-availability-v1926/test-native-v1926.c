@@ -1,5 +1,6 @@
 /* Production DROP with controlled mount publication and native MM rebase. */
 #include "dtfs_media.h"
+#include "tsfs.h"
 #include "fs_mres.h"
 
 #define SERVICE_V1926 0254000001234UL
@@ -101,6 +102,7 @@ case_v1926(unsigned int provider, unsigned int mount, unsigned int fault)
         case 26U: boundary_fault_v1926 = 3U; break;
         case 27U: media_v1926[index] = ~0UL; break;
         case 28U: shape_v1926[index] = 0UL; break;
+        case 29U: shape_v1926[index] |= TSFS_MEDIA_SUSPECT_V1928; break;
         }
         span = mm_extents[0].span;
         meta = mm_extents[0].meta;
@@ -136,7 +138,7 @@ main(void)
         int rc;
         for (high = 0U; high <= 1U; ++high) {
                 for (provider = 4U; provider <= 7U; ++provider) {
-                        for (fault = 0U; fault <= 28U; ++fault) {
+                        for (fault = 0U; fault <= 29U; ++fault) {
                                 /* All providers share dispatch checks. The
                                  * other faults are specific to mount state. */
                                 if (fault >= 4U && fault <= 12U &&
@@ -150,7 +152,9 @@ main(void)
                                         continue;
                                 if (fault >= 21U && fault <= 23U && provider != 5U)
                                         continue;
-                                if (fault >= 27U && provider != 6U)
+                                if (fault >= 27U && fault <= 28U && provider != 6U)
+                                        continue;
+                                if (fault == 29U && provider != 7U)
                                         continue;
                                 rc = case_v1926(provider, high ? 18U : 1U, fault);
                                 if (rc) return (int)(high * 010000U + provider * 01000U + fault * 010U) + rc;

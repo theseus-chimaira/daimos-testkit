@@ -3236,3 +3236,8 @@ test-pure-d6fs-media-v1927:
 	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-d6fs-media-v1927/run-format-v1927.sh
+
+.PHONY: test-pure-tsfs-media-v1928
+test-pure-tsfs-media-v1928:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-tsfs-media-v1928/run-v1928.sh
