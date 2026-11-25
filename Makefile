@@ -3304,3 +3304,11 @@ test-pure-d6fs-discard-v1939:
 	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/daimos-dtfs-admin-owner-v1531.sh
+
+.PHONY: test-pure-k07-native-v1940 test-pure-k07-physical-v1940
+test-pure-k07-native-v1940:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-k07-accept-v1940/run-native-v1940.sh
+test-pure-k07-physical-v1940:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-k07-accept-v1940/run-physical-v1940.sh
