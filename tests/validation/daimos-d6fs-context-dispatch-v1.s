@@ -123,3 +123,8 @@ __test_exit:
 dtfs_media_base: .word media_v1930
         .bss
 media_v1930: .block 4
+
+        .text
+        .globl d6fs_discard_v1939
+d6fs_discard_v1939:
+        jrst    kret_neg1

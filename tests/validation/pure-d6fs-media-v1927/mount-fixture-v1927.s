@@ -58,3 +58,8 @@ bcache_state: .word 0
         .globl bcache_workspace_invalidate
 bcache_workspace_invalidate:
         popj    17,
+
+        .text
+        .globl d6fs_discard_v1939
+d6fs_discard_v1939:
+        jrst    kret_neg1

@@ -347,3 +347,8 @@ vfs_unmount_owner_check_v1523:
 d6fs_note_failure_v1929:
 kcore_root_fs_io_failure_v1538:
         popj    17,
+
+        .text
+        .globl vfs_dtfs_poisoned_slot_v1531
+vfs_dtfs_poisoned_slot_v1531:
+        jrst    kret_neg1

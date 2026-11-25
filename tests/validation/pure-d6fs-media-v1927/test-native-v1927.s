@@ -368,8 +368,195 @@ ordinary_poison_v1930:
         jrst    fail_v1927
         skipe   reader_slots_v1927+1
         jrst    fail_v1927
+
+        ; Administrative discard: fixture re-publishes the original
+        ; reader without media I/O. Mark it poisoned and writable.
+        movei   1,reader_v1927
+        movem   1,reader_slots_v1927+1
+        move    1,[060201000003]
+        movem   1,roots_v1931+1
+        move    1,[060101000007]
+        movem   1,targets_v1931+1
+        move    1,[012345670123]
+        movem   1,shape_v1927+1
+        move    1,[076543210765]
+        movem   1,extent_v1927+1
+        movei   1,0102
+        movem   1,reader_v1927+1
+        setzm   vfs_mount_policy
+        setzm   freed_v1927
+        setzm   admin_io_v1939
+        ; Healthy, read-suspect, and unknown flags must refuse.
+        movei   010,0
+admin_state_loop_v1939:
+        movei   1,0600(010)
+        movem   1,fail_case_v1927
+        movem   010,media_v1927+1
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        aoj     010,
+        caig    010,1
+        jrst    admin_state_loop_v1939
+        movei   1,0602
+        movem   1,fail_case_v1927
+        movei   1,6
+        movem   1,media_v1927+1
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        movei   1,3
+        movem   1,media_v1927+1
+        ; Selected root and critical SWAP/LOGSTORE owners refuse.
+        movei   1,0603
+        movem   1,fail_case_v1927
+        move    1,roots_v1931+1
+        movem   1,vfs_namespace_root
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        move    1,roots_v1931
+        movem   1,vfs_namespace_root
+        movei   1,0604
+        movem   1,fail_case_v1927
+        move    1,[001000000000]
+        movem   1,vfs_mount_policy
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        move    1,[040000000000]
+        movem   1,vfs_mount_policy
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        setzm   vfs_mount_policy
+        ; Private request without its VFS barrier must not retire.
+        movei   1,0605
+        movem   1,fail_case_v1927
+        move    1,roots_v1931+1
+        movei   6,033
+        pushj   17,d6fs_mres_dispatch
+        jumpge  1,fail_v1927
+        ; A second caller cannot borrow an existing barrier.
+        movei   1,0606
+        movem   1,fail_case_v1927
+        movei   1,020003
+        movem   1,media_v1927+1
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,020003
+        jrst    fail_v1927
+        ; Even with barrier, a wrong root or reader owner refuses.
+        movei   1,0607
+        movem   1,fail_case_v1927
+        move    1,[060201000004]
+        movei   6,033
+        pushj   17,d6fs_mres_dispatch
+        jumpge  1,fail_v1927
+        movei   1,0610
+        movem   1,fail_case_v1927
+        movei   1,0103
+        movem   1,reader_v1927+1
+        move    1,roots_v1931+1
+        movei   6,033
+        pushj   17,d6fs_mres_dispatch
+        jumpge  1,fail_v1927
+        movei   1,0102
+        movem   1,reader_v1927+1
+        movei   1,3
+        movem   1,media_v1927+1
+        ; Both early and post-lease owner refusals retain the mount.
+        movei   1,0611
+        movem   1,fail_case_v1927
+        setom   busy_v1931
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        pushj   17,admin_retained_v1939
+        setzm   busy_v1931
+        movei   1,0612
+        movem   1,fail_case_v1927
+        setom   inject_admin_v1939
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        pushj   17,admin_retained_v1939
+        setzm   inject_admin_v1939
+        setzm   busy_v1931
+        ; Refused exact MM free retains poison and reader for retry.
+        movei   1,0613
+        movem   1,fail_case_v1927
+        setom   free_fail_v1927
+        pushj   17,discard_v1939
+        jumpge  1,fail_v1927
+        pushj   17,admin_retained_v1939
+        setzm   free_fail_v1927
+        ; Successful poisoned RW retirement, no read or CLEAN write.
+        movei   1,0614
+        movem   1,fail_case_v1927
+        move    1,[100200000005]
+        movem   1,bcache_workspace_tag
+        movem   1,cache_tag_v1927
+        setzm   fs_namespace_epoch_v1936
+        pushj   17,discard_v1939
+        jumpn   1,fail_v1927
+        skipe   admin_io_v1939
+        jrst    fail_v1927
+        move    1,bcache_workspace_tag
+        came    1,[-1]
+        jrst    fail_v1927
+        move    1,cache_tag_v1927
+        came    1,[-1]
+        jrst    fail_v1927
+        move    1,bcache_state
+        caie    1,cache_tag_v1927
+        jrst    fail_v1927
+        skipe   bad_admission_v1931
+        jrst    fail_v1927
+        move    1,freed_v1927
+        caie    1,1
+        jrst    fail_v1927
+        skipe   roots_v1931+1
+        jrst    fail_v1927
+        skipe   targets_v1931+1
+        jrst    fail_v1927
+        skipe   reader_slots_v1927+1
+        jrst    fail_v1927
+        skipe   shape_v1927+1
+        jrst    fail_v1927
+        skipe   extent_v1927+1
+        jrst    fail_v1927
+        skipe   media_v1927+1
+        jrst    fail_v1927
+        move    1,media_v1927
+        caie    1,0777
+        jrst    fail_v1927
+        move    1,fs_namespace_epoch_v1936
+        caie    1,1
+        jrst    fail_v1927
         setz    1,
         popj    17,
+discard_v1939:
+        movei   1,1
+        jrst    vfs_dtfs_discard_slot_v1531
+admin_retained_v1939:
+        skipe   freed_v1927
+        jrst    admin_fail_v1939
+        skipe   admin_io_v1939
+        jrst    admin_fail_v1939
+        move    1,media_v1927+1
+        caie    1,3
+        jrst    admin_fail_v1939
+        move    1,roots_v1931+1
+        came    1,[060201000003]
+        jrst    admin_fail_v1939
+        move    1,reader_slots_v1927+1
+        caie    1,reader_v1927
+        jrst    admin_fail_v1939
+        move    1,shape_v1927+1
+        came    1,[012345670123]
+        jrst    admin_fail_v1939
+        move    1,extent_v1927+1
+        came    1,[076543210765]
+        jrst    admin_fail_v1939
+        popj    17,
+admin_fail_v1939:
+        pop     17,0
+        jrst    fail_v1927
 fail_v1927:
         move    1,fail_case_v1927
         popj    17,
@@ -423,6 +610,7 @@ bcache_store:
         jrst    kret_zero
         .globl fs_backing_direct_read
 fs_backing_direct_read:
+        aos     admin_io_v1939
         came    1,[1,,0400]
         jrst    kret_neg1
         movei   4,021
@@ -496,6 +684,7 @@ raw_low_v1927:
         jrst    kret_zero
         .globl fs_backing_direct_write
 fs_backing_direct_write:
+        aos     admin_io_v1939
         skipn   clean_test_v1931
         jrst    kret_neg1
         came    1,[1,,0400]
@@ -540,6 +729,10 @@ mm_alloc:
         .globl mm_free
 mm_free:
         caie    1,reader_v1927
+        jrst    kret_neg1              ; cache slab MM free refuses
+        caie    2,3
+        jrst    kret_neg1
+        caie    3,010
         jrst    kret_neg1
         skipn   free_fail_v1927
         jrst    mm_free_ok_v1927
@@ -555,9 +748,6 @@ vfs_mount_prevalidated:
         movem   6,roots_v1931+1
         movei   7,1
         aos     published_v1927
-        jrst    kret_zero
-        .globl bcache_reclaim
-bcache_reclaim:
         jrst    kret_zero
         .globl fs_mres_vector_dispatch
         .globl d6fs_provider_space
@@ -591,6 +781,22 @@ proc_swap_storage_invariant_v30:
 fs_provider_reg_call:
         caie    7,6
         jrst    kret_neg1
+        cain    6,033
+        jrst    admin_lease_v1939
+        jrst    d6fs_mres_dispatch
+admin_lease_v1939:
+        push    17,1
+        push    17,6
+        pushj   17,vfs_dtfs_owner_admit_v1562
+        jumpn   1,admin_lease_closed_v1939
+        setom   bad_admission_v1931
+admin_lease_closed_v1939:
+        skipn   inject_admin_v1939
+        jrst    admin_lease_dispatch_v1939
+        setom   busy_v1931
+admin_lease_dispatch_v1939:
+        pop     17,6
+        pop     17,1
         jrst    d6fs_mres_dispatch
 vfs_sync:
         jrst    kret_neg1              ; D6FS must drain via PREPARE
@@ -739,3 +945,6 @@ inject_write_busy_v1931: .block 1
         .bss
         .globl fs_namespace_epoch_v1936
 fs_namespace_epoch_v1936: .block 1
+
+admin_io_v1939: .block 1
+inject_admin_v1939: .block 1

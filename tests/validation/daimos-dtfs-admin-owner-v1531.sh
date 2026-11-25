@@ -72,10 +72,13 @@ for item in mutants:
     name, old, new = item[:3]
     if name == "skip-write-marker":
         anchor, region = "", source
+        tail = ""
     else:
         start = "vfs_dtfs_discard_slot_v1531:\n"
         assert source.count(start) == 1
         prefix, region = source.split(start, 1)
+        region, tail = region.split("vfs_d6fs_discard_v1939:", 1)
+        tail = "vfs_d6fs_discard_v1939:" + tail
         anchor = prefix + start
     count = region.count(old)
     expected = 2 if "owner" in name else 1
@@ -85,7 +88,7 @@ for item in mutants:
         altered = anchor + prefix + new + suffix
     else:
         altered = anchor + region.replace(old, new, 1)
-    (out / ("mutant-" + name + "-v1531.s")).write_text(altered)
+    (out / ("mutant-" + name + "-v1531.s")).write_text(altered + tail)
 print("PASS v1531: extracted live VFS/FILE source with four mutations")
 PY
 

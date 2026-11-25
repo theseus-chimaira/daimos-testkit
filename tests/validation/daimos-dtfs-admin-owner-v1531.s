@@ -212,6 +212,46 @@ admin_check_other_v1531:
         movei   1,1
         pushj   17,vfs_dtfs_discard_slot_v1531
         jumpe   1,admin_fail_v1531
+        ; v1939: D6FS FD abandonment admits only the exact poisoned
+        ; provider, never a stale DTFS descriptor for the same slot.
+        movei   4,7
+        movem   4,admin_stage_v1531
+        move    4,[060201000003]
+        movem   4,mount_roots_v1531+1
+        movei   4,1
+        movem   4,media_v1531+1
+        move    4,[060202000004]
+        movem   4,uarea1_v1531+026
+        movei   4,0777
+        movem   4,uarea1_v1531+027
+        setz    1,
+        pushj   17,file_dtfs_abandon_fd_v1531
+        jumpge  1,admin_fail_v1531
+        movei   4,2
+        movem   4,media_v1531+1
+        move    4,[050202000004]
+        movem   4,uarea1_v1531+026
+        setz    1,
+        pushj   17,file_dtfs_abandon_fd_v1531
+        jumpge  1,admin_fail_v1531
+        move    4,uarea1_v1531+026
+        came    4,[050202000004]
+        jrst    admin_fail_v1531
+        move    4,[060202000004]
+        movem   4,uarea1_v1531+026
+        setz    1,
+        pushj   17,file_dtfs_abandon_fd_v1531
+        jumpn   1,admin_fail_v1531
+        skipe   uarea1_v1531+026
+        jrst    admin_fail_v1531
+        skipe   uarea1_v1531+027
+        jrst    admin_fail_v1531
+        move    4,mount_roots_v1531+1
+        came    4,[060201000003]
+        jrst    admin_fail_v1531
+        move    4,media_v1531+1
+        caie    4,2
+        jrst    admin_fail_v1531
         setz    1,
         popj    17,
 

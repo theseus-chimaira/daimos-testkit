@@ -3297,3 +3297,10 @@ test-pure-stack-lifetime-v1937:
 test-pure-memfs-mutation-v1938:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-memfs-mutation-v1938/run-v1938.sh
+
+.PHONY: test-pure-d6fs-discard-v1939
+test-pure-d6fs-discard-v1939:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/daimos-dtfs-admin-owner-v1531.sh
