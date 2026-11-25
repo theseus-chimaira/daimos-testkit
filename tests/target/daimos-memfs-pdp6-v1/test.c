@@ -831,3 +831,12 @@ daimos_memfs_xip_finish_v216(void)
         return 0;
 }
 #endif
+
+#ifndef MEMFS_REAL_OWNER_SCAN_V1938
+/* Isolated allocator/FIFO fixture has no published VFS/PURE owners.
+ * Any unexpected scanner call refuses rather than admitting a mutation. */
+kword_t *vfs_mount_root_base;
+kword_t vfs_mount_limit;
+int proc_swap_backing_busy(vnode_t node) { (void)node; return 1; }
+int proc_swap_mount_busy(unsigned int mount) { (void)mount; return 1; }
+#endif

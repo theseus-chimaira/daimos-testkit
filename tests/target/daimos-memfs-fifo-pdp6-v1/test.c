@@ -45,10 +45,10 @@ void memfs_data_init(struct memfs *fs, kword_t limit) { (void)fs; (void)limit; }
 int memfs_snapshot_mount(struct memfs *fs, unsigned int flags)
 { (void)fs; return flags == 0U ? 0 : -1; }
 int memfs_snapshot_shutdown(void) { return 0; }
-void memfs_data_destroy(void) { }
+int memfs_data_destroy(void) { return 0; }
 int memfs_data_ensure(struct memfs *fs, unsigned int slot)
 { (void)fs; (void)slot; return 0; }
-void memfs_data_dirty(unsigned int slot) { (void)slot; }
+int memfs_data_dirty(unsigned int slot) { (void)slot; return 0; }
 /* FIFO-only fixture does not link the optional MEMFS XIP allocator. */
 int memfs_xip_is_pinned(unsigned int slot) { (void)slot; return 0; }
 int memfs_xip_any_pinned(void) { return 0; }
@@ -127,3 +127,20 @@ daimos_memfs_fifo_pdp6_test(void)
                 return 9;
         return 0;
 }
+
+#ifndef MEMFS_REAL_OWNER_SCAN_V1938
+/* Isolated allocator/FIFO fixture has no published VFS/PURE owners.
+ * Any unexpected scanner call refuses rather than admitting a mutation. */
+kword_t *vfs_mount_root_base;
+kword_t vfs_mount_limit;
+int proc_swap_backing_busy(vnode_t node) { (void)node; return 1; }
+int proc_swap_mount_busy(unsigned int mount) { (void)mount; return 1; }
+#endif
+
+/* FIFO fixture has no executable data allocator. */
+int memfs_xip_admit(struct memfs *m, vnode_t n, kword_t *b, kword_t *e)
+{ (void)m; (void)n; (void)b; (void)e; return -1; }
+int memfs_xip_safe_admit_v1468(struct memfs *m, vnode_t n, kword_t *b, kword_t *e)
+{ (void)m; (void)n; (void)b; (void)e; return -1; }
+int memfs_xip_owns_base(kword_t base) { (void)base; return 0; }
+int memfs_xip_unpin_base(kword_t base) { (void)base; return -1; }

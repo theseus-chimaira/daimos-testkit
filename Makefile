@@ -3292,3 +3292,8 @@ test-pure-stack-lifetime-v1937:
 	 sh tests/validation/pure-stack-lifetime-v1937/run-v1937.sh
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/daimos-uarea-ownership-v956.sh
+
+.PHONY: test-pure-memfs-mutation-v1938
+test-pure-memfs-mutation-v1938:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-memfs-mutation-v1938/run-v1938.sh

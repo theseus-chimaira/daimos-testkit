@@ -48,6 +48,8 @@ vfs_current_owner:
         popj    17,
 
         .globl  pclk_time36
+        .globl  wall_time36
+wall_time36:
 pclk_time36:
         setz    1,                     ; deterministic timestamp fixture
         popj    17,
