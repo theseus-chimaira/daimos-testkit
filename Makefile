@@ -3217,3 +3217,10 @@ test-pure-provider-identity-v1924:
 	 sh tests/validation/pure-provider-identity-v1924/run-v1924.sh
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-provider-identity-v1924/run-run-v1924.sh
+
+.PHONY: test-pure-dtfs-media-v1925
+test-pure-dtfs-media-v1925:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-dtfs-media-v1925/run-physical-v1925.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-dtfs-media-v1925/run-bridge-v1925.sh

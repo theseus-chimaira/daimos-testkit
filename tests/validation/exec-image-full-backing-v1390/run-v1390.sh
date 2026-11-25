@@ -55,6 +55,7 @@ ASM
     --workdir "$work/guest" --name exec-image-full-backing-v1390 \
     --expect __test_exit=0 \
     "$testkit/tests/validation/daimos-test-crt0-v1.s" \
+    "$(dirname "$0")/../exec-image-common-v1386/pure-media-unused-v1925.s" \
     "$DAIMOS_REPO/system/kernel/proc/exec_image_common_v1386.s" \
     "$work/proc_pure_ram_v1381.s" \
     "$work/proc_pure_restore_v1384.s" \

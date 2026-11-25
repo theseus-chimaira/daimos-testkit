@@ -32,6 +32,7 @@ python3 "$testkit/tests/validation/exec-image-cutover-v1388/make-candidate-v1388
     --workdir "$work/guest" --name exec-image-cutover-v1388 \
     --expect __test_exit=0 \
     "$testkit/tests/validation/daimos-test-crt0-v1.s" \
+    "$(dirname "$0")/../exec-image-common-v1386/pure-media-unused-v1925.s" \
     "$work/exec-load-candidate-v1388.s" \
     "$DAIMOS_REPO/system/kernel/proc/exec_image_common_v1386.s" \
     "$work/backing-unused-v1388.s" \

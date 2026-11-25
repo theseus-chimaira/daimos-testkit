@@ -20,6 +20,7 @@ mkdir -p "$work"
     --examine diag_meta2_v1386 --examine diag_meta3_v1386 \
     --examine diag_rc_v1386 \
     "$testkit/tests/validation/daimos-test-crt0-v1.s" \
+    "$(dirname "$0")/../exec-image-common-v1386/pure-media-unused-v1925.s" \
     "$DAIMOS_REPO/system/kernel/proc/exec_image_common_v1386.s" \
     "$testkit/tests/validation/exec-image-common-v1386/backing-unused-v1386.s" \
     "$work/test-native-v1386.s"

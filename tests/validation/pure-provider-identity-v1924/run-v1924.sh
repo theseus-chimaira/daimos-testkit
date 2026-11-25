@@ -63,6 +63,7 @@ run_guest() {
     --workdir "$work/$name" --name "$name" \
     --expect __test_exit=0 \
     "$testkit/tests/validation/daimos-test-crt0-v1.s" \
+    "$(dirname "$0")/../exec-image-common-v1386/pure-media-unused-v1925.s" \
     "$image" \
     "$drop" \
     "$work/proc_pure_restore_v1384.s" \
