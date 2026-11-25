@@ -3275,3 +3275,8 @@ test-pure-load-reservation-v1933:
 test-pure-exec-handover-v1934:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-exec-handover-v1934/run-v1934.sh
+
+.PHONY: test-pure-lowmem-exec-v1935
+test-pure-lowmem-exec-v1935:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-lowmem-exec-v1935/run-v1935.sh

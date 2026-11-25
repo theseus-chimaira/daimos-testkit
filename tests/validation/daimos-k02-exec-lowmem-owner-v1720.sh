@@ -23,7 +23,7 @@ src="$DAIMOS_REPO/system/kernel/proc/exec_lowmem_pdp6.s"
         "$DAIMOS_REPO/system/kernel/proc/exec_load.s" | sed '$d'
 } > "$work/production.s"
 
-python3 - "$work/production.s" "$work/unsafe-map.s" "$work/unsafe-meta.s" <<'PY'
+python3 - "$work/production.s" "$work/unsafe-map.s" "$work/unsafe-release.s" <<'PY'
 from pathlib import Path
 import sys
 
@@ -33,15 +33,13 @@ guard = ('        move    1,1(15)\n'
          '        jrst    exec_lowmem_fatal_v1720\n')
 assert s.count(guard) == 1
 Path(sys.argv[2]).write_text(s.replace(guard, '', 1))
-restore = ('exec_lowmem_fatal:\n'
-           '        ; The replacement loader runs directly on the current descriptor.\n')
-assert s.count(restore) == 1
-restore_body = ('        move    1,EXEC_LM_META(17)\n'
-                '        movem   1,(15)\n'
-                '        movni   16,2')
-assert s.count(restore_body) == 1
+release = ('exec_lowmem_fatal:\n'
+           '        ; Live identity remains published even if VM teardown refused.\n'
+           '        ; Fatal EXIT owns the remaining VM and must not inherit a map hold.\n'
+           '        pushj   17,vm_user_mapping_release\n')
+assert s.count(release) == 1
 Path(sys.argv[3]).write_text(s.replace(
-    restore_body, '        movni   16,2', 1))
+    release, release.replace('        pushj   17,vm_user_mapping_release\n', ''), 1))
 PY
 
 run_case()
@@ -69,12 +67,12 @@ grep -q '^FAIL: __test_exit: got' "$work/unsafe-map.log" || {
     tail -55 "$work/unsafe-map.log" >&2
     exit 1
 }
-if run_case unsafe-meta "$work/unsafe-meta.s"; then
-    echo 'K02 v1720: lost fatal EXIT u-area owner unexpectedly passed' >&2
+if run_case unsafe-release "$work/unsafe-release.s"; then
+    echo 'K02 v1720: leaked fatal EXIT mapping hold unexpectedly passed' >&2
     exit 1
 fi
-grep -q '^FAIL: __test_exit: got' "$work/unsafe-meta.log" || {
-    tail -55 "$work/unsafe-meta.log" >&2
+grep -q '^FAIL: __test_exit: got' "$work/unsafe-release.log" || {
+    tail -55 "$work/unsafe-release.log" >&2
     exit 1
 }
-echo 'K02 v1720: lowmem EXEC VM_NONE fatal, u-area restore, 7 paths and 2 negative controls PASS'
+echo 'K02 v1720: lowmem EXEC VM_NONE fatal, stable u-area, mapping release, 7 paths and 2 negative controls PASS'

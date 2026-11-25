@@ -120,6 +120,11 @@ check_load:
         move    1,hold_calls
         movei   2,0
         caie    7,1
+        jrst    check_new_hold_v1935
+        movei   2,1
+check_new_hold_v1935:
+        cail    7,3
+        caile   7,6
         jrst    check_hold
         movei   2,1
 check_hold:
@@ -128,8 +133,13 @@ check_hold:
         move    1,release_calls
         movei   2,1
         caie    7,7
-        jrst    check_release
+        jrst    check_new_release_v1935
         setz    2,
+check_new_release_v1935:
+        cail    7,3
+        caile   7,6
+        jrst    check_release
+        movei   2,2
 check_release:
         came    1,2
         jrst    test_bad
@@ -172,7 +182,7 @@ test_good:
 
 ; Modes 1/2: old destruction refuses before/after VM_NONE publication.
 ; Mode 3: old destroyed, loader refuses before any replacement exists.
-; Mode 4: loader refuses after metadata has been scrubbed by rollback.
+; Mode 4: loader refuses after inner rollback, with stable metadata.
 ; Mode 5: old destroyed, replacement loaded and started successfully.
 ; Mode 6: replacement loads, startup fails, replacement VM is destroyed.
 ; Mode 7: allocation of the transient launch-copy fails before destruction.
@@ -285,10 +295,13 @@ exec_load_process:
         seto    1,
         popj    17,
 loader_partial:
-        ; Simulate the production loader replacing META with the entry,
-        ; and clearing its left half during an unsuccessful inner rollback.
-        movei   5,01234
-        movem   5,process_desc
+        ; The live loader must preserve META and return entry in AC2.
+        move    5,process_desc
+        came    5,expected_meta
+        setom   test_failure
+        move    5,stable_uarea+024
+        trnn    5,2
+        setom   test_failure
         caie    6,4
         jrst    loader_success
         setom   process_desc+1
@@ -299,6 +312,7 @@ loader_success:
         movem   5,process_desc+1
         movei   5,076543
         movem   5,swap_states+1
+        movei   2,01234
         setz    1,
         popj    17,
 

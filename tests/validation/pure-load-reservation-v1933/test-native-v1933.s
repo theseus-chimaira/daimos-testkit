@@ -282,6 +282,8 @@ kconst_1_1: .word 1,,1
 kconst_7_7: .word 7,,7
         .globl proc_current_slot
 proc_current_slot: .word 2
+        .globl proc_current_ptr
+proc_current_ptr: .word 0
         .globl file_table
 file_table: .word 0
         .globl fs_provider_ready
