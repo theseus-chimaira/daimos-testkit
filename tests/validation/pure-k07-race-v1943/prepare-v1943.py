@@ -80,4 +80,21 @@ source = source[:i] + """    if (p14_seed_secondary_v1643() != 0)
     return 0;
 }
 """
+# Expose real setup progress without changing its filesystem calls.
+# Lowercase markers cannot satisfy the uppercase race EXPECTs.
+for old, new in [
+    ("    src = dsys_open(p14_source_v1643, SYS_O_RDONLY);",
+     "    (void)dsys_writechar(1, 'j');\n    src = dsys_open(p14_source_v1643, SYS_O_RDONLY);"),
+    ("    for (;;) {\n        n = dsys_read_words(src, buffer, 0200U);",
+     "    (void)dsys_writechar(1, 'k');\n    for (;;) {\n        n = dsys_read_words(src, buffer, 0200U);"),
+    ("        if (dsys_write_words(dst, buffer, (unsigned int)n) != n) {\n            n = -1;\n            break;\n        }",
+     "        if (dsys_write_words(dst, buffer, (unsigned int)n) != n) {\n            n = -1;\n            break;\n        }\n        (void)dsys_writechar(1, 'c');"),
+    ("    if (dsys_chmod(p14_compressed_path, 0777U) != 0)",
+     "    (void)dsys_writechar(1, 'd');\n    if (dsys_chmod(p14_compressed_path, 0777U) != 0)"),
+    ("    if (dsys_unmount(p14_mount_v1643) != 0)\n        return -7;",
+     "    (void)dsys_writechar(1, 's');\n    if (dsys_unmount(p14_mount_v1643) != 0)\n        return -7;\n    (void)dsys_writechar(1, 'u');"),
+    ("    if (p14_seed_secondary_v1643() != 0)",
+     "    (void)dsys_writechar(1, 'i');\n    if (p14_seed_secondary_v1643() != 0)")]:
+    assert source.count(old) == 1, old
+    source = source.replace(old, new, 1)
 Path(sys.argv[2]).write_text(source, encoding="ascii")

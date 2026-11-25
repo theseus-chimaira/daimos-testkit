@@ -99,7 +99,7 @@ def main():
             start=0
             for i,(marker,label) in enumerate(stages):
                 t=wait("V1943_SCALARS_"+label,start)
-                assert marker+"V1943_STAGE_"+label in t, "missing actual guest marker "+marker
+                marker_ok = marker+"V1943_STAGE_"+label in t
                 d=words(t.split("V1943_STAGE_"+label,1)[1])
                 high=d[sym["proc_high_slot"]]
                 count=d[sym["mm_extent_count"]]
@@ -115,6 +115,9 @@ def main():
                     cmd+=examine(head,2)
                 start=send(cmd+"echo V1943_END_"+label+"\n")
                 wait("V1943_END_"+label,start)
+                # Preserve physical tables on an interrupted run, but
+                # never accept a monitor-generated label as a guest event.
+                assert marker_ok, "missing actual guest marker "+marker
                 print("v1943 checkpoint "+label+" clock "+
                       str(d[sym["proc_timer_clock"]])+" reservation "+
                       format(head,"06o"),flush=True)
