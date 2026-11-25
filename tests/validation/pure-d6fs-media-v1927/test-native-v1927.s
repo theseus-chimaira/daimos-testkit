@@ -57,6 +57,111 @@ proof_bad_marked_v1927:
         aoj     010,
         caig    010,014                ; 12 fault cases
         jrst    proof_loop_v1927
+        ; Ordinary failed read marks only its actual published reader.
+        movei   1,0300
+        movem   1,fail_case_v1927
+        move    1,[100200000005]
+        movem   1,bcache_workspace_tag
+        movem   1,cache_tag_v1927
+        movei   1,reader_v1927
+        movei   2,5
+        pushj   17,d6fs_reader_get_block
+        jumpn   1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,1
+        jrst    fail_v1927
+        move    1,media_v1927
+        caie    1,0777
+        jrst    fail_v1927
+        move    1,bcache_workspace_tag
+        came    1,[-1]
+        jrst    fail_v1927
+        move    1,cache_tag_v1927
+        came    1,[-1]
+        jrst    fail_v1927
+        skipe   stores_v1929
+        jrst    fail_v1927
+        ; A foreign UUID must not retire the ordinary read barrier.
+        movei   1,0301
+        movem   1,fail_case_v1927
+        movei   1,1
+        movem   1,raw_mode_v1927
+        pushj   17,prove_v1927
+        jumpge  1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,1
+        jrst    fail_v1927
+        setzm   raw_mode_v1927
+        pushj   17,prove_v1927
+        jumpn   1,fail_v1927
+        skipe   media_v1927+1
+        jrst    fail_v1927
+        ; A stale reader for the same public mount must not poison it.
+        movei   1,0302
+        movem   1,fail_case_v1927
+        movei   1,2
+        movem   1,reader_root_v1927+1
+        movei   1,reader_root_v1927
+        movei   2,2
+        pushj   17,d6fs_note_failure_v1929
+        skipe   media_v1927+1
+        jrst    fail_v1927
+        ; A write failure cannot be reconciled by matching volume ID.
+        movei   1,0303
+        movem   1,fail_case_v1927
+        movei   1,0100
+        iorm    1,reader_v1927+1
+        move    1,[100200000006]
+        movem   1,cache_tag_v1927
+        movei   1,reader_v1927
+        movei   2,5
+        pushj   17,d6fs_reader_commit_cache
+        jumpge  1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,2
+        jrst    fail_v1927
+        skipe   stores_v1929
+        jrst    fail_v1927
+        move    1,cache_tag_v1927
+        came    1,[-1]
+        jrst    fail_v1927
+        ; Inject a valid DIRTY selected superblock for the writable
+        ; fixture. Even a matching physical identity must refuse.
+        movei   1,1
+        movem   1,super_v1927+2
+        move    1,raw_reads_v1927
+        movem   1,saved_reads_v1929
+        movei   1,0304
+        movem   1,fail_case_v1927
+        pushj   17,prove_v1927
+        jumpge  1,fail_v1927
+        move    1,raw_reads_v1927
+        came    1,saved_reads_v1929
+        jrst    fail_v1927
+        move    1,media_v1927+1
+        caie    1,2
+        jrst    fail_v1927
+        ; Read failure adds its bit without consuming write uncertainty.
+        ; An independent private clean tag must remain unchanged.
+        move    1,[100100000007]
+        movem   1,cache_tag_v1927
+        movei   1,0305
+        movem   1,fail_case_v1927
+        movei   1,reader_v1927
+        movei   2,5
+        pushj   17,d6fs_reader_get_block
+        jumpn   1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,3
+        jrst    fail_v1927
+        move    1,cache_tag_v1927
+        came    1,[100100000007]
+        jrst    fail_v1927
+        ; Restore RO fixture policy to exercise the independent free
+        ; transaction below. This is NOT a production write recovery.
+        movei   1,0100
+        andcam  1,reader_v1927+1
+        setzm   super_v1927+2
         ; A refused free must retain reader and both identity halves.
         movei   1,0200
         movem   1,fail_case_v1927
@@ -118,6 +223,13 @@ prove_v1927:
         move    1,[060201012345]
         movei   6,030
         jrst    d6fs_mres_dispatch
+        .globl bcache_fetch
+        .globl bcache_store
+bcache_fetch:
+        jrst    kret_zero
+bcache_store:
+        aos     stores_v1929
+        jrst    kret_zero
         .globl fs_backing_direct_read
 fs_backing_direct_read:
         came    1,[1,,0400]
@@ -209,6 +321,8 @@ kret_neg1:
         seto    1,
         popj    17,
         .data
+        .globl vfs_namespace_root
+vfs_namespace_root: .word 060101000000
 raw_offsets_v1927:
         .word 0
         .word 1
@@ -292,3 +406,6 @@ published_v1927: .block 1
 freed_v1927: .block 1
 free_fail_v1927: .block 1
 __test_exit: .block 1
+
+stores_v1929: .block 1
+saved_reads_v1929: .block 1

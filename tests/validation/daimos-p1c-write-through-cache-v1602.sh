@@ -30,6 +30,7 @@ def extract(source, start, end):
     assert source.count(start) == 1 and source.count(end) == 1
     return source[source.index(start):source.index(end)]
 
+note = runtime[runtime.index('d6fs_note_failure_v1929:'):runtime.index('; AC1=reader; physically read')]
 restore = extract(runtime, 'd6fs_restore3:\n',
                   '        .globl  d6fs_reader_commit_cache\n')
 commit = extract(runtime, 'd6fs_reader_commit_cache:\n',
@@ -46,7 +47,7 @@ assert cache.count('bcache_workspace_tag:') == 1
 linked = ('.text\n.globl d6fs_reader_commit_cache\n'
           '.globl kcore_critical_media_root_halt_v1515\n'
           '.globl kcore_critical_media_swap_halt_v1515\n'
-          + restore + commit + adapter +
+          + restore + commit + note + adapter +
           gate[gate.index('kcore_root_fs_io_failure_v1538:\n'):]
           + '\n.globl bcache_state\n.globl bcache_workspace_tag\n'
           + cache)
@@ -70,11 +71,11 @@ for kind, selector in (('dsk', '2,,0100'),
 
 mutants = (
     ('skip-prewrite-invalidate',
-     'pushj   17,bcache_workspace_invalidate',
-     'pushj   17,kret_zero', 'dsk-failed'),
+     'pushj   17,bcache_workspace_invalidate\n        push    17,010',
+     'pushj   17,kret_zero\n        push    17,010', 'dsk-failed'),
     ('invalidate-independent-clean-slab',
-     'pushj   17,bcache_workspace_invalidate',
-     'pushj   17,bcache_invalidate_all', 'drm-failed'),
+     'pushj   17,bcache_workspace_invalidate\n        push    17,010',
+     'pushj   17,bcache_invalidate_all\n        push    17,010', 'drm-failed'),
     ('forge-failed-write-as-success',
      'jumpn   1,d6fs_reader_commit_io_error_v1538',
      'jumpe   1,d6fs_reader_commit_io_error_v1538', 'dsk-failed'),
@@ -89,18 +90,14 @@ for name, old, new, case in mutants:
     assert linked.count(old) == 1, 'source changed for mutant ' + name
     changed = linked.replace(old, new, 1)
     if name == 'publish-clean-on-failed-write':
-        # Deliberately insert a valid-looking clean tag even though the
-        # physical WRITE returned an error, then preserve the original
-        # owner classifier.  The unmodified native BCACHE oracle must
-        # catch this false clean publication.
-        anchor = 'd6fs_reader_commit_io_error_v1538:\n'
-        helper = ('d6fs_reader_commit_cache_bad_v1602:\n'
-                  '        move    1,012\n'
-                  '        movei   2,fs_block_workspace\n'
-                  '        pushj   17,bcache_store\n'
-                  '        jrst    d6fs_reader_commit_io_error_v1538\n')
-        assert changed.count(anchor) == 1
-        changed = changed.replace(anchor, helper + anchor, 1)
+        # The new failure invalidation would correctly discard a tag
+        # inserted before it. Publish the false clean tag AFTER it.
+        changed = linked.replace(
+            'd6fs_reader_commit_fail_saved:\n',
+            'd6fs_reader_commit_fail_saved:\n'
+            '        move    1,012\n'
+            '        movei   2,fs_block_workspace\n'
+            '        pushj   17,bcache_store\n', 1)
     (work / ('mutant-' + name + '-v1602.s')).write_text(changed)
     (work / ('mutant-case-' + name + '.txt')).write_text(case)
 (work / 'cases-v1602.txt').write_text('\n'.join(cases) + '\n')

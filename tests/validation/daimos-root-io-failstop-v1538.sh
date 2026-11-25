@@ -27,6 +27,7 @@ def extract(text, first, last):
 
 read = extract(runtime, 'd6fs_reader_get_block:\n',
                '        .globl  d6fs_reader_fcb\n')
+note = runtime[runtime.index('d6fs_note_failure_v1929:'): runtime.index('; AC1=reader; physically read') ]
 restore = extract(runtime, 'd6fs_restore3:\n',
                   '        .globl  d6fs_reader_commit_cache\n')
 write = extract(runtime, 'd6fs_reader_commit_cache:\n',
@@ -44,7 +45,7 @@ src = ('.text\n.globl d6fs_reader_get_block\n'
        '.globl d6fs_reader_commit_cache\n'
        '.globl kcore_critical_media_root_halt_v1515\n'
        '.globl kcore_critical_media_swap_halt_v1515\n'
-       + read + restore + write + bridge + gate)
+       + read + restore + write + bridge + gate + note)
 (work / 'linked-v1538.s').write_text(src)
 
 mutations = (

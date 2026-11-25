@@ -88,6 +88,7 @@ checks = {
     'unsafe-service': ('(service & MM_HALF_MASK) != (kword_t)(unsigned long)fs_mres_no_service', '1'),
     'unsafe-dtfs-poison': ('DTFS_MEDIA_WR_UNCERT_V1522 | DTFS_MEDIA_QUIESCING_V1562', 'DTFS_MEDIA_QUIESCING_V1562'),
     'unsafe-boundary': ('VFS_PROVIDER(root) != provider || VFS_MOUNT_ID(root) != mount + 1U', '0'),
+    'unsafe-d6fs-fault': ('|| dtfs_media_base[mount] ||', '||'),
     'unsafe-d6fs-reader': ('!d6fs_reader_slots_base || !d6fs_reader_slots_base[mount] ||', ''),
     'unsafe-tsfs-extent': ('!tsfs_file_shape_base[mount] || !tsfs_extent_media_base[mount]', '!tsfs_file_shape_base[mount]'),
 }
@@ -95,7 +96,7 @@ for name, (old, new) in checks.items():
     assert s.count(old) == 1, name
     (work/(name+'.c')).write_text(s.replace(old,new,1))
 PY
-for variant in unsafe-service unsafe-dtfs-poison unsafe-boundary unsafe-d6fs-reader unsafe-tsfs-extent; do
+for variant in unsafe-service unsafe-dtfs-poison unsafe-boundary unsafe-d6fs-reader unsafe-d6fs-fault unsafe-tsfs-extent; do
     "$KCC_BIN_V1392" -Pgnu99 -O -x=pdp6 -m=gas -DDAIMOS_SWAPLESS_PURE_RAM_V1381=1 $include -S "$work/$variant.c" -o "$work/$variant.s"
     if run_guest "$variant" "$DAIMOS_REPO/system/kernel/proc/exec_image_common_v1386.s" "$work/unpack-backing-v1390.s" "$work/$variant.s" > "$work/$variant.log" 2>&1; then
         echo "FAIL: $variant accepted" >&2; exit 1

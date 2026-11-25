@@ -107,6 +107,9 @@ test_dispatch_result_v1602:
         jrst    test_failed_cache_v1602
         jrst    test_fail_v1602
 test_failed_cache_v1602:
+        move    1,media_v1929+1
+        caie    1,2
+        jrst    test_fail_v1602
         move    1,bcache_workspace_tag
         camn    1,[-1]
         jrst    test_after_target_v1602
@@ -116,6 +119,8 @@ test_success_v1602:
         jrst    test_success_cache_v1602
         jrst    test_fail_v1602
 test_success_cache_v1602:
+        skipe   media_v1929+1
+        jrst    test_fail_v1602
         move    1,bcache_workspace_tag
         came    1,test_target_key_v1602
         jrst    test_fail_v1602
@@ -268,3 +273,16 @@ mfsdev_d6set_writes: .block 1
 mfsdev_storage_errors: .block 4
         .block 1
 __test_exit: .block 1
+
+        .data
+        .globl vfs_mount_limit
+        .globl d6fs_reader_slots_base
+        .globl dtfs_media_base
+vfs_mount_limit: .word 2
+d6fs_reader_slots_base: .word readers_v1929
+dtfs_media_base: .word media_v1929
+readers_v1929:
+        .word 0
+        .word secondary_reader_v1602
+        .bss
+media_v1929: .block 2

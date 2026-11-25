@@ -174,3 +174,17 @@ store_count_v1513: .block 1
 stage_v1513: .block 1
 fetch_count_v1513: .block 1
 __test_exit: .block 1
+
+        .data
+        .globl vfs_mount_limit
+        .globl d6fs_reader_slots_base
+        .globl dtfs_media_base
+        .globl bcache_state
+vfs_mount_limit: .word 0
+d6fs_reader_slots_base: .word 0
+dtfs_media_base: .word 0
+bcache_state: .word 0
+        .text
+        .globl bcache_workspace_invalidate
+bcache_workspace_invalidate:
+        popj    17,

@@ -119,3 +119,13 @@ fs_block_workspace: .block 0200
 store_count_v1538: .block 1
 read_count_v1538: .block 1
 __test_exit: .block 1
+
+        .data
+        .globl vfs_mount_limit
+        .globl d6fs_reader_slots_base
+        .globl dtfs_media_base
+        .globl bcache_state
+vfs_mount_limit: .word 0
+d6fs_reader_slots_base: .word 0
+dtfs_media_base: .word 0
+bcache_state: .word 0

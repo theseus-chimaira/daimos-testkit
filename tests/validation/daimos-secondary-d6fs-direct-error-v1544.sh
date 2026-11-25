@@ -27,6 +27,7 @@ def extract(src, first, last):
 
 read = extract(runtime, 'd6fs_reader_get_block:\n',
                '        .globl  d6fs_reader_fcb\n')
+note = runtime[runtime.index('d6fs_note_failure_v1929:'):runtime.index('; AC1=reader; physically read')]
 restore = extract(runtime, 'd6fs_restore3:\n',
                   '        .globl  d6fs_reader_commit_cache\n')
 write = extract(runtime, 'd6fs_reader_commit_cache:\n',
@@ -41,7 +42,7 @@ source = ('.text\n.globl d6fs_reader_get_block\n'
           '.globl d6fs_reader_commit_cache\n'
           '.globl kcore_critical_media_root_halt_v1515\n'
           '.globl kcore_critical_media_swap_halt_v1515\n'
-          + read + restore + write + adapter + gate)
+          + read + restore + write + adapter + gate + note)
 (work / 'linked-v1544.s').write_text(source)
 
 # Actual D6FS root public mount 1 and secondary mount 2. Each opaque

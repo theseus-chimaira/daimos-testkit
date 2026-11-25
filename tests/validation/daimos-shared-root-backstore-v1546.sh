@@ -28,6 +28,7 @@ def part(text, start, end):
 
 read = part(fs, 'd6fs_reader_get_block:\n',
             '        .globl  d6fs_reader_fcb\n')
+note = fs[fs.index('d6fs_note_failure_v1929:'):fs.index('; AC1=reader; physically read')]
 restore = part(fs, 'd6fs_restore3:\n',
                '        .globl  d6fs_reader_commit_cache\n')
 storage = part(swap, 'backstore_read:\n', 'blockset_tail_blocks:\n')
@@ -42,7 +43,7 @@ golden = ('.text\n.globl d6fs_reader_get_block\n.globl backstore_read\n'
           '.globl kcore_critical_device_lost_v1515\n'
           '.globl kcore_critical_media_root_halt_v1515\n'
           '.globl kcore_critical_media_swap_halt_v1515\n'
-          + read + restore + adapter + storage + gate)
+          + read + restore + adapter + storage + gate + note)
 (work / 'linked-v1546.s').write_text(golden)
 fixture = (tests / 'daimos-shared-root-backstore-v1546.s').read_text()
 settings = {

@@ -3241,3 +3241,10 @@ test-pure-d6fs-media-v1927:
 test-pure-tsfs-media-v1928:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-tsfs-media-v1928/run-v1928.sh
+
+.PHONY: test-pure-d6fs-loss-v1929
+test-pure-d6fs-loss-v1929:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-drop-availability-v1926/run-v1926.sh
