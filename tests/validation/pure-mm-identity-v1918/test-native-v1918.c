@@ -104,7 +104,8 @@ case_v1918(unsigned int kind)
         base = kind == 3U || kind == 6U ? SOURCE : SOURCE + OMIT;
         words = kind == 3U || kind == 6U ? WORDS : SUFFIX;
         escrow = kind == 4U || kind == 6U ?
-            PROC_PURE_FULL_ESCROW_V1917(SOURCE + OMIT, 0UL) : 0UL;
+            PROC_PURE_INPLACE_ESCROW_V1919(SOURCE + OMIT,
+                PROC_PURE_PREFIX_TAG_V1919) : 0UL;
         if (MM_EXTENT_TYPE(&mm_extents[0]) != type ||
             MM_EXTENT_OWNER(&mm_extents[0]) != owner ||
             MM_EXTENT_PINS(&mm_extents[0]) != pins ||
