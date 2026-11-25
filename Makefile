@@ -3280,3 +3280,8 @@ test-pure-exec-handover-v1934:
 test-pure-lowmem-exec-v1935:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-lowmem-exec-v1935/run-v1935.sh
+
+.PHONY: test-pure-namespace-epoch-v1936
+test-pure-namespace-epoch-v1936:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-namespace-epoch-v1936/run-v1936.sh

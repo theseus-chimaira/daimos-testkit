@@ -330,8 +330,12 @@ ordinary_poison_v1930:
         ; provider return and clear it only after root unpublication.
         movei   1,0504
         movem   1,fail_case_v1927
+        setzm   fs_namespace_epoch_v1936
         pushj   17,unmount_v1931
         jumpn   1,fail_v1927
+        move    1,fs_namespace_epoch_v1936
+        caie    1,1
+        jrst    fail_v1927
         skipe   bad_admission_v1931
         jrst    fail_v1927
         skipe   roots_v1931+1
@@ -731,3 +735,7 @@ clean_test_v1931: .block 1
 clean_fail_v1931: .block 1
 selected_a_v1931: .block 1
 inject_write_busy_v1931: .block 1
+
+        .bss
+        .globl fs_namespace_epoch_v1936
+fs_namespace_epoch_v1936: .block 1

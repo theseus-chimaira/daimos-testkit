@@ -166,3 +166,7 @@ unlock_count_v1560: .word 0
 retire_count_v1560: .word 0
         .bss
 __test_exit: .block 1
+
+        .bss
+        .globl fs_namespace_epoch_v1936
+fs_namespace_epoch_v1936: .block 1

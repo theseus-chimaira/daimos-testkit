@@ -274,3 +274,7 @@ pipe_checks_v1523: .block 1
 swap_checks_v1523: .block 1
 stage_v1523: .block 1
 __test_exit: .block 1
+
+        .bss
+        .globl fs_namespace_epoch_v1936
+fs_namespace_epoch_v1936: .block 1

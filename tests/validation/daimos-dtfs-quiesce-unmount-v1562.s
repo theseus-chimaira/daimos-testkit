@@ -157,3 +157,7 @@ sync_count_v1562: .block 1
 unlock_count_v1562: .block 1
 bad_audit_v1562: .block 1
 __test_exit: .block 1
+
+        .bss
+        .globl fs_namespace_epoch_v1936
+fs_namespace_epoch_v1936: .block 1
