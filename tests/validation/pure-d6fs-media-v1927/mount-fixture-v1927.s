@@ -49,3 +49,12 @@ fs_block_workspace: .block 0200
 uuid_media_v1927: .block 4
 uuid_shape_v1927: .block 4
 uuid_extent_v1927: .block 4
+
+; This isolated mount fixture has no allocated private BCACHE slab.
+        .data
+        .globl bcache_state
+bcache_state: .word 0
+        .text
+        .globl bcache_workspace_invalidate
+bcache_workspace_invalidate:
+        popj    17,

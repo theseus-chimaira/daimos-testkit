@@ -117,3 +117,9 @@ reader2:
         .block  1
 __test_exit:
         .block  1
+
+        .data
+        .globl dtfs_media_base
+dtfs_media_base: .word media_v1930
+        .bss
+media_v1930: .block 4

@@ -86,15 +86,33 @@ proof_bad_marked_v1927:
         movem   1,fail_case_v1927
         movei   1,1
         movem   1,raw_mode_v1927
-        pushj   17,prove_v1927
+        pushj   17,ordinary_v1930
         jumpge  1,fail_v1927
+        skipe   dispatches_v1930
+        jrst    fail_v1927
         move    1,media_v1927+1
         caie    1,1
         jrst    fail_v1927
         setzm   raw_mode_v1927
-        pushj   17,prove_v1927
+        pushj   17,ordinary_v1930
         jumpn   1,fail_v1927
         skipe   media_v1927+1
+        jrst    fail_v1927
+        move    1,dispatches_v1930
+        caie    1,1
+        jrst    fail_v1927
+        ; Healthy dispatch must not reread the header.
+        movei   1,0400
+        movem   1,fail_case_v1927
+        move    1,raw_reads_v1927
+        movem   1,saved_reads_v1929
+        pushj   17,ordinary_v1930
+        jumpn   1,fail_v1927
+        move    1,raw_reads_v1927
+        came    1,saved_reads_v1929
+        jrst    fail_v1927
+        move    1,dispatches_v1930
+        caie    1,2
         jrst    fail_v1927
         ; A stale reader for the same public mount must not poison it.
         movei   1,0302
@@ -137,6 +155,48 @@ proof_bad_marked_v1927:
         jumpge  1,fail_v1927
         move    1,raw_reads_v1927
         came    1,saved_reads_v1929
+        jrst    fail_v1927
+        move    1,media_v1927+1
+        caie    1,2
+        jrst    fail_v1927
+        ; No normal request, including SYNC, REMOUNT or PREPARE, may
+        ; proceed with uncertain writes. Keep the reader published.
+        movei   1,0401
+        movem   1,fail_case_v1927
+        movei   010,1
+ordinary_poison_v1930:
+        move    6,010
+        move    1,[060201012345]
+        pushj   17,d6fs_mres_dispatch
+        jumpge  1,fail_v1927
+        aoj     010,
+        caig    010,020
+        jrst    ordinary_poison_v1930
+        movei   6,024
+        move    1,[060201012345]
+        pushj   17,d6fs_mres_dispatch
+        jumpge  1,fail_v1927
+        move    1,dispatches_v1930
+        caie    1,2
+        jrst    fail_v1927
+        move    1,reader_slots_v1927+1
+        caie    1,reader_v1927
+        jrst    fail_v1927
+        move    1,raw_reads_v1927
+        came    1,saved_reads_v1929
+        jrst    fail_v1927
+        ; Raw recovery remains separately privileged by the syscall.
+        ; A direct call uses a caller buffer, not the provider workspace.
+        movei   1,0402
+        movem   1,fail_case_v1927
+        move    1,[060201012345]
+        movei   2,021
+        movei   3,recovery_buf_v1930
+        movei   6,026
+        pushj   17,d6fs_mres_dispatch
+        jumpn   1,fail_v1927
+        move    1,recovery_buf_v1930
+        came    1,super_v1927
         jrst    fail_v1927
         move    1,media_v1927+1
         caie    1,2
@@ -223,6 +283,14 @@ prove_v1927:
         move    1,[060201012345]
         movei   6,030
         jrst    d6fs_mres_dispatch
+ordinary_v1930:
+        move    1,[060201012345]
+        movei   2,022
+        movei   3,033
+        movei   4,044
+        movei   5,055
+        movei   6,015
+        jrst    d6fs_mres_dispatch
         .globl bcache_fetch
         .globl bcache_store
 bcache_fetch:
@@ -236,6 +304,12 @@ fs_backing_direct_read:
         jrst    kret_neg1
         caie    2,021                  ; selected B, not A
         jrst    kret_neg1
+        caie    3,recovery_buf_v1930
+        jrst    raw_workspace_v1930
+        move    5,[super_v1927,,recovery_buf_v1930]
+        blt     5,recovery_buf_v1930+017
+        jrst    kret_zero
+raw_workspace_v1930:
         caie    3,fs_block_workspace
         jrst    kret_neg1
         aos     raw_reads_v1927
@@ -308,6 +382,20 @@ bcache_reclaim:
         .globl d6fs_provider_toggle_state
         .globl proc_swap_storage_invariant_v30
 fs_mres_vector_dispatch:
+        aos     dispatches_v1930
+        came    1,[060201012345]
+        jrst    kret_neg1
+        caie    2,022
+        jrst    kret_neg1
+        caie    3,033
+        jrst    kret_neg1
+        caie    4,044
+        jrst    kret_neg1
+        caie    5,055
+        jrst    kret_neg1
+        caie    6,015
+        jrst    kret_neg1
+        jrst    kret_zero
 d6fs_provider_space:
 d6fs_provider_toggle_state:
 proc_swap_storage_invariant_v30:
@@ -409,3 +497,6 @@ __test_exit: .block 1
 
 stores_v1929: .block 1
 saved_reads_v1929: .block 1
+
+dispatches_v1930: .block 1
+recovery_buf_v1930: .block 0200
