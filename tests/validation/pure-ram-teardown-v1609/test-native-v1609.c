@@ -33,6 +33,9 @@ struct proc *proc_table = process_v1609;
 struct mm_extent mm_extents[MM_MAX_EXTENTS];
 int mm_extent_count;
 unsigned int mm_extent_capacity = MM_MAX_EXTENTS;
+kword_t mm_core_words = 0100000UL;
+kword_t mm_arenas[MM_MAX_ARENAS] = { (040000UL << 18U) | 040000UL };
+int mm_arena_count = 1;
 static int free_count_v1609;
 static int refuse_free_v1609;
 static int disk_free_count_v1609;
@@ -145,6 +148,9 @@ prepare_v1609(void)
         u[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
         mm_extent_count = 0;
         mm_extent_capacity = MM_MAX_EXTENTS;
+        mm_core_words = 0100000UL;
+        mm_arena_count = 1;
+        mm_arenas[0] = (040000UL << 18U) | 040000UL;
         add_extent_v1609(V1609_BASE, V1609_RAW,
             MM_TYPE_PACKED_PROCESS, V1609_SLOT, 0U);
         free_count_v1609 = 0;

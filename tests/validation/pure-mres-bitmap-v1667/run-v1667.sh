@@ -81,7 +81,7 @@ run_guest() {
         "$work/test.s" "$work/kcore.s" "$dispatch" \
         "$work/terminal.s" "$work/pure-entry.s" \
         "$work/raw-terminal.s" "$work/vm-leaf.s" \
-        "$src/proc/proc_storage_runtime_v30.s" \
+        "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
         "$src/core/ret.s" "$src/drivers/device_state.s" \
         >"$log" 2>&1
 }

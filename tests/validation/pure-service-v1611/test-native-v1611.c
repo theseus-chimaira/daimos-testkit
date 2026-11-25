@@ -160,6 +160,25 @@ check_retained_v1611(void)
             check_suffix_v1384();
 }
 
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+static int
+test_reclaim_geometry_v1922(void)
+{
+        struct proc *p = &process_slots[SLOT];
+        reset_service_v1611();
+        mm_arena_count = MM_MAX_ARENAS + 1;
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) != MM_ERR_INVAL ||
+            compact_calls_v1611 || PROC_TRANSITION(p) || mm_extent_count != 1)
+                return 1;
+        mm_extent_count = 0;
+        if (proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U) != MM_ERR_INVAL ||
+            compact_calls_v1611 || pi_depth_v1381 ||
+            pi_disable_count_v1381 != pi_restore_count_v1381)
+                return 2;
+        return 0;
+}
+#endif
+
 static int
 test_drop_wake_v1611(unsigned int fallback)
 {
@@ -419,6 +438,11 @@ int
 main(void)
 {
         int rc;
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+        rc = test_reclaim_geometry_v1922();
+        if (rc)
+                return 06000 + rc;
+#endif
 
         rc = test_drop_wake_v1611(0U);
         if (rc)

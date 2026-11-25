@@ -29,7 +29,7 @@ inc="-I$src/proc -I$src/core -I$src/mm -I$src/fs -I$src/storage -I$src/modules -
     "$work/production-parent-v1807.s" \
     "$work/production-pi-v1807.s" \
     "$work/original-mm.s" "$work/original-pure-term.s" \
-    "$work/actual-detach.s" "$src/proc/proc_storage_runtime_v30.s" \
+    "$work/actual-detach.s" "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$work/term-entry.s" "$work/test-fixture.s" >"$work/guest.log" 2>&1 || {
     tail -65 "$work/guest.log"; exit 1;
 }
@@ -89,7 +89,7 @@ run_mutant_v1681()
         "$work/production-parent-v1807.s" \
         "$work/production-pi-v1807.s" \
         "$mm" "$work/original-pure-term.s" \
-        "$work/actual-detach.s" "$src/proc/proc_storage_runtime_v30.s" \
+        "$work/actual-detach.s" "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
         "$work/term-entry.s" "$work/test-fixture.s" >"$log" 2>&1; then
         echo "FAIL v1681: unsafe original source $name passed" >&2
         exit 1

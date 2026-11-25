@@ -90,6 +90,21 @@ terminal_case_v1920(unsigned int kind)
         case 23U: /* Terminal identity tag without a physical source. */
                 u[PROC_FINALIZE_OFFSET] = PROC_PURE_TERM_TAG_V1920;
                 break;
+        case 24U: /* Current owner is outside managed core. */
+                mm_arenas[0] = (02000UL << 18U) | 060000UL;
+                break;
+        case 25U: /* Oversized arena table. */
+                mm_arena_count = MM_MAX_ARENAS + 1;
+                break;
+        case 26U: /* Exact absence is insufficient in unmanaged core. */
+                mm_extent_count = 0;
+                u[PROC_FINALIZE_OFFSET] = PROC_PURE_TERM_ESCROW_V1920(V1609_BASE);
+                mm_arenas[0] = (02000UL << 18U) | 060000UL;
+                break;
+        case 27U: /* Valid source followed by a malformed arena. */
+                mm_arena_count = 2;
+                mm_arenas[1] = 0UL;
+                break;
         }
         marker = u[PROC_FINALIZE_OFFSET];
         span = mm_extents[0].span;
@@ -165,7 +180,7 @@ main(void)
 {
         unsigned int kind;
         int rc;
-        for (kind = 1U; kind <= 23U; ++kind) {
+        for (kind = 1U; kind <= 27U; ++kind) {
                 rc = terminal_case_v1920(kind);
                 if (rc)
                         return (int)(kind * 0100U) + rc;

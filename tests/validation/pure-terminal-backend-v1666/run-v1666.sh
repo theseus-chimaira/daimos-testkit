@@ -100,7 +100,7 @@ PY
     "$work/kcore-detach.s" "$work/vm-leaf.s" \
     "$work/disk-entry.s" "$work/disk-terminal.s" \
     "$work/pure-terminal.s" "$src/core/ret.s" \
-    "$src/proc/proc_storage_runtime_v30.s" \
+    "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" "$work/test.s" \
     >"$work/native.log" 2>&1 || {
     tail -65 "$work/native.log" >&2; exit 1;
@@ -115,7 +115,7 @@ echo 'v1666: production KCORE detach + source-extracted disk MRES native PASS'
     "$work/kcore-detach.s" "$work/vm-leaf.s" \
     "$work/default-entry.s" "$work/disk-terminal.s" \
     "$work/pure-terminal.s" "$src/core/ret.s" \
-    "$src/proc/proc_storage_runtime_v30.s" \
+    "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" "$work/test-no-backend.s" \
     >"$work/no-backend.log" 2>&1 || {
     tail -65 "$work/no-backend.log" >&2; exit 1;
@@ -131,7 +131,7 @@ if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     "$work/kcore-detach.s" "$work/vm-leaf.s" \
     "$work/unsafe-default.s" "$work/disk-terminal.s" \
     "$work/pure-terminal.s" "$src/core/ret.s" \
-    "$src/proc/proc_storage_runtime_v30.s" \
+    "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" "$work/test-no-backend.s" \
     >"$work/default-mutant.log" 2>&1; then
     echo 'FAIL v1666: absent backend returned successful detach' >&2
@@ -163,7 +163,7 @@ if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     "$work/kcore-detach.s" "$work/vm-leaf.s" \
     "$work/disk-entry.s" "$work/unsafe-mode.s" \
     "$work/pure-terminal.s" "$src/core/ret.s" \
-    "$src/proc/proc_storage_runtime_v30.s" \
+    "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" "$work/test.s" \
     >"$work/mutant.log" 2>&1; then
     echo 'FAIL v1666: disk MRES released live APR owner' >&2

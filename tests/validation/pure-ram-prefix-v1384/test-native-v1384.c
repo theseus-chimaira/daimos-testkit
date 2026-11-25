@@ -34,9 +34,7 @@ extern int proc_pure_restore_v1384(unsigned int,
     int (*)(kword_t, kword_t, kword_t, kword_t));
 #define PROC_PURE_PREFIX_FALLBACK_V1384 1
 
-/* The low-level MM test fixture otherwise does not need arena geometry. */
-kword_t mm_arenas[MM_MAX_ARENAS];
-int mm_arena_count;
+/* Managed arenas are supplied by the common v1377 fixture. */
 
 static int fail_plain_v1384;
 static unsigned int prefix_reads_v1384;
@@ -155,7 +153,7 @@ test_negative_mm_v1384(void)
         old_meta = mm_extents[0].meta;
         rc = mm_pure_claim_prefix_v1384(SOURCE + OMIT, SLOT,
             OMIT, WORDS);
-        if (rc != MM_ERR_FRAGMENTED ||
+        if (rc != MM_ERR_INVAL ||
             !check_no_mutation_v1381(old_span, old_meta))
                 return 10;
         mm_arena_count = 1;

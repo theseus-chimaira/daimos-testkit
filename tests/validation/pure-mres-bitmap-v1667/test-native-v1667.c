@@ -11,7 +11,7 @@ extern int proc_pure_term_v1667(int, struct proc *, kword_t);
 
 #define ENCODED_V1667 045UL
 
-unsigned int mm_extent_capacity = MM_MAX_EXTENTS;
+/* Descriptor capacity and managed core come from v1609. */
 kword_t proc_current_slot;
 static unsigned int pi_depth_v1667;
 

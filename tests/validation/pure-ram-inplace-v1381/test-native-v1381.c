@@ -205,6 +205,8 @@ bad_inputs_v1381(void)
          * the 18-bit address range), NOT 0400000. Verify both boundary
          * acceptance and one-word-overflow rejection against actual ASM.
          */
+        mm_core_words = 01000000UL;
+        mm_arenas[0] = (02000UL << 18U) | 0776000UL;
         mm_extents[0].span = (WORDS << 18U) | 0776000UL;
         mm_extents[0].meta = ((kword_t)MM_TYPE_PROCESS <<
             MM_TYPE_SHIFT) | SLOT |
@@ -226,6 +228,8 @@ bad_inputs_v1381(void)
         if (rc != MM_ERR_INVAL ||
             !check_no_mutation_v1381(old_span, old_meta))
                 return 11;
+        mm_core_words = 0100000UL;
+        mm_arenas[0] = (040000UL << 18U) | 040000UL;
         return 0;
 }
 

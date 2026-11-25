@@ -59,7 +59,7 @@ EOF
     "$work/pure-terminal-entry-v1666.s" \
     "$work/packed-detach-v1609.s" \
     "$src/core/ret.s" \
-    "$src/proc/proc_storage_runtime_v30.s" \
+    "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" \
     "$work/test-native-v1609.s"
 
@@ -86,7 +86,7 @@ if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     "$work/vm-pdp6-swap-v1609.s" "$work/vm-leaf-v1609.s" \
     "$work/pure-terminal-entry-v1666.s" \
     "$work/unsafe-no-pin-guard-v1680.s" \
-    "$src/core/ret.s" "$src/proc/proc_storage_runtime_v30.s" \
+    "$src/core/ret.s" "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" \
     "$work/test-native-v1609.s" >"$work/unsafe.log" 2>&1; then
     echo 'FAIL v1680: unsafe pinned owner still called MM_FREE' >&2

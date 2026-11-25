@@ -94,6 +94,13 @@ mm_extents: .block 020
 mm_extent_count: .word 0
 .globl mm_extent_capacity
 mm_extent_capacity: .word 010
+.globl mm_core_words
+mm_core_words: .word 0100000
+.globl mm_arenas
+mm_arenas: .word 040000,,040000
+ .block 2
+.globl mm_arena_count
+mm_arena_count: .word 1
 __records_v1681: .block 4
 __modes_v1681: .word 0
 .globl vfs_mount_limit

@@ -15,7 +15,8 @@ static unsigned int pin_kind_v1855;
 static unsigned int pin_hits_v1855;
 static unsigned int bystander_hits_v1855;
 static unsigned int create_bystander_v1855;
-#define BYSTANDER_BASE_V1855 0100000UL
+/* Keep the independent bystander in the managed fixture arena. */
+#define BYSTANDER_BASE_V1855 070000UL
 #define BYSTANDER_WORDS_V1855 0200UL
 #define BYSTANDER_OWNER_V1855 (SLOT + 1U)
 /* Outside the real eight-bit pin field: no temporary APR is expected. */

@@ -51,14 +51,14 @@ checks={
     'unsafe-source-unpin': ('        target_pinned = 0;\n        if (proc_pure_full_owners_v1917(slot, source, raw, target, words,\n            1U, 0U) != 3)\n                goto uncertain;','        target_pinned = 0;'),
     'unsafe-rollback-free': ('        if (proc_pure_full_owners_v1917(slot, source, raw, target, words,\n            source_uncertain ? 2U : (unsigned int)source_pinned, 0U) != 3)\n                goto uncertain;',''),
     'unsafe-free-success': ('        switch (pram_source_free_reply_v1839(slot, source, raw, target, words)) {', '        if (rc != MM_OK) switch (pram_source_free_reply_v1839(slot, source, raw, target, words)) {'),
-    'unsafe-full-order': ('base < end || ', ''),
+    'unsafe-full-order': ('mm_pure_table_v1922() != MM_OK ||', ''),
 }
 for name,(old,new) in checks.items():
     assert f.count(old)==1,name
     (work/(name+'.c')).write_text(f.replace(old,new,1))
-old='start < end || '
+old='mm_pure_table_v1922() != MM_OK'
 assert d.count(old)==1
-(work/'unsafe-sole-order.c').write_text(d.replace(old,'',1))
+(work/'unsafe-sole-order.c').write_text(d.replace(old,'0',1))
 PY
 for name in unsafe-source-pin unsafe-target-pin unsafe-source-unpin unsafe-rollback-free unsafe-free-success unsafe-full-order unsafe-sole-order; do
     drop=$work/drop.s

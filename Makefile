@@ -3200,3 +3200,8 @@ test-pure-terminal-finalizer-v1920:
 test-pure-mm-geometry-v1921:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-mm-geometry-v1921/run-v1921.sh
+
+.PHONY: test-pure-mm-arena-v1922
+test-pure-mm-arena-v1922:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-mm-arena-v1922/run-v1922.sh

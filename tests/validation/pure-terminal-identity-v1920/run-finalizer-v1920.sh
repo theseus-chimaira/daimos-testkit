@@ -54,7 +54,7 @@ run_guest() {
     name=$1
     finalizer=$2
     "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode step --start 1000 --step-limit 350000 --timeout 45 --workdir "$work/$name" --name "$name" --expect __test_exit=0 \
-        "$kit/tests/validation/daimos-test-crt0-v1.s" "$finalizer" "$work/original-vm-destroy.s" "$work/parent.s" "$work/pi.s" "$work/original-mm.s" "$work/original-pure-term.s" "$work/detach.s" "$src/proc/proc_storage_runtime_v30.s" "$work/term-entry.s" "$work/test-fixture.s"
+        "$kit/tests/validation/daimos-test-crt0-v1.s" "$finalizer" "$work/original-vm-destroy.s" "$work/parent.s" "$work/pi.s" "$work/original-mm.s" "$work/original-pure-term.s" "$work/detach.s" "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" "$work/term-entry.s" "$work/test-fixture.s"
 }
 run_guest pure-terminal-finalizer-v1920 "$work/original-finalizer.s"
 if run_guest unsafe-escrow-v1920 "$work/unsafe-finalizer.s" > "$work/unsafe.log" 2>&1; then

@@ -49,10 +49,10 @@ run_guest() {
     name=$1
     leaf=$2
     "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode go --start 1000 --timeout 30 --workdir "$work/$name" --name "$name" --expect __test_exit=0 \
-        "$kit/tests/validation/daimos-test-crt0-v1.s" "$work/swap.s" "$work/vm.s" "$work/entry.s" "$leaf" "$src/core/ret.s" "$src/proc/proc_storage_runtime_v30.s" "$src/drivers/device_state.s" "$work/test.s"
+        "$kit/tests/validation/daimos-test-crt0-v1.s" "$work/swap.s" "$work/vm.s" "$work/entry.s" "$leaf" "$src/core/ret.s" "$src/mm/mm_pure_rebase_v1381.s" "$src/proc/proc_storage_runtime_v30.s" "$src/drivers/device_state.s" "$work/test.s"
 }
 run_guest pure-terminal-v1920 "$work/terminal.s"
-echo 'PASS v1920 23 terminal owner cases'
+echo 'PASS v1920 27 terminal owner/arena cases'
 # Every unsafe variant must fail a real guest assertion.
 python3 - "$work/terminal.s" "$work" <<'PY'
 from pathlib import Path
@@ -61,7 +61,7 @@ p, work = map(Path, sys.argv[1:])
 s=p.read_text()
 mutants={
     'unsafe-marker': ('        tlne    6,040000               ; nonterminal retry/escrow\n        jrst    ppure_detach_bad_early_v1900', '        move    6,6'),
-    'unsafe-geometry': ('        camge   7,012                   ; sorted and nonoverlapping\n        jrst    ppure_detach_scan_bad_v1920', '        move    7,7'),
+    'unsafe-geometry': ('        pushj   17,mm_pure_table_v1922\n        pop     17,0\n        jumpn   1,ppure_detach_scan_bad_v1920', '        pop     17,0'),
     'unsafe-success': ('        movei   0,2\n        pushj   17,ppure_detach_scan_v1920\n        jumpn   1,ppure_detach_bad_v1609', '        jumpe   1,ppure_detach_publish_v1900\n        movei   0,2\n        pushj   17,ppure_detach_scan_v1920\n        jumpn   1,ppure_detach_bad_v1609'),
     'unsafe-replacement': ('        came    7,016                   ; never adopt a replacement\n        jrst    ppure_detach_scan_bad_v1920', '        move    7,7'),
     'unsafe-post-overlap': ('        camle   012,016\n        jrst    ppure_detach_scan_bad_v1920', '        move    012,012'),
