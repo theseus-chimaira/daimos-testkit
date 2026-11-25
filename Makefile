@@ -3205,3 +3205,8 @@ test-pure-mm-geometry-v1921:
 test-pure-mm-arena-v1922:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-mm-arena-v1922/run-v1922.sh
+
+.PHONY: test-pure-backing-identity-v1923
+test-pure-backing-identity-v1923:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-backing-identity-v1923/run-v1923.sh

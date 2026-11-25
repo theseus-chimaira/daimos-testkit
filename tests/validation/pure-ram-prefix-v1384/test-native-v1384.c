@@ -464,6 +464,10 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
                       read_mode_v1385 == 4) ?
                         EXEC_DXR_F_COMPRESSED : 0UL);
 #endif
+#ifdef DAIMOS_TEST_BACKING_IDENTITY_V1923
+                if (read_mode_v1385 == 8)
+                        buf[1] &= ~EXEC_DXR_F_PURE;
+#endif
                 /* The v1386 inspector requests only TWO words here.
                  * Writing a third would violate the VFS count contract
                  * and corrupt adjacent caller-owned stack scratch.
@@ -477,6 +481,10 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
         }
 #ifdef DAIMOS_TEST_SHARED_IMAGE_V1387
         if (off == 2U && count == 1U) {
+#ifdef DAIMOS_TEST_BACKING_IDENTITY_V1923
+                if (read_mode_v1385 == 9)
+                        roots_v1385[VFS_MOUNT_ID(node) - 1U] ^= 1UL;
+#endif
                 buf[0] = ((kword_t)TEXT << 18U) |
                     (read_mode_v1385 == 3 ? 0UL : EXEC_DXR_TEXT_TAG);
                 return 1;
@@ -491,6 +499,15 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
                         if (read_mode_v1385 == 1 && i == 010U)
                                 return (int)i;
                 }
+#ifdef DAIMOS_TEST_BACKING_IDENTITY_V1923
+                if (read_mode_v1385 == 10)
+                        roots_v1385[VFS_MOUNT_ID(node) - 1U] ^= 1UL;
+                if (read_mode_v1385 == 11)
+                        roots_v1385[VFS_MOUNT_ID(node) - 1U] = 0UL;
+                if (read_mode_v1385 == 12)
+                        roots_v1385[VFS_MOUNT_ID(node) - 1U] ^=
+                            (kword_t)1UL << VFS_PROVIDER_SHIFT;
+#endif
                 return (int)count;
         }
 #ifdef DAIMOS_TEST_SHARED_FULL_V1390
@@ -502,6 +519,15 @@ vfs_read_words(vnode_t node, unsigned int off, kword_t *buf,
                         return (int)count - 1; /* partial RAW swap read */
                 for (i = 0U; i < count; ++i)
                         buf[i] = TEXT_PATTERN;
+#ifdef DAIMOS_TEST_BACKING_IDENTITY_V1923
+                if (read_mode_v1385 == 10)
+                        roots_v1385[VFS_MOUNT_ID(node) - 1U] ^= 1UL;
+                if (read_mode_v1385 == 11)
+                        roots_v1385[VFS_MOUNT_ID(node) - 1U] = 0UL;
+                if (read_mode_v1385 == 12)
+                        roots_v1385[VFS_MOUNT_ID(node) - 1U] ^=
+                            (kword_t)1UL << VFS_PROVIDER_SHIFT;
+#endif
                 return (int)count;
         }
         if (read_mode_v1385 == 7 && off == 3U &&

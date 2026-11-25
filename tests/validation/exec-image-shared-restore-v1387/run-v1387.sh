@@ -36,6 +36,13 @@ done
         "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" |
         sed '$d'
 } > "$work/unpack-backing-v1387.s"
+# Historical prefix fixture exports the pre-v1464 codec name.
+cat > "$work/codec-alias-v1923.s" <<'ASM'
+.text
+.globl d6codec_decode_vfs_v1458
+d6codec_decode_vfs_v1458:
+        jrst d6lz36_decode_vfs
+ASM
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode go --start 1000 --timeout 30 \
     --workdir "$work/guest" --name exec-image-shared-restore-v1387 \
@@ -47,5 +54,6 @@ done
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_rebase_v1381.s" \
     "$DAIMOS_REPO/system/kernel/mm/mm_pure_expand_v1384.s" \
     "$DAIMOS_REPO/system/kernel/proc/proc_storage_runtime_v30.s" \
-    "$work/unpack-backing-v1387.s" \
+    "$work/unpack-backing-v1387.s" "$work/codec-alias-v1923.s" \
+    "$DAIMOS_REPO/system/kernel/drivers/device_state.s" \
     "$work/test-native-v1387.s"
