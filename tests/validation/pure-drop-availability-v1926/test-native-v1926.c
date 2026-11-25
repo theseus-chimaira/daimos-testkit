@@ -47,7 +47,10 @@ case_v1926(unsigned int provider, unsigned int mount, unsigned int fault)
         readers_v1926[index] = 040000UL;
         jump = &fs_memfs_service_jump;
         if (provider == 5U) jump = &fs_dtfs_service_jump;
-        if (provider == 6U) jump = &fs_d6fs_service_jump;
+        if (provider == 6U) {
+                jump = &fs_d6fs_service_jump;
+                shape_v1926[index] = 1UL;
+        }
         if (provider == 7U) {
                 jump = &fs_tsfs_service_jump;
                 media_v1926[index] = (020UL << 18U) | 0200UL;
@@ -96,6 +99,8 @@ case_v1926(unsigned int provider, unsigned int mount, unsigned int fault)
         case 24U: boundary_fault_v1926 = 1U; break;
         case 25U: boundary_fault_v1926 = 2U; break;
         case 26U: boundary_fault_v1926 = 3U; break;
+        case 27U: media_v1926[index] = ~0UL; break;
+        case 28U: shape_v1926[index] = 0UL; break;
         }
         span = mm_extents[0].span;
         meta = mm_extents[0].meta;
@@ -131,7 +136,7 @@ main(void)
         int rc;
         for (high = 0U; high <= 1U; ++high) {
                 for (provider = 4U; provider <= 7U; ++provider) {
-                        for (fault = 0U; fault <= 26U; ++fault) {
+                        for (fault = 0U; fault <= 28U; ++fault) {
                                 /* All providers share dispatch checks. The
                                  * other faults are specific to mount state. */
                                 if (fault >= 4U && fault <= 12U &&
@@ -144,6 +149,8 @@ main(void)
                                 if (fault >= 18U && fault <= 19U && provider != 5U)
                                         continue;
                                 if (fault >= 21U && fault <= 23U && provider != 5U)
+                                        continue;
+                                if (fault >= 27U && provider != 6U)
                                         continue;
                                 rc = case_v1926(provider, high ? 18U : 1U, fault);
                                 if (rc) return (int)(high * 010000U + provider * 01000U + fault * 010U) + rc;

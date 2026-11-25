@@ -88,7 +88,7 @@ checks = {
     'unsafe-service': ('(service & MM_HALF_MASK) != (kword_t)(unsigned long)fs_mres_no_service', '1'),
     'unsafe-dtfs-poison': ('DTFS_MEDIA_WR_UNCERT_V1522 | DTFS_MEDIA_QUIESCING_V1562', 'DTFS_MEDIA_QUIESCING_V1562'),
     'unsafe-boundary': ('VFS_PROVIDER(root) != provider || VFS_MOUNT_ID(root) != mount + 1U', '0'),
-    'unsafe-d6fs-reader': ('!d6fs_reader_slots_base || !d6fs_reader_slots_base[mount]', '0'),
+    'unsafe-d6fs-reader': ('!d6fs_reader_slots_base || !d6fs_reader_slots_base[mount] ||', ''),
     'unsafe-tsfs-extent': ('!tsfs_file_shape_base[mount] || !tsfs_extent_media_base[mount]', '!tsfs_file_shape_base[mount]'),
 }
 for name, (old, new) in checks.items():

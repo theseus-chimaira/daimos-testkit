@@ -54,6 +54,13 @@ main:
         caie    1,secondary_reader
         jrst    multimount_fail
 
+        move    1,uuid_shape_v1927+1
+        came    1,[012345670123]
+        jrst    multimount_fail
+        move    1,uuid_extent_v1927+1
+        came    1,[076543210765]
+        jrst    multimount_fail
+
         ; Runtime geometry and physical backing are independent per mount.
         move    1,secondary_reader+3    ; total blocks
         caie    1,02000
@@ -158,13 +165,6 @@ fs_backing_direct_read:
         popj    17,
 fs_backing_direct_write:
         setz    1,
-        popj    17,
-
-; The extracted runtime dispatch now also references the common D6FS
-; block-read adapter, but this mount-handoff oracle never performs a
-; filesystem read. Reject an accidental call rather than hiding it.
-fs_backing_read:
-        seto    1,
         popj    17,
 
         .data

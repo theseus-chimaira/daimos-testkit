@@ -19,11 +19,14 @@ bridge_case_v1925(unsigned int full, unsigned int fault, unsigned int provider)
 {
         struct proc *p = &process_slots[SLOT];
         kword_t *u = (kword_t *)(unsigned long)UAREA;
-        unsigned int expected_checks = provider == 5U ? 2U : 0U;
+        unsigned int expected_checks = (provider == 5U || provider == 6U) ? 2U : 0U;
         int rc;
         vnode_t root = VFS_NODE(provider, VFS_MOUNT_KIND(1U, 1U), 1U);
         reset_prefix_v1384();
         roots_v1385[0] = root;
+        shape_v1926[0] = 1UL;
+        extent_v1926[0] = 2UL;
+        media_v1926[0] = provider == 7U ? (020UL << 18U) | 0200UL : 0UL;
         u[PROC_CRED_OFFSET] = (kword_t)provider << PROC_SWAP_PROVIDER_SHIFT_V1924;
         expected_vnode_v1385 = VFS_NODE(provider, VFS_MOUNT_KIND(1U, 1U + (provider & 1U)), 012345UL);
         if (proc_pure_ram_drop_v1381(SLOT) != MM_OK)
@@ -78,8 +81,12 @@ main(void)
                         rc = bridge_case_v1925(full, fault, 5U);
                         if (rc) return (int)(0100U + full * 0100U + fault * 010U) + rc;
                 }
-                rc = bridge_case_v1925(full, 0U, 6U);
-                if (rc) return (int)(0300U + full * 010U) + rc;
+                for (fault = 0U; fault <= 3U; ++fault) {
+                        rc = bridge_case_v1925(full, fault, 6U);
+                        if (rc) return (int)(0300U + full * 0100U + fault * 010U) + rc;
+                }
+                rc = bridge_case_v1925(full, 0U, 7U);
+                if (rc) return (int)(0500U + full * 010U) + rc;
         }
         return 0;
 }

@@ -76,6 +76,10 @@ d6fs_mount_validated:
         seto    1,
         popj    17,
 
+        .globl d6fs_pure_media_v1927
+        .globl d6fs_provider_recovery_read
+d6fs_pure_media_v1927:
+d6fs_provider_recovery_read:
 kret_neg1:
         seto    1,
         popj    17,

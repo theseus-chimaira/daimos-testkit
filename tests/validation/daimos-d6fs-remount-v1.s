@@ -320,3 +320,21 @@ write_enter:
         .block  1
 __test_exit:
         .block  1
+
+        .text
+        .globl d6fs_pure_media_v1927
+        .globl d6fs_provider_recovery_read
+d6fs_pure_media_v1927:
+d6fs_provider_recovery_read:
+        jrst    kret_neg1
+        .data
+        .globl dtfs_media_base
+        .globl tsfs_file_shape_base
+        .globl tsfs_extent_media_base
+dtfs_media_base: .word uuid_media_v1927
+tsfs_file_shape_base: .word uuid_shape_v1927
+tsfs_extent_media_base: .word uuid_extent_v1927
+        .bss
+uuid_media_v1927: .block 4
+uuid_shape_v1927: .block 4
+uuid_extent_v1927: .block 4

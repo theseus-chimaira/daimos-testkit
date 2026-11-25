@@ -18,9 +18,8 @@ mkdir -p "$work"
 {
         echo '.text'
         echo '.globl d6fs_mres_dispatch'
-        sed -n '/^d6fs_mres_dispatch:/,/^d6fs_provider_space:/p' "$d6fs_source" |
-                sed '$d'
-        sed -n '/^d6fs_provider_toggle_state:/,/^        \.globl  pclk_time36$/p' "$d6fs_source" |
+        sed -n '/^d6fs_mres_dispatch:/,/^$/p' "$d6fs_source"
+        sed -n '/^d6fs_provider_toggle_state:/,/^        \.globl  wall_time36$/p' "$d6fs_source" |
                 sed '$d'
 } > "$work/d6fs-remount.s"
 
@@ -28,8 +27,7 @@ mkdir -p "$work"
 {
         echo '.text'
         echo '.globl vfs_remount'
-        sed -n '/^vfs_remount:/,/^; Publish CLEAN/p' "$vfs_source" |
-                sed '$d'
+        sed -n '/^vfs_remount:/,/^$/p' "$vfs_source"
 } > "$work/vfs-remount.s"
 
 PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \

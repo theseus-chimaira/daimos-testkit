@@ -67,6 +67,13 @@ main:
         caie    1,0123456               ; legacy fallback untouched
         jrst    multimount_fail
 
+        move    1,uuid_shape_v1927+1
+        came    1,[012345670123]
+        jrst    multimount_fail
+        move    1,uuid_extent_v1927+1
+        came    1,[076543210765]
+        jrst    multimount_fail
+
         ; Runtime geometry and physical backing are independent per mount.
         move    1,secondary_reader+3    ; total blocks
         caie    1,02000
@@ -223,3 +230,7 @@ secondary_reader:
         .block  016
 __test_exit:
         .block  1
+
+        .data
+        .globl vfs_mount_limit
+vfs_mount_limit: .word 4

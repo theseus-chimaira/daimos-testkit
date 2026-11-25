@@ -23,5 +23,6 @@ PDP10_PREFIX="$PDP10_PREFIX" TMPDIR="$work" \
         --expect __test_exit=0 \
         "$self/daimos-test-crt0-v1.s" \
         "$self/daimos-d6fs-multimount-v1.s" \
+        "$self/pure-d6fs-media-v1927/mount-fixture-v1927.s" \
         "$work/mount.s" >/dev/null
 printf '%s\n' 'd6fs-multimount: PASS (independent readers, identities, DRM-set backing, slots)'

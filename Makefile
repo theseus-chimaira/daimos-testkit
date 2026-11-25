@@ -3229,3 +3229,10 @@ test-pure-dtfs-media-v1925:
 test-pure-drop-availability-v1926:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-drop-availability-v1926/run-v1926.sh
+
+.PHONY: test-pure-d6fs-media-v1927
+test-pure-d6fs-media-v1927:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-d6fs-media-v1927/run-format-v1927.sh

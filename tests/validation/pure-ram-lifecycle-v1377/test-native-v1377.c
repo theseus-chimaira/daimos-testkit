@@ -65,7 +65,17 @@ kword_t fs_memfs_service_jump = 0254000001234UL;
 kword_t fs_dtfs_service_jump = 0254000001234UL;
 kword_t fs_d6fs_service_jump = 0254000001234UL;
 kword_t fs_tsfs_service_jump = 0254000001234UL;
-static kword_t media_v1926[26], shape_v1926[26], extent_v1926[26];
+static kword_t media_v1926[26];
+/* One nonzero UUID half is sufficient for D6FS; these are deliberately
+ * synthetic identity values in a source-linked, nonphysical fixture. */
+static kword_t shape_v1926[26] = {
+        1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL,
+        1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL, 1UL
+};
+static kword_t extent_v1926[26] = {
+        2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL,
+        2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL, 2UL
+};
 static kword_t readers_v1926[26] = {
         040000UL, 040000UL, 040000UL, 040000UL, 040000UL, 040000UL,
         040000UL, 040000UL, 040000UL, 040000UL, 040000UL, 040000UL,
