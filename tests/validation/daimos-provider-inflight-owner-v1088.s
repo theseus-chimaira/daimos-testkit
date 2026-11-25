@@ -186,3 +186,12 @@ foreign_pad_v1088: .word 0
 foreign_fds_v1088: .word 0
         .bss
 __test_exit: .block 1
+
+; This isolated lease oracle has no filesystem mutation requests.
+        .text
+        .globl vfs_readonly
+        .globl proc_swap_backing_busy
+vfs_readonly:
+proc_swap_backing_busy:
+        seto    1,
+        popj    17,

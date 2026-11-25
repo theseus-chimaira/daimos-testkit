@@ -22,6 +22,14 @@ static int read_calls;
 static int free_calls;
 static unsigned int freed_block[4];
 static int commit_calls;
+static int backing_busy_v1932;
+static vnode_t backing_seen_v1932;
+int proc_swap_backing_busy(vnode_t node)
+{
+        backing_seen_v1932 = node;
+        return backing_busy_v1932;
+}
+
 
 int dtfs_is_root(vnode_t node) { (void)node; return 1; }
 int dtfs_load(vnode_t node) { (void)node; return 0; }
@@ -128,6 +136,8 @@ reset(unsigned int media)
         blocks = 2U;
         first_block = 0200U;
         wrong_owner = read_fail = resize_fail = commit_fail = 0;
+        backing_busy_v1932 = 0;
+        backing_seen_v1932 = 0;
         clear_calls = resize_calls = read_calls = free_calls = commit_calls = 0;
         seen_resize_node = 0UL;
         dtfs_cache_mount = 7UL;
@@ -182,5 +192,15 @@ main(void)
         resize_fail = 1;
         if (dtfs_unlink(root, &name) != -1 || clear_calls != 0 || commit_calls != 0)
                 return 6;
+        reset(0U);
+        backing_busy_v1932 = 1;
+        if (dtfs_unlink(root, &name) != -1 || backing_seen_v1932 != file_node() ||
+            resize_calls || clear_calls || commit_calls || free_calls)
+                return 7;
+        reset(010U);
+        backing_busy_v1932 = 1;
+        if (dtfs_unlink(root, &name) != -1 || backing_seen_v1932 != file_node() ||
+            read_calls || free_calls || commit_calls)
+                return 8;
         return 0;
 }

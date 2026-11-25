@@ -3260,3 +3260,8 @@ test-pure-d6fs-unmount-v1931:
 	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/daimos-dtfs-quiesce-v1562.sh
+
+.PHONY: test-pure-mutation-lease-v1932
+test-pure-mutation-lease-v1932:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-mutation-lease-v1932/run-v1932.sh

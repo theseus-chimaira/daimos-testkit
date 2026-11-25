@@ -3,3 +3,10 @@
         .data
         .globl file_table
 file_table: .word 0
+        .text
+        .globl vfs_readonly
+        .globl proc_swap_backing_busy
+vfs_readonly:
+proc_swap_backing_busy:
+        seto    1,
+        popj    17,

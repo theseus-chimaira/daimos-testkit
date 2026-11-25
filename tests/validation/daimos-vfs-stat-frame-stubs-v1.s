@@ -65,3 +65,18 @@ mfsdev_readchar:
 file_unlock_mount:
         setz    1,
         popj    17,
+
+; Isolated VFS frame/rename tests have no live FILE owners.
+        .globl file_mount_busy_v1523
+file_mount_busy_v1523:
+        setz    1,
+        popj    17,
+        .data
+        .globl vfs_mount_aux_base_v1560
+        .globl dtfs_media_base
+vfs_mount_aux_base_v1560: .word 0
+dtfs_media_base: .word 0
+        .globl tsfs_file_shape_base
+        .globl tsfs_extent_media_base
+tsfs_file_shape_base: .word 0
+tsfs_extent_media_base: .word 0
