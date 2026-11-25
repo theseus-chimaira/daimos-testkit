@@ -17,9 +17,11 @@ def main(argv):
     if source.count(guard) != 1 or source.count(pin) != 1:
         raise SystemExit("v1855 source anchors drifted: refuse mutant")
     changed = source.replace(guard, "if (0) {", 1)
-    if copy_guard in source:
-        assert source.count(copy_guard) == 1
-        changed = changed.replace(copy_guard, "if (0)", 1)
+    # Keep the first exact-pin proof before the loader. Mutate the
+    # second (post-loader, pre-copy) proof and final commit guard.
+    assert source.count(copy_guard) == 2
+    before, after = changed.rsplit(copy_guard, 1)
+    changed = before + "if (0)" + after
     Path(argv[2]).write_text(changed,
                              encoding="ascii")
     # Preserve the original 0-pin v1839 free-reply test while

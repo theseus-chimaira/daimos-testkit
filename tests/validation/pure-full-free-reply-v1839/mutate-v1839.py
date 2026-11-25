@@ -13,7 +13,7 @@ def main():
     anchor = "        rc = mm_free(source, MM_TYPE_PACKED_PROCESS, slot);\n"
     if source.count(anchor) != 1:
         raise SystemExit("v1839 source-free call anchor drift")
-    start = source.index("        if (rc != MM_OK) {", source.index(anchor))
+    start = source.index("        switch (pram_source_free_reply_v1839(", source.index(anchor))
     end = source.index("        VM_PDP6_SET_BASE(p, target);", start)
     old = source[:start] + (
         "        if (rc != MM_OK) {\n"

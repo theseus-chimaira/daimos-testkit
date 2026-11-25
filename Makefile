@@ -3195,3 +3195,8 @@ test-pure-terminal-identity-v1920:
 test-pure-terminal-finalizer-v1920:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-terminal-identity-v1920/run-finalizer-v1920.sh
+
+.PHONY: test-pure-mm-geometry-v1921
+test-pure-mm-geometry-v1921:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-mm-geometry-v1921/run-v1921.sh
