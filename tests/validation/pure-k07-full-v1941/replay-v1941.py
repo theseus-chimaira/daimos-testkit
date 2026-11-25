@@ -166,7 +166,7 @@ def main():
             trace = wait_for("V1941_END_FULL", start)
             assert re.search(r"Breakpoint, PC: %06o\b" % full, trace)
             print("v1941 original FULL callback reached", flush=True)
-            start = send('nobreak\nexpect "Z"\ncont\n' +
+            start = send('nobreak all\nexpect "Z"\ncont\n' +
                          memory_stage(sym, "Z") + "cont\nexit\n")
             wait_for("HALT instruction", start)
             wait_for("Goodbye", start)
