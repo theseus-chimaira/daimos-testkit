@@ -77,7 +77,7 @@ case('V2 sealed packed READ FILE refused', 0, 0o450102000010,
 case('V2 sealed packed WRITE FILE refused', 0, 0o250102000010,
      media=(base | seal, 0), expected=-1)
 case('V1 legacy unaffected', 0, r0, media=(3, 0))
-case('another provider unaffected', 0, 0o060101000000,
+case('another provider unaffected', 0, 0o040101000000,
      media=(base | seal, 0))
 case('V2 second mount admitted', 0, r1,
      roots=(0, r1), media=(0, base))
@@ -111,7 +111,22 @@ case('V2 write-uncertain refused', 1, media=(base | uncertain, 0),
 case('V2 combined failure refused', 1,
      media=(base | suspect | uncertain, 0), expected=-1)
 case('V1 legacy begin bypass', 1, media=(3, 0))
-case('D6FS begin bypass', 1, roots=(0o060101000000, 0))
+case('D6FS healthy begins', 1, roots=(0o060101000000, 0),
+     media=(0,0), expected=2, expected_media=(seal,0))
+case('D6FS suspect begins', 1, roots=(0o060101000000, 0),
+     media=(1,0), expected=2, expected_media=(seal|1,0))
+case('D6FS poison refused', 1, roots=(0o060101000000, 0),
+     media=(2,0), expected=-1)
+case('D6FS existing barrier refused', 1, roots=(0o060101000000, 0),
+     media=(seal,0), expected=-1)
+case('D6FS healthy admits owner', 0, 0o060101000000,
+     roots=(0o060101000000,0), media=(0,0))
+case('D6FS quiescent packed FILE refused', 0, 0o460101000000,
+     roots=(0o060101000000,0), media=(seal,0), expected=-1)
+case('D6FS retired root refuses', 0, 0o060101000000,
+     roots=(0,0), media=(0,0), expected=-1)
+case('D6FS abort preserves poison', 2, roots=(0o060101000000,0),
+     media=(seal|2,0), expected_media=(2,0))
 case('no published slot begin refused', 1, roots=(0, 0), expected=-1)
 case('V2 wrong mount ID begin refused', 1, roots=(r1, 0), expected=-1)
 case('V2 missing media begin refused', 1, flags=2, expected=-1)
@@ -128,7 +143,7 @@ case('original V2 end retains fault bits', 2,
 case('wrong expected root cannot clear', 2,
      media=(base | seal, 0), flags=8, expected=-1)
 case('wrong provider cannot clear', 2,
-     roots=(0o060101000000, 0), media=(base | seal, 0), expected=-1)
+     roots=(0o040101000000, 0), media=(base | seal, 0), expected=-1)
 case('not sealed cannot end', 2, expected=-1)
 case('unpublished mount cannot end', 2, roots=(0, 0),
      media=(base | seal, 0), expected=-1)
@@ -153,7 +168,8 @@ mutants = (
     ('ignore-retained-MM',
      'jumpn   1,vfs_dtfs_quiesce_bad_v1562',
      'jumpe   1,vfs_dtfs_quiesce_bad_v1562'),
-    ('do-not-arm-barrier', 'tro     3,0020000', 'trz     3,0020000'),
+    ('do-not-arm-barrier', 'tro     3,0020000\n        movem   3,(2)\n        movei   1,1', 'trz     3,0020000\n        movem   3,(2)\n        movei   1,1'),
+    ('do-not-arm-d6fs', 'tro     3,0020000\n        movem   3,(2)\n        movei   1,2', 'trz     3,0020000\n        movem   3,(2)\n        movei   1,2'),
     ('ignore-seal-on-end', 'trnn    4,0020000', 'trne    4,0020000'),
     ('ignore-owner-on-end', 'came    4,2', 'came    4,4'),
     ('leave-barrier-set', 'trz     4,0020000', 'tro     4,0020000'),
@@ -185,7 +201,7 @@ if ! run_case baseline "$work/production-v1562.s"; then
 fi
 echo 'PASS v1562: native V2 owner/quiescence cases'
 for mutant in allow-sealed-owner allow-retired-owner ignore-retained-MM \
-    do-not-arm-barrier ignore-seal-on-end ignore-owner-on-end \
+    do-not-arm-barrier do-not-arm-d6fs ignore-seal-on-end ignore-owner-on-end \
     leave-barrier-set; do
     if run_case "$mutant" "$work/mutant-$mutant-v1562.s"; then
         echo "FAIL v1562: accepted unsafe mutant: $mutant" >&2

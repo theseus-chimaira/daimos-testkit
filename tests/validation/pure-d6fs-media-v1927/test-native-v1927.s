@@ -222,21 +222,120 @@ ordinary_poison_v1930:
         movei   1,0100
         andcam  1,reader_v1927+1
         setzm   super_v1927+2
+        ; Poisoned mount cannot be ordinarily retired or sealed CLEAN.
+        movei   1,0500
+        movem   1,fail_case_v1927
+        pushj   17,unmount_v1931
+        jumpge  1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,3
+        jrst    fail_v1927
+        ; Test-only reset to healthy RO media, not a recovery API.
+        setzm   media_v1927+1
+        ; Initial owner refuses without a physical read.
+        movei   1,0501
+        movem   1,fail_case_v1927
+        setom   busy_v1931
+        move    1,raw_reads_v1927
+        movem   1,saved_reads_v1929
+        pushj   17,unmount_v1931
+        jumpge  1,fail_v1927
+        move    1,raw_reads_v1927
+        came    1,saved_reads_v1929
+        jrst    fail_v1927
+        setzm   busy_v1931
+        ; Foreign media refuses retirement, keeps read-suspect.
+        movei   1,0502
+        movem   1,fail_case_v1927
+        movei   1,1
+        movem   1,raw_mode_v1927
+        pushj   17,unmount_v1931
+        jumpge  1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,1
+        jrst    fail_v1927
+        setzm   raw_mode_v1927
+        ; Inject an owner at physical completion, beyond the initial
+        ; scan. A failed final scan must retain the reader and UUID.
+        movei   1,0503
+        movem   1,fail_case_v1927
+        setom   inject_busy_v1931
+        pushj   17,unmount_v1931
+        jumpge  1,fail_v1927
+        pushj   17,still_mounted_v1931
+        jumpn   1,fail_v1927
+        setzm   inject_busy_v1931
+        setzm   busy_v1931
+        ; Writable CLEAN failure keeps reader, selected copy and RW
+        ; policy, with sticky WRITE_UNCERTAIN after VFS abort.
+        movei   1,0505
+        movem   1,fail_case_v1927
+        movei   1,0100
+        iorm    1,reader_v1927+1
+        andcam  1,vfs_mount_policy       ; explicit RO bit below
+        setzm   vfs_mount_policy
+        movei   1,1
+        movem   1,super_v1927+2
+        setom   clean_test_v1931
+        setom   clean_fail_v1931
+        pushj   17,unmount_v1931
+        jumpge  1,fail_v1927
+        move    1,media_v1927+1
+        caie    1,2
+        jrst    fail_v1927
+        move    1,reader_slots_v1927+1
+        caie    1,reader_v1927
+        jrst    fail_v1927
+        move    1,reader_v1927+2
+        caie    1,012
+        jrst    fail_v1927
+        move    1,reader_v1927+1
+        trnn    1,0100
+        jrst    fail_v1927
+        skipe   vfs_mount_policy
+        jrst    fail_v1927
+        ; Test-only repaired writable original, not a recovery API.
+        setzm   media_v1927+1
+        setzm   clean_fail_v1931
+        ; Successful CLEAN can be followed by a late owner refusal.
+        ; Retain a live RO reader using the newly selected A copy.
+        movei   1,0506
+        movem   1,fail_case_v1927
+        setom   inject_write_busy_v1931
+        pushj   17,unmount_v1931
+        jumpge  1,fail_v1927
+        pushj   17,still_mounted_v1931
+        jumpn   1,fail_v1927
+        move    1,reader_v1927+2
+        caie    1,013
+        jrst    fail_v1927
+        move    1,reader_v1927+1
+        trne    1,0300
+        jrst    fail_v1927
+        move    1,vfs_mount_policy
+        trnn    1,2
+        jrst    fail_v1927
+        setzm   busy_v1931
+        setzm   inject_write_busy_v1931
         ; A refused free must retain reader and both identity halves.
         movei   1,0200
         movem   1,fail_case_v1927
         setom   free_fail_v1927
-        pushj   17,d6fs_provider_prepare_unmount
+        pushj   17,unmount_v1931
         jumpge  1,fail_v1927
-        move    1,reader_slots_v1927+1
-        caie    1,reader_v1927
-        jrst    fail_v1927
-        move    1,shape_v1927+1
-        came    1,[012345670123]
-        jrst    fail_v1927
-        setzm   free_fail_v1927
-        pushj   17,d6fs_provider_prepare_unmount
+        pushj   17,still_mounted_v1931
         jumpn   1,fail_v1927
+        setzm   free_fail_v1927
+        ; Real VFS retirement must hold the barrier through the last
+        ; provider return and clear it only after root unpublication.
+        movei   1,0504
+        movem   1,fail_case_v1927
+        pushj   17,unmount_v1931
+        jumpn   1,fail_v1927
+        skipe   bad_admission_v1931
+        jrst    fail_v1927
+        skipe   roots_v1931+1
+        jrst    fail_v1927
         skipe   reader_slots_v1927+1
         jrst    fail_v1927
         skipe   shape_v1927+1
@@ -252,6 +351,7 @@ ordinary_poison_v1930:
         ; publish a mount or replace another slot's identity.
         movei   1,0201
         movem   1,fail_case_v1927
+        setzm   selected_a_v1931
         setzm   published_v1927
         setzm   freed_v1927
         movei   1,4                    ; bad magic
@@ -269,6 +369,25 @@ ordinary_poison_v1930:
 fail_v1927:
         move    1,fail_case_v1927
         popj    17,
+unmount_v1931:
+        move    1,[060201000003]
+        jrst    vfs_unmount
+still_mounted_v1931:
+        move    1,roots_v1931+1
+        came    1,[060201000003]
+        jrst    kret_neg1
+        move    1,reader_slots_v1927+1
+        caie    1,reader_v1927
+        jrst    kret_neg1
+        move    1,shape_v1927+1
+        came    1,[012345670123]
+        jrst    kret_neg1
+        move    1,extent_v1927+1
+        came    1,[076543210765]
+        jrst    kret_neg1
+        skipe   media_v1927+1
+        jrst    kret_neg1
+        jrst    kret_zero
 mount_v1927:
         movei   1,handoff_v1927
         move    2,[060101000007]
@@ -302,7 +421,12 @@ bcache_store:
 fs_backing_direct_read:
         came    1,[1,,0400]
         jrst    kret_neg1
-        caie    2,021                  ; selected B, not A
+        movei   4,021
+        skipn   selected_a_v1931
+        jrst    raw_selected_v1931
+        movei   4,020
+raw_selected_v1931:
+        came    2,4                    ; selected copy only
         jrst    kret_neg1
         caie    3,recovery_buf_v1930
         jrst    raw_workspace_v1930
@@ -313,6 +437,27 @@ raw_workspace_v1930:
         caie    3,fs_block_workspace
         jrst    kret_neg1
         aos     raw_reads_v1927
+        ; While quiescing, simulate a foreign FILE/backing admission
+        ; at the potentially sleeping physical I/O boundary.
+        move    4,media_v1927+1
+        trnn    4,0020000
+        jrst    raw_no_race_v1931
+        push    17,1
+        push    17,2
+        push    17,3
+        move    1,[060201012345]
+        pushj   17,vfs_dtfs_owner_admit_v1562
+        jumpn   1,raw_admit_refused_v1931
+        setom   bad_admission_v1931
+raw_admit_refused_v1931:
+        skipn   inject_busy_v1931
+        jrst    raw_restore_v1931
+        setom   busy_v1931
+raw_restore_v1931:
+        pop     17,3
+        pop     17,2
+        pop     17,1
+raw_no_race_v1931:
         move    4,bcache_workspace_tag
         came    4,[-1]
         jrst    kret_neg1
@@ -347,7 +492,39 @@ raw_low_v1927:
         jrst    kret_zero
         .globl fs_backing_direct_write
 fs_backing_direct_write:
+        skipn   clean_test_v1931
         jrst    kret_neg1
+        came    1,[1,,0400]
+        jrst    kret_neg1
+        caie    2,020                  ; publish alternate A
+        jrst    kret_neg1
+        caie    3,fs_block_workspace
+        jrst    kret_neg1
+        move    4,fs_block_workspace
+        came    4,super_v1927
+        jrst    kret_neg1
+        move    4,fs_block_workspace+1
+        caie    4,013
+        jrst    kret_neg1
+        skipe   fs_block_workspace+2
+        jrst    kret_neg1
+        move    4,fs_block_workspace+3
+        came    4,[012345670123]
+        jrst    kret_neg1
+        move    4,fs_block_workspace+4
+        came    4,[076543210765]
+        jrst    kret_neg1
+        skipn   clean_fail_v1931
+        jrst    raw_clean_ok_v1931
+        jrst    kret_neg1
+raw_clean_ok_v1931:
+        move    4,[fs_block_workspace,,super_v1927]
+        blt     4,super_v1927+017
+        setom   selected_a_v1931
+        skipn   inject_write_busy_v1931
+        jrst    kret_zero
+        setom   busy_v1931
+        jrst    kret_zero
         .globl mm_alloc
 mm_alloc:
         caie    1,016
@@ -371,6 +548,7 @@ vfs_mount_prevalidated:
         move    5,-2(17)
         move    6,[060201000003]
         movem   6,(5)
+        movem   6,roots_v1931+1
         movei   7,1
         aos     published_v1927
         jrst    kret_zero
@@ -379,9 +557,10 @@ bcache_reclaim:
         jrst    kret_zero
         .globl fs_mres_vector_dispatch
         .globl d6fs_provider_space
-        .globl d6fs_provider_toggle_state
         .globl proc_swap_storage_invariant_v30
 fs_mres_vector_dispatch:
+        cain    6,020
+        jrst    d6fs_provider_prepare_unmount
         aos     dispatches_v1930
         came    1,[060201012345]
         jrst    kret_neg1
@@ -397,9 +576,33 @@ fs_mres_vector_dispatch:
         jrst    kret_neg1
         jrst    kret_zero
 d6fs_provider_space:
-d6fs_provider_toggle_state:
 proc_swap_storage_invariant_v30:
         jrst    kret_neg1
+        .globl fs_provider_reg_call
+        .globl vfs_sync
+        .globl pipe_fifo_mount_busy
+        .globl proc_swap_mount_busy
+        .globl file_mount_busy_v1523
+        .globl file_unlock_mount
+fs_provider_reg_call:
+        caie    7,6
+        jrst    kret_neg1
+        jrst    d6fs_mres_dispatch
+vfs_sync:
+        jrst    kret_neg1              ; D6FS must drain via PREPARE
+pipe_fifo_mount_busy:
+proc_swap_mount_busy:
+        jrst    kret_zero
+file_mount_busy_v1523:
+        move    1,busy_v1931
+        popj    17,
+file_unlock_mount:
+        ; Called after PREPARE success, before VFS retires the root.
+        move    1,[060201012345]
+        pushj   17,vfs_dtfs_owner_admit_v1562
+        jumpn   1,kret_zero
+        setom   bad_admission_v1931
+        jrst    kret_zero
         .globl kret_zero
         .globl kret_neg1
 kret_zero:
@@ -411,6 +614,25 @@ kret_neg1:
         .data
         .globl vfs_namespace_root
 vfs_namespace_root: .word 060101000000
+        .globl vfs_mount_root_base
+        .globl vfs_mount_target_base
+        .globl vfs_mount_policy
+        .globl vfs_mount_aux_base_v1560
+vfs_mount_root_base: .word roots_v1931
+vfs_mount_target_base: .word targets_v1931
+vfs_mount_policy: .word 2
+vfs_mount_aux_base_v1560: .word reader_slots_v1927
+roots_v1931:
+        .word 060101000000
+        .word 0
+        .word 0
+        .word 0
+targets_v1931:
+        .word 0
+        .word 060101000007
+        .word 0
+        .word 0
+
 raw_offsets_v1927:
         .word 0
         .word 1
@@ -500,3 +722,12 @@ saved_reads_v1929: .block 1
 
 dispatches_v1930: .block 1
 recovery_buf_v1930: .block 0200
+
+busy_v1931: .block 1
+inject_busy_v1931: .block 1
+bad_admission_v1931: .block 1
+
+clean_test_v1931: .block 1
+clean_fail_v1931: .block 1
+selected_a_v1931: .block 1
+inject_write_busy_v1931: .block 1

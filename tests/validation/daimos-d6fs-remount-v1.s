@@ -96,7 +96,9 @@ main:
         setzm   write_fail
         movei   1,reader
         movem   1,d6fs_active_reader
-        movei   1,012345                ; root value is not consumed here
+        ; The full integrated v1931 gate exercises VFS quiescence.
+        ; Here seed the same controlled selected proof before the leaf.
+        pushj   17,d6fs_pure_media_v1927
         pushj   17,d6fs_provider_prepare_unmount
         jumpn   1,remount_fail_unmount_call
         move    1,freed_reader
@@ -174,22 +176,10 @@ d6fs_mount_validated:
 d6fs_provider_space:
         jrst    kret_neg1
 
-; Production get_block must fetch the opposite A/B copy.  Seed the shared
-; block with sentinel metadata that write_block checks remains intact.
+; Controlled identity proof: seed the verified selected header.
 d6fs_reader_get_block:
-        caie    1,reader
-        jrst    get_block_fail
-        move    4,phase
-        cain    4,1
-        jrst    get_expect_a
-        ; phases 0,2,3 start on copy A and must target B.
-        caie    2,021
-        jrst    get_block_fail
-        jrst    get_seed
-get_expect_a:
-        caie    2,020
-        jrst    get_block_fail
-get_seed:
+        jrst    kret_neg1
+d6fs_pure_media_v1927:
         move    4,phase
         addi    4,1
         movem   4,get_seen
@@ -197,19 +187,27 @@ get_seed:
         movem   4,fs_block_workspace
         move    4,[012345670123]
         movem   4,fs_block_workspace+3
-        movei   1,fs_block_workspace
-        popj    17,
-get_block_fail:
-        setz    1,
-        popj    17,
+        jrst    kret_zero
 
 ; Validate the media state before optionally failing the physical write.
+        .globl fs_backing_write
+fs_backing_write:
 d6fs_reader_write_block:
         move    4,phase
         addi    4,1
         movem   4,write_enter
-        caie    1,reader
+        caie    1,reader+013
         jrst    write_block_fail
+        move    4,phase
+        cain    4,1
+        jrst    write_target_a_v1931
+        caie    2,021
+        jrst    write_block_fail
+        jrst    write_target_done_v1931
+write_target_a_v1931:
+        caie    2,020
+        jrst    write_block_fail
+write_target_done_v1931:
         caie    3,fs_block_workspace
         jrst    write_block_fail
         move    4,fs_block_workspace
@@ -324,7 +322,6 @@ __test_exit:
         .text
         .globl d6fs_pure_media_v1927
         .globl d6fs_provider_recovery_read
-d6fs_pure_media_v1927:
 d6fs_provider_recovery_read:
         jrst    kret_neg1
         .data
@@ -338,3 +335,15 @@ tsfs_extent_media_base: .word uuid_extent_v1927
 uuid_media_v1927: .block 4
 uuid_shape_v1927: .block 4
 uuid_extent_v1927: .block 4
+
+        .text
+        .globl vfs_unmount_owner_check_v1523
+vfs_unmount_owner_check_v1523:
+        jrst    kret_zero
+
+        .text
+        .globl d6fs_note_failure_v1929
+        .globl kcore_root_fs_io_failure_v1538
+d6fs_note_failure_v1929:
+kcore_root_fs_io_failure_v1538:
+        popj    17,

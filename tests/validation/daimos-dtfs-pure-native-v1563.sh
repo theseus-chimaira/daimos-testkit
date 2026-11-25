@@ -74,6 +74,9 @@ for provider in (4,5,6,7):
          staged_bit=0o37, has_uarea=1, cred=0o017234567123)
     case('provider identity SRUN retains queue link', provider=provider,
          state=2, has_uarea=1, staged_bit=0o37, cred=0o017234567123)
+for state, has_uarea in ((1,0),(1,1),(2,1)):
+    case('D6FS quiescent executable refused', provider=6,
+         state=state, has_uarea=has_uarea, media=0o20000, expected=-1)
 case('retired mount refused', root=0, expected=-1)
 case('reused provider refused', root=node(provider=6, kind=1,
      index=0), expected=-1)

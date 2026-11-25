@@ -20,19 +20,19 @@ assert admin_marker in source[first:], 'v1531 source boundary missing'
 last = source.index(admin_marker, first)
 segment = source[first:last]
 for text in ('pushj   17,vfs_sync\n        jumpn   1,vfs_unmount_fail',
-             'pushj   17,fs_provider_reg_call\n        jumpn   1,vfs_unmount_fail',
+             'vfs_unmount_prepare:\n',
              'pushj   17,file_unlock_mount',
              'pushj   17,vfs_mount_retire_slot',
-             'vfs_unmount_fail:\n        ; No physical CLEAN attempt exists yet.'):
+             'vfs_unmount_fail:\n'):
     if segment.count(text) != 1:
         raise AssertionError('v1514 VFS ordering source drift: '+text)
 head = '.text\n.globl vfs_unmount\n'
 original = head + segment
 (out/'vfs-unmount-v1514.s').write_text(original)
 for name, old, new in (
-        ('skip-sync-result',
-         'pushj   17,vfs_sync\n        jumpn   1,vfs_unmount_fail',
-         'pushj   17,vfs_sync\n        jrst    vfs_unmount_after_prepare'),
+        ('skip-prepare-result',
+         'pushj   17,fs_provider_reg_call\n        jumpn   1,vfs_unmount_fail\n        move    2,-2(17)',
+         'pushj   17,fs_provider_reg_call\n        move    2,-2(17)'),
         ('skip-retirement',
          'pushj   17,vfs_mount_retire_slot',
          'pushj   17,kret_zero'),
@@ -62,7 +62,7 @@ run_case live "$work/vfs-unmount-v1514.s" || {
     exit 1
 }
 echo 'PASS v1514: missing nonroot media retains mount; return permits unmount'
-for name in skip-sync-result skip-retirement skip-unlock; do
+for name in skip-prepare-result skip-retirement skip-unlock; do
     if run_case "$name" "$work/vfs-mutant-$name-v1514.s"; then
         echo "FAIL v1514: unsafe $name accepted" >&2
         exit 1

@@ -38,7 +38,7 @@ main:
         jrst    fail_sync_checked_v1514
         jrst    fail_v1514
 fail_sync_checked_v1514:
-        ; No provider preparation/unlock/slot-retirement after error.
+        ; No unlock/slot-retirement after failed serialized PREPARE.
         move    1,vfs_mount_roots_v1514+1
         came    1,[060201000003]
         jrst    fail_v1514
@@ -48,10 +48,10 @@ fail_sync_checked_v1514:
         move    1,vfs_mount_policy
         caie    1,2                     ; readonly bit1 remains
         jrst    fail_v1514
-        move    1,sync_count_v1514
-        caie    1,1
+        skipe   sync_count_v1514
         jrst    fail_v1514
-        skipn   prepare_count_v1514
+        move    1,prepare_count_v1514
+        cain    1,1
         jrst    no_prepare_v1514
         jrst    fail_v1514
 no_prepare_v1514:
@@ -88,11 +88,10 @@ check_namespace_v1514:
         jrst    check_counts_v1514
         jrst    fail_v1514
 check_counts_v1514:
-        move    1,sync_count_v1514
-        caie    1,2
+        skipe   sync_count_v1514
         jrst    fail_v1514
         move    1,prepare_count_v1514
-        caie    1,1
+        caie    1,2
         jrst    fail_v1514
         move    1,unlock_count_v1514
         caie    1,1
@@ -122,6 +121,11 @@ fs_provider_reg_call:
         caie    6,020                   ; PREPARE_UNMOUNT
         jrst    fail_v1514
         aos     prepare_count_v1514
+        move    1,vfs_mount_media_v1562+1
+        trnn    1,0020000
+        jrst    kret_neg1
+        skipn   media_online_v1514
+        jrst    kret_neg1
         setz    1,
         popj    17,
 

@@ -28,7 +28,7 @@ assert src.count('vfs_dtfs_owner_admit_v1562(backing)') == 1
 assert src.index('vfs_dtfs_owner_admit_v1562(backing)') < src.index(
     'proc_swap_records[slot].state = packed')
 assert src.index('vfs_dtfs_owner_admit_v1562(backing)') < src.index(
-    'PROC_CRED_WORD(&proc_table[slot]) |=')
+    'PROC_CRED_WORD(&proc_table[slot]) =')
 assert src.index('vfs_dtfs_owner_admit_v1562(backing)') < src.index(
     'proc_table[slot].sched =')
 assert exec_src.count('pushj   17,proc_swap_attach') == 2

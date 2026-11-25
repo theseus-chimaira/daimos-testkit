@@ -3253,3 +3253,10 @@ test-pure-d6fs-loss-v1929:
 test-pure-d6fs-retry-v1930:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
+
+.PHONY: test-pure-d6fs-unmount-v1931
+test-pure-d6fs-unmount-v1931:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-d6fs-media-v1927/run-native-v1927.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/daimos-dtfs-quiesce-v1562.sh

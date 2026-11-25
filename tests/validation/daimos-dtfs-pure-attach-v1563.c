@@ -24,7 +24,8 @@ int
 vfs_dtfs_owner_admit_v1562(vnode_t node)
 {
         ++checks;
-        if (VFS_PROVIDER(node) != DTFS_PROVIDER)
+        if (VFS_PROVIDER(node) != DTFS_PROVIDER &&
+            VFS_PROVIDER(node) != D6FS_PROVIDER)
                 return -1;
         return quiescing ? -1 : 0;
 }
@@ -39,16 +40,16 @@ check(int value, const char *message)
 }
 
 static void
-run_one(unsigned int mount)
+run_one(unsigned int mount, unsigned int provider)
 {
         vnode_t node;
         kword_t old_record;
         kword_t old_sched;
         int old_checks;
 
-        node = VFS_NODE(DTFS_PROVIDER,
-            VFS_MOUNT_KIND(mount, 2U), 012345U);
-        roots[mount - 1U] = VFS_NODE(DTFS_PROVIDER,
+        node = VFS_NODE(provider,
+            VFS_MOUNT_KIND(mount, 1U + (provider & 1U)), 012345U);
+        roots[mount - 1U] = VFS_NODE(provider,
             VFS_MOUNT_KIND(mount, 1U), 0U);
         slots[1].sched = (kword_t)PROC_SIDL << PROC_STATE_SHIFT;
         slots[1].sched |= PROC_SWAP_STAGE_MOUNT_EXT_BIT;
@@ -87,16 +88,18 @@ main(void)
         vnode_t node;
         int saved;
 
-        run_one(1U);
-        run_one(16U);
-        run_one(17U);
-        run_one(26U);
+        run_one(1U, DTFS_PROVIDER);
+        run_one(16U, DTFS_PROVIDER);
+        run_one(17U, DTFS_PROVIDER);
+        run_one(26U, DTFS_PROVIDER);
+        run_one(1U, D6FS_PROVIDER);
+        run_one(17U, D6FS_PROVIDER);
         quiescing = 1;
         saved = checks;
-        roots[1] = VFS_NODE(D6FS_PROVIDER, VFS_MOUNT_KIND(2U, 1U), 0U);
-        node = VFS_NODE(D6FS_PROVIDER, VFS_MOUNT_KIND(2U, 1U), 1U);
+        roots[1] = VFS_NODE(4U, VFS_MOUNT_KIND(2U, 1U), 0U);
+        node = VFS_NODE(4U, VFS_MOUNT_KIND(2U, 1U), 1U);
         check(proc_swap_attach(1, node, 0123UL, 1U) == 0,
-            "unrelated D6FS backing blocked by DTFS seal");
+            "unrelated MEMFS backing blocked by DTFS seal");
         check(checks == saved, "unrelated provider called DTFS gate");
         check(errors == 0, "attachment validation matrix failed");
         if (errors != 0)
