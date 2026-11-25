@@ -23,6 +23,9 @@ source="$DAIMOS_REPO/system/kernel/proc/exec_lowmem_pdp6.s"
         "$source" | sed '$d'
     sed -n '/^sixbit_record_words:/,/^\/\*\*/p' \
         "$DAIMOS_REPO/system/kernel/proc/exec_load.s" | sed '$d'
+    sed -n '/^proc_exec_hold_v1934:$/,/^        .bss$/p' \
+        "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
+    cat "$self/pure-exec-handover-v1934/nonpure-boundary-v1934.s"
 } > "$work/exec-leaves.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 300000 --timeout 15 \

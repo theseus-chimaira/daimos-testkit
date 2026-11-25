@@ -3270,3 +3270,8 @@ test-pure-mutation-lease-v1932:
 test-pure-load-reservation-v1933:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-load-reservation-v1933/run-v1933.sh
+
+.PHONY: test-pure-exec-handover-v1934
+test-pure-exec-handover-v1934:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-exec-handover-v1934/run-v1934.sh

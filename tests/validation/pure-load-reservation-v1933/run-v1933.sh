@@ -14,7 +14,7 @@ from pathlib import Path
 import sys
 src,work=map(Path,sys.argv[1:])
 s=(src/'proc/proc_pure_backing_pdp6.s').read_text()
-res=s[s.index('; Transient executable backing reservation.'): ]
+res=s[s.index('proc_swap_unpack_backing:'):s.index('/*',s.index('proc_swap_unpack_backing_bad:'))]+s[s.index('; Transient executable backing reservation.'): ]
 s=(src/'fs/fs_mres.s').read_text()
 gate=s[s.index('fs_provider_reg_call:'):s.index('; KCORE memory-pressure bridge')]
 s=(src/'fs/vfs.s').read_text()

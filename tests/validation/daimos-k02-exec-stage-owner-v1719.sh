@@ -23,6 +23,9 @@ src="$DAIMOS_REPO/system/kernel/proc/exec_lowmem_pdp6.s"
         "$src" | sed '$d'
     sed -n '/^sixbit_record_words:/,/^\/\*\*/p' \
         "$DAIMOS_REPO/system/kernel/proc/exec_load.s" | sed '$d'
+    sed -n '/^proc_exec_hold_v1934:$/,/^        .bss$/p' \
+        "$DAIMOS_REPO/system/kernel/proc/proc_pure_backing_pdp6.s" | sed '$d'
+    cat "$self/pure-exec-handover-v1934/nonpure-boundary-v1934.s"
 } > "$work/production.s"
 
 # A source-linked negative control must fail if the old backing is used when
@@ -34,10 +37,16 @@ import sys
 source = Path(sys.argv[1]).read_text()
 good = ('        move    4,EXEC_R_NEW_SWAP(17)\n'
         '        movem   4,(3)\n'
+        '        hlrz    3,(16)\n'
+        '        move    4,EXEC_R_NEW_EXT(17)\n'
+        '        dpb     4,[POINT 4,PROC_CRED_OFFSET(3),8]\n'
         '        pushj   17,vm_space_destroy\n')
 bad = ('        move    4,EXEC_R_OLD_SWAP(17)\n'
        '        movem   4,(3)\n'
-       '        pushj   17,vm_space_destroy\n')
+       '        hlrz    3,(16)\n'
+        '        move    4,EXEC_R_NEW_EXT(17)\n'
+        '        dpb     4,[POINT 4,PROC_CRED_OFFSET(3),8]\n'
+        '        pushj   17,vm_space_destroy\n')
 assert source.count(good) == 1
 Path(sys.argv[2]).write_text(source.replace(good, bad, 1))
 PY
