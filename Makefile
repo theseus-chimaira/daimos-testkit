@@ -3312,3 +3312,9 @@ test-pure-k07-native-v1940:
 test-pure-k07-physical-v1940:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-k07-accept-v1940/run-physical-v1940.sh
+
+.PHONY: test-pure-k07-full-v1941 test-pure-k07-full-oracle-v1941
+test-pure-k07-full-v1941:
+	@sh tests/validation/pure-k07-full-v1941/run-v1941.sh
+test-pure-k07-full-oracle-v1941:
+	@python3 tests/validation/pure-k07-full-v1941/test-verifier-v1941.py
