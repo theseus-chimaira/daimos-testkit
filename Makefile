@@ -3224,3 +3224,8 @@ test-pure-dtfs-media-v1925:
 	 sh tests/validation/pure-dtfs-media-v1925/run-physical-v1925.sh
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-dtfs-media-v1925/run-bridge-v1925.sh
+
+.PHONY: test-pure-drop-availability-v1926
+test-pure-drop-availability-v1926:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-drop-availability-v1926/run-v1926.sh

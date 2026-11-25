@@ -116,7 +116,8 @@ main(void)
         p->vm_state = (WORDS << PROC_HALF_SHIFT) | SOURCE;
         p->sched = (kword_t)PROC_SLEEP << PROC_STATE_SHIFT;
         swap_slots[SLOT].state = HIGH_BACKING_V1378;
-        uarea[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT;
+        uarea[PROC_CRED_OFFSET] |= PROC_SWAP_MOUNT_EXT_BIT |
+            ((kword_t)6UL << PROC_SWAP_PROVIDER_SHIFT_V1924);
 #ifdef DAIMOS_TEST_INPLACE_V1382
         roots_v1608[HI_MOUNT_V1378 - 1U] =
             VFS_NODE(6U, VFS_MOUNT_KIND(HI_MOUNT_V1378, 1U), 1U);

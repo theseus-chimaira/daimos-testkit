@@ -39,6 +39,11 @@ mach_pi_disable(void)
                 __test_exit = 076UL;
         ++pi_depth_v1381;
         ++pi_disable_count_v1381;
+#ifdef DAIMOS_TEST_DROP_AVAIL_V1926
+        /* Controlled change at entry to the final PI-excluded proof. */
+        extern void drop_pi_boundary_v1926(void);
+        drop_pi_boundary_v1926();
+#endif
         return 0200UL;
 }
 

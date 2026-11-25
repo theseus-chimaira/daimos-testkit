@@ -90,7 +90,13 @@ a='''            provider != (unsigned int)((u[PROC_CRED_OFFSET] &
                 PROC_SWAP_PROVIDER_MASK_V1924) >> PROC_SWAP_PROVIDER_SHIFT_V1924) ||\n'''
 assert s.count(a)==1
 (work/'proc_pure_admit_v1608.h').write_text(s.replace(a,''))
-(work/'unsafe-admit.c').write_text((src/'proc_pure_ram_v1381.c').read_text())
+# v1926 repeats provider identity inside the PI-excluded DROP proof.
+# Remove both comparisons for this historical provider-substitution mutant;
+# the independent boundary test verifies the second guard itself.
+s=(src/'proc_pure_ram_v1381.c').read_text()
+a='VFS_PROVIDER(root) != provider || '
+assert s.count(a)==1
+(work/'unsafe-admit.c').write_text(s.replace(a,'',1))
 PY
 "$KCC_BIN_V1392" -Pgnu99 -O -x=pdp6 -m=gas -DDAIMOS_SWAPLESS_PURE_RAM_V1381=1 -I"$work" $include -S "$work/unsafe-admit.c" -o "$work/unsafe-admit.s"
 for variant in unsafe-provider unsafe-admit; do

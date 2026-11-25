@@ -59,6 +59,33 @@ static vnode_t pure_mount_roots_v1608[1] = {
 };
 vnode_t *vfs_mount_root_base = pure_mount_roots_v1608;
 #endif
+/* Published provider and mount state for source-linked DROP fixtures.
+ * Native physical-provider behavior is tested separately. */
+kword_t fs_memfs_service_jump = 0254000001234UL;
+kword_t fs_dtfs_service_jump = 0254000001234UL;
+kword_t fs_d6fs_service_jump = 0254000001234UL;
+kword_t fs_tsfs_service_jump = 0254000001234UL;
+static kword_t media_v1926[26], shape_v1926[26], extent_v1926[26];
+static kword_t readers_v1926[26] = {
+        040000UL, 040000UL, 040000UL, 040000UL, 040000UL, 040000UL,
+        040000UL, 040000UL, 040000UL, 040000UL, 040000UL, 040000UL,
+        040000UL, 040000UL, 040000UL, 040000UL, 040000UL, 040000UL,
+        040000UL, 040000UL, 040000UL, 040000UL, 040000UL, 040000UL,
+        040000UL, 040000UL
+};
+kword_t *dtfs_media_base = media_v1926;
+kword_t *tsfs_file_shape_base = shape_v1926;
+kword_t *tsfs_extent_media_base = extent_v1926;
+kword_t *d6fs_reader_slots_base = readers_v1926;
+int fs_mres_no_service(void) { return -1; }
+static kword_t ro_v1926;
+int vfs_readonly(vnode_t node)
+{
+        unsigned int mount = VFS_MOUNT_ID(node);
+        return mount && ((ro_v1926 >> (mount - 1U)) & 1UL);
+}
+
+
 static int refuse_restore_alloc;
 
 static int
