@@ -56,7 +56,7 @@ unpack_v1923(void)
 {
         kword_t *u = (kword_t *)(unsigned long)UAREA;
         kword_t backing = BACKING;
-        u[PROC_CRED_OFFSET] = 0UL;
+        u[PROC_CRED_OFFSET] = (kword_t)6UL << PROC_SWAP_PROVIDER_SHIFT_V1924;
         roots_v1385[0] = VFS_NODE(6U, VFS_MOUNT_KIND(2U, 1U), 1U);
         if (proc_swap_unpack_backing(backing, UAREA)) return 1;
         vfs_mount_root_base = (vnode_t *)0;

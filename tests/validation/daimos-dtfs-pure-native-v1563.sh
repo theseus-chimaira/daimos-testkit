@@ -41,18 +41,18 @@ def packed():
 # expected result, record-after, credential-after, sched-after.
 cases = []
 def case(label, state=1, has_uarea=0, staged_bit=0, cred=0,
-         media=0o100003, root=None, expected=0):
+         media=0o100003, root=None, expected=0, provider=5):
     if root is None:
-        root = node(kind=1, index=0)
+        root = node(provider=provider, kind=1, index=0)
     before = 0o1234567
     after = packed() if expected == 0 else before
     aftercred = cred
     if has_uarea and expected == 0:
-        aftercred &= ~0o001000000000
+        aftercred = (cred & ~0o017000000000) | (provider << 28)
     afterstage = staged_bit
     if state == 1 and expected == 0:
-        afterstage = 0
-    fields = [node(), root, media, has_uarea, sched(state, staged_bit),
+        afterstage = (staged_bit & ~0o35) | (provider << 2)
+    fields = [node(provider=provider, kind=1+(provider & 1)), root, media, has_uarea, sched(state, staged_bit),
               cred, before, expected, after, aftercred,
               sched(state, afterstage)]
     cases.append((label, fields))
@@ -69,6 +69,11 @@ case('quiescent SIDL with uarea refused', media=0o120003,
      expected=-1)
 case('quiescent SRUN with uarea refused', media=0o120003,
      state=2, has_uarea=1, expected=-1)
+for provider in (4,5,6,7):
+    case('provider identity SIDL with rollback bit', provider=provider,
+         staged_bit=0o37, has_uarea=1, cred=0o017234567123)
+    case('provider identity SRUN retains queue link', provider=provider,
+         state=2, has_uarea=1, staged_bit=0o37, cred=0o017234567123)
 case('retired mount refused', root=0, expected=-1)
 case('reused provider refused', root=node(provider=6, kind=1,
      index=0), expected=-1)

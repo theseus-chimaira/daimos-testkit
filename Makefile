@@ -3210,3 +3210,10 @@ test-pure-mm-arena-v1922:
 test-pure-backing-identity-v1923:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-backing-identity-v1923/run-v1923.sh
+
+.PHONY: test-pure-provider-identity-v1924
+test-pure-provider-identity-v1924:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-provider-identity-v1924/run-v1924.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-provider-identity-v1924/run-run-v1924.sh

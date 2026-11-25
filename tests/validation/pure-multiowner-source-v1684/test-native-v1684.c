@@ -124,6 +124,8 @@ case_source_multi_v1684(void)
         fault_kind_v1395 = 0U;
         fault_kind_v1648 = 0U;
         reset_prefix_v1384();
+        ((kword_t *)(unsigned long)UAREA)[PROC_CRED_OFFSET] =
+            (kword_t)5UL << PROC_SWAP_PROVIDER_SHIFT_V1924;
         roots_v1684[0] = VFS_NODE(5U, VFS_MOUNT_KIND(1U, 2U), 0UL);
         roots_v1684[1] = VFS_NODE(5U, VFS_MOUNT_KIND(2U, 2U), 0UL);
         vfs_mount_root_base = roots_v1684;
@@ -138,6 +140,7 @@ case_source_multi_v1684(void)
                 data[i] = i < OMIT ? TEXT_PATTERN : PATTERN + i;
             for (i = 0U; i < PROC_UAREA_WORDS; ++i)
                 u[i] = 0UL;
+            u[PROC_CRED_OFFSET] = (kword_t)5UL << PROC_SWAP_PROVIDER_SHIFT_V1924;
             second->meta = (V1684_SECOND_UAREA << PROC_HALF_SHIFT) |
                 ((kword_t)(PROC_F_UAREA | PROC_F_TRANSITION) <<
                  PROC_FLAGS_SHIFT);

@@ -85,6 +85,8 @@ mm_alloc_aligned_noreclaim(kword_t words, kword_t align,
     kword_t *basep)
 {
         kword_t base;
+        int i;
+        struct mm_extent added;
         if (owner != SLOT || preference != MM_ALLOC_HIGH || !basep)
                 return MM_ERR_INVAL;
         if (type == MM_TYPE_PACKED_PROCESS && words == SUFFIX)
@@ -98,6 +100,16 @@ mm_alloc_aligned_noreclaim(kword_t words, kword_t align,
         if (find_extent(base) >= 0 || (base & (align - 1UL)) != 0UL)
                 return MM_ERR_NOMEM;
         add_extent(base, words, type);
+        /* Real MM publishes sorted extents even when another owner's
+         * range lies above this allocation. Keep add_extent itself
+         * available for deliberately malformed-table test stimuli. */
+        i = mm_extent_count - 1;
+        added = mm_extents[i];
+        while (i && MM_EXTENT_BASE(&mm_extents[i - 1]) > base) {
+                mm_extents[i] = mm_extents[i - 1];
+                --i;
+        }
+        mm_extents[i] = added;
         *basep = base;
         return MM_OK;
 }
@@ -181,6 +193,11 @@ main(void)
         add_extent(SOURCE, WORDS, MM_TYPE_PROCESS);
         for (i = 0U; i < PROC_UAREA_WORDS; ++i)
                 uarea[i] = 0UL;
+#ifdef DAIMOS_TEST_PLAIN_DXR_V1385
+        uarea[PROC_CRED_OFFSET] = (kword_t)6UL << PROC_SWAP_PROVIDER_SHIFT_V1924;
+#else
+        uarea[PROC_CRED_OFFSET] = (kword_t)MEMFS_PROVIDER << PROC_SWAP_PROVIDER_SHIFT_V1924;
+#endif
         for (i = 0U; i < WORDS; ++i)
                 source[i] = i < OMIT ? TEXT_PATTERN : PATTERN + i;
         proc_storage_runtime_v29.words = mode_words;

@@ -40,6 +40,11 @@ main(void)
         add_extent(SOURCE, WORDS, MM_TYPE_PROCESS);
         for (i = 0U; i < PROC_UAREA_WORDS; ++i)
                 uarea[i] = 0UL;
+#ifdef DAIMOS_TEST_PLAIN_DXR_V1385
+        uarea[PROC_CRED_OFFSET] = (kword_t)6UL << PROC_SWAP_PROVIDER_SHIFT_V1924;
+#else
+        uarea[PROC_CRED_OFFSET] = (kword_t)MEMFS_PROVIDER << PROC_SWAP_PROVIDER_SHIFT_V1924;
+#endif
         for (i = 0U; i < WORDS; ++i)
                 source[i] = i < OMIT ? TEXT_PATTERN : PATTERN + i;
         for (i = 0U; i < PROC_STORAGE_MAP_WORDS_V28(SLOTS); ++i)

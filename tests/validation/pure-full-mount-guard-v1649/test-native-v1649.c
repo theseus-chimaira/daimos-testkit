@@ -81,6 +81,8 @@ case_guarded_full_v1649(void)
         reset_prefix_v1384();
         vfs_mount_root_base[0] =
             VFS_NODE(5U, VFS_MOUNT_KIND(1U, 2U), 0U);
+        ((kword_t *)(unsigned long)UAREA)[PROC_CRED_OFFSET] =
+            (kword_t)5UL << PROC_SWAP_PROVIDER_SHIFT_V1924;
         proc_current_slot = 0UL;
         if (proc_pure_ram_drop_v1381(SLOT) != MM_OK) {
                 vfs_mount_root_base[0] = old_root;

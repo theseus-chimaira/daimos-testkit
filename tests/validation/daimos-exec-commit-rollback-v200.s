@@ -1,6 +1,6 @@
 ; Test the exact production EXEC staged replacement transaction, with
 ; injected loader, startup and old-VM teardown failures.  In addition to
-; swap-backing and PURE mount-bit rollback, cover RT owner preservation,
+; swap-backing and PURE mount/provider identity rollback, cover RT owner preservation,
 ; acquisition rollback and release at successful non-RT commit.
         .text
         .globl main
@@ -18,7 +18,7 @@ test_modes:
         movem   1,process_desc
         movei   1,012345
         movem   1,swap_states+1
-        move    1,[000234567123]
+        move    1,[010234567123]       ; old provider 4, original credentials
         ; Cases 1-3 begin with old fifth bit 1; all later cases start at 0.
         caige   7,4
         tlo     1,001000
@@ -57,6 +57,9 @@ verify_success:
         caie    5,076543              ; successful EXEC installs new backing
         jrst    test_fail
         move    5,stable_uarea+066
+        ldb     6,[POINT 3,5,7]
+        caie    6,6                     ; new provider
+        jrst    fail_credentials
         caie    4,5
         jrst    verify_commit_bit_clear
         tlne    5,001000              ; new mount 26 bit installed at commit
@@ -77,6 +80,9 @@ check_old_restored:
         caie    5,012345              ; old backing restored
         jrst    fail_backing
         move    5,stable_uarea+066
+        ldb     6,[POINT 3,5,7]
+        caie    6,4                     ; old provider restored
+        jrst    fail_credentials
         caile   4,3
         jrst    check_failure_mapping
         tlne    5,001000              ; old fifth slot bit restored
@@ -99,7 +105,7 @@ test_next:
         came    5,6
         jrst    fail_owner
         move    5,stable_uarea+066
-        tlz     5,001000
+        tlz     5,017000
         came    5,[000234567123]       ; credentials unchanged throughout
         jrst    fail_credentials
         aoj     7,
@@ -142,7 +148,8 @@ exec_load_process:
         movei   4,076543
         movem   4,swap_states+1
         move    4,stable_uarea+066
-        tlz     4,001000
+        tlz     4,017000
+        tlo     4,014000               ; replacement provider 6
         move    5,test_mode
         caie    5,5
         jrst    exec_mock_attach_done
@@ -197,6 +204,19 @@ exec_mock_startup_ok:
         popj    17,
 
 vm_space_destroy:
+        ; The original record AND original provider must be installed
+        ; before old-VM destroy; staged destroy must see the new pair.
+        move    4,stable_uarea+066
+        ldb     4,[POINT 3,4,7]
+        caie    1,process_desc
+        jrst    exec_mock_destroy_new_v1924
+        caie    4,4
+        jrst    exec_mock_bad_identity_v1924
+        jrst    exec_mock_destroy_check_v1924
+exec_mock_destroy_new_v1924:
+        caie    4,6
+        jrst    exec_mock_bad_identity_v1924
+exec_mock_destroy_check_v1924:
         move    5,test_mode
         caie    5,3
         jrst    exec_mock_destroy_ok
@@ -207,10 +227,16 @@ vm_space_destroy:
 exec_mock_destroy_ok:
         setzm   swap_states+1
         move    5,stable_uarea+066
-        tlz     5,001000               ; detach clears fifth mount bit
+        tlz     5,017000               ; detach clears backing identity
         movem   5,stable_uarea+066
         setz    1,
         popj    17,
+
+exec_mock_bad_identity_v1924:
+        ; Fail the guest directly, not merely simulate an MM refusal.
+        movei   1,0777
+        movem   1,__test_exit
+        halt    .
 
 exec_replace_current_lowmem:
         seto    1,
