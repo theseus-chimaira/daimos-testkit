@@ -24,6 +24,7 @@ fi
     printf '.globl proc_exit_current\n'
     sed -n '/^proc_exit_current:$/,/^ \* @brief Finish an irreversible user fault/p' \
         "$source_file" | sed '$d' | sed '$d'
+    sh "$self/pure-stack-lifetime-v1937/extract-stack-v1937.sh"
 } > "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 180000 --timeout 25 \

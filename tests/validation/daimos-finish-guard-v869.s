@@ -42,6 +42,22 @@ commit_ready:
  move 1,__ptable+6
  tro 1,0400000
  movem 1,__ptable+6
+ ; Even with a saved user return and empty FILE table, a live
+ ; stack reservation refuses before HUP, VM or MM changes.
+ movei 1,__uarea+070
+ movem 1,proc_exec_resv_head_v1933
+ setzm __uarea+070
+ movei 1,2
+ movei 2,0123
+ pushj 17,proc_finish_slot
+ came 1,[-1]
+ jrst fail_7
+ skipe __helper_calls
+ jrst fail_8
+ move 1,__ptable+6
+ trne 1,0200000
+ jrst fail_4
+ setzm proc_exec_resv_head_v1933
  movei 1,2
  movei 2,0123
  pushj 17,proc_finish_slot
@@ -131,7 +147,10 @@ proc_rt_owner: .word 2
 .globl proc_finish_last_tick_v881
 proc_finish_last_tick_v881: .word 0
 __ptable:
- .block 6
+ .block 3
+ .word parent_uarea,,0400001
+ .word 04000,,02000
+ .word 0200000,,0
  .word __uarea,,0400400
  .word 04000,,02000
  .word 0200000,,0
@@ -148,3 +167,21 @@ __test_exit: .block 1
 ; v924 fixture: a foreign process finalizer, not the running slot.
 .globl proc_current_slot
 proc_current_slot: .word 0
+
+.globl proc_exec_resv_head_v1933
+
+.text
+.globl kret_one
+kret_one: movei 1,1
+ popj 17,
+.globl kret_zero
+kret_zero: setz 1,
+ popj 17,
+
+.data
+.globl proc_high_slot
+proc_high_slot: .word 3
+parent_uarea: .block 0410
+
+.globl proc_timer_clock
+proc_timer_clock: .word 0

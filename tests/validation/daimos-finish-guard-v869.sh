@@ -13,10 +13,14 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
     printf '.equ PROC_FILE_TABLE_OFFSET,026\n.equ PROC_TRANSITION_RH,0200000\n'
     printf '.equ PROC_FINALIZE_OFFSET,067\n.equ PROC_FINALIZE_MARK_LH,0400000\n.equ PROC_FINALIZE_PREVM_LH,0100000\n'
     printf '.equ PROC_FATAL_CLOSE_BIT,4\n'
+    printf '.equ PROC_FINISH_ARMED_LH_V1763,040000\n.equ PROC_SWAP_RETRY_LH,040000\n'
     printf '.equ CTX_PC,020\n'
     printf '.equ PROC_WAIT_LH_MASK,060000\n'
     sed -n '/^proc_finish_slot:$/,/^proc_finish_service_v881:$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
+    sed -n '/^proc_parent_waitable_v1768:$/,/^\/\*\*$/p' \
+        "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
+    sh "$self/pure-stack-lifetime-v1937/extract-stack-v1937.sh"
 } > "$work/leaf.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 250000 --timeout 20 \

@@ -189,6 +189,25 @@ v956_pin_preserved:
  jrst fail_13
  move 1,[03,,01001]
  movem 1,mm_extents+1
+ ; A published stack reservation is BUSY even with zero MM pins.
+ movei 1,__uarea+070
+ movem 1,proc_exec_resv_head_v1933
+ setzm __uarea+070
+ movei 1,1
+ movei 2,__ptable+3
+ pushj 17,proc_uarea_release
+ came 1,[-5]
+ jrst fail_13
+ move 1,__ptable+3
+ came 1,__owner_before
+ jrst fail_13
+ move 1,mm_extent_count
+ caie 1,1
+ jrst fail_13
+ move 1,mm_extents+1
+ came 1,[03,,01001]
+ jrst fail_13
+ setzm proc_exec_resv_head_v1933
  movei 1,1
  movei 2,__ptable+3
  pushj 17,proc_uarea_release
@@ -273,3 +292,5 @@ __owner_before: .block 1
 __stack: .block 0400
 .globl __test_exit
 __test_exit: .block 1
+
+.globl proc_exec_resv_head_v1933

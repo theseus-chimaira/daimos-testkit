@@ -3285,3 +3285,10 @@ test-pure-lowmem-exec-v1935:
 test-pure-namespace-epoch-v1936:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	 sh tests/validation/pure-namespace-epoch-v1936/run-v1936.sh
+
+.PHONY: test-pure-stack-lifetime-v1937
+test-pure-stack-lifetime-v1937:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/pure-stack-lifetime-v1937/run-v1937.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	 sh tests/validation/daimos-uarea-ownership-v956.sh

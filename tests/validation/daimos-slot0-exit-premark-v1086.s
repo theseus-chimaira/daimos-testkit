@@ -73,3 +73,14 @@ __userstack: .block 0400
 __idlestack: .block 0400
         .globl __test_exit
 __test_exit: .block 1
+
+        .text
+        .globl kret_zero
+kret_zero:
+        setz    1,
+        popj    17,
+        .globl proc_swap_storage_invariant_v30
+proc_swap_storage_invariant_v30:
+        movei   1,6
+        movem   1,__test_exit
+        halt    .

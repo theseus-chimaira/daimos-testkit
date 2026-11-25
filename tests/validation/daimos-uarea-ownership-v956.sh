@@ -28,6 +28,8 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
     sed -n '/^proc_control_getteardown_v886:$/,/^proc_control_getpgrp:$/p' \
         "$DAIMOS_REPO/system/kernel/proc/proc_pdp6.s" | sed '$d'
+    printf '.equ PROC_FINALIZE_PREVM_LH,0100000\n'
+    sh "$self/pure-stack-lifetime-v1937/extract-stack-v1937.sh"
 } > "$work/leaf.s"
 printf '.text\n' >> "$work/leaf.s"
 sed -n '/^        \.globl mach_pi_disable$/,$p' \
