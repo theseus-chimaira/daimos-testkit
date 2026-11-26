@@ -11,6 +11,7 @@ def main():
     p.add_argument('simulator', type=Path)
     p.add_argument('prefix', type=Path)
     p.add_argument('work', type=Path)
+    p.add_argument('--ka10', action='store_true')
     a = p.parse_args()
     a.work.mkdir()
     src = Path(__file__).with_name('probe-v1950.s')
@@ -36,7 +37,10 @@ def main():
     bad = []
     for label in ('clear_test', 'reselect_test', 'dfr_test'):
         ini = a.work/(label+'.ini')
-        ini.write_text('set cpu 32k\nset dpy disable\nset wcnsls disable\n'
+        setup = ('set cpu oneseg\nset cpu nomaoff\nset rpa disabled\n'
+                 'set rpb disabled\nset rpc disabled\nset rpd disabled\n'
+                 'set tua disabled\n') if a.ka10 else ''
+        ini.write_text(setup + 'set cpu 32k\nset dpy disable\nset wcnsls disable\n'
                        'set ocnsls disable\nset dsk enabled\n'
                        f'attach -q dsk0 {disk}\ndo {a.work/"probe-deposits.ini"}\n'
                        'deposit 17 777700002000\n'

@@ -11,6 +11,8 @@ def main():
     assert len(sys.argv) in (4,5)
     mode = sys.argv[4] if len(sys.argv)==5 else 'queue'
     assert mode in ('queue','read','silent')
+    machine=os.environ.get('DAIMOS_TEST_MACHINE','pdp6')
+    assert machine in ('pdp6','ka10')
     unsafe=os.environ.get('V1959_EXPECT_UNSAFE')=='1'
     assert not unsafe or mode=='silent'
     root,driver,w=map(lambda x:Path(x).resolve(),sys.argv[1:4])
@@ -54,6 +56,11 @@ def main():
         'set ocnsls disable\nset dsk enabled\nset dct enabled\n'
         f'attach -q dsk0 {disks[0]}\nattach -q dsk1 {disks[1]}\n'
         f'do {w/"deposits.ini"}\n')
+    if machine=='ka10':
+        # RH10 controllers are assigned 270 first; use Type 270 instead.
+        cmd=('set cpu oneseg\nset cpu nomaoff\n'
+             'set rpa disabled\nset rpb disabled\nset rpc disabled\n'
+             'set rpd disabled\nset tua disabled\n')+cmd
     if gate:
         cmd+=f'break {gate}\ngo {sym["start"]}\n'
         cmd+=f'detach dsk0\nattach -q dsk0 {disks[2]}\nnobreak all\ngo\n'
@@ -70,7 +77,7 @@ def main():
     if unsafe:
         cmd+='ex 3\nex 4\n'
     ini.write_text(cmd+'exit\n')
-    r=subprocess.run([str(prefix/'bin/pdp6'),str(ini)],capture_output=True,text=True,
+    r=subprocess.run([str(prefix/'bin'/('pdp10-ka' if machine=='ka10' else 'pdp6')),str(ini)],capture_output=True,text=True,
                      timeout=60,env=dict(os.environ,TERM='dumb'))
     t=r.stdout+r.stderr
     (w/'console.log').write_text(t)
