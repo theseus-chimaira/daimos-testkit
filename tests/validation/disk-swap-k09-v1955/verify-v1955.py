@@ -11,7 +11,8 @@ V = runpy.run_path(str(HERE.parent/'pure-runtime-reclaim-v1673/measure-v1673.py'
 HALF = (1 << 18) - 1
 
 
-def verify(coremap, text):
+def verify(coremap, text, provider="disk"):
+    assert provider in ("disk", "drum")
     assert 'V1673 PASS RUN EXIT WAIT' in text
     assert re.findall(r'(?m)^V1673 CHILD PID (\d+)$', text) == [
         str(x) for x in range(2, 8)]
@@ -126,6 +127,18 @@ def verify(coremap, text):
                         writes=d[a['mfsdev_io_out']+0o16],
                         errors=d[a['mfsdev_storage_errors']+2],
                         owners=ext)
+        if provider == "drum":
+            for name in ("mfsdev_drm_reads", "mfsdev_drm_writes",
+                         "drm236_active_request", "device_region_map",
+                         "backing_region_count"):
+                a[name] = V['lookup'](coremap, name)
+            assert word("drm236_active_request")==0
+            assert word("device_region_map")==((0o400000<<18)|0o4214)
+            assert word("backing_region_count")==512
+            assert d[0o152]==d[0o153]==0
+            reports[l].update(reads=word("mfsdev_drm_reads"),
+                              writes=word("mfsdev_drm_writes"),
+                              errors=d[a["mfsdev_storage_errors"]+5])
     assert reports['A']['live']==reports['C']['live']
     # Cache ownership can legitimately change; all non-cache, non-pipe
     # owners must survive exact. No child or pipe owner after WAIT.

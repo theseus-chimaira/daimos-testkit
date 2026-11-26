@@ -3429,3 +3429,11 @@ test-dsk270-address-v1959:
 	    work=$$(mktemp -d "$$TMPDIR/dsk270-address-v1959.XXXXXX"); \
 	    echo "Evidence: $$work"; \
 	    sh tests/validation/dsk270-address-v1959/run-v1959.sh "$$work/native"
+
+.PHONY: test-k17-rm10-v1970
+test-k17-rm10-v1970:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/k17-rm10-v1970.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    python3 tests/validation/k17-rm10-v1970/run-v1970.py \
+	        "$${DAIMOS_REPO:?DAIMOS source checkout required}" "$$work/native"
