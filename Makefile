@@ -3472,3 +3472,8 @@ test-dlink-rh18-v1977:
 test-pure-bitmap-prefix-v1978:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    sh tests/validation/pure-bitmap-prefix-v1978/run-v1978.sh
+
+.PHONY: test-pure-bitmap-commit-v1979
+test-pure-bitmap-commit-v1979:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-bitmap-commit-v1979/run-v1979.sh
