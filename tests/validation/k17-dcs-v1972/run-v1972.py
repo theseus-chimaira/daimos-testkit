@@ -62,7 +62,7 @@ def login(term):
     term.take("DSH V1",600)
     term.take("# ",600)
 
-def boot(build,prefix,w,root,drum,port):
+def boot(build,prefix,w,root,drum,port,session_test=None,snapshot_test=None):
     w.mkdir(parents=True)
     symbols={k:int(v,8) for k,v in re.findall(
         r"(?m)^(\w+)\s+([0-7]{6})$", (build/"kcore.map").read_text())}
@@ -96,6 +96,7 @@ def boot(build,prefix,w,root,drum,port):
     ini.write_text("\n".join(lines)+"\n")
     c=C["Console"](prefix/"bin/pdp10-ka",ini,w)
     d=None
+    stopped=False
     try:
         # Attach before LOGIN starts so no initial prompt is lost.
         deadline=time.monotonic()+30
@@ -112,44 +113,54 @@ def boot(build,prefix,w,root,drum,port):
         if drum:
             assert re.search(r"RM10\s+OK",bootlog)
         print(w.name,"native DCS installed; INIT",flush=True)
-        # CTY and DCS must both receive prompts, then simultaneously
-        # run separate shell commands with distinct result witnesses.
-        login(c)
-        d.take("simulator DCS device, line 0",600)
-        # TMXR can accept a socket before it assigns the line to
-        # the simulated scanner; the initial prompt may be lost.
-        # A blank login attempt obtains a fresh guest prompt.
-        send(d,"")
-        login(d)
-        print(w.name,"CTY and DCS0 ROOT shells",flush=True)
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            jobs=[pool.submit(command,c,"ECHO CTY1972","CTY1972"),
-                  pool.submit(command,d,"ECHO DCS1972","DCS1972")]
-            for j in jobs:
-                j.result()
-        command(d,"PWD","/")
-        send(d,"EXIT")
-        d.take("LOGIN: ",600)
-        send(d,"NOSUCH")
-        d.take("LOGIN INCORRECT",600)
-        login(d)
-        command(d,"ECHO DCSRELOGIN1972","DCSRELOGIN1972")
-        command(c,"ECHO CTYSTILL1972","CTYSTILL1972")
+        if session_test is not None:
+            session_test(c,d,root,drum)
+        else:
+            # CTY and DCS must both receive prompts, then simultaneously
+            # run separate shell commands with distinct result witnesses.
+            login(c)
+            d.take("simulator DCS device, line 0",600)
+            # TMXR can accept a socket before it assigns the line to
+            # the simulated scanner; the initial prompt may be lost.
+            # A blank login attempt obtains a fresh guest prompt.
+            send(d,"")
+            login(d)
+            print(w.name,"CTY and DCS0 ROOT shells",flush=True)
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                jobs=[pool.submit(command,c,"ECHO CTY1972","CTY1972"),
+                      pool.submit(command,d,"ECHO DCS1972","DCS1972")]
+                for j in jobs:
+                    j.result()
+            command(d,"PWD","/")
+            send(d,"EXIT")
+            d.take("LOGIN: ",600)
+            send(d,"NOSUCH")
+            d.take("LOGIN INCORRECT",600)
+            login(d)
+            command(d,"ECHO DCSRELOGIN1972","DCSRELOGIN1972")
+            command(c,"ECHO CTYSTILL1972","CTYSTILL1972")
         c.stop()
+        stopped=True
         vals={n:C["examine"](c,symbols[n],1)[0] for n in
               ("vfs_namespace_root","backstore_blocks","backstore_blocks_used",
                "drm236_active_request","proc_high_slot","proc_table")}
         assert vals["vfs_namespace_root"]>>30==root
         assert vals["backstore_blocks"]==(512 if drum else (1024 if root==6 else 0))
-        assert vals["backstore_blocks_used"]==vals["drm236_active_request"]==0
+        assert vals["drm236_active_request"]==0
+        if snapshot_test is None:
+            assert vals["backstore_blocks_used"]==0
+        else:
+            vals.update(snapshot_test(c,symbols,vals))
         assert C["examine"](c,0o152,2)==[0,0]
         (w/"report.json").write_text(json.dumps(vals,indent=2)+"\n")
-        print(w.name,"PASS simultaneous CTY/DCS0, logout/respawn, backing",vals,flush=True)
+        label = ("PASS simultaneous CTY/DCS0, logout/respawn, backing"
+                 if session_test is None else "PASS selected shell session and backing checks")
+        print(w.name,label,vals,flush=True)
     finally:
         if d is not None:
             d.close()
         try:
-            if c.proc.poll() is None:
+            if c.proc.poll() is None and not stopped:
                 c.stop()
         except Exception:
             pass

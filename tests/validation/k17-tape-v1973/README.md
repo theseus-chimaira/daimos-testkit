@@ -51,3 +51,21 @@ the RM10 case keeps both shells alive. The final snapshot
 allows allocated backing only when exactly accounted for by
 a live DISK owner and the physical bitmap, not simply because
 a guest printed a prompt. No claim of active RX/DMA overlap.
+
+Final native shell replay PASS on both full relocated stock
+images, preserving all four tapes in each profile. No-RM10:
+CTY ROOT/ECHO, EXIT to respawned LOGIN, DCS ROOT/ECHO/PWD;
+all three live APR owners exact and backing0. RM10:
+both ROOT shells live, distinct ECHO and PWD, CTY still
+usable after DCS command. Exact live APR owners and bitmap,
+PID1 slot1 DISK run first0,count32, not a leak. Backing
+capacity512, active DRM0, second pair0. Earlier full
+RM10 replay also verified DCS logout, invalid login,
+respawn and independent CTY, then rejected the incorrect
+zero-used assumption. Initial no-drum concurrent DSH
+attempt deliberately stopped without acceptance. Final
+no-drum test is serial; do not claim simultaneous DSH
+without backing. Generic old log label "simultaneous ...
+logout/respawn" on custom callbacks was misleading;
+corrected to distinguish the selected shell test.
+Evidence $TMPDIR/k17-tape-v1973.fel8Sn/shell-final.
