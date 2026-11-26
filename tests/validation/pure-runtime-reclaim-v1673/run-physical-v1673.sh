@@ -104,7 +104,7 @@ for variant in general strict; do
         [ "$variant" = strict ] && [ -z "${V1673_STRICT_BUILD:-}" ]; then
         make -s -C "$DAIMOS_REPO/system/boot/pdp6" image \
             BUILD="$build" PDP10_PREFIX="$PDP10_PREFIX" \
-            ROOT=tape BOOT=dtc BOOT_PROFILE=lowmem COMPILER=gcc \
+            ROOT=tape BOOT=dtc BOOT_PROFILE=lowmem COMPILER="${V1673_KERNEL_COMPILER:-gcc}" \
             BOOT_CORE_WORDS=0200000 SIMH_CPU_KWORDS=64 \
             TSFS_ROOT_MEMBERS=3 TSFS_INPLACE_BOOT=1 \
             DAIMOS_PURE_MRES_ENABLED=1 DAIMOS_PBM_V1667=0 \
@@ -180,9 +180,15 @@ for variant in general strict; do
         # PID1 holds on CTY while the host interrupts SIMH and examines
         # original physical MM fields at each phase A/B/C.
         cty_driver=${V1673_CTY_DRIVER:-$here/host-cty-v1673.py}
+        # This is a CTY test, not a graphical device test. Isolate host
+        # video and network transports for concurrent pressure runs.
+        port=$((34000 + ($$ % 10000)))
+        sh "$kit/tests/lib/daimos-simh-headless.sh" \
+            "$work/$variant-$core-noaux.ini" \
+            "$work/$variant-$core-headless.ini" "$port" "$((port+12000))"
         if ! python3 "$cty_driver" \
             "$work/pty-run" "$PDP10_PREFIX/bin/pdp6" \
-            "$work/$variant-$core-noaux.ini" "$build/kcore.map" \
+            "$work/$variant-$core-headless.ini" "$build/kcore.map" \
             "$work/$variant-$core-console.log" \
             "${V1673_TIMEOUT:-900}" "$build"; then
             tr -d '\r' < "$work/$variant-$core-console.log" > \

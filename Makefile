@@ -3361,3 +3361,31 @@ test-dsk270-octoflop-v1950:
 	    python3 tests/validation/dsk270-octoflop-v1950/run-v1950.py \
 	        "$${SIMH_PDP6:-$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp6}" \
 	        "$${PDP10_PREFIX:-$$HOME/cross}" "$$work/probe"
+
+.PHONY: test-pure-k09-pressure-v1951 test-pure-k09-nine-v1951 test-pure-k09-budget-v1951
+test-pure-k09-pressure-v1951:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/k09-pressure-v1951.XXXXXX"); \
+	    core="$${V1951_CORE:-48}"; case "$$core" in 48) children=5;; 64) children=9;; *) exit 2;; esac; \
+	    echo "Evidence: $$work"; \
+	    python3 tests/validation/pure-k07-full-v1941/replay-v1941.py \
+	        "$${V1951_BUILD:?source-built KCC fixture required}" "$$work/physical" \
+	        "$${PDP10_PREFIX:-$$HOME/cross}" --core "$$core" --children "$$children" \
+	        --timeout "$${V1951_TIMEOUT:-1150}"; \
+	    python3 tests/validation/pure-k09-pressure-v1951/conserve-v1951.py \
+	        "$$V1951_BUILD" "$$work/physical" "$${PDP10_PREFIX:-$$HOME/cross}" \
+	        --core "$$core" --children "$$children"
+test-pure-k09-nine-v1951:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/k09-nine-v1951.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    sh tests/validation/pure-k09-pressure-v1951/run-nine-v1951.sh \
+	        "$$work/run" "$${V1951_VARIANT:-general}"
+test-pure-k09-budget-v1951:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/k09-budget-v1951.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    python3 tests/validation/pure-k09-pressure-v1951/budget-v1951.py \
+	        "$${V1951_OFF_BUILD:?KCC OFF build required}" \
+	        "$${V1951_RAW_BUILD:?KCC RAW build required}" "$$work" \
+	        "$${PDP10_PREFIX:-$$HOME/cross}"

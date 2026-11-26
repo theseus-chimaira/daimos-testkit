@@ -17,7 +17,7 @@ def section(trace, label):
     return trace.split(start, 1)[1].split(end, 1)[0]
 
 
-def extents(snap, sym):
+def extents(snap, sym, core=48):
     count = snap[sym["mm_extent_count"]]
     capacity = snap[sym["mm_extent_capacity"]]
     na = snap[sym["mm_arena_count"]]
@@ -27,11 +27,11 @@ def extents(snap, sym):
     for i in range(na):
         v = snap[sym["mm_arenas"] + i]
         lo, size = v & 0o777777, v >> 18
-        assert size and lo + size <= 0o140000, "arena outside 48K"
+        assert size and lo + size <= core*1024, "arena outside physical core"
         arenas.append((lo, lo + size))
     assert arenas == sorted(arenas)
     assert all(a[1] <= b[0] for a, b in zip(arenas, arenas[1:]))
-    assert max(b for _, b in arenas) == 0o140000
+    assert max(b for _, b in arenas) == core*1024
     out = []
     for i in range(count):
         addr = sym["mm_extents"] + 2*i
@@ -70,7 +70,7 @@ def check_full(ac, ext, earlier, children=6):
     return slot, s, d
 
 
-def verify(b, w, prefix, children):
+def verify(b, w, prefix, children, core=48):
     sym = symbols(b / "kcore.map")
     mres = symbols(b / "pure-mres-v1612.map")
     trace = (w / "physical.clean").read_text(encoding="ascii")
@@ -81,7 +81,7 @@ def verify(b, w, prefix, children):
         assert hashlib.sha256((b / name).read_bytes()).hexdigest() == digest
     assert set(hashes) == {"kcore.dxr", "pure-mres-v1612.dxr",
                            "kinit.lowmem.words"}
-    assert "MEM                                  48 K" in trace
+    assert "MEM                                  %d K" % core in trace
     assert "PURE                              LOADED" in trace
     assert "a"*children+"x[BV1941_STAGE_B" in trace
     # The FULL breakpoint splits the continuous child-output stream
@@ -93,7 +93,7 @@ def verify(b, w, prefix, children):
         "V1941_STAGE_Z", 1)[0]
     guest = re.sub(r"\s+", "", before_full + after_full)
     assert re.search(r"\]\{[0-7]+-[0-7]+\}L"+"w"*children+"Z$", guest), (
-        "six checked exits/waits missing")
+        "checked exits/waits missing")
     assert re.search(r"HALT instruction, PC: 000000", trace), "normal HALT"
     assert trace.count("HALT instruction") == 1
     labels = ("B", "A", "FULL", "Z")
@@ -103,7 +103,8 @@ def verify(b, w, prefix, children):
     snapshots, mm = {}, {}
     for label in labels:
         snapshots[label] = words(section(trace, label))
-        mm[label] = extents(snapshots[label], sym)
+        assert snapshots[label][sym["mm_extent_capacity"]] == 4*(core//8)+8
+        mm[label] = extents(snapshots[label], sym, core)
         assert snapshots[label][sym["proc_exec_resv_head_v1933"]] == 0, (
             "unexpected outstanding executable reservation at " + label)
     for label in ("B", "A", "Z"):
@@ -166,9 +167,10 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     for name in ("build", "work", "prefix"):
         p.add_argument(name, type=Path)
-    p.add_argument("--children", type=int, choices=(5, 6), required=True)
+    p.add_argument("--children", type=int, choices=(5, 6, 9), required=True)
+    p.add_argument("--core", type=int, choices=(48, 64), default=48)
     a = p.parse_args()
     try:
-        verify(a.build, a.work, a.prefix, a.children)
+        verify(a.build, a.work, a.prefix, a.children, a.core)
     except (AssertionError, KeyError, ValueError, OSError) as exc:
         p.exit(1, "FAIL v1941 physical FULL verification: %s\n" % exc)

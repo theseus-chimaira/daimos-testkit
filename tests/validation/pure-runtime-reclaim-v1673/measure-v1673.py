@@ -8,6 +8,7 @@ examines original MM physical words, resumes and releases that phase.
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -309,8 +310,11 @@ def run(args):
         raise ValueError("RAW PURE reclaim/normal WAIT state not observed")
     if core == 48:
         active = {p["slot"]: p for p in samples[1]["process_states"]}
+        grown = int(os.environ.get("V1673_GROWN_CHILDREN", "5"))
+        if not 0 <= grown <= 9:
+            raise ValueError("invalid fixture BRK geometry")
         if any(active[slot]["vm_words"] !=
-               (3072 if slot <= 6 else 2048)
+               (3072 if slot <= grown + 1 else 2048)
                for slot in range(2, 11)):
             raise ValueError("real child BRK logical size not conserved")
         # proc_high_slot is the last occupied high-water slot + 1,

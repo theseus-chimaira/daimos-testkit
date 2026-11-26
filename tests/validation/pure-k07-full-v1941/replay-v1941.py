@@ -33,7 +33,7 @@ def memory_stage(sym, label, capacity=32):
         out.append("examine %06o" % sym[name])
     out.append("examine %06o-%06o" % (sym["mm_arenas"],
                                     sym["mm_arenas"] + 7))
-    # The 48K profile has a boot-selected capacity of 32 descriptors.
+    # Capture the complete boot-selected MM descriptor table.
     out.append("examine %06o-%06o" % (sym["mm_extents"],
                                     sym["mm_extents"] + 2*capacity-1))
     out.append("echo V1941_END_" + label)
@@ -46,7 +46,8 @@ def main():
     p.add_argument("work", type=Path)
     p.add_argument("prefix", type=Path)
     p.add_argument("--timeout", type=int, default=1150)
-    p.add_argument("--children", type=int, choices=(5, 6), required=True)
+    p.add_argument("--children", type=int, choices=(5, 6, 9), required=True)
+    p.add_argument("--core", type=int, choices=(48, 64), default=48)
     args = p.parse_args()
     b, w, prefix = (x.resolve() for x in
                     (args.build, args.work, args.prefix))
@@ -72,7 +73,8 @@ def main():
         for name in ("kcore.dxr", "pure-mres-v1612.dxr",
                      "kinit.lowmem.words")))
     source = (b / "boot.ini").read_text()
-    assert source.count("set cpu 48k\n") == 1
+    assert source.count("set cpu %dk\n" % args.core) == 1
+    capacity = 4 * (args.core // 8) + 8
     lines = []
     units = set()
     for line in source.splitlines():
@@ -98,7 +100,7 @@ def main():
     assert source.count("go 020\nexit\n") == 1
     marker = "a"*args.children + "x[B"
     first = ('expect "%s"\ngo 020\n' % marker +
-             memory_stage(sym, "B"))
+             memory_stage(sym, "B", capacity))
     (w / "physical.ini").write_text(
         source.replace("go 020\nexit\n", first))
     helper = Path(__file__).resolve().parents[2] / "lib/daimos-simh-headless.sh"
@@ -141,7 +143,7 @@ def main():
             assert marker in trace, "pressure workload did not reach B"
             snap = words(trace.split("V1941_STAGE_B", 1)[1])
             capacity = snap[sym["mm_extent_capacity"]]
-            assert 0 < snap[sym["mm_extent_count"]] <= capacity == 32
+            assert 0 < snap[sym["mm_extent_count"]] <= capacity == 4 * (args.core // 8) + 8
             service = snap[sym["proc_swap_service_one"]]
             reclaim = snap[sym["proc_swap_reclaim"]]
             assert service >> 18 == reclaim >> 18 == 0o254000
@@ -154,7 +156,7 @@ def main():
             print("v1941 physical PURE base %06o FULL %06o" %
                   (base, full), flush=True)
             start = send('expect "[A"\ncont\n' +
-                         memory_stage(sym, "A"))
+                         memory_stage(sym, "A", capacity))
             wait_for("V1941_END_A", start)
             # Confirm executable instruction in the installed MRES
             # before arming a breakpoint, not an old absolute address.
@@ -162,12 +164,12 @@ def main():
             actual = words(wait_for("V1941_OPCODE_END", start))
             assert actual[full] == full_opcode
             start = send("break %06o\ncont\necho V1941_FULL_ENTRY\n" % full +
-                         "examine 1-4\n" + memory_stage(sym, "FULL"))
+                         "examine 1-4\n" + memory_stage(sym, "FULL", capacity))
             trace = wait_for("V1941_END_FULL", start)
             assert re.search(r"Breakpoint, PC: %06o\b" % full, trace)
             print("v1941 original FULL callback reached", flush=True)
             start = send('nobreak all\nexpect "Z"\ncont\n' +
-                         memory_stage(sym, "Z") + "cont\nexit\n")
+                         memory_stage(sym, "Z", capacity) + "cont\nexit\n")
             wait_for("HALT instruction", start)
             wait_for("Goodbye", start)
             assert proc.wait(timeout=10) == 0
