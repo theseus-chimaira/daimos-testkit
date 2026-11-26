@@ -3338,3 +3338,17 @@ test-pure-k08-simh-rearm-v1946:
 .PHONY: test-pure-k08-recovery-v1947
 test-pure-k08-recovery-v1947:
 	@sh tests/validation/pure-k08-recovery-v1947/run-v1947.sh
+
+.PHONY: test-pure-k09-root-v1948 test-pure-k09-prefix-v1948
+test-pure-k09-root-v1948:
+	@python3 tests/validation/pure-k09-root-v1948/run-v1948.py \
+	    "$${V1948_AUTO_BUILD:?FULL AUTO RAW build required}" \
+	    "$${V1948_TAPE_BUILD:?TSFS media build required}" \
+	    "$${V1948_DRUM_BUILD:?DRM media build required}" \
+	    "$${V1948_WORK:?new evidence directory required}" \
+	    "$${PDP10_PREFIX:-$$HOME/cross}"
+test-pure-k09-prefix-v1948:
+	@python3 tests/validation/pure-k09-root-v1948/verify-prefix-v1948.py \
+	    "$${DAIMOS_REPO:?DAIMOS checkout required}" \
+	    "$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp10-objdump" \
+	    "$${V1948_AUTO_BUILD:?FULL AUTO RAW build required}"
