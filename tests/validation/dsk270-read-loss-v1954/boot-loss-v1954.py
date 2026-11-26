@@ -43,9 +43,14 @@ def main():
     datao=[x for x,y in image.items() if y==0o727140000001]
     # Distinguish the PI5 error leaf from the new boot-timeout abort.
     err=[x for x,y in image.items() if y==0o727200030200 and
-         x<mod['dsk_read_sector']]
+         mod['dsk_pi_handler']<=x<mod['dsk_dct_handler']]
     assert len(datao)==2 and len(err)==1
-    assert all(image[x+1]==0o727200000125 for x in datao)
+    shared_address='dsk_address_wait_v1959' in mod
+    if shared_address:
+        assert set(datao)=={mod['dsk_address_adt_datao_v1959'],
+                            mod['dsk_address_idle_v1959']}
+    else:
+        assert all(image[x+1]==0o727200000125 for x in datao)
     copies={}
     lines=[]
     for line in (b/'boot.ini').read_text().splitlines():
@@ -116,7 +121,7 @@ def main():
             hit=re.search(r'Breakpoint, PC: ([0-7]+)',t)
             assert hit and int(hit[1],8) in pcs
             d=words(t.split('V1954_DATAO',1)[1])
-            assert d[1]==0 and d[core['storage_state']]==((1<<36)-3)
+            assert d[1]==0 and d[core['storage_state']]==(0 if shared_address else (1<<36)-3)
             read=[x for x,y in image.items() if y==0o727200001105]
             assert len(read)==1
             pc=base+read[0]+1

@@ -34,8 +34,13 @@ def before_release(token, coremap, examine, read):
                                  str(b/'dsk-mres.dxr')],text=True)))
     opcode = 0o727200001105 if operation=='read' else 0o727200002105
     read_pc, = [a for a,w in image.items() if w == opcode]
-    active_off, = [w & MASK for a,w in image.items()
-                   if w >> 18 == 0o202300 and image.get(a+2)==0o727140000001]
+    # v1959 moves DATAO before descriptor setup; use the exported
+    # data symbol when present, keep the old linked-image check.
+    if re.search(r'(?m)^dsk_active_request\s+',mres.read_text()):
+        active_off = H['source_symbol'](mres, 'dsk_active_request')
+    else:
+        active_off, = [w & MASK for a,w in image.items()
+                       if w >> 18 == 0o202300 and image.get(a+2)==0o727140000001]
     assert read(base+read_pc)==opcode
     # Dedicated fail-stop leaf: CONO PI OFF, CAIE/JRST for root,
     # root HALT/JRST, CAIE/JRST for backing, then backing HALT.
@@ -46,7 +51,8 @@ def before_release(token, coremap, examine, read):
     examine('break %06o\n'%state['pc'])
 
 
-def after_release(token, coremap, examine, read, read_range, send, wait, output):
+def after_release(token, coremap, examine, read, read_range, send, wait, output,
+                  fault_boundary=None, after_detach=None):
     if token != gate:
         return False
     def sym(n):
@@ -54,6 +60,8 @@ def after_release(token, coremap, examine, read, read_range, send, wait, output)
     # A physical breakpoint in the installed MRES, not a user PC.
     wait('Breakpoint, PC: %06o'%state['pc'],0,180)
     wait('sim> ',output.rfind(b'Breakpoint, PC:'),20)
+    if fault_boundary is not None:
+        fault_boundary(coremap, examine, read, send, wait, output)
     slot=read(sym('proc_current_slot'))
     assert read(sym('storage_state')) == (1<<36)-(3 if operation=='read' else 4)
     assert read(sym('proc_swap_blocks_used'))==(64 if operation=='read' else 0)
@@ -92,6 +100,9 @@ def after_release(token, coremap, examine, read, read_range, send, wait, output)
     dest=[(a,m) for a,m in extent if m&0o777777==2 and (m>>18)&7==1]
     assert len(dest)==1 and dest[0][0]>>18==8192 and (dest[0][1]>>21)&255==1
     examine('detach dsk%d\n'%unit)
+    if after_detach is not None:
+        after_detach(coremap, examine, read, unit, raw)
+
     examine('nobreak all\n')
     start=len(output)
     send(b'go\n')

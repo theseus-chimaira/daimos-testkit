@@ -3422,3 +3422,10 @@ test-disk-swap-k09-v1955:
 	    echo "Evidence: $$work"; \
 	    sh tests/validation/disk-swap-k09-v1955/prepare-v1955.sh "$$work/source"; \
 	    sh tests/validation/disk-swap-k09-v1955/run-v1955.sh "$$work/source/build" "$$work/physical"
+
+.PHONY: test-dsk270-address-v1959
+test-dsk270-address-v1959:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/dsk270-address-v1959.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    sh tests/validation/dsk270-address-v1959/run-v1959.sh "$$work/native"
