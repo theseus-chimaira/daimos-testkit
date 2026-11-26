@@ -50,3 +50,33 @@ Stage1 identical. Earlier unmatched FULL build was not
 used for PDP6 identity acceptance. Evidence
 $TMPDIR/k17-rm10-v1970.H7ccUx/native-recovery, matrix-r2,
 ka-tape, ka-disk, pdp6-matched.
+
+## Full-kernel D6FS plus RM10 swap
+
+Use the unchanged v1955 six-child fixture (INIT/child DXRs);
+prepare-v1955.sh in ../disk-swap-k09-v1955 can build it.
+Build a KA10 lowmem D6FS image with SYSTEM_INIT_DXR and
+SYSTEM_MOUNTALL_DXR set to those exact files, then run:
+    sh run-swap-v1970.sh BUILD WORK
+
+Evidence $TMPDIR/k17-rm10-v1970.H7ccUx/swap and ka-swap.
+A/B/C MM9/20/8, free43812/1268/43826, bitmap0/64/0.
+Slot2 DISK run0..63, 8192-word process; drum reads2/2/66,
+writes0/64/64, errors0. Six native canary/token and exact
+WAIT checks, both parent pipe FDs closed, exact stable
+owners/parent APR restored, no leaked reservation, active
+DRM descriptor0 and idle-stack pin only. Physical image
+descriptor/reserved region unchanged; backing area changed.
+Second DF10 pair unchanged throughout. PID1 success marker
+then controlled simulator stop, not guest HALT.
+General v1955 disk oracle retains default behavior; original
+v1959 disk report reverified byte-identical.
+Console SHA256 3ba28db6b422314fb2ee0b50159c9ae5320ec9f307aee5bf27b00908375c46d7.
+Report SHA256 76036eb9882fb3a4a6677d25131809d6b1483eb5aba98c86484834b7131ab99e.
+All five Stage1 decoder identity checks and embedded KCORE
+PASS for both KA10 roots and matched PDP6.
+
+Still open: TSFS+RM10 actual swap, full interactive shell
+on all four profiles, concurrent/contended DMA and
+full-kernel fault/PI qualification. Native probes use
+process wait/wake stubs and representative error points.
