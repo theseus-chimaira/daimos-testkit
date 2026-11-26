@@ -3477,3 +3477,8 @@ test-pure-bitmap-prefix-v1978:
 test-pure-bitmap-commit-v1979:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    sh tests/validation/pure-bitmap-commit-v1979/run-v1979.sh
+
+.PHONY: test-pure-bitmap-full-v1980
+test-pure-bitmap-full-v1980:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-bitmap-full-v1980/run-v1980.sh
