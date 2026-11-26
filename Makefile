@@ -3414,3 +3414,11 @@ test-dsk270-read-loss-v1954:
 	    python3 tests/validation/dsk270-read-loss-v1954/run-v1954.py \
 	        "$${SIMH_PDP6:-$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp6}" \
 	        "$${PDP10_PREFIX:-$$HOME/cross}" "$$work/native"
+
+.PHONY: test-disk-swap-k09-v1955
+test-disk-swap-k09-v1955:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/k09-disk-swap-v1955.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    sh tests/validation/disk-swap-k09-v1955/prepare-v1955.sh "$$work/source"; \
+	    sh tests/validation/disk-swap-k09-v1955/run-v1955.sh "$$work/source/build" "$$work/physical"

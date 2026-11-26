@@ -48,7 +48,7 @@ def read_word(text, addr):
     return int(matches[0], 8)
 
 
-def run(argv):
+def run(argv, extra_snapshot=None):
     if len(argv) != 8:
         raise ValueError("usage: host-cty-v1673.py pty-run pdp6 "
                          "boot.ini kcore.map console.log timeout_seconds "
@@ -160,6 +160,9 @@ def run(argv):
                     if meta & 0o400000:
                         uarea = (meta >> 18) & ((1 << 18) - 1)
                         examine_range(uarea + 0o406, 1, core)
+                if extra_snapshot is not None:
+                    extra_snapshot(token, coremap, core, examine_word,
+                                   examine_range)
                 start = len(output)
                 send(b"go\n")
                 time.sleep(0.2)
