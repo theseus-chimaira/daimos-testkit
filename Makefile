@@ -3449,3 +3449,13 @@ test-k17-pi2-v1974:
 	            "$${DAIMOS_REPO:?DAIMOS source checkout required}" "$${PDP10_PREFIX:-$$HOME/cross}" \
 	            "$$work/chain-$$mode" "$$((port+mode))" "$$mode"; \
 	    done
+
+.PHONY: test-pure-mutable-admission-v1976
+test-pure-mutable-admission-v1976:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-mutable-admission-v1976/run-v1976.sh
+	@python3 tests/validation/pure-mutable-admission-v1976/run-host-v1976.py
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-provider-identity-v1924/run-run-v1924.sh
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-exec-handover-v1934/run-v1934.sh

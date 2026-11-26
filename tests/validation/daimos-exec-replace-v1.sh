@@ -30,7 +30,11 @@ grep -q '/SYSTEM/EXEC/DSH' "$boot_mk" || {
 
 cleanup()
 {
-        rm -rf "$work"
+        if [ "${DAIMOS_KEEP_EVIDENCE_V1976:-0}" = 1 ]; then
+                echo "$tag: evidence $work"
+        else
+                rm -rf "$work"
+        fi
 }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$user"
@@ -50,7 +54,11 @@ for part in init next; do
         "$cc" -std=c99 -Os $incs -S "$self/daimos-exec-replace-v1-$part.c" \
             -o "$user/$part.s"
         "$das" -F -C -O "$user/$part.dobj" "$user/$part.s"
-        "$dlink" -b 020 -o "$user/$part.dxr" -M "$user/$part.map" \
+        mutable_opt=
+        if [ "${DAIMOS_EXEC_MUTABLE_MARK_V1976:-}" = "$part" ]; then
+                mutable_opt=--compressible-mutable
+        fi
+        "$dlink" $mutable_opt -b 020 -o "$user/$part.dxr" -M "$user/$part.map" \
             "$user/crt0.dobj" "$user/syscall.dobj" "$user/u.dobj" \
             "$user/$part.dobj" "$libgcc"
 done

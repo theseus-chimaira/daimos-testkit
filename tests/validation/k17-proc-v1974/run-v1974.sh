@@ -39,7 +39,11 @@ if test "$mode" = childfault; then
     "$das" -C -F -O "$w/fault.dobj" "$here/childfault-v1974.s"
     set -- "$w/fault.dobj"
 fi
-"$dlink" -b 020 -o "$w/init.dxr" -M "$w/init.map" \
+mutable_opt=
+if test "${DAIMOS_MUTABLE_MARK_V1976:-0}" = 1; then
+    mutable_opt=--compressible-mutable
+fi
+"$dlink" $mutable_opt -b 020 -o "$w/init.dxr" -M "$w/init.map" \
     "$w/crt0.dobj" "$w/syscall.dobj" "$w/init.dobj" "$@" "$("$cc" -print-libgcc-file-name)"
 export PATH="$PDP10_PREFIX/bin:$PATH"
 make -C "$DAIMOS_REPO/system/boot/pdp6" -j2 image DAIMOS_MACHINE="$machine" \

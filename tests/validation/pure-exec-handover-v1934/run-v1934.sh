@@ -32,6 +32,8 @@ prefix=''' .text
 '''
 base=prefix+s[s.index('        .equ    EXEC_R_SAVE_FIRST'):s.index('/**',s.index('        .equ    EXEC_R_FRAME'))]+s[s.index('exec_replace_current:'):s.index('        ; Frame offsets relative to the fully advanced AC17.')]+l[l.index('sixbit_record_words:'):l.index('/**',l.index('sixbit_record_words:'))]+b[b.index('proc_swap_unpack_backing:'):b.index('/*',b.index('proc_swap_unpack_backing_bad:'))]+b[b.index('; Transient executable backing reservation.'):]
 (work/'base.s').write_text(base)
+assert base.count('POINT 5,PROC_CRED_OFFSET') == 4
+(work/'unsafe-marker-v1976.s').write_text(base.replace('POINT 5,PROC_CRED_OFFSET', 'POINT 4,PROC_CRED_OFFSET'))
 for name,old,new in [
  ('unsafe-old','        pushj   17,proc_exec_hold_v1934\n        jumpn   1,exec_replace_invalid','        setz    1,\n        jumpn   1,exec_replace_invalid'),
  ('unsafe-new','        pushj   17,proc_exec_hold_v1934\n        ; A successful attachment','        setz    1,\n        ; A successful attachment'),
@@ -39,7 +41,7 @@ for name,old,new in [
     assert base.count(old)==1,name
     (work/(name+'.s')).write_text(base.replace(old,new,1))
 PY
-for variant in base unsafe-old unsafe-new unsafe-release; do
+for variant in base unsafe-old unsafe-new unsafe-release unsafe-marker-v1976; do
  if "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit --exec-mode go --start 1000 --timeout 30 --workdir "$work/$variant" --name "pure-exec-$variant-v1934" --expect __test_exit=0 "$kit/tests/validation/daimos-test-crt0-v1.s" "$here/test-native-v1934.s" "$work/$variant.s" > "$work/$variant.log" 2>&1; then
   [ "$variant" = base ] || { echo "FAIL: unsafe $variant accepted"; exit 1; }
   cat "$work/$variant.log"

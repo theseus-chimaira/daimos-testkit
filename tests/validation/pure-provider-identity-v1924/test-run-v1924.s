@@ -1,11 +1,11 @@
 ; Exercise the real RUN credential-publication slice with all four
-; providers, both mount extension bits and both SIDL rollback states.
+; providers, both mount extension bits, rollback states, parent/child eligibility.
         .text
         .globl main
         .globl publish_v1924
 main:
         movei   010,cases_v1924
-        movei   011,020
+        movei   011,0100
 run_next_v1924:
         move    1,(010)
         movem   1,parent_v1924+040

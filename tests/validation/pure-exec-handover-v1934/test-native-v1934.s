@@ -26,6 +26,8 @@ test_modes:
         ; Cases 1-3 begin with old fifth bit 1; all later cases start at 0.
         caige   7,4
         tlo     1,001000
+        caig    7,4
+        tlo     1,020000              ; old image marked in modes 1-4
         movem   1,stable_uarea+066
         setzm   stable_uarea+024
         ; Mode 3 fails old-VM destruction after the user mapping hold is
@@ -67,6 +69,15 @@ verify_success:
         ldb     6,[POINT 3,5,7]
         caie    6,6                     ; new provider
         jrst    fail_credentials
+        ; Marked replacement in modes 5 and 8 only.
+        movei   6,0
+        cain    4,5
+        movei   6,1
+        cain    4,010
+        movei   6,1
+        ldb     7,[POINT 1,5,4]
+        came    7,6
+        jrst    fail_credentials
         caie    4,5
         jrst    verify_commit_bit_clear
         tlne    5,001000              ; new extended mount bit installed at commit
@@ -89,6 +100,12 @@ check_old_restored:
         move    5,stable_uarea+066
         ldb     6,[POINT 3,5,7]
         caie    6,4                     ; old provider restored
+        jrst    fail_credentials
+        movei   6,0
+        caig    4,4
+        movei   6,1
+        ldb     7,[POINT 1,5,4]
+        came    7,6
         jrst    fail_credentials
         caile   4,3
         jrst    check_failure_mapping
@@ -115,7 +132,7 @@ test_next:
         came    5,6
         jrst    fail_owner
         move    5,stable_uarea+066
-        tlz     5,017000
+        tlz     5,037000
         came    5,[000234567123]       ; credentials unchanged throughout
         jrst    fail_credentials
         aoj     7,
@@ -161,13 +178,17 @@ exec_load_process:
         move    4,new_packed_v1934
         movem   4,swap_states+1
         move    4,stable_uarea+066
-        tlz     4,017000
+        tlz     4,037000
         tlo     4,014000               ; replacement provider 6
         move    5,test_mode
         caie    5,5
         jrst    exec_mock_attach_done
         tlo     4,001000
 exec_mock_attach_done:
+        cain    5,5
+        tlo     4,020000
+        cain    5,010
+        tlo     4,020000
         movem   4,stable_uarea+066
         pushj   17,check_both_v1934
         movei   4,02000
@@ -229,14 +250,26 @@ vm_space_destroy:
         ; The original record AND original provider must be installed
         ; before old-VM destroy; staged destroy must see the new pair.
         move    4,stable_uarea+066
+        ldb     6,[POINT 1,4,4]
         ldb     4,[POINT 3,4,7]
+        move    5,test_mode
+        movei   7,0
         caie    1,process_desc
         jrst    exec_mock_destroy_new_v1924
+        caig    5,4
+        movei   7,1
         caie    4,4
         jrst    exec_mock_bad_identity_v1924
-        jrst    exec_mock_destroy_check_v1924
+        jrst    exec_mock_destroy_mark_v1976
 exec_mock_destroy_new_v1924:
+        cain    5,5
+        movei   7,1
+        cain    5,010
+        movei   7,1
         caie    4,6
+        jrst    exec_mock_bad_identity_v1924
+exec_mock_destroy_mark_v1976:
+        came    6,7
         jrst    exec_mock_bad_identity_v1924
 exec_mock_destroy_check_v1924:
         move    5,test_mode
@@ -249,7 +282,7 @@ exec_mock_destroy_check_v1924:
 exec_mock_destroy_ok:
         setzm   swap_states+1
         move    5,stable_uarea+066
-        tlz     5,017000               ; detach clears backing identity
+        tlz     5,037000               ; detach clears backing identity
         movem   5,stable_uarea+066
         move    5,test_mode
         cain    5,1

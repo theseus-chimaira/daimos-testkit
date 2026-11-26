@@ -34,6 +34,10 @@ cpp="$cpp -I$DAIMOS_REPO/system/kernel/mm -I$DAIMOS_REPO/system/kernel/modules"
 cpp="$cpp -I$DAIMOS_REPO/system/kernel/proc -I$DAIMOS_REPO/system/kernel/storage"
 cpp="$cpp -I$DAIMOS_REPO/userland/libc -I$PDP10_PREFIX/include"
 
+if [ "${DAIMOS_MUTABLE_MARK_V1976:-0}" = 1 ]; then
+        cpp="$cpp -DDAIMOS_MUTABLE_MARK_V1976=1"
+fi
+
 # KCC does not accept an arbitrary path as a module name, so compile the tiny
 # test from its source directory and direct only the generated assembly into
 # the versioned temporary work tree.
@@ -85,6 +89,19 @@ command /CONFIG/NATIVE.DXR
 line ^NATIVE LINK OK$
 end
 EOF
+
+if [ "${DAIMOS_MUTABLE_MARK_V1976:-0}" = 1 ]; then
+        python3 - "$probes" <<'PYPROBES'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+a = 'command DLINK -O /CONFIG/NATIVE.DXR -B 020 '
+assert s.count(a) == 1
+p.write_text(s.replace(a, a + '--COMPRESSIBLE-MUTABLE ').replace(
+    'line ^NATIVE LINK OK$', 'line ^MUTABLE TX2 OK$\nline ^NATIVE LINK OK$'))
+PYPROBES
+fi
 
 extra="-f /CONFIG/CRT0.DOBJ:$obj/crt0.dobj:644:binwords"
 extra="$extra -f /CONFIG/SYSCALL.DOBJ:$obj/syscall.dobj:644:binwords"
