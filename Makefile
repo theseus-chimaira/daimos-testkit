@@ -3398,3 +3398,10 @@ test-dsk270-media-loss-v1953:
 	    python3 tests/validation/dsk270-media-loss-v1953/run-v1953.py \
 	        "$${SIMH_PDP6:-$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp6}" \
 	        "$${PDP10_PREFIX:-$$HOME/cross}" "$$work/native"
+
+.PHONY: test-pure-k09-descriptors-v1953
+test-pure-k09-descriptors-v1953:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/k09-descriptors-v1953.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    sh tests/validation/pure-k09-descriptors-v1953/run-v1953.sh "$$work/run"

@@ -122,7 +122,10 @@ def run(argv):
                                      (base, count))
                 examine("ex %o-%o\n" % (base, base + count - 1))
 
-            for token in "ABC":
+            tokens = os.environ.get("V1673_CTY_TOKENS", "ABC")
+            if tokens not in ("ABC", "ABCD"):
+                raise ValueError("unsupported CTY barrier sequence")
+            for token in tokens:
                 wait_for("V1673 HOLD " + token, 0, timeout)
                 start = len(output)
                 send(b"\x05")  # SIMH command prompt, never guest input.
