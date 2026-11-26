@@ -42,7 +42,6 @@ def verify(b, w, prefix, trace=None):
     children = len(match.group(1))
     assert trace.count('HALT instruction') == 1 and 'HALT instruction, PC: 000000' in trace
     assert 'Goodbye' in trace
-    labels = re.findall(r'(?m)^V1945_STAGE_([A-Z0-9_]+)$',trace)
     # EXPECT stops put the guest marker immediately before the monitor
     # label; those two labels need not start a new text line.
     labels = re.findall(r'V1945_STAGE_([A-Z0-9_]+)\n',trace)

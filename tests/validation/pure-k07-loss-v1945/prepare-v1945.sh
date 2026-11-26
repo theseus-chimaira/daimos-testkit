@@ -15,6 +15,7 @@ w=$(mktemp -d "$TMPDIR/pure-k07-loss-v1945.XXXXXX")
 trap 'echo "v1945 build evidence: $w"' EXIT
 b="$w/build"
 mkdir -p "$b" "$w/user"
+grep -q "ijkccccccccdsuIE" "$seed/physical.clean"
 python3 "$kit/tests/validation/pure-k07-race-v1943/check-reel-v1944.py" "$seedbuild/media/dtc3-home-v22.tap" "$seed/media/dtc3.tap" "$seedbuild/../user/comp-v1638.dxr"
 python3 "$here/prepare-v1945.py" "$old/../user/init-v1941.c" "$w/user/init-v1945.c"
 cc="$PDP10_PREFIX/bin/pdp10-dec-none-gcc"

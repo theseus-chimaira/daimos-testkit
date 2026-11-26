@@ -1,6 +1,7 @@
 # K07 v1945: original physical secondary source loss and recovery
 
-This is a new acceptance candidate, not yet a PASS. It reuses the
+Status 2026-11-26: physical PASS on the current v1939 production
+source. This scoped K07 acceptance reuses the
 uninstrumented v1942 production GCC lowmem KCORE/KINIT/PURE images and
 an independently verified genuine CLEAN DTVOL2 reel seeded by the v1944
 guest. No monitor deposits, kernel hooks, synthetic MM owners, or media
@@ -44,3 +45,40 @@ The scripts leave evidence in a unique TMPDIR directory. A failed or
 interrupted run must not be counted as completed source-loss acceptance.
 RAW PURE and mode3 remain OFF by default. No K07 closure is implied by
 successful image construction alone.
+
+## Accepted physical result
+
+Actual v1945 guest: Iaaaaax[B, unchanged B/A MM18, one root
+plain child restored before the secondary FULL. Slot3 original
+PACKED 113600..120000, separate PROCESS 122000..130000, both
+pin1 at FULL PC040756, opcode 200000000004. Original stable u-area
+051274, backing 037141000000, capacity06000. The actual FULL call
+returns at 034453 with -4 on removal and on foreign volume insertion.
+MM17 both times: exact original PACKED extent pin0, no target,
+original backing and provider retained, escrow zero. Media 300003
+(READ_SUSPECT), unchanged original identity 262433006735:163245455724.
+All 2176 words of the physical suffix are byte-for-byte identical
+at FULL, MISSING and FOREIGN_0; SHA256 of 8-byte little-endian
+word representation:
+
+a1468bb00db336b10ec727ae2c25245665b45316584a2aee7212786219b219c6
+
+Original reel return permits all five exact WAITs (one earlier w,
+four following recovery). Z: MM8, no child VM/u-area/reservation,
+root0, media0100003 (ordinary retired healthy tag), one HALT PC000000
+and simulator exit0. Clock B=5659, FULL/faults=6300, Z=8548 decimal.
+The actual fault returns were sampled at the same clock tick; this is
+not K08 interrupt-during-rollback coverage. The original and foreign
+reels are both byte-identical to the inputs. The independent verifier
+PASSes, and 12 changed actual transcripts are rejected. These are
+verifier controls, not twelve executed guest faults.
+
+Evidence: $TMPDIR/pure-k07-loss-physical-v1945.3AsKpm/physical.clean
+SHA256 c2c9d9d516fca6b0089279b3e50ce2e38df99269b8692292cb5716da9c8b57ac.
+Build: $TMPDIR/pure-k07-loss-v1945.OLgxdN/build.
+KCORE SHA256 4177db78eabee2b54a1cb3d6e2cec3eee6e4b0b2d9e330a22f3d6acf052c85e1.
+PURE SHA256 e488f1a93315ff7039326c948d1e9b39632507850c999fffa1285f975c6b0c41.
+KINIT SHA256 0dd50179f40bfef8880e93071e50293230e85ed7b262e3b7fdb74d9958003843.
+No production image or RAM growth. Scope excludes same-ID clones,
+undetected swap-and-return between proofs, whole-guest D6FS/TSFS
+exchange matrices, K08/K09 and KA10.
