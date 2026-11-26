@@ -40,6 +40,7 @@ def main():
         else: raise AssertionError('accepted unsafe trace: '+name)
     reject('missing source accepted',change('MISSING',1,0))
     reject('foreign source accepted',change(foreign,1,0))
+    reject('same-PC repeated stop',change(foreign,s['proc_timer_clock'],d[s['proc_timer_clock']]))
     reject('changed RAW suffix',change('MISSING',raw[0],d[raw[0]]^1))
     reject('changed foreign RAW suffix',change(foreign,raw[1]-1,data(foreign)[raw[1]-1]^1))
     reject('original backing lost',change(foreign,u+0o406,0))
@@ -50,7 +51,7 @@ def main():
     reject('foreign drive path missing',trace.replace('/foreign.tap,','/dtc3.tap,',1))
     reject('failed final guest marker',trace.replace('ZV1945_STAGE_Z\n','!V1945_STAGE_Z\n',1))
     reject('no normal HALT',trace.replace('HALT instruction, PC: 000000','HALT instruction, PC: 004074',1))
-    print('PASS v1945: 12 altered actual transcripts rejected (not executed guest faults)')
+    print('PASS v1945: 13 altered actual transcripts rejected (not executed guest faults)')
 
 if __name__=='__main__':
     main()

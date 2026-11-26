@@ -8,6 +8,7 @@ import runpy
 HERE = Path(__file__).resolve().parent
 prior = runpy.run_path(str(HERE.parent / 'pure-k07-loss-v1945/verify-v1945.py'))
 symbols, words, extents = (prior[n] for n in ('symbols','words','extents'))
+binding=runpy.run_path(str(HERE/'binding-v1946.py'))
 MASK = 0o777777
 TRANSITION = 0o200000
 
@@ -76,7 +77,8 @@ def verify(b,w,prefix,trace=None):
     base=(B[s['proc_swap_service_one']]&MASK)-m['proc_pure_mres_service_v1612']
     assert B[s['proc_swap_service_one']]>>18==0o254000
     assert B[s['proc_swap_reclaim']]==0o254000000000|(base+m['proc_pure_mres_reclaim_v1612'])
-    assert not mid_pc&(0o10000<<18) and base<=mid_pc&MASK<base+max(m.values()), 'PI6 not in PURE executive'
+    assert not mid_pc&(0o10000<<18), 'PI6 interrupted user'
+    region=binding['classify'](mid_pc&MASK,I,s,base,binding['read'](b,w,prefix))
     assert I[s['proc_current_slot']]==0 and I[s['proc_sched_cursor']]==3
     assert FE==IE, 'MM changed while both FULL pins held'
     source=next(q for q in FE if q[2:]==(4,1,3))
@@ -158,7 +160,7 @@ def verify(b,w,prefix,trace=None):
                      trace,flags=re.S)
     assert 'V1946_STAGE_' not in projected
     prior['verify'](b,w,prefix,projected)
-    print('PASS v1946: actual PI6 pinned FULL, post-failure tick, independent peer %o, READY_ONCE dispatch'%peer)
+    print('PASS v1946: actual PI6 pinned FULL (%s), post-failure tick, independent peer %o, READY_ONCE dispatch'%(region,peer))
     print('v1946 saved PCs %012o/%012o; ticks FULL %d, PI6 %d, postfail %d, peer %d, ready %d, dispatch %d, final %d' %
           (mid_pc,post_pc,F[s['proc_timer_clock']],I[s['proc_timer_clock']],
            P[s['proc_timer_clock']],Q[s['proc_timer_clock']],R[s['proc_timer_clock']],

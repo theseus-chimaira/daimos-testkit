@@ -45,7 +45,7 @@ def main():
     else: raise AssertionError('missing target metadata')
     reject('PI6 interrupted user',change('MIDFULL',s['pdp10_pi_level6'],
            mid[s['pdp10_pi_level6']]|(0o10000<<18)))
-    reject('PI6 outside PURE',change('MIDFULL',s['pdp10_pi_level6'],
+    reject('PI6 in idle loop',change('MIDFULL',s['pdp10_pi_level6'],
            s['proc_idle_loop']))
     reject('PI6 target pin lost',change('MIDFULL',meta,mid[meta]&~(1<<21)))
     reject('wrong original PI6 opcode',change('POSTFAIL',s['proc_sched_pi_tick'],0))

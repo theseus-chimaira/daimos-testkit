@@ -8,7 +8,7 @@ its original invocation and acceptance oracle remain available.
 
 The observer requires the original PI6 handler to interrupt slot-0
 FULL with the exact source and target pins, saved executive PC in the
-installed PURE code, no intervening user selection and unchanged MM.
+installed loader/provider/driver path or other reserved executive code, no intervening user selection and unchanged MM.
 After real DTC3 removal and the original bounded FULL refusal, require
 an actual PI6 entry with the exact retained RAW suffix, and keep the
 medium absent until a distinct healthy child executes its original
@@ -20,7 +20,9 @@ with the original five exact WAITs, media conservation and HALT 0.
 
 Run with an already accepted v1945 build (see its README):
 
-    V1946_BUILD=<v1945 build> make test-pure-k08-pi6-v1946
+    export V1946_BUILD=<v1945 build>
+    export V1946_PROVIDER_BUILD=<identical original v1940 source build>
+    make test-pure-k08-pi6-v1946
 
 Independent offline verifier and negative trace controls:
 
@@ -40,3 +42,41 @@ parent failed its admission/sleep witness before B. The trace is
 $TMPDIR/pure-k08-pi6-physical-v1946.gNkULc/physical.clean. It is not
 an observed scheduler failure during FULL and its cause is not yet
 proved. The second replay has an early !r/!u diagnostic stop.
+
+Current-source native v1650 PASS with all three negative assembly
+variants; v1808 PREFIX/FULL lost-success replies PASS, old reply-only
+gate rejected at 02004; v1677 two-owner fault/independent READY_ONCE
+PASS, unsafe quarantine release rejected at 02202. v1658/v1677 stale
+fixtures initially failed due to old service signature, old typed
+refusal expectation, original provider identity and a 32K core
+declaration with a second owner above 32K. Corrected test fixtures,
+not kernel changes. Evidence:
+$TMPDIR/daimos-pure-slot0-v1650.K7rnzQ,
+$TMPDIR/daimos-pure-restore-reply-v1808.naOkqN,
+$TMPDIR/daimos-pure-pi6-fault-v1677.4UDgfb.
+
+Second and third physical runs reached real FULL and real PCLK PI6
+with slot0/cursor3, MM18 unchanged, both pins and all 2176 RAW words
+unchanged. The controller incorrectly restricted the actual saved
+executive PC to PURE and then PURE+DTFS/KCORE, so these are partial
+captures, not complete physical passes. Saved words 340000032060
+and 340000032057; third installed PURE base033136 and DTFS base041422.
+Evidence $TMPDIR/pure-k08-pi6-physical-v1946.bVHBjW and
+$TMPDIR/pure-k08-pi6-physical-v1946.ONFM9H. The next short run
+was cancelled before acceptance to fix call-opcode binding in the
+monitor (device syscall/watchdog PUSHJ, PI/DCT JRST). New observer
+binds TAPE and DTFS/TSFS using actual installed service targets,
+original link maps, and identical KINIT packaging, checks the saved
+executive PC is outside idle and before a real service return,
+and checks the actual original MM ownership. No synthetic interrupt.
+
+Critical v1945 oracle correction: an isolated SIMH program executes
+AOS at PC001001. Initial AC1=1, cleared/rearmed same PC AC1=1,
+normal CONT to next hit AC1=2. The v1945 MISSING/FOREIGN_0 shared
+the same PC and clock, so the claimed foreign retry is withdrawn.
+Actual clock progress through the 0100-tick cooldown is mandatory
+in both live replay and offline verifier; the old trace fails this
+new acceptance gate. The source-loss and same-medium recovery
+subresults remain valid. Probe:
+`test-simh-rearm-v1946.sh`, actual evidence
+$TMPDIR/k08-simh-break-rearm-v1946.W5XGc4.

@@ -1,5 +1,17 @@
 # K07 v1945: original physical secondary source loss and recovery
 
+**v1946 correction:** the v1945 missing-medium rollback, retained
+suffix and original-medium return are genuine, but its claimed
+foreign-medium restore is NOT established. SIMH clearing and rearming
+the same current-PC breakpoint repeats the stop without execution;
+the earlier MISSING and FOREIGN_0 share PC034453 and clock6300.
+The independent tiny monitor probe in pure-k08-pi6-v1946 reproduces
+this behavior. The old foreign checkpoint is withdrawn. The corrected
+controller advances to a distinct original PI6 boundary before
+rearming restore returns, and its independent verifier requires the
+actual 0100-tick service cooldown. The archived v1945 trace is now
+deliberately rejected for foreign-media acceptance.
+
 Status 2026-11-26: physical PASS on the current v1939 production
 source. This scoped K07 acceptance reuses the
 uninstrumented v1942 production GCC lowmem KCORE/KINIT/PURE images and

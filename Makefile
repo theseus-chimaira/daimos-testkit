@@ -3330,3 +3330,7 @@ test-pure-k07-loss-v1945:
 .PHONY: test-pure-k08-pi6-v1946
 test-pure-k08-pi6-v1946:
 	@sh tests/validation/pure-k08-pi6-v1946/run-v1946.sh
+
+.PHONY: test-pure-k08-simh-rearm-v1946
+test-pure-k08-simh-rearm-v1946:
+	@sh tests/validation/pure-k08-pi6-v1946/test-simh-rearm-v1946.sh

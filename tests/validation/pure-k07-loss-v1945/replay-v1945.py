@@ -39,6 +39,8 @@ def main(observer=None):
     a = p.parse_args()
     b, w, prefix = (x.resolve() for x in (a.build, a.work, a.prefix))
     w.mkdir(parents=True, exist_ok=True)
+    if observer is not None:
+        observer.setup(b, w, prefix)
     media = w / 'media'
     media.mkdir()
     s = symbols(b / 'kcore.map')
@@ -200,8 +202,19 @@ def main(observer=None):
             # A retry can take PREFIX or FULL depending on the free gap.
             # Stop at both actual transaction returns; fallback (+1) is
             # not a source rejection, and must be followed to FULL.
-            command = ('nobreak all\nattach -q dtc3 '+str(foreign)+'\nshow dtc3\n'
-                       'break %06o\nbreak %06o\ncont\n' % (pr,fr))
+            foreign_attach = 'nobreak all\nattach -q dtc3 '+str(foreign)+'\nshow dtc3\n'
+            if observer is None:
+                # SIMH can immediately hit a cleared/rearmed breakpoint
+                # at the current PC without executing the instruction.
+                # Observe a distinct original hardware clock entry first.
+                tick=s['proc_sched_pi_tick']
+                start=send(foreign_attach+'break %06o\ncont\n'%tick+
+                           'examine %06o\necho V1945_RETRY_TICK\n'%tick)
+                proof=wait('V1945_RETRY_TICK',start)
+                assert re.search(r'Breakpoint, PC: %06o\b'%tick,proof)
+                assert words(proof)[tick]==0o350040000000|s['proc_timer_clock']
+                foreign_attach='nobreak all\n'
+            command = foreign_attach+'break %06o\nbreak %06o\ncont\n'%(pr,fr)
             for i in range(16):
                 label = 'FOREIGN_%d' % i
                 t,d,e = capture(label,send(command+scalar(label)),True)
@@ -209,6 +222,8 @@ def main(observer=None):
                 assert hit and int(hit.group(1),8) in (pr,fr)
                 if d[s['proc_sched_cursor']] == 3 and d[1] != 1:
                     assert d[1] == NEG4 and d[s['proc_current_slot']] == 0
+                    assert d[s['proc_timer_clock']]-failed[s['proc_timer_clock']] >= 0o100, (
+                        'foreign restore did not traverse the actual 64-tick cooldown')
                     assert [q for q in e if q[4] == 3 and q[2] in (1,4)] == [source]
                     assert tuple(d[j] for j in range(source[0],source[1])) == expected
                     assert d[d[s['dtfs_media_base']]+1] & 0o200000

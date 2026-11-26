@@ -66,6 +66,11 @@ def verify(b, w, prefix, trace=None):
     assert B[s['proc_current_slot']] == A[s['proc_current_slot']] == Z[s['proc_current_slot']] == 1
     assert F[s['proc_current_slot']] == M[s['proc_current_slot']] == R[s['proc_current_slot']] == 0
     assert F[s['proc_sched_cursor']] == M[s['proc_sched_cursor']] == R[s['proc_sched_cursor']] == 3
+    # Clearing/rearming the same SIMH PC can repeat the stop before
+    # executing its instruction. A genuine new restore must traverse
+    # the current-source service's 0100-tick refusal cooldown.
+    assert R[s['proc_timer_clock']]-M[s['proc_timer_clock']] >= 0o100, (
+        'foreign failure is not a later actual restore attempt')
     source = [q for q in spans['A'] if q[2]==4 and q[4]==3]
     assert len(source)==1 and source[0][3]==0
     src = source[0]

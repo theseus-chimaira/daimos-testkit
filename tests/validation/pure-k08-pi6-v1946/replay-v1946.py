@@ -7,6 +7,7 @@ import runpy
 HERE = Path(__file__).resolve().parent
 prior = runpy.run_path(str(HERE.parent / 'pure-k07-loss-v1945/replay-v1945.py'))
 words = prior['words']
+binding = runpy.run_path(str(HERE/'binding-v1946.py'))
 MASK = 0o777777
 TRANSITION = 0o200000
 READY = 0o1000
@@ -17,7 +18,14 @@ class Observer:
 
     names = ('proc_sched_pi_tick', 'pdp10_pi_level6',
              'proc_swap_pressure_ticks', 'proc_timer_next', 'proc_sched_kick',
-             'proc_storage_runtime_v29', 'proc_runq_head')
+             'proc_storage_runtime_v29', 'proc_runq_head',
+             'fs_dtfs_service_jump', 'fs_tsfs_service_jump',
+             'sys_dtc_read_block_jump', 'storage_pi_tape_jump',
+             'storage_dct_tape_jump', 'storage_clock_tape_jump')
+
+    def setup(self, build, work, prefix):
+        binding['prepare'](build,work)
+        self.provider=binding['read'](build,work,prefix)
 
     def __call__(self, stage, *, sym, mres, base, full, pr, fr, source,
                  target, suffix, send, wait, scalar, capture, snapshot,
@@ -49,13 +57,13 @@ class Observer:
             saved = d[sym['pdp10_pi_level6']]
             pc = saved & MASK
             assert not saved & (0o10000<<18) and pc
-            assert base <= pc < base+max(mres.values()), 'not original PURE code'
+            region=binding['classify'](pc,d,sym,base,self.provider)
             assert d[tick] == 0o350040000000 | sym['proc_timer_clock']
             assert d[sym['proc_current_slot']] == 0
             assert d[sym['proc_sched_cursor']] == 3 and e == owners
             assert slot3(d)[0] & TRANSITION
             raw_intact(d,e,1)
-            print('v1946 real PI6 interrupted pinned FULL at %06o'%pc,flush=True)
+            print('v1946 real PI6 interrupted pinned FULL in %s at %06o'%(region,pc),flush=True)
         elif stage == 'MISSING':
             t,d,e = inspect('POSTFAIL', 'nobreak all\nbreak %06o\ncont\n'%tick)
             hit(t,tick)
