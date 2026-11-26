@@ -21,6 +21,8 @@ def verify(ka, pdp6, log):
     if 'ka10_df10_cia' in k:
         assert k['vm_pdp6_apr'] == 0o147
         assert k['ka10_df10_cia'] == 0o150 and k['ka10_df10_completion'] == 0o151
+        if 'ka10_df10_cia1' in k:
+            assert k['ka10_df10_cia1'] == 0o152 and k['ka10_df10_completion1'] == 0o153
     else:
         assert k['__kcore_low_init_end'] <= k['vm_pdp6_apr'] < k['__kcore_low_end']
     for name in ('init.dxr', 'login.dxr', 'dsh.dxr'):

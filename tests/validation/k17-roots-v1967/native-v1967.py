@@ -26,7 +26,7 @@ def boot(build, prefix, work, root):
         if line == 'exit':
             lines.extend(('examine RL', 'examine PL', 'examine 060-062'))
             if 'ka10_df10_cia' in syms:
-                lines.append('examine 147-151')
+                lines.append('examine 147-153' if 'ka10_df10_cia1' in syms else 'examine 147-151')
             for name in ('vfs_namespace_root', 'backstore_blocks', 'backstore_blocks_used'):
                 lines.append('examine %06o' % syms[name])
         lines.append(line)
@@ -53,7 +53,10 @@ def boot(build, prefix, work, root):
         pl = int(re.search(r'^PL:\s+([0-7]+)', text, re.M)[1], 8)
         assert vals[0o147] == (((pl & 0o776000) << 18) | rl), text
         assert vals[0o150] == vals[0o151] == 0, text
-        print('PASS live APR and unused DF10 pair on root', root, flush=True)
+        if 'ka10_df10_cia1' in syms:
+            assert syms['ka10_df10_cia1'] == 0o152 and syms['ka10_df10_completion1'] == 0o153
+            assert vals[0o152] == vals[0o153] == 0, text
+        print('PASS live APR and unused DF10 workspace on root', root, flush=True)
     print('PASS native root', root, 'without drum; backstore blocks', vals[syms['backstore_blocks']], flush=True)
 
 
