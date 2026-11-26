@@ -28,6 +28,8 @@ def main():
     for n in ('build','work','prefix','simulator'):
         p.add_argument(n,type=Path)
     p.add_argument('--timeout',type=int,default=600)
+    p.add_argument('--observe-stall',action='store_true',
+                   help='diagnostic: remove DSK0 after issued READ; check stalled boot')
     a=p.parse_args()
     b,w,prefix,sim=(x.resolve() for x in (a.build,a.work,a.prefix,a.simulator))
     w.mkdir()
@@ -113,6 +115,32 @@ def main():
             assert hit and int(hit[1],8) in pcs
             d=words(t.split('V1953_DATAO',1)[1])
             assert d[1]==0 and d[core['storage_state']]==((1<<36)-3)
+            if a.observe_stall:
+                read=[x for x,y in image.items() if y==0o727200001105]
+                assert len(read)==1
+                pc=base+read[0]+1
+                start=send('nobreak all\nexamine %06o\nbreak %06o\ncont\necho V1953_READ\nexamine %06o\nexamine %06o\necho V1953_READ_END\n'%(
+                    pc-1,pc,core['storage_state'],core['wall_clock_ticks']))
+                t=wait('V1953_READ_END',start)
+                assert ('Breakpoint, PC: %06o'%pc) in t
+                assert words(t)[pc-1]==0o727200001105
+                d=words(t.split('V1953_READ\n',1)[1])
+                assert d[core['storage_state']]==((1<<36)-3)
+                tick=d[core['wall_clock_ticks']]
+                start=send('detach dsk0\nnobreak all\nbreak %06o[301]\ncont\necho V1953_STALL\nexamine %06o\nexamine %06o\nexamine %06o\nexit\n'%(
+                    core['storage_clock_tick'],core['storage_state'],core['wall_clock_ticks'],core['vfs_namespace_root']))
+                t=wait('Goodbye',start)
+                assert ('Breakpoint, PC: %06o'%core['storage_clock_tick']) in t
+                d=words(t.split('V1953_STALL\n',1)[1])
+                assert d[core['wall_clock_ticks']]-tick>=300
+                assert d[core['storage_state']]==((1<<36)-3)
+                assert d[core['vfs_namespace_root']]==0
+                assert 'INIT V1' not in output.decode('ascii','replace')
+                assert proc.wait(timeout=10)==0
+                print('REPRODUCED: READ remains pending after %d real clock ticks'%(
+                    d[core['wall_clock_ticks']]-tick),flush=True)
+                assert all(digest(dst)==h for dst,h in copies.items())
+                return
             print('actual DSK0 boot DATAO at %06o; removing media'%(
                 int(hit[1],8)-1),flush=True)
             start=send('detach dsk0\nnobreak all\nbreak %06o\ncont\necho V1953_PIERR\nexamine 1\necho V1953_PIERR_END\n'%(base+err[0]))

@@ -41,3 +41,18 @@ Evidence: $TMPDIR/k09-dsk-loss-v1953.iSRMsJ.
 Candidate SHA256 3f056a960aeb74f0e575b2089e967381bfbe9a92193f8030dec9f1d310bf8484.
 Original, original-extended, candidate, octoflop-candidate,
 boot-loss and root-regression. Source committed as 12dcd35.
+
+Clean committed simulator SHA256:
+828d7be016acafcf050425425d2aafa21c2db0e77ee6aa6343b95dd35b2fef30.
+committed-native, committed-octoflop and committed-boot-loss repeat
+all seven native probes and the physical boot-loss acceptance.
+
+Separate unresolved diagnostic (--observe-stall): native READ CONO
+270,1105 at 033650, stop at 033651, then DETACH DSK0. At the 301st
+subsequent storage_clock_tick (025121), the original storage_state
+25552 remains -3; wall_clock_ticks advances from 035 to 0512,
+namespace root remains zero and INIT never executes. Media unchanged.
+Evidence read-stall/console.clean. This reproduces loss after command
+issue, not a successful recovery. It is not a passing transfer-loss
+regression: the simulator's later-loss path and KINIT's unbounded
+dsk_wait need resolution. No timeout or controller reset workaround.
