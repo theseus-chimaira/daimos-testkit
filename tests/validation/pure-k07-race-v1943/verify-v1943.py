@@ -90,7 +90,8 @@ def verify(b,w):
     assert not backing2(E) and not backing2(D)
     assert E["root"]==D["root"] and E["media"]==D["media"]
     assert E["epoch"]==D["epoch"] and not D["media"]&BARRIER
-    assert D["lease"]>>18==0 and D["lease"]&MASK
+    # fs_provider_unlock writes -1; only the RH is the free flag.
+    assert D["lease"]&MASK, "provider lease still held"
     assert D["tick"]-E["tick"]>=0o1000
     assert backing2(F) and not F["head"]
     assert F["root"]==D["root"]
