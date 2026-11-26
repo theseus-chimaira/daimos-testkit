@@ -3467,3 +3467,8 @@ test-pure-bitmap-directory-v1977:
 
 test-dlink-rh18-v1977:
 	@sh tests/validation/dlink-rh18-v1977/run-v1977.sh
+
+.PHONY: test-pure-bitmap-prefix-v1978
+test-pure-bitmap-prefix-v1978:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-bitmap-prefix-v1978/run-v1978.sh
