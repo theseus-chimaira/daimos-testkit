@@ -3437,3 +3437,15 @@ test-k17-rm10-v1970:
 	    echo "Evidence: $$work"; \
 	    python3 tests/validation/k17-rm10-v1970/run-v1970.py \
 	        "$${DAIMOS_REPO:?DAIMOS source checkout required}" "$$work/native"
+
+.PHONY: test-k17-pi2-v1974
+test-k17-pi2-v1974:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/k17-pi2-v1974.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    port=$$((35000 + ($$$$ % 10000))); \
+	    for mode in 0 1 2; do \
+	        python3 tests/validation/k17-pi2-v1974/run-v1974.py \
+	            "$${DAIMOS_REPO:?DAIMOS source checkout required}" "$${PDP10_PREFIX:-$$HOME/cross}" \
+	            "$$work/chain-$$mode" "$$((port+mode))" "$$mode"; \
+	    done
