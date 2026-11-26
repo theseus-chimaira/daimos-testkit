@@ -17,8 +17,12 @@ def verify(ka, pdp6, log):
     p = symbols(pdp6 / 'kcore.map')
     assert k['d6b_image_start_v1458'] == p['d6b_image_start_v1458'] == 0o62
     assert p['vm_pdp6_apr'] == 0o60 and p['mach_kernel_stack_base'] == 0o61
-    for name in ('vm_pdp6_apr', 'mach_kernel_stack_base'):
-        assert k['__kcore_low_init_end'] <= k[name] < k['__kcore_low_end']
+    assert k['__kcore_low_init_end'] <= k['mach_kernel_stack_base'] < k['__kcore_low_end']
+    if 'ka10_df10_cia' in k:
+        assert k['vm_pdp6_apr'] == 0o147
+        assert k['ka10_df10_cia'] == 0o150 and k['ka10_df10_completion'] == 0o151
+    else:
+        assert k['__kcore_low_init_end'] <= k['vm_pdp6_apr'] < k['__kcore_low_end']
     for name in ('init.dxr', 'login.dxr', 'dsh.dxr'):
         rel = Path('userland-build/userland') / name
         assert (ka / rel).read_bytes() == (pdp6 / rel).read_bytes(), name

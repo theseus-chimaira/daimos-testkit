@@ -25,6 +25,8 @@ def boot(build, prefix, work, root):
             lines.append('expect "INIT V1" echo K17_ROOT_INIT')
         if line == 'exit':
             lines.extend(('examine RL', 'examine PL', 'examine 060-062'))
+            if 'ka10_df10_cia' in syms:
+                lines.append('examine 147-151')
             for name in ('vfs_namespace_root', 'backstore_blocks', 'backstore_blocks_used'):
                 lines.append('examine %06o' % syms[name])
         lines.append(line)
@@ -43,6 +45,15 @@ def boot(build, prefix, work, root):
     vals = {int(n, 8): int(v, 8) for n, v in re.findall(r'^([0-7]+):\s+([0-7]+)', text, re.M)}
     assert vals[syms['vfs_namespace_root']] >> 30 == root, text
     assert vals[syms['backstore_blocks_used']] == 0, text
+    if 'ka10_df10_cia' in syms:
+        assert syms['vm_pdp6_apr'] == 0o147
+        assert syms['ka10_df10_cia'] == 0o150
+        assert syms['ka10_df10_completion'] == 0o151
+        rl = int(re.search(r'^RL:\s+([0-7]+)', text, re.M)[1], 8)
+        pl = int(re.search(r'^PL:\s+([0-7]+)', text, re.M)[1], 8)
+        assert vals[0o147] == (((pl & 0o776000) << 18) | rl), text
+        assert vals[0o150] == vals[0o151] == 0, text
+        print('PASS live APR and unused DF10 pair on root', root, flush=True)
     print('PASS native root', root, 'without drum; backstore blocks', vals[syms['backstore_blocks']], flush=True)
 
 
