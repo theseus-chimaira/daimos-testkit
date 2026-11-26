@@ -31,3 +31,19 @@ placement from the linked map, and independent pressure verifier now
 accepts exact resident sleeping owners, sector-aligned mode3 and
 optional final-MM/HALT check (`--restore --final`). Do not accept
 an old trace with only guest Z as final lifecycle evidence.
+
+Actual 64K physical result (same fixture hashes as v1984): 12 children
+(fixture ceiling), vs9 RAW and8 original bitmap. Four239-word relocated
+bitmaps, one3584-word RAW and seven4096-word resident children.
+Independent final verification:
+
+    python3 verify-physical-v1985.py BUILD WORK OLD_BUILD OLD_WORK RAW_BUILD RAW_WORK
+
+Evidence relative TMPDIR: pure-placement-build-v1985.s17eYq/build,
+pure-placement-physical-v1985.GSp074 (verified-pressure-v1985.txt,
+verified-final-v1985.txt, physical.clean). Restore slot3 from octal061400
+into160000, exact239/4096 once-pinned pair; all12 checks/WAITs, final MM
+and normal HALT PASS. Five corrupted final-state traces rejected.
+Net equivalent RAW saving11186 after2194 resident overhead; measured
+capacity gain3, not maximum capacity. PI6-specific, EXEC and nonresident
+terminal physical acceptance still open.
