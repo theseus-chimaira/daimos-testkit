@@ -3482,3 +3482,8 @@ test-pure-bitmap-commit-v1979:
 test-pure-bitmap-full-v1980:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    sh tests/validation/pure-bitmap-full-v1980/run-v1980.sh
+
+.PHONY: test-pure-bitmap-service-v1981
+test-pure-bitmap-service-v1981:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-bitmap-service-v1981/run-v1981.sh
