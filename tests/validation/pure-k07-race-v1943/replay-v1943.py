@@ -17,6 +17,17 @@ symbols, words = old["symbols"], old["words"]
 stages = (("IE","E"), ("D","D"), ("F","F"), ("G","G"),
           ("S","S"), ("Q","Q"), ("R","R"), ("V","V"),
           ("M","M"), ("A","A"), ("U","U"), ("Z","Z"))
+def guest_marker(trace, marker, label):
+    # SIMH flushes buffered DECtape on the EXPECT stop. That diagnostic
+    # can follow the real guest marker before the monitor's echo.
+    # Remove only the known full controller diagnostic, never arbitrary
+    # monitor text or a fabricated checkpoint after a manual stop.
+    prefix = trace.split("V1943_STAGE_"+label+"\n", 1)[0]
+    prefix = re.sub(r"DTC[0-7]: writing buffer to file: [^\n]*\n",
+                    "", prefix)
+    return prefix.endswith(marker)
+
+
 names = ("proc_current_slot","proc_high_slot","proc_table",
          "proc_swap_records","proc_exec_resv_head_v1933",
          "vfs_mount_root_base","dtfs_media_base","vfs_namespace_root",
@@ -99,7 +110,7 @@ def main():
             start=0
             for i,(marker,label) in enumerate(stages):
                 t=wait("V1943_SCALARS_"+label,start)
-                marker_ok = marker+"V1943_STAGE_"+label in t
+                marker_ok = guest_marker(t, marker, label)
                 d=words(t.split("V1943_STAGE_"+label,1)[1])
                 high=d[sym["proc_high_slot"]]
                 count=d[sym["mm_extent_count"]]

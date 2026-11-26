@@ -67,7 +67,7 @@ def verify(b,w):
     for marker,label in replay["stages"]:
         begin="V1943_STAGE_"+label+"\n"; end="V1943_END_"+label+"\n"
         assert trace.count(begin)==trace.count(end)==1
-        assert marker+begin in trace
+        assert replay["guest_marker"](trace, marker, label)
         assert last<trace.index(begin)<trace.index(end)
         last=trace.index(end)
         allq[label]=inspect(s,words(trace.split(begin,1)[1].split(end,1)[0]))
