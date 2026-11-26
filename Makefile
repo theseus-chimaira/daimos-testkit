@@ -3326,3 +3326,7 @@ test-pure-k07-race-v1943:
 .PHONY: test-pure-k07-loss-v1945
 test-pure-k07-loss-v1945:
 	@sh tests/validation/pure-k07-loss-v1945/run-v1945.sh
+
+.PHONY: test-pure-k08-pi6-v1946
+test-pure-k08-pi6-v1946:
+	@sh tests/validation/pure-k08-pi6-v1946/run-v1946.sh

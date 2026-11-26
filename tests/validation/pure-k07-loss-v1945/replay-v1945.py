@@ -30,7 +30,8 @@ def digest(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
-def main():
+def main(observer=None):
+    """Optional testkit observer extends the original physical replay."""
     p = argparse.ArgumentParser()
     for n in ('build', 'work', 'prefix'):
         p.add_argument(n, type=Path)
@@ -83,11 +84,15 @@ def main():
     (w / 'media.sha256').write_text(orig_hash+'  dtc3.tap\n'+foreign_hash+'  foreign.tap\n')
     ini = '\n'.join(lines)+'\n'
     assert ini.count('go 020\nexit\n') == 1 and 'set pclk REALTIME' in ini
-    def scalar(label):
-        return ('echo V1945_STAGE_'+label+'\n' +
-                ''.join('examine %06o\n' % s[n] for n in NAMES) +
-                'examine 1-4\necho V1945_SCALAR_'+label+'\n')
-    ini = ini.replace('go 020\nexit\n', 'expect "x[B"\ngo 020\n'+scalar('B'))
+    def scalar(label, namespace='V1945'):
+        names = NAMES if observer is None else NAMES + observer.names
+        return ('echo '+namespace+'_STAGE_'+label+'\n' +
+                ''.join('examine %06o\n' % s[n] for n in names) +
+                'examine 1-4\necho '+namespace+'_SCALAR_'+label+'\n')
+    initial = 'expect "x[B"\n'
+    if observer is not None:
+        initial += 'expect "!r"\nexpect "!u"\n'
+    ini = ini.replace('go 020\nexit\n', initial+'go 020\n'+scalar('B'))
     (w / 'physical.ini').write_text(ini)
     port = 37000 + os.getpid() % 9000
     subprocess.run(['sh', str(HERE.parents[1] / 'lib/daimos-simh-headless.sh'),
@@ -121,9 +126,9 @@ def main():
         def examine(addr, length):
             assert 0 < addr < 0o140000 and 0 < length <= 0o140000-addr
             return 'examine %06o-%06o\n' % (addr, addr+length-1)
-        def capture(label, start, suffix=False):
-            t = wait('V1945_SCALAR_'+label, start)
-            d = words(t.split('V1945_STAGE_'+label+'\n',1)[1])
+        def capture(label, start, suffix=False, namespace='V1945'):
+            t = wait(namespace+'_SCALAR_'+label, start)
+            d = words(t.split(namespace+'_STAGE_'+label+'\n',1)[1])
             high, count = d[s['proc_high_slot']], d[s['mm_extent_count']]
             assert 1 < high <= 24 and 0 < count <= d[s['mm_extent_capacity']] <= 136
             table = d[s['proc_table']]
@@ -131,8 +136,10 @@ def main():
             for n in ('dtfs_media_base','vfs_mount_root_base','tsfs_file_shape_base','tsfs_extent_media_base'):
                 cmd += examine(d[s[n]],2)
             cmd += examine(s['mm_extents'],2*count)+examine(s['mm_arenas'],d[s['mm_arena_count']])
-            start2 = send(cmd+'echo V1945_TABLES_'+label+'\n')
-            t2 = wait('V1945_TABLES_'+label, start2)
+            if observer is not None:
+                cmd += examine(d[s['proc_storage_runtime_v29']],1)
+            start2 = send(cmd+'echo '+namespace+'_TABLES_'+label+'\n')
+            t2 = wait(namespace+'_TABLES_'+label, start2)
             d.update(words(t2))
             e = extents(d,s)
             u = d[table+9] >> 18 if high > 3 else 0
@@ -143,14 +150,14 @@ def main():
             if suffix:
                 assert source is not None
                 cmd += examine(source[0],source[1]-source[0])
-            start3 = send(cmd+'echo V1945_END_'+label+'\n')
-            d.update(words(wait('V1945_END_'+label,start3)))
-            print('v1945', label, 'slot', d[s['proc_current_slot']], 'cursor', d[s['proc_sched_cursor']], 'MM',count,flush=True)
+            start3 = send(cmd+'echo '+namespace+'_END_'+label+'\n')
+            d.update(words(wait(namespace+'_END_'+label,start3)))
+            print(namespace.lower(), label, 'slot', d[s['proc_current_slot']], 'cursor', d[s['proc_sched_cursor']], 'MM',count,flush=True)
             return t,d,e
         try:
             t,d,e = capture('B',0)
             match = re.search(r'I(a{4,6})x\[BV1945_STAGE_B\n',t)
-            assert match, 'actual guest admission marker missing'
+            assert match, 'actual guest admission marker missing: '+t.split('V1945_STAGE_B',1)[0][-100:]
             children = len(match.group(1))
             source = next(q for q in e if q[2] == 4 and q[4] == 3 and q[3] == 0)
             base = (d[s['proc_swap_service_one']] & MASK)-service
@@ -170,6 +177,14 @@ def main():
             dst = next(q for q in e if q[2] == 1 and q[4] == 3 and q[3] == 1)
             assert dst[0] == d[2] and dst[1]-dst[0] == d[4]
             expected = tuple(d[i] for i in range(source[0],source[1]))
+            def observe(stage, **extra):
+                if observer is None:
+                    return
+                observer(stage, sym=s, mres=m, base=base, full=full,
+                         pr=pr, fr=fr, source=source, target=dst,
+                         suffix=expected, send=send, wait=wait,
+                         scalar=scalar, capture=capture, **extra)
+            observe('FULL', snapshot=d, owners=e)
             def refused(label, command, pc):
                 t,d,e = capture(label,send(command+scalar(label)),True)
                 assert re.search(r'Breakpoint, PC: %06o\b' % pc,t)
@@ -179,7 +194,9 @@ def main():
                 assert tuple(d[i] for i in range(source[0],source[1])) == expected
                 assert d[d[s['dtfs_media_base']]+1] & 0o200000
                 return d
-            refused('MISSING','nobreak all\ndetach dtc3\nshow dtc3\nbreak %06o\ncont\n'%fr,fr)
+            guard = '' if observer is None else 'break %06o\n' % s['proc_sched_restore_selected']
+            failed = refused('MISSING','nobreak all\ndetach dtc3\nshow dtc3\nbreak %06o\n'%fr+guard+'cont\n',fr)
+            observe('MISSING', snapshot=failed)
             # A retry can take PREFIX or FULL depending on the free gap.
             # Stop at both actual transaction returns; fallback (+1) is
             # not a source rejection, and must be followed to FULL.
@@ -199,7 +216,11 @@ def main():
                 command = 'cont\n'
             else:
                 raise AssertionError('no actual foreign-source refusal')
-            t,d,e = capture('Z',send('nobreak all\ndetach dtc3\nattach -q dtc3 '+str(original)+'\nshow dtc3\nexpect "Z"\ncont\n'+scalar('Z')))
+            reattach = 'nobreak all\ndetach dtc3\nattach -q dtc3 '+str(original)+'\nshow dtc3\n'
+            if observer is not None:
+                observe('RECOVER', snapshot=d, reattach=reattach)
+                reattach = 'nobreak all\n'
+            t,d,e = capture('Z',send(reattach+'expect "Z"\ncont\n'+scalar('Z')))
             assert t.split('V1945_STAGE_Z\n')[0].endswith('Z')
             assert not any(q[2] in (1,4) and q[4]>=2 or q[2]==3 and q[4]>=0o1002 for q in e)
             assert not d[d[s['vfs_mount_root_base']]+1]
