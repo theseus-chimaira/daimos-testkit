@@ -80,3 +80,25 @@ new acceptance gate. The source-loss and same-medium recovery
 subresults remain valid. Probe:
 `test-simh-rearm-v1946.sh`, actual evidence
 $TMPDIR/k08-simh-break-rearm-v1946.W5XGc4.
+
+Fifth replay, independently verified through FOREIGN_0:
+$TMPDIR/pure-k08-pi6-physical-v1946.WzALO9/physical.clean
+SHA256 a551449cd2e570c1d24bb18e16804de7fb14466002b4cfdb5fd906da2abd375f.
+Actual PCLK PI6 at 017712 saved TAPE PC032067, slot0/cursor3,
+MM18 identical, both pins and all 2176 suffix words identical.
+FULL/PI6 tick6329; detach during tape search gives actual 7200-tick
+timeout, MISSING FULL return034453/-4 at tick13529, MM17.
+POSTFAIL actual PI6 tick13529, independent slot4 user sentinel w
+tick13825 while DTC3 absent. Fresh foreign reel PREFIX return034446/-4
+tick13828, MM15, 299 ticks after missing refusal, source and original
+identity intact. This is a genuine later foreign-source refusal.
+The original reel was reattached; READY_0 cursor3 and READY_1
+cursor01005 (other process) were sampled, but the 260-second
+diagnostic deadline expired before READY_2 and final Z/HALT.
+No full K08 acceptance or complete same-run foreign/recovery
+acceptance is claimed. Default run deadline remains 1150 seconds.
+No simulator left running. Use verify-scoped-v1946.py for the
+completed checkpoints; the full verifier still requires all stages.
+
+    python3 tests/validation/pure-k08-pi6-v1946/verify-scoped-v1946.py BUILD WORK PREFIX
+

@@ -15,7 +15,7 @@ MASK = 0o777777
 SUSPECT = 0o200000
 
 
-def verify(b, w, prefix, trace=None):
+def verify(b, w, prefix, trace=None, refusal_only=False):
     s, m = symbols(b/'kcore.map'), symbols(b/'pure-mres-v1612.map')
     if trace is None:
         trace = (w/'physical.clean').read_text(encoding='ascii')
@@ -40,14 +40,18 @@ def verify(b, w, prefix, trace=None):
     match = re.search(r'I(a{4,6})x\[BV1945_STAGE_B\n',trace)
     assert match, 'missing actual successful admission/refusal witness'
     children = len(match.group(1))
-    assert trace.count('HALT instruction') == 1 and 'HALT instruction, PC: 000000' in trace
-    assert 'Goodbye' in trace
+    if not refusal_only:
+        assert trace.count('HALT instruction') == 1 and 'HALT instruction, PC: 000000' in trace
+        assert 'Goodbye' in trace
     # EXPECT stops put the guest marker immediately before the monitor
     # label; those two labels need not start a new text line.
     labels = re.findall(r'V1945_STAGE_([A-Z0-9_]+)\n',trace)
-    assert labels[:4] == ['B','A','FULL','MISSING'] and labels[-1:] == ['Z']
-    assert labels[4:-1] == ['FOREIGN_%d'%i for i in range(len(labels)-5)]
-    assert len(labels) >= 6 and len(set(labels)) == len(labels)
+    assert labels[:4] == ['B','A','FULL','MISSING']
+    faults=labels[4:] if refusal_only else labels[4:-1]
+    if not refusal_only:
+        assert labels[-1:] == ['Z']
+    assert faults and faults == ['FOREIGN_%d'%i for i in range(len(faults))]
+    assert len(set(labels)) == len(labels)
     tables, spans, ranges = {}, {}, {}
     last = -1
     for label in labels:
@@ -60,10 +64,10 @@ def verify(b, w, prefix, trace=None):
         d = words(trace[begin:end]); tables[label] = d
         spans[label] = extents(d,s)
         assert not d[s['proc_exec_resv_head_v1933']]
-    B,A,F,M,Z = (tables[l] for l in ('B','A','FULL','MISSING','Z'))
-    foreign_label = labels[-2]; R = tables[foreign_label]
+    B,A,F,M = (tables[l] for l in ('B','A','FULL','MISSING'))
+    foreign_label = faults[-1]; R = tables[foreign_label]
     assert spans['B'] == spans['A']
-    assert B[s['proc_current_slot']] == A[s['proc_current_slot']] == Z[s['proc_current_slot']] == 1
+    assert B[s['proc_current_slot']] == A[s['proc_current_slot']] == 1
     assert F[s['proc_current_slot']] == M[s['proc_current_slot']] == R[s['proc_current_slot']] == 0
     assert F[s['proc_sched_cursor']] == M[s['proc_sched_cursor']] == R[s['proc_sched_cursor']] == 3
     # Clearing/rearming the same SIMH PC can repeat the stop before
@@ -130,6 +134,12 @@ def verify(b, w, prefix, trace=None):
     foreign_stop=before('FOREIGN_0')
     assert re.search(r'DTC3[^\n]*foreign\.tap',foreign_stop)
     assert re.search(r'Breakpoint, PC: (?:%06o|%06o)\b'%(pr,fr),before(foreign_label))
+    if refusal_only:
+        print('PASS scoped K07 missing/foreign refusal: %d unchanged RAW words, %d ticks between refusals; recovery NOT verified' %
+              (len(suffix),R[s['proc_timer_clock']]-M[s['proc_timer_clock']]))
+        return
+    Z=tables['Z']
+    assert Z[s['proc_current_slot']]==1
     recovered=before('Z')
     assert re.search(r'DTC3[^\n]*dtc3\.tap',recovered)
     assert recovered.endswith('Z'), 'missing genuine successful guest Z'
