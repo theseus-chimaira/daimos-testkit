@@ -1,3 +1,12 @@
+# v1950 follow-up
+
+The historical AUTO/DSK failure below is fixed by simulator cb6a255
+(H-270 octoflop correction), not by modifying DAIMOS root selection.
+All six root cases pass with the corrected simulator. The older
+v1949 227f563 CLEAR-to-IDS behavior is withdrawn. See
+../dsk270-octoflop-v1950/README.md. The runner optionally accepts
+SIMH_PDP6 for comparing simulator versions.
+
 # K09 v1948: FULL boot prefix and live root service selection
 
 The root runner boots the same 256K KCC FULL AUTO RAW image via PTR

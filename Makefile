@@ -3352,3 +3352,12 @@ test-pure-k09-prefix-v1948:
 	    "$${DAIMOS_REPO:?DAIMOS checkout required}" \
 	    "$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp10-objdump" \
 	    "$${V1948_AUTO_BUILD:?FULL AUTO RAW build required}"
+
+.PHONY: test-dsk270-octoflop-v1950
+test-dsk270-octoflop-v1950:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/dsk270-octoflop-v1950.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    python3 tests/validation/dsk270-octoflop-v1950/run-v1950.py \
+	        "$${SIMH_PDP6:-$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp6}" \
+	        "$${PDP10_PREFIX:-$$HOME/cross}" "$$work/probe"

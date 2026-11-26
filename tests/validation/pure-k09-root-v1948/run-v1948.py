@@ -147,7 +147,8 @@ def execute(build, tape, drum, work, prefix, case, port, timeout):
                     str(port),str(port+12000)],check=True)
     with (work/'console.log').open('wb') as f:
         r=subprocess.run(['timeout','-k','3s',str(timeout),'stdbuf','-o0','-e0',
-                          str(prefix/'bin/pdp6'),str(work/'headless.ini')],
+                          os.environ.get('SIMH_PDP6', str(prefix/'bin/pdp6')),
+                          str(work/'headless.ini')],
                           cwd=build,stdout=f,stderr=subprocess.STDOUT,
                           env=dict(os.environ,TERM='dumb'))
     t=(work/'console.log').read_bytes().replace(b'\r',b'').decode('ascii','replace')
