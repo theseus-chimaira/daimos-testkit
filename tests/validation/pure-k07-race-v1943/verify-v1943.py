@@ -107,11 +107,17 @@ def verify(b,w):
     assert not backing2(Q) and not backing2(R)
     assert Q["procs"][2][2]>>33==3 and R["procs"][2][2]>>33==3
     assert V["tick"]-S["tick"]>=0o2000
-    assert not V["root"] and not V["media"]
-    assert M["root"]==S["root"] and not M["media"]&BARRIER
+    # Ordinary DTFS retirement unpublishes the root and target, clears
+    # its temporary barrier, and leaves the unused media tag. A new
+    # mount authenticates RBN0 and replaces that tag. D6FS, unlike
+    # DTFS, explicitly clears its media word at retirement.
+    assert not V["root"] and V["media"]==S["media"]
+    assert not V["media"]&(BARRIER|FAULT|0o40000)
+    assert M["root"]==S["root"] and M["media"]==S["media"]
     assert not backing2(A) and not child_ext(A)
     for q in (U,Z):
-        assert not q["root"] and not q["media"]
+        assert not q["root"] and q["media"]==M["media"]
+        assert not q["media"]&(BARRIER|FAULT|0o40000)
         assert not backing2(q) and not child_ext(q)
     print("PASS v1943: live DTFS reservation %06o vnode %012o in parent u-area %06o" %
           (D["head"],vnode,u))
