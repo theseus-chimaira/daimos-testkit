@@ -1,5 +1,5 @@
 #!/bin/sh
-# Use exact v1955 native six-child PID1/child images on a KA10 disk root.
+# Use exact v1955 native six-child PID1/child images on either KA10 root.
 set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp} PDP10_PREFIX=${PDP10_PREFIX:-$HOME/cross}
 test "$#" = 2
@@ -26,9 +26,9 @@ for line in (b/'boot.ini').read_text().splitlines():
     if line=='set fha disabled':
         lines += ['set fha enabled','set fha0 rm10','attach -q fha0 '+str(w/'rm10.drm')]
         continue
-    if line.startswith('attach -q dsk'):
+    if line.startswith(('attach -q dsk','attach -q dtc')):
         f=line.split()
-        dst=w/(f[2]+'.dsk')
+        dst=w/(f[2]+Path(f[3]).suffix)
         shutil.copyfile(f[3],dst)
         line='attach -q '+f[2]+' '+str(dst)
     if line.startswith('set -q -n log '):

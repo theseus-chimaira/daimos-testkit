@@ -11,8 +11,9 @@ V = runpy.run_path(str(HERE.parent/'pure-runtime-reclaim-v1673/measure-v1673.py'
 HALF = (1 << 18) - 1
 
 
-def verify(coremap, text, provider="disk"):
+def verify(coremap, text, provider="disk", root="disk"):
     assert provider in ("disk", "drum")
+    assert root in ("disk", "tape")
     assert 'V1673 PASS RUN EXIT WAIT' in text
     assert re.findall(r'(?m)^V1673 CHILD PID (\d+)$', text) == [
         str(x) for x in range(2, 8)]
@@ -37,7 +38,11 @@ def verify(coremap, text, provider="disk"):
         assert word('mm_core_words') == 65536
         assert word('mm_extent_capacity') == 40
         assert word('backstore_enabled') == 1
-        assert word('storage_state') == word('storage_count') == 0
+        assert word('storage_state') == 0
+        # Forward DTC uses the Type-136 hardware IOWD to finish;
+        # tape_wait_done clears ownership, not the last positive
+        # transfer length. A 128-word completed tape read leaves 0200.
+        assert word('storage_count') == (0o200 if root == "tape" else 0)
         assert word('proc_exec_resv_head_v1933') == 0
         n = word('mm_extent_count')
         assert 0 < n <= 40
