@@ -62,11 +62,16 @@ case_two_owners_v1677(unsigned int fault)
         mm_extents[1].meta =
             (mm_extents[1].meta & ~((kword_t)0777UL)) |
             SLOT2_V1677;
+        /* v1922 validates arena bounds against actual physical core. */
+        mm_core_words = 0140000UL;
         mm_arenas[0] = ((kword_t)0100000UL << 18U) | 040000UL;
         for (i = 0U; i < WORDS; ++i)
                 s[i] = i < OMIT ? TEXT_PATTERN : PATTERN + i;
         for (i = 0U; i < PROC_UAREA_WORDS; ++i)
                 u[i] = 0UL;
+        /* v1924: both owners refer to the same original provider. */
+        u[PROC_CRED_OFFSET] =
+            ((kword_t *)(unsigned long)UAREA)[PROC_CRED_OFFSET];
         q->meta = (UAREA2_V1677 << PROC_HALF_SHIFT) |
             ((kword_t)PROC_F_UAREA << PROC_FLAGS_SHIFT);
         q->vm_state = (WORDS << PROC_HALF_SHIFT) | SOURCE2_V1677;
@@ -75,10 +80,10 @@ case_two_owners_v1677(unsigned int fault)
         proc_high_slot = SLOT2_V1677 + 1U;
         rc = proc_pure_mres_reclaim_v1611(0200UL, 02000UL, 0U);
         fault_second_v1677 = 0U;
-        /* Both drops are attempted; with two original MM owners, the
-         * controlled compact demand still refuses sufficient space.
-         */
-        if (rc != -1 || fault_hits_v1677 != (fault ? 1U : 0U) ||
+        /* v1916: hard second-owner refusal terminates pressure;
+         * a proved lost-success unpin still permits ordinary pressure. */
+        if (rc != (fault == 2U ? MM_ERR_BUSY : -1) ||
+            fault_hits_v1677 != (fault ? 1U : 0U) ||
             !check_owner_v1677(SLOT, SOURCE + OMIT, SUFFIX,
                 MM_TYPE_PACKED_PROCESS, 0U) ||
             !check_owner_v1677(SLOT2_V1677,
@@ -99,7 +104,7 @@ case_two_owners_v1677(unsigned int fault)
          */
         PROC_SET_STATE(p, PROC_SRUN);
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
-        rc = proc_pure_mres_service_v1611();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         if (rc != (int)(01000UL | SLOT) ||
             proc_sched_cursor != (01000UL | SLOT) ||
             !check_owner_v1677(SLOT, SOURCE, WORDS,

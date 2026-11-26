@@ -90,11 +90,16 @@ python3 - "$src/proc/proc_pure_service_pdp6_v1612.c" \
 from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text(encoding="ascii")
-old="""                    MM_EXTENT_WORDS(e) != words ||
-                    MM_EXTENT_PINNED(e))"""
-new="""                    MM_EXTENT_WORDS(e) != words)"""
+# v1916/v1919: the old inline pin predicate was replaced by the
+# common exact-owner proof and escrow. Mutate the current unsafe
+# publication decision, without disabling earlier geometry checks.
+old="""                                ppure_recover_arm_v1902(slot);
+                                return rc < MM_ERR_DESCRIPTORS ?"""
+new="""                                ppure_recover_arm_v1902(slot);
+                                PROC_CLEAR_TRANSITION(p);
+                                return rc < MM_ERR_DESCRIPTORS ?"""
 if s.count(old) != 1:
-    raise SystemExit("v1677 exact MM owner/pin guard anchor drift")
+    raise SystemExit("v1677 current quarantine decision anchor drift")
 Path(sys.argv[2]).write_text(s.replace(old, new, 1), encoding="ascii")
 PYV1677MUT
 "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $inc \
@@ -128,7 +133,7 @@ PYV1677MUT
     "$src/proc/proc_storage_runtime_v30.s" \
     "$src/drivers/device_state.s" \
     "$work/test-unsafe.s" >"$work/unsafe-run.log" 2>&1 && {
-    echo 'FAIL v1677: missing MM pin guard accepted' >&2
+    echo 'FAIL v1677: unsafe quarantine release accepted' >&2
     exit 1
 }
 if ! grep -q '^FAIL: __test_exit: got 000000002202 ' "$work/unsafe-run.log"; then
@@ -136,4 +141,4 @@ if ! grep -q '^FAIL: __test_exit: got 000000002202 ' "$work/unsafe-run.log"; the
     echo 'FAIL v1677: unsafe test did not reach native owner oracle' >&2
     exit 1
 fi
-echo 'v1677: executed unsafe MM pin guard mutant rejected'
+echo 'v1677: executed unsafe quarantine-release mutant rejected'

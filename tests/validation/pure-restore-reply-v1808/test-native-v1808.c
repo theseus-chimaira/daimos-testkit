@@ -56,7 +56,7 @@ test_lost_restore_reply_v1808(unsigned int full)
         PROC_SET_STATE(p, PROC_SRUN);
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
         prefix_fallback_v1611 = full;
-        rc = proc_pure_mres_service_v1612();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         if (lost_prefix_reply_v1808 || lost_full_reply_v1808 ||
             lost_prefix_hits_v1808 != (full ? 0U : 1U) ||
             lost_full_hits_v1808 != (full ? 1U : 0U) ||

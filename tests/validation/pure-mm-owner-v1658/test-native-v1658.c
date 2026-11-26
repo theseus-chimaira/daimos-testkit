@@ -32,7 +32,7 @@ fast_commit_v1658(void)
                 return 1;
         PROC_SET_STATE(p, PROC_SRUN);
         proc_sched_cursor = PROC_SCHED_SWAP_REQUEST | SLOT;
-        rc = proc_pure_mres_service_v1611();
+        rc = PURE_TEST_SERVICE_CALL_V1902();
         if (rc != (int)(01000U | SLOT) || PROC_TRANSITION(p) ||
             mm_extent_count != 1 ||
             MM_EXTENT_TYPE(&mm_extents[0]) != MM_TYPE_PROCESS ||
@@ -78,7 +78,12 @@ drop_refusal_v1658(unsigned int kind)
                 /* A genuinely refused pin remains transition-held.
                  * No READY_ONCE, freeing, guessing or blind unpin.
                  */
+                /* v1916 preserves the typed hard MM refusal. */
+#ifdef DAIMOS_TEST_PURE_SERVICE_V1612
+                if (rc != MM_ERR_BUSY || !PROC_TRANSITION(p) ||
+#else
                 if (rc != -1 || !PROC_TRANSITION(p) ||
+#endif
                     MM_EXTENT_PINNED(&mm_extents[0]) != 1U ||
                     proc_sched_cursor || proc_swap_pressure_ticks)
                         return 3;
