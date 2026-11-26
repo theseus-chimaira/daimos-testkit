@@ -53,3 +53,14 @@ the observer rearmed the just-stopped READY return PC; not a kernel
 failure. Corrected observer guards service entry, not current return
 PC, when proceeding to first dispatch. --scoped never proves dispatch
 or final cleanup.
+
+Corrected full physical replay: pure-directory-pi6-v1986.aHbEE0.
+Independent verified-final-v1986.txt and trace-controls-v1986.log PASS.
+Slot3, original 061400/239, destination 160000/4096, actual saved
+TAPE PC032131; PI6 tick17905, finish/READY/dispatch/guest tick19058.
+First dispatch selected slot3, consumed READY_ONCE, and the same
+child produced its checked data marker. All 12 WAITs, exact final
+MM, normal HALT. All ten corrupted-trace controls rejected. KCC
+repeat Makefile run pure-bitmap-service-v1981.pWDyrI PASS.
+Healthy physical PI6/READY_ONCE gate closed; physical fault injection,
+actual EXEC, and nonresident terminal destruction remain separate gates.
