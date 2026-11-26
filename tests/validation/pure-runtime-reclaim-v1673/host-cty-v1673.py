@@ -48,7 +48,7 @@ def read_word(text, addr):
     return int(matches[0], 8)
 
 
-def run(argv, extra_snapshot=None, before_release=None, after_release=None):
+def run(argv, extra_snapshot=None, before_release=None, after_release=None, settle_snapshot=None):
     if len(argv) != 8:
         raise ValueError("usage: host-cty-v1673.py pty-run pdp6 "
                          "boot.ini kcore.map console.log timeout_seconds "
@@ -130,6 +130,16 @@ def run(argv, extra_snapshot=None, before_release=None, after_release=None):
                 start = len(output)
                 send(b"\x05")  # SIMH command prompt, never guest input.
                 wait_for("sim> ", start, 20.0)
+                if settle_snapshot is not None:
+                    # Optional read-only barrier qualification. Keep its
+                    # monitor transcript separately; the original strict
+                    # snapshot parser must see one unambiguous MM sample.
+                    diagnostic_start = len(output)
+                    settle_snapshot(token, coremap, examine, examine_word,
+                                    send, wait_for, output)
+                    Path(log).with_suffix(".settle-" + token + ".log").write_bytes(
+                        output[diagnostic_start:])
+                    del output[diagnostic_start:]
                 snapshot_start = len(output)
                 for command in commands:
                     examine(command)

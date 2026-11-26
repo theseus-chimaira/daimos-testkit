@@ -36,7 +36,36 @@ def snapshot(token, coremap, core, read, read_range):
 
 
 
-S["V"]["run"](sys.argv,extra_snapshot=snapshot)
+def settle(token, coremap, examine, read, send, wait, output):
+    # A CTY marker can precede the final child BRK or the parent's
+    # readchar sleep. Require native scheduler/VM states, not a delay.
+    import re
+    import time
+    sym=lambda n:S["V"]["source_symbol"](coremap,n)
+    high=8 if token=="B" else 2
+    for attempt in range(24):
+        ptr=read(sym("proc_table"))
+        actual=read(sym("proc_high_slot"))
+        if actual==high:
+            text=examine("ex %o-%o\n"%(ptr,ptr+3*high-1))
+            d={int(a,8):int(w,8) for a,w in re.findall(
+                r"(?m)^(?:sim> )?([0-7]+):\s+([0-7]{12})\s*$",text)}
+            assert len(d)==3*high
+            if (all(d[ptr+3*i+2]>>33==3 for i in range(1,high))
+                and all(d[ptr+3*i+1]>>18==8192 for i in range(2,high))
+                and read(sym("storage_state"))==0
+                and read(sym("drm236_active_request"))==0):
+                print("Native quiescent barrier",token,"attempt",attempt+1,flush=True)
+                return
+        send(b"go\n")
+        time.sleep(1.0)
+        start=len(output)
+        send(b"\x05")
+        wait("sim> ",start,20)
+    raise RuntimeError("native quiescent barrier not reached: "+token)
+
+S["V"]["run"](sys.argv,extra_snapshot=snapshot,
+             settle_snapshot=settle if os.environ.get("V1973_SETTLE")=="1" else None)
 report=V["verify"](Path(sys.argv[4]),Path(sys.argv[5]).with_suffix(".clean").read_text(),
                    provider="drum",root=os.environ.get("V1971_ROOT","disk"))
 assert all(r["errors"]==0 for r in report.values())
