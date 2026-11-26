@@ -3405,3 +3405,12 @@ test-pure-k09-descriptors-v1953:
 	    work=$$(mktemp -d "$$TMPDIR/k09-descriptors-v1953.XXXXXX"); \
 	    echo "Evidence: $$work"; \
 	    sh tests/validation/pure-k09-descriptors-v1953/run-v1953.sh "$$work/run"
+
+.PHONY: test-dsk270-read-loss-v1954
+test-dsk270-read-loss-v1954:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/dsk270-read-loss-v1954.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    python3 tests/validation/dsk270-read-loss-v1954/run-v1954.py \
+	        "$${SIMH_PDP6:-$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp6}" \
+	        "$${PDP10_PREFIX:-$$HOME/cross}" "$$work/native"
