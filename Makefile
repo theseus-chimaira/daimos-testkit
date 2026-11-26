@@ -3334,3 +3334,7 @@ test-pure-k08-pi6-v1946:
 .PHONY: test-pure-k08-simh-rearm-v1946
 test-pure-k08-simh-rearm-v1946:
 	@sh tests/validation/pure-k08-pi6-v1946/test-simh-rearm-v1946.sh
+
+.PHONY: test-pure-k08-recovery-v1947
+test-pure-k08-recovery-v1947:
+	@sh tests/validation/pure-k08-recovery-v1947/run-v1947.sh
