@@ -3389,3 +3389,12 @@ test-pure-k09-budget-v1951:
 	        "$${V1951_OFF_BUILD:?KCC OFF build required}" \
 	        "$${V1951_RAW_BUILD:?KCC RAW build required}" "$$work" \
 	        "$${PDP10_PREFIX:-$$HOME/cross}"
+
+.PHONY: test-dsk270-media-loss-v1953
+test-dsk270-media-loss-v1953:
+	@set -eu; TMPDIR="$${TMPDIR:-$$HOME/tmp}"; mkdir -p "$$TMPDIR"; \
+	    work=$$(mktemp -d "$$TMPDIR/dsk270-media-loss-v1953.XXXXXX"); \
+	    echo "Evidence: $$work"; \
+	    python3 tests/validation/dsk270-media-loss-v1953/run-v1953.py \
+	        "$${SIMH_PDP6:-$${PDP10_PREFIX:-$$HOME/cross}/bin/pdp6}" \
+	        "$${PDP10_PREFIX:-$$HOME/cross}" "$$work/native"
