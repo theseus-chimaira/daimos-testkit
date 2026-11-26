@@ -64,17 +64,18 @@ def settle(token, coremap, examine, read, send, wait, output):
         wait("sim> ",start,20)
     raise RuntimeError("native quiescent barrier not reached: "+token)
 
-S["V"]["run"](sys.argv,extra_snapshot=snapshot,
-             settle_snapshot=settle if os.environ.get("V1973_SETTLE")=="1" else None)
-report=V["verify"](Path(sys.argv[4]),Path(sys.argv[5]).with_suffix(".clean").read_text(),
-                   provider="drum",root=os.environ.get("V1971_ROOT","disk"))
-assert all(r["errors"]==0 for r in report.values())
-assert report["A"]["writes"]==0
-assert report["B"]["writes"]-report["A"]["writes"]==report["B"]["bitmap_used"]
-assert report["C"]["reads"]-report["B"]["reads"]==report["B"]["bitmap_used"]
-assert report["C"]["writes"]==report["B"]["writes"]
-Path(sys.argv[5]).with_name("report.json").write_text(json.dumps(report,indent=2)+"\n")
-print("PASS native KA10 RM10 backing, exact canaries/WAIT and MM cleanup")
-for p,r in report.items():
-    print(p,"MM",r["extents"],"free",r["free"],"bitmap",r["bitmap_used"],
-          "drum reads/writes",r["reads"],r["writes"])
+if __name__=="__main__":
+    S["V"]["run"](sys.argv,extra_snapshot=snapshot,
+                 settle_snapshot=settle if os.environ.get("V1973_SETTLE")=="1" else None)
+    report=V["verify"](Path(sys.argv[4]),Path(sys.argv[5]).with_suffix(".clean").read_text(),
+                       provider="drum",root=os.environ.get("V1971_ROOT","disk"))
+    assert all(r["errors"]==0 for r in report.values())
+    assert report["A"]["writes"]==0
+    assert report["B"]["writes"]-report["A"]["writes"]==report["B"]["bitmap_used"]
+    assert report["C"]["reads"]-report["B"]["reads"]==report["B"]["bitmap_used"]
+    assert report["C"]["writes"]==report["B"]["writes"]
+    Path(sys.argv[5]).with_name("report.json").write_text(json.dumps(report,indent=2)+"\n")
+    print("PASS native KA10 RM10 backing, exact canaries/WAIT and MM cleanup")
+    for p,r in report.items():
+        print(p,"MM",r["extents"],"free",r["free"],"bitmap",r["bitmap_used"],
+              "drum reads/writes",r["reads"],r["writes"])

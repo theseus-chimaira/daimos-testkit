@@ -14,6 +14,7 @@ case "$mode" in
  events) fixture=daimos-process-events-v1; users=1;;
  scheduler) fixture=daimos-scheduler-multiproc-v1; users=5;;
  protection) fixture=daimos-apr-user-protection-v1; users=1;;
+ childfault) fixture=k17-proc-v1974/childfault-v1974; users=1;;
  *) exit 2;;
 esac
 mkdir "$w"
@@ -26,12 +27,20 @@ set --
 for d in boot core drivers fs mm modules proc storage; do
     set -- "$@" "-I$DAIMOS_REPO/system/kernel/$d"
 done
+if test "$mode" = childfault && test "$machine" = ka10; then
+    set -- "$@" -DTEST_KA10=1
+fi
 "$cc" -std=c99 -Os "$@" -I"$DAIMOS_REPO/userland/libc" -S "$here/../$fixture.c" -o "$w/init.s"
 "$das" -C -F -O "$w/init.dobj" "$w/init.s"
 "$das" -C -F -O "$w/crt0.dobj" "$DAIMOS_REPO/userland/libc/crt0.s"
 "$das" -C -F -O "$w/syscall.dobj" "$DAIMOS_REPO/userland/libc/syscall.s"
+set --
+if test "$mode" = childfault; then
+    "$das" -C -F -O "$w/fault.dobj" "$here/childfault-v1974.s"
+    set -- "$w/fault.dobj"
+fi
 "$dlink" -b 020 -o "$w/init.dxr" -M "$w/init.map" \
-    "$w/crt0.dobj" "$w/syscall.dobj" "$w/init.dobj" "$("$cc" -print-libgcc-file-name)"
+    "$w/crt0.dobj" "$w/syscall.dobj" "$w/init.dobj" "$@" "$("$cc" -print-libgcc-file-name)"
 export PATH="$PDP10_PREFIX/bin:$PATH"
 make -C "$DAIMOS_REPO/system/boot/pdp6" -j2 image DAIMOS_MACHINE="$machine" \
     ROOT=disk BOOT=dsk BOOT_PROFILE=lowmem COMPILER=kcc BOOT_CORE_WORDS=0200000 \

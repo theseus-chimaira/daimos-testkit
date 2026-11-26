@@ -34,3 +34,15 @@ existing headless helper. All four replay exit0.
 Evidence $TMPDIR/k17-pi2-v1974.HMnc5A/ka-{lifecycle,events,
 scheduler,protection} and pdp6 equivalents (console-headless.log).
 No production change.
+
+## Child fault cleanup
+
+Additional childfault mode: KA10 read/write beyond APR
+limit, native unassigned instruction (same opcode v1964),
+then ordinary child; parent observes exact EXITED status
+0400001 for faults and 037 for normal child. After each
+WAIT, checks parent static/stack canaries and unchanged
+process words/slots and file slots. KA10 RWINP then HALT0;
+PDP6 RWNP then HALT0 (unassigned not requested). Both exit0.
+Evidence ka10-childfault and pdp6-childfault directories.
+This strengthens earlier PID1-only protection tests.

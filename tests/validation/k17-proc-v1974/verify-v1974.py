@@ -18,6 +18,8 @@ elif mode=="lifecycle":
     assert "P" in body,body
 elif mode=="events":
     assert "E" in body,body
+elif mode=="childfault":
+    assert body.strip()==("RWINP" if machine=="ka10" else "RWNP"),body
 elif mode=="scheduler":
     assert not any(c in body for c in "NFX"),body
     for c in "abcdeAD12345":
