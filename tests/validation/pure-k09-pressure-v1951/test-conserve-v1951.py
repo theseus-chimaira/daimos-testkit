@@ -12,12 +12,14 @@ def main():
     p=argparse.ArgumentParser()
     for n in ('build','work','prefix'):
         p.add_argument(n,type=Path)
+    p.add_argument('--core',type=int,choices=(48,64),default=48)
     a=p.parse_args()
+    children=5 if a.core==48 else 9
     t=(a.work/'physical.clean').read_text()
     s=old['symbols'](a.build/'kcore.map')
-    V['verify'](a.build,a.work,a.prefix,48,5,t)
+    V['verify'](a.build,a.work,a.prefix,a.core,children,t)
     z=old['words'](old['section'](t,'Z'))
-    e=old['extents'](z,s,48)
+    e=old['extents'](z,s,a.core)
     parent=next(i for i,q in enumerate(e) if q[2]==3 and q[4]==0o1001)
     meta=s['mm_extents']+2*parent+1
     for label,addr,val in [('unretired slot',s['proc_high_slot'],7),
@@ -32,7 +34,7 @@ def main():
         changed=before+'V1941_STAGE_Z'+body+'V1941_END_Z'+after
         assert changed!=t
         try:
-            V['verify'](a.build,a.work,a.prefix,48,5,changed)
+            V['verify'](a.build,a.work,a.prefix,a.core,children,changed)
         except (AssertionError,KeyError,ValueError):
             print('PASS rejects altered conservation:',label)
         else:
