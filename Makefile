@@ -3497,3 +3497,8 @@ test-pure-bitmap-terminal-v1982:
 test-pure-directory-package-v1983:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    sh tests/validation/pure-directory-package-v1983/run-build-v1983.sh
+
+.PHONY: test-pure-bitmap-placement-v1985
+test-pure-bitmap-placement-v1985:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-bitmap-placement-v1985/run-v1985.sh

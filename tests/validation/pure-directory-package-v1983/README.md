@@ -8,9 +8,11 @@ Builds actual KCORE and the complete relocated MRES with GCC and KCC;
 checks absence of new directory symbols in fixed KCORE, absence of the
 old interleaved codec, exact regeneration across directory -> RAW ->
 directory switches in the same build directory, and refusal of old
-format or nonstrict combinations. The observed installed package
+format or nonstrict combinations. The original v1983 observed installed package
 resident lengths are GCC RAW3258/directory5359 and KCC RAW3885/
 directory6401 words (zero BSS); KCORE -8 in the directory profile.
+The v1985 directory profile selects placement at DROP; GCC5460/KCC6504
+resident words, RAW and fixed KCORE images byte-identical to v1983.
 
 Physical lifecycle diagnostic (NOT an acceptance gate yet):
 

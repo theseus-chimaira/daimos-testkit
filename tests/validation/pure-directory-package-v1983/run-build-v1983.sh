@@ -28,7 +28,7 @@ import sys
 b=Path(sys.argv[1]); mode=int(sys.argv[2])
 s=set(line.split()[0] for line in (b/'pure-mres-v1612.map').read_text().splitlines() if line.split())
 k=set(line.split()[0] for line in (b/'kcore.map').read_text().splitlines() if line.split())
-new={'proc_pure_term_v1982','proc_pure_bitmap_drop_v1979','proc_pure_bitmap_restore_v1980','pbmd_walk_v1977','pbmd_verify_v1979','mm_pure_bitmap_commit_v1979','mm_pure_bitmap_finish_v1664'}
+new={'proc_pure_term_v1982','proc_pure_bitmap_drop_v1979','proc_pure_bitmap_restore_v1980','pbmd_walk_v1977','pbmd_verify_v1979','mm_pure_bitmap_commit_v1979','mm_pure_bitmap_finish_v1664','mm_pure_bitmap_place_v1985'}
 assert not (new & k), 'directory code in fixed KCORE'
 assert not ({'bitmap_decode_v1451','proc_pure_bitmap_restore_v1664','proc_pure_term_v1667'} & s)
 assert new <= s if mode else not (new & s)

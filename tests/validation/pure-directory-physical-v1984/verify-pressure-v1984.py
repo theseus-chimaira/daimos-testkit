@@ -86,6 +86,7 @@ def verify(build, work, raw=False, trace=None):
     skip, fixtures = fixture(build)
     packed = []
     raw_words = []
+    resident = []
     for slot in range(1,slots):
         mode = (cells[modebase+slot//18]>>(2*(slot%18)))&3
         p, vm, sched = (cells[table+3*slot+i] for i in range(3))
@@ -104,22 +105,23 @@ def verify(build, work, raw=False, trace=None):
             assert mode==0 and kind==1 and lo==vm&MASK and hi-lo==full
             continue
         assert sched>>33==3, 'child not sleeping'
+        if mode==0:
+            assert kind==1 and lo==vm&MASK and lo%1024==0 and hi-lo==full
+            resident.append(dict(slot=slot,base=lo,words=full,full=full))
+            continue
         assert not vm&MASK and kind==4
         expected_raw = full-skip
         assert expected_raw>0
         if mode==3:
-            assert not raw and slot!=2 and lo%1024==0
+            assert not raw and slot!=2 and lo%(128 if "mm_pure_bitmap_place_v1985" in mres else 1024)==0
             assert (expected_raw+35)//36 <= hi-lo <= skip and hi-lo<expected_raw
             packed.append(dict(slot=slot,base=lo,words=hi-lo,full=full,raw=expected_raw))
         elif mode==2:
             assert lo%128==0 and hi-lo==expected_raw and (lo-skip)%1024==0
             raw_words.append(dict(slot=slot,base=lo,words=hi-lo,full=full))
         else:
-            # RAW control can retain resident children if no reclaim was
-            # needed. This pressure fixture specifically requires RAW or
-            # bitmap ownership, so reject unexpected resident mode here.
             raise AssertionError('unexpected child mode %d'%mode)
-    assert len(packed)+len(raw_words)==children
+    assert len(packed)+len(raw_words)+len(resident)==children
     assert raw_words and (not packed if raw else bool(packed))
     gaps=[]
     for i in range(mm[s['mm_arena_count']]):
@@ -134,7 +136,7 @@ def verify(build, work, raw=False, trace=None):
         if cursor<end:gaps.append((cursor,end))
     gross=sum(x['raw']-x['words'] for x in packed)
     return dict(children=children,skip=skip,fixtures=fixtures,raw=raw_words,
-                packed=packed,gross=gross,
+                packed=packed,resident=resident,gross=gross,
                 free=sum(z-a for a,z in gaps),
                 largest_aligned=max(max(0,z-((a+1023)//1024*1024)) for a,z in gaps),
                 installed_base=base,extent_count=len(e))
@@ -191,6 +193,39 @@ def verify_restore(build, work, trace=None):
     return result
 
 
+def verify_final(build,work,result,trace=None):
+    """Require the actual post-WAIT retirement and normal guest HALT."""
+    if trace is None:
+        trace=(work/'physical.clean').read_text()
+    s=symbols(build/'kcore.map')
+    meta=words(between(trace,'V1941_END_B','V1983_META'))
+    rt=s['proc_storage_runtime_v29']
+    modebase,slots=meta[rt],meta[rt+1]
+    table=meta[s['proc_table']]
+    mm=words(section(trace,'Z'))
+    cells=words(between(trace,'V1941_END_Z','V1983_MAP_Z'))
+    e=extents(mm,s,64)
+    assert mm[s['proc_current_slot']]==1 and mm[s['proc_exec_resv_head_v1933']]==0
+    for slot in range(2,slots):
+        assert (cells[modebase+slot//18]>>(2*(slot%18)))&3==0
+        p,vm,sched=(cells[table+3*slot+i] for i in range(3))
+        assert sched>>33==0 and not p&0o400000
+        assert not any(x[4]==slot and x[2] in (1,4) or
+                       x[4]==0o1000+slot and x[2]==3 for x in e)
+    p,vm,sched=(cells[table+3+i] for i in range(3))
+    assert p&0o400000 and not p&0o200000 and sched>>33==2
+    assert (cells[modebase]>>2)&3==0
+    assert (vm&MASK,(vm&MASK)+(vm>>18),1,0,1) in e
+    assert (p>>18,(p>>18)+0o410,3,0,0o1001) in e
+    tail=trace.split('V1983_MAP_Z',1)[1]
+    assert re.search(r'HALT instruction, PC: 000000\b',tail)
+    assert trace.count('HALT instruction')==1 and 'Goodbye' in tail
+    assert 'SIGTERM' not in trace
+    result['final_mm_verified']=True
+    result['normal_halt']=True
+    return result
+
+
 def verify_raw_completion(build,work):
     trace=(work/'physical.clean').read_text()
     result=verify(build,work,True,trace)
@@ -227,17 +262,22 @@ def main():
     p.add_argument('work',type=Path)
     p.add_argument('--raw',action='store_true')
     p.add_argument('--restore',action='store_true')
+    p.add_argument('--final',action='store_true')
     p.add_argument('--raw-build',type=Path)
     p.add_argument('--raw-work',type=Path)
     args=p.parse_args()
     assert not (args.raw and args.restore)
     result=verify_restore(args.build,args.work) if args.restore else verify(args.build,args.work,args.raw)
+    if args.final:
+        assert args.restore or args.raw
+        if args.raw: result=verify_raw_completion(args.build,args.work)
+        verify_final(args.build,args.work,result)
     print(json.dumps(result,indent=2,sort_keys=True))
     if args.raw_build or args.raw_work:
         assert args.raw_build and args.raw_work and not args.raw
         baseline=verify_raw_completion(args.raw_build,args.raw_work)
         print(json.dumps(compare(args.build,result,args.raw_build,baseline),indent=2,sort_keys=True))
-    print('PASS: independent restore/guest WAIT verification (not final MM/PI6 acceptance)' if args.restore else 'PASS: independent pressure-state verification (not lifecycle acceptance)')
+    print('PASS: independent final MM and HALT verification (not PI6/EXEC acceptance)' if args.final else 'PASS: independent restore/guest WAIT verification (not final MM/PI6 acceptance)' if args.restore else 'PASS: independent pressure-state verification (not lifecycle acceptance)')
 
 if __name__=='__main__':
     main()

@@ -186,7 +186,7 @@ def main():
                 assert len(own)==1 and own[0][2:]==(4,0)
                 vm=m[table+3*slot+1]
                 assert vm&0o777777==0 and 0<own[0][1]<vm>>18
-                assert own[0][0]%(1024 if slot in packed else 128)==0
+                assert own[0][0]%(1024 if slot in packed and "mm_pure_bitmap_place_v1985" not in mres else 128)==0
                 print("v1983 slot=%d mode=%d retained=%d full=%d"%(slot,mode(m,slot),own[0][1],vm>>18),flush=True)
             if args.raw:
                 # No requirement that RAW uses disjoint FULL: PREFIX is legal.
