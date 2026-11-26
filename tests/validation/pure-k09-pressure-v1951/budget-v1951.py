@@ -123,7 +123,7 @@ def verify(build, work, prefix, core, pure, trace=None, write=True):
     # SYS_MEMINFO includes the fixed table between KCORE and MRES.
     # Subtract it to report linked resident code/data without double count.
     table=2*capacity
-    assert core*1024-managed == 0o60+resident
+    assert core*1024-managed == s['d6b_image_start_v1458']+resident
     # Reconcile the observed resident interval with actual lowmem packages.
     # PCLK boot uses no software-clock fallback; no auxiliary medium means
     # DISK SWAP is not installed even if present in disposable KINIT.
@@ -133,10 +133,10 @@ def verify(build, work, prefix, core, pure, trace=None, write=True):
         hdr=subprocess.check_output([str(prefix/'bin/pdp10-objdump'),'-h',
                                      str(build/(name+'-mres.dobj'))],text=True)
         packages[name]=int(re.search(r'\bresident=(\d+)',hdr)[1])
-    fixed=s['__kcore_low_end']-0o60
+    fixed=s['__kcore_low_end']-s['d6b_image_start_v1458']
     assert 'PCLK                                  OK' in t
     assert fixed+table+sum(packages.values())==resident
-    report=dict(core=core,pure=pure,fixed_kcore=s['__kcore_low_end']-0o60,
+    report=dict(core=core,pure=pure,fixed_kcore=s['__kcore_low_end']-s['d6b_image_start_v1458'],
                 fixed_resident=resident-table,mm_table=table,managed=managed,
                 allocated=allocated,free=managed-allocated,
                 boot_kernel_dynamic=kernel_dynamic,

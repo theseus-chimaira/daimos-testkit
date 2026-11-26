@@ -34,7 +34,7 @@ def verify(build, objdump, capacity):
         sizes.get('dtfs-mres.dobj', 0),
         common + sizes.get('purev1612-mres.dobj', 0) +
         sizes.get('dtfs-mres.dobj', 0))
-    slot = k['__kcore_low_init_end'] - 0o60
+    slot = k['__kcore_low_init_end'] - k['d6b_image_start_v1458']
     assert s['__kcore_load_end'] - s['__kcore_load_begin'] == slot
     assert s['__minit_table_begin'] == 0o30000
     unpadded = s['__minit_table_end'] + slot

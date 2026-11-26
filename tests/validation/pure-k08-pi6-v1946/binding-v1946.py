@@ -84,7 +84,7 @@ def classify(pc,d,s,base,provider):
         return 'DTFS/TSFS'
     if tb<=pc<tb+tape_words:
         return 'TAPE'
-    if 0o60<=pc<s['__kcore_low_init_end']:
+    if s['d6b_image_start_v1458']<=pc<s['__kcore_low_init_end']:
         return 'KCORE'
     arena_count=d[s['mm_arena_count']]
     assert 0<arena_count<=3

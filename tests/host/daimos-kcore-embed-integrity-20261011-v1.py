@@ -33,7 +33,7 @@ def main():
         raise ValueError("KCORE load extent disagrees with stream length")
     for index, (expected, actual) in enumerate(zip(kcore, kinit[start:end])):
         if expected != actual:
-            raise ValueError(f"KCORE mismatch at logical {index + 0o60:06o}: "
+            raise ValueError(f"KCORE mismatch at logical {index + symbols.get('d6b_image_start_v1458', 0o60):06o}: "
                              f"{expected} != {actual}")
     print(f"PASS: {len(kcore)} KCORE words agree with final KINIT boot image")
 

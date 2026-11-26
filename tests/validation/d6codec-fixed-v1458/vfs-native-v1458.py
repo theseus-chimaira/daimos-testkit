@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Native PDP-6 full VFS/refill and compiled-DXR test of fixed v1458.
 
-Install a single relocated decoder image at 000060, then call through
+Install a single relocated decoder image at 000062, then call through
 the real 58-word VFS/direct-buffer adapter. All fixture input and
 expected output is derived independently from the v1421 block codec.
 This tests the exact fast core and VFS adapter, never two core copies.
@@ -38,8 +38,8 @@ def attach_core(fixture, image):
     contents[index:index] = [
         " movei 1,d6b_image_start_v1458",
         " hrl 1,1",
-        " hrri 1,060",
-        " blt 1,060+(d6b_image_end_v1458-d6b_image_start_v1458)-1",
+        " hrri 1,062",
+        " blt 1,062+(d6b_image_end_v1458-d6b_image_start_v1458)-1",
     ]
     fixture.write_text("\n".join(contents) + "\n" + image.read_text())
 

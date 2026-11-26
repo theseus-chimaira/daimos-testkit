@@ -2,7 +2,7 @@
 """Test copied fixed low-core v1458 decoder in native PDP-6 simulation.
 
 The actual Stage-1 relocates its decoder from a later part of a read-in
-to address 000060 before expanding KINIT. This fixture performs the
+to address 000062 before expanding KINIT. This fixture performs the
 same relocation, checks the native buffer stream, and checks exact
 word-wise restored contents. No production media is changed.
 """
@@ -32,17 +32,21 @@ def fixture(file, words, packed, accepted, needs_input=False):
         ".text", ".globl main",
         ".globl d6codec_block_fixed_v1458",
         "main:",
+        " move 5,[012345670123]", " movem 5,060",
+        " move 5,[076543210765]", " movem 5,061",
         " movei 1,d6b_image_start_v1458",
         " hrl 1,1",
-        " hrri 1,060",
-        " blt 1,060+(d6b_image_end_v1458-d6b_image_start_v1458)-1",
+        " hrri 1,062",
+        " blt 1,062+(d6b_image_end_v1458-d6b_image_start_v1458)-1",
         " movei 3,compressed",
         " movei 4,0%o" % len(packed),
         " movei 12,restored",
         " movei 13,0%o" % len(words),
         " move 14,12",
         " setz 11,",
-        " pushj 17,060",
+        " pushj 17,062",
+        " move 5,[012345670123]", " came 5,060", " jrst fail",
+        " move 5,[076543210765]", " came 5,061", " jrst fail",
     ]
     if accepted:
         lines.extend([

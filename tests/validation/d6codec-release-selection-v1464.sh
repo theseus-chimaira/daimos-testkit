@@ -42,12 +42,14 @@ grep -Fq 'TSFSCHECK ?= $(BUILD)/tsfscheck-v1461' \
 grep -Fq 'd6codec_decode_vfs_v1458' "$root/system/kernel/proc/proc_swap_pdp6.s"
 grep -Fq 'd6codec_decode_vfs_v1458' "$root/system/kernel/proc/exec_load.s"
 grep -Fq 'd6codec_decode_buffer_v1458' "$root/system/kernel/fs/tsfs_runtime.s"
-if rg -n 'd6lz36_decode|d6lz_fixed|\.d6lz\.dxr|D6LZ_HOST' \
+if grep -En 'd6lz36_decode|d6lz_fixed|\.d6lz\.dxr|D6LZ_HOST' \
     "$root/system/boot/pdp6/Makefile" "$root/system/kernel/Makefile" \
     "$root/system/kernel/proc/proc_swap_pdp6.s" \
     "$root/system/kernel/fs/tsfs_runtime.s"; then
     echo 'FAIL v1464: legacy decoder still selected' >&2
     exit 1
+else
+    test "$?" -eq 1 || exit 1
 fi
 
 echo 'PASS v1464: all five Stage-1 loaders, KCORE, EXEC, PURE and TSFS use block'
