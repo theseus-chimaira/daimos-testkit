@@ -40,7 +40,7 @@ def memory_stage(sym, label, capacity=32):
     return "\n".join(out) + "\n"
 
 
-def main():
+def main(observer=None):
     p = argparse.ArgumentParser()
     p.add_argument("build", type=Path)
     p.add_argument("work", type=Path)
@@ -52,6 +52,9 @@ def main():
     b, w, prefix = (x.resolve() for x in
                     (args.build, args.work, args.prefix))
     w.mkdir(parents=True, exist_ok=True)
+    if observer:
+        assert not args.raw
+        observer.setup(b,w,prefix)
     media = w / "media"
     media.mkdir()
     sym = symbols(b / "kcore.map")
@@ -207,7 +210,14 @@ def main():
                 assert len(own)==1 and own[0][2:]==(4,0)
                 print("v1983 actual mode3 restore entered slot=%d"%slot,flush=True)
                 finish=base+finish_off
-                start=send("nobreak all\nbreak %06o\ncont\necho V1983_FINISH\nexamine 1-4\necho V1983_FINISH_AC\n"%finish)
+                if observer:
+                    observer.before_finish(sym=sym,mres=mres,base=base,slot=slot,
+                        finish=finish,table=table,modebase=modebase,snapshot=snapshot,
+                        examine=examine,send=send,wait=wait_for)
+                guards = ("break %06o\nbreak %06o\n" % (observer.dispatch,observer.ret)
+                          if observer else "")
+                start=send(("nobreak all\nbreak %06o\n"%finish)+guards+
+                           "cont\necho V1983_FINISH\nexamine 1-4\necho V1983_FINISH_AC\n")
                 trace=wait_for("V1983_FINISH_AC",start)
                 assert re.search(r"Breakpoint, PC: %06o\b"%finish,trace)
                 ac=words(trace); slot,source,encoded,target=(ac[i] for i in (1,2,3,4))
@@ -218,6 +228,10 @@ def main():
                 fullowner=[v for v in own if v[2]==1][0]
                 assert fullowner[0]==target and fullowner[3]==1
                 print("v1983 actual atomic finish: slot=%d source=%06o/%d target=%06o/%d"%(slot,source,encoded,target,fullowner[1]),flush=True)
+                if observer:
+                    observer.after_finish(slot=slot,source=source,encoded=encoded,
+                        target=target,full_words=fullowner[1],snapshot=snapshot,
+                        examine=examine,send=send,wait=wait_for,sym=sym)
             start=send('nobreak all\nexpect "Z"\ncont\necho V1983_Z_STOP\n')
             tail=wait_for("V1983_Z_STOP",start)
             # SIMH ECHO may concatenate directly to guest output.

@@ -24,10 +24,13 @@ restore_flags='-DDAIMOS_PURE_FULL_V1391=1 -DDAIMOS_PBM_RESTORE_V1980=1 -Dmm_pin=
 compile $restore_flags "$src/proc/proc_pure_ram_restore_v1391.c" -o "$work/restore.s"
 python3 - "$here" "$work" <<'PYTEST'
 from pathlib import Path
-import sys
+import os,sys
 h,w=map(Path,sys.argv[1:]);s=(h.parent/'pure-bitmap-prefix-v1978/test-native-v1978.c').read_text()
 a='int main(void)';assert s.count(a)==1
-(w/'test-v1980.c').write_text(s.replace(a,'int old_main_v1978(void)')+'\n'+(h.parent/'pure-bitmap-commit-v1979/test-native-v1979.c').read_text().replace(a,'int old_main_v1979(void)')+'\n'+(h.parent/'pure-bitmap-full-v1980/test-native-v1980.c').read_text().replace(a,'int old_main_v1980(void)').replace('static int load_v1980(', 'int load_v1980(')+'\n'+(h/'test-native-v1981.c').read_text())
+test=s.replace(a,'int old_main_v1978(void)')+'\n'+(h.parent/'pure-bitmap-commit-v1979/test-native-v1979.c').read_text().replace(a,'int old_main_v1979(void)')+'\n'+(h.parent/'pure-bitmap-full-v1980/test-native-v1980.c').read_text().replace(a,'int old_main_v1980(void)').replace('static int load_v1980(', 'int load_v1980(')+'\n'+(h/'test-native-v1981.c').read_text()
+if os.environ.get('PURE_SCHED_V1986')=='1':
+    test=test.replace(a,'int old_main_v1981(void)')+'\n'+(h.parent/'pure-directory-pi6-v1986/test-native-v1986.c').read_text()
+(w/'test-v1980.c').write_text(test)
 PYTEST
 compile "$work/test-v1980.c" -o "$work/test.s"
 # Link the complete production service (not an extracted dispatcher).
@@ -71,17 +74,42 @@ install_d6_v1980:
         popj 17,
 ASM
 run_guest() {
-    "$PDP10_PREFIX/bin/p10run" --machine "$1" --mode deposit --exec-mode go \
-        --start 1000 --timeout 90 --workdir "$work/$2" --name "$2" --expect __test_exit=0 \
-        --examine diag_case_v1981 --examine diag_cases_v1981 --examine diag_rc_v1981 \
-        "$kit/tests/validation/daimos-test-crt0-v1.s" "$work/pi.s" "$3" \
+    guest_machine=$1; guest_name=$2; guest_drop=$3; shift 3
+    if [ "${PURE_SCHED_V1986:-0}" = 1 ]; then
+        selector_examine="--examine diag_case_v1986 --examine diag_cases_v1986"
+    else
+        selector_examine=
+    fi
+    "$PDP10_PREFIX/bin/p10run" --machine "$guest_machine" --mode deposit --exec-mode go \
+        --start 1000 --timeout 90 --workdir "$work/$guest_name" --name "$guest_name" --expect __test_exit=0 \
+        --examine diag_case_v1981 --examine diag_cases_v1981 --examine diag_rc_v1981 $selector_examine \
+        "$kit/tests/validation/daimos-test-crt0-v1.s" "$work/pi.s" "$guest_drop" \
         "$src/mm/mm_pdp6.s" "$src/mm/mm_pure_rebase_v1381.s" "${MM_LEAF:-$src/mm/mm_pure_bitmap_commit_v1979.s}" \
         "$src/proc/proc_storage_runtime_v30.s" "$work/codec.s" \
         "$src/proc/proc_pure_bitmap_walk_v1977.s" "${SERVICE_LEAF:-$work/service.s}" "$work/prefix.s" "$src/mm/mm_pure_expand_v1384.s" "$work/test.s" "${RESTORE_LEAF:-$work/restore.s}" \
         "$src/mm/mm_pure_bitmap_finish_v1664.s" "$src/proc/exec_image_common_v1386.s" \
         "$work/backing-v1980.s" "$work/fixed-v1980.s" "$src/core/d6block_vfs_fixed_v1458.s" \
-        "$kit/tests/validation/exec-image-common-v1386/pure-media-unused-v1925.s"
+        "$kit/tests/validation/exec-image-common-v1386/pure-media-unused-v1925.s" "$@"
 }
+if [ "${PURE_SCHED_V1986:-0}" = 1 ]; then
+    {
+        printf '.text\n.globl proc_sched_resched_select\n.globl proc_sched_tick_select\n'
+        sed -n '/^        \.equ    PROC_WORDS,3$/,/^        \.text$/p' "$src/proc/proc_pdp6.s"
+        sed -n '/^proc_sched_resched_select:$/,/^\/\*\*$/p' "$src/proc/proc_pdp6.s" | sed '$d'
+    } > "$work/selector-v1986.s"
+    for machine in pdp6 ka10; do
+        run_guest "$machine" "selector-$machine-v1986" "$work/drop.s" "$work/selector-v1986.s"
+    done
+    python3 "$here/../pure-directory-pi6-v1986/mutate-selector-v1986.py" "$work/selector-v1986.s"
+    for mutant in no-ready retain-ready ready-no-transition ready-no-apr ready-no-state normal-no-transition; do
+        if run_guest pdp6 "$mutant-v1986" "$work/drop.s" "$work/$mutant.s" >"$work/$mutant.log" 2>&1; then
+            echo "FAIL: $mutant accepted"; exit 1
+        fi
+        grep '^FAIL: __test_exit: got ' "$work/$mutant.log"
+        echo "PASS: $mutant rejected"
+    done
+    exit 0
+fi
 for machine in pdp6 ka10; do
     run_guest "$machine" "service-$machine-v1981" "$work/drop.s"
     grep -A1 'EXAMINE__ diag_cases_v1981' "$work/service-$machine-v1981/service-$machine-v1981.out"
