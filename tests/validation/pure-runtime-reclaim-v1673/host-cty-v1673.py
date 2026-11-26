@@ -48,7 +48,7 @@ def read_word(text, addr):
     return int(matches[0], 8)
 
 
-def run(argv, extra_snapshot=None):
+def run(argv, extra_snapshot=None, before_release=None, after_release=None):
     if len(argv) != 8:
         raise ValueError("usage: host-cty-v1673.py pty-run pdp6 "
                          "boot.ini kcore.map console.log timeout_seconds "
@@ -163,6 +163,8 @@ def run(argv, extra_snapshot=None):
                 if extra_snapshot is not None:
                     extra_snapshot(token, coremap, core, examine_word,
                                    examine_range)
+                if before_release is not None:
+                    before_release(token, coremap, examine, examine_word)
                 start = len(output)
                 send(b"go\n")
                 time.sleep(0.2)
@@ -170,6 +172,13 @@ def run(argv, extra_snapshot=None):
                 wait_for("V1673 RELEASE " + token, start, 30.0)
                 print("v1673: guest physical MM checkpoint " + token,
                       flush=True)
+                if after_release is not None and after_release(
+                        token, coremap, examine, examine_word, examine_range,
+                        send, wait_for, output):
+                    Path(log).with_suffix(".clean").write_text(
+                        output.decode("ascii", errors="ignore").replace("\r", ""),
+                        encoding="ascii")
+                    return
                 if token == "B" and os.environ.get("V1673_STOP_AFTER_B") == "1":
                     print("v1673: diagnostic-only stop at B; NOT an accepted recovery run", flush=True)
                     return
