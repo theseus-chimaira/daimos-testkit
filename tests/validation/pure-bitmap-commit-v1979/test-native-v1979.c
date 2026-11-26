@@ -184,13 +184,17 @@ int main(void)
                 if(commit13()!=MM_ERR_BUSY || commit_calls || rebase_calls || unpin_calls ||
                     span!=mm_extents[1].span || meta!=mm_extents[1].meta || !raw_ok()) return 024;
         }
-        /* Real staged reclaim selection with no initial free gap. */
-        for(f=0U;f<6U;++f) {
+        /* Real staged reclaim selection with no initial free gap.
+         * v1984: an active RT lease excludes the codec, but must not
+         * remove the original RAW reclaim option for a sleeping owner. */
+        for(f=0U;f<8U;++f) {
                 diag_case_v1979=0100U+f; reset13(f==1U?1U:f==2U?2U:0U);
                 fill_arenas(); PROC_CLEAR_TRANSITION(&slots[SLOT]);
                 if(f==3U) u[PROC_CRED_OFFSET]&=~PROC_SWAP_MUTABLE_V1976;
                 if(f==4U) encode_fault=1U;
                 if(f==5U) commit_fault=1U;
+                if(f==6U) proc_rt_owner=2UL;
+                if(f==7U) proc_rt_owner=SLOT;
                 ++diag_cases_v1979;
                 rc=proc_pure_mres_reclaim_v1612(f==0U?512UL:128UL,1UL,3U);
                 if(f==0U) { if(rc!=MM_OK || !bitmap_ok() || commit_calls!=1U) return 025; }
@@ -201,6 +205,8 @@ int main(void)
                         if(rc!=MM_OK || PROC_TRANSITION(&slots[SLOT]) || VM_PDP6_BASE(&slots[SLOT]) ||
                             proc_storage_expect_v30(SLOT,PROC_STORAGE_PACKED) || !raw_ok() || rebase_calls!=1U) return 027;
                         if(f!=3U && !raw13()) return 030;
+                        if(f>=6U && (encode_calls || commit_calls || arm_calls ||
+                            proc_rt_owner!=(f==6U?2UL:SLOT))) return 035;
                 }
                 if(bad_call) return 031;
         }

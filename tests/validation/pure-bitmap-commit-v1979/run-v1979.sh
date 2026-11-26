@@ -10,7 +10,11 @@ work=$(mktemp -d "$TMPDIR/pure-bitmap-commit-v1979.XXXXXX")
 trap 'echo "v1979 evidence: $work"' EXIT
 inc="-I$src/proc -I$src/mm -I$src/core -I$src/fs -I$src/storage -I$src/drivers -I$src/modules -I$PDP10_PREFIX/include"
 compile() {
-    "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $inc -S "$@"
+    case ${PURE_TEST_COMPILER_V1984:-kcc} in
+        kcc) "$PDP10_PREFIX/bin/kcc" -Pgnu99 -O -x=pdp6 -m=gas $inc -S "$@" ;;
+        gcc) "$PDP10_PREFIX/bin/pdp10-dec-none-gcc" -std=gnu99 -Os -march=pdp6 -mcpu=pdp6 $inc -S "$@" ;;
+        *) echo 'Invalid PURE_TEST_COMPILER_V1984' >&2; return 1 ;;
+    esac
 }
 flags='-DDAIMOS_SWAPLESS_PURE_RAM_V1381=1 -DDAIMOS_PURE_DROP_ONLY_V1611=1 -DDAIMOS_PBM_PREFIX_V1978=1 -DDAIMOS_PBM_COMMIT_V1979=1'
 faults='-Dmm_pin=pin_v1978 -Dmm_unpin=unpin_v1978 -Dmm_pure_rebase_pinned_v1381=rebase_v1978 -Dpbmd_encode_v1977=encode_v1978 -Dmm_pure_bitmap_commit_v1979=commit_mm_v1979'
@@ -76,6 +80,8 @@ from pathlib import Path
 import sys
 s,w=map(Path,sys.argv[1:]);c=(s/'proc/proc_pure_ram_v1381.c').read_text();a=(s/'mm/mm_pure_bitmap_commit_v1979.s').read_text()
 for name,source,old,new in [
+    ('unsafe-rt-codec',c,'if (proc_rt_owner || !lease || !(p = pbmp_owner_v1978(slot, 0U)))','if (!lease || !(p = pbmp_owner_v1978(slot, 0U)))'),
+    ('unsafe-rt-raw-refusal',c,'if (!slot || slot == proc_current_slot ||','if (!slot || slot == proc_current_slot || proc_rt_owner ||'),
     ('unsafe-no-compare',c,'if (pbmd_verify_v1979(base + skip, words - skip, base, encoded) != MM_OK)','if (0)'),
     ('unsafe-trust-reply',c,'if (proc_pure_owner_v1918(slot, MM_TYPE_PACKED_PROCESS, base, encoded, 0U)) {','if (rc == MM_OK) {'),
     ('unsafe-release-pin',a,'hrli    3,4                    ; PACKED_PROCESS, zero pins','hrli    3,014                  ; incorrectly retain pin'),
@@ -88,7 +94,7 @@ for name,source,old,new in [
     if name=='unsafe-mm-owner': new='jumpge  14,mbc_next_v1979'
     (w/(name+('.c' if source==c else '.s'))).write_text(source.replace(old,new,1))
 PYMUT
-for mutant in unsafe-no-compare unsafe-trust-reply unsafe-release-pin unsafe-mm-owner unsafe-mm-capacity unsafe-mm-pins; do
+for mutant in unsafe-rt-codec unsafe-rt-raw-refusal unsafe-no-compare unsafe-trust-reply unsafe-release-pin unsafe-mm-owner unsafe-mm-capacity unsafe-mm-pins; do
     drop="$work/drop.s"
     MM_LEAF="$src/mm/mm_pure_bitmap_commit_v1979.s"
     if [ -f "$work/$mutant.c" ]; then

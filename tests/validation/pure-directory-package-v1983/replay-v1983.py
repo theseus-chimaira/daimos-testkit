@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only v1983 directory bitmap pressure and FULL witnesses."""
+"""Read-only v1983 directory bitmap or matched RAW pressure witnesses."""
 import argparse
 import hashlib
 import os
@@ -46,6 +46,7 @@ def main():
     p.add_argument("work", type=Path)
     p.add_argument("prefix", type=Path)
     p.add_argument("--timeout", type=int, default=1150)
+    p.add_argument("--raw", action="store_true", help="matched RAW pressure and reaping control")
     p.add_argument("--core", type=int, choices=(48, 64), default=64)
     args = p.parse_args()
     b, w, prefix = (x.resolve() for x in
@@ -55,9 +56,10 @@ def main():
     media.mkdir()
     sym = symbols(b / "kcore.map")
     mres = symbols(b / "pure-mres-v1612.map")
-    full_off = mres["proc_pure_bitmap_restore_v1980"]
-    finish_off = mres["mm_pure_bitmap_finish_v1664"]
-    terminal_off = mres["proc_pure_term_v1982"]
+    full_off = mres["proc_pure_ram_restore_v1391" if args.raw else "proc_pure_bitmap_restore_v1980"]
+    finish_off = mres.get("mm_pure_bitmap_finish_v1664")
+    terminal_off = mres["pdp6_pure_detach_v1609" if args.raw else "proc_pure_term_v1982"]
+    assert (finish_off is None) == args.raw
     service_off = mres["proc_pure_mres_service_v1612"]
     reclaim_off = mres["proc_pure_mres_reclaim_v1612"]
     dxr = subprocess.check_output(
@@ -178,43 +180,54 @@ def main():
             packed=[slot for slot in range(1,nslots) if mode(m,slot)==3]
             raw=[slot for slot in range(1,nslots) if mode(m,slot)==2]
             print("v1983 installed PURE %06o, mode3=%s mode2=%s"%(base,packed,raw),flush=True)
-            assert packed, "no real directory-compressed owner at pressure checkpoint"
-            for slot in packed:
+            assert (raw and not packed) if args.raw else bool(packed), "wrong representation at pressure checkpoint"
+            for slot in packed+raw:
                 own=owners(m,slot)
                 assert len(own)==1 and own[0][2:]==(4,0)
                 vm=m[table+3*slot+1]
                 assert vm&0o777777==0 and 0<own[0][1]<vm>>18
-                assert own[0][0]%1024==0
-                print("v1983 slot=%d bitmap=%d full=%d"%(slot,own[0][1],vm>>18),flush=True)
-            actual=examine([(full,full)],"V1983_OPCODE")
-            expected = full_opcode
-            if full_reloc:
-                expected = (full_opcode & ~0o777777) | ((full_opcode+base)&0o777777)
-            assert actual[full]==expected
-            start=send("break %06o\ncont\necho V1983_RESTORE\nexamine 1-4\necho V1983_AC\n"%full)
-            trace=wait_for("V1983_AC",start)
-            assert re.search(r"Breakpoint, PC: %06o\b"%full,trace)
-            slot=words(trace)[1]
-            m=snapshot("RESTORE")
-            assert m[sym["proc_current_slot"]]==0 and mode(m,slot)==3
-            own=owners(m,slot)
-            assert len(own)==1 and own[0][2:]==(4,0)
-            print("v1983 actual mode3 restore entered slot=%d"%slot,flush=True)
-            finish=base+finish_off
-            start=send("nobreak all\nbreak %06o\ncont\necho V1983_FINISH\nexamine 1-4\necho V1983_FINISH_AC\n"%finish)
-            trace=wait_for("V1983_FINISH_AC",start)
-            assert re.search(r"Breakpoint, PC: %06o\b"%finish,trace)
-            ac=words(trace); slot,source,encoded,target=(ac[i] for i in (1,2,3,4))
-            m=snapshot("FINISH")
-            own=owners(m,slot)
-            assert mode(m,slot)==3 and m[sym["proc_current_slot"]]==0
-            assert (source,encoded,4,1) in own and len(own)==2
-            fullowner=[v for v in own if v[2]==1][0]
-            assert fullowner[0]==target and fullowner[3]==1
-            print("v1983 actual atomic finish: slot=%d source=%06o/%d target=%06o/%d"%(slot,source,encoded,target,fullowner[1]),flush=True)
+                assert own[0][0]%(1024 if slot in packed else 128)==0
+                print("v1983 slot=%d mode=%d retained=%d full=%d"%(slot,mode(m,slot),own[0][1],vm>>18),flush=True)
+            if args.raw:
+                # No requirement that RAW uses disjoint FULL: PREFIX is legal.
+                print("RAW pressure checkpoint verified; continuing to exact WAIT/EXIT",flush=True)
+            else:
+                actual=examine([(full,full)],"V1983_OPCODE")
+                expected = full_opcode
+                if full_reloc:
+                    expected = (full_opcode & ~0o777777) | ((full_opcode+base)&0o777777)
+                assert actual[full]==expected
+                start=send("break %06o\ncont\necho V1983_RESTORE\nexamine 1-4\necho V1983_AC\n"%full)
+                trace=wait_for("V1983_AC",start)
+                assert re.search(r"Breakpoint, PC: %06o\b"%full,trace)
+                slot=words(trace)[1]
+                m=snapshot("RESTORE")
+                assert m[sym["proc_current_slot"]]==0 and mode(m,slot)==3
+                own=owners(m,slot)
+                assert len(own)==1 and own[0][2:]==(4,0)
+                print("v1983 actual mode3 restore entered slot=%d"%slot,flush=True)
+                finish=base+finish_off
+                start=send("nobreak all\nbreak %06o\ncont\necho V1983_FINISH\nexamine 1-4\necho V1983_FINISH_AC\n"%finish)
+                trace=wait_for("V1983_FINISH_AC",start)
+                assert re.search(r"Breakpoint, PC: %06o\b"%finish,trace)
+                ac=words(trace); slot,source,encoded,target=(ac[i] for i in (1,2,3,4))
+                m=snapshot("FINISH")
+                own=owners(m,slot)
+                assert mode(m,slot)==3 and m[sym["proc_current_slot"]]==0
+                assert (source,encoded,4,1) in own and len(own)==2
+                fullowner=[v for v in own if v[2]==1][0]
+                assert fullowner[0]==target and fullowner[3]==1
+                print("v1983 actual atomic finish: slot=%d source=%06o/%d target=%06o/%d"%(slot,source,encoded,target,fullowner[1]),flush=True)
             start=send('nobreak all\nexpect "Z"\ncont\necho V1983_Z_STOP\n')
             tail=wait_for("V1983_Z_STOP",start)
-            assert re.search(r"(?m)^w*Z(?:\s|$)",tail), "no guest completion marker"
+            # SIMH ECHO may concatenate directly to guest output.
+            # Accept only the guest Z immediately preceding this stop,
+            # not a Z found in a command, address or monitor label.
+            prefix = (r"[0-7]{6}/[0-7]{6}\]<[0-7]{6}\+[0-7]{6}>"
+                      r"\[A[0-7]{6}/[0-7]{6}\]\{[0-7]{6}-[0-7]{6}\}L"
+                      if args.raw else "")
+            count = "w{%d}" % children if args.raw else "w+"
+            assert re.search(r"(?m)^"+prefix+count+r"Z[ \t\n]*V1983_Z_STOP",tail), "no guest completion marker"
             assert "HALT instruction" not in tail
             m=snapshot("Z")
             # Parent emits Z only after every admitted child's exact PID,
@@ -228,7 +241,7 @@ def main():
             wait_for("HALT instruction",start)
             wait_for("Goodbye",start)
             assert proc.wait(timeout=10)==0
-            print("PASS v1983 physical mode3 ownership/restore and %d checked WAIT/EXIT"%children,flush=True)
+            print("PASS physical %s and %d checked WAIT/EXIT"%("RAW" if args.raw else "mode3 ownership/restore",children),flush=True)
         finally:
             if proc.poll() is None:
                 proc.terminate()

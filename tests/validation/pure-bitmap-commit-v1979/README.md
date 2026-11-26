@@ -20,3 +20,12 @@ owner, skipping capacity, and skipping the pin witness. A compiler or
 linker failure is not accepted as a rejected mutant.
 
 No installed mode3 support is implied by these tests.
+
+v1984: two additional real reclaim cases exercise an RT lease on the
+victim or another slot. Require unchanged RAW publication, no codec or
+bitmap commit and unchanged RT ownership. Both RT-specific mutants
+(codec allowed under lease, ordinary RAW wrongly refused) must reach
+native assertions. Total49 operations/CPU and eight unsafe controls.
+All directory prefix/commit/FULL/service/terminal runners now accept
+`PURE_TEST_COMPILER_V1984=gcc` for production-compiler validation;
+default remains KCC.
