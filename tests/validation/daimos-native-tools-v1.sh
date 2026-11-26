@@ -38,6 +38,10 @@ if [ "${DAIMOS_MUTABLE_MARK_V1976:-0}" = 1 ]; then
         cpp="$cpp -DDAIMOS_MUTABLE_MARK_V1976=1"
 fi
 
+if [ "${DAIMOS_RH18_WRAP_V1977:-0}" = 1 ]; then
+        cpp="$cpp -DDAIMOS_RH18_WRAP_V1977=1"
+fi
+
 # KCC does not accept an arbitrary path as a module name, so compile the tiny
 # test from its source directory and direct only the generated assembly into
 # the versioned temporary work tree.
@@ -108,6 +112,23 @@ extra="$extra -f /CONFIG/SYSCALL.DOBJ:$obj/syscall.dobj:644:binwords"
 extra="$extra -f /CONFIG/SYSH.DOBJ:$obj/syscall-helpers.dobj:644:binwords"
 extra="$extra -f /CONFIG/MAIN.DOBJ:$obj/main.dobj:644:binwords"
 extra="$extra -f /CONFIG/U.DOBJ:$obj/u.dobj:644:binwords"
+if [ "${DAIMOS_RH18_WRAP_V1977:-0}" = 1 ]; then
+        fixture=$(dirname "$0")/dlink-rh18-v1977
+        "$PDP10_PREFIX/bin/das" -C -O "$obj/rh18.dobj" "$fixture/probe-v1977.s"
+        "$PDP10_PREFIX/bin/das" -C -O "$obj/ext.dobj" "$fixture/external-v1977.s"
+        extra="$extra -f /CONFIG/RH18.DOBJ:$obj/rh18.dobj:644:binwords"
+        extra="$extra -f /CONFIG/EXT.DOBJ:$obj/ext.dobj:644:binwords"
+        python3 - "$probes" <<'PYPROBES'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+a = '/CONFIG/MAIN.DOBJ /CONFIG/U.DARC'
+assert s.count(a) == 1
+p.write_text(s.replace(a, '/CONFIG/MAIN.DOBJ /CONFIG/RH18.DOBJ /CONFIG/EXT.DOBJ /CONFIG/U.DARC').replace(
+    'line ^NATIVE LINK OK$', 'line ^RH18 WRAP OK$\nline ^NATIVE LINK OK$'))
+PYPROBES
+fi
 
 PATH="$PDP10_PREFIX/bin:$PATH" \
         "$make_cmd" -C "$DAIMOS_REPO/system/boot/pdp6" image \

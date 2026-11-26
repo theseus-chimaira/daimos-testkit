@@ -3459,3 +3459,11 @@ test-pure-mutable-admission-v1976:
 	    sh tests/validation/pure-provider-identity-v1924/run-run-v1924.sh
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    sh tests/validation/pure-exec-handover-v1934/run-v1934.sh
+
+.PHONY: test-pure-bitmap-directory-v1977 test-dlink-rh18-v1977
+test-pure-bitmap-directory-v1977:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-bitmap-directory-v1977/run-v1977.sh
+
+test-dlink-rh18-v1977:
+	@sh tests/validation/dlink-rh18-v1977/run-v1977.sh

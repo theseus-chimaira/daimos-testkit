@@ -1,4 +1,7 @@
 #include "u.h"
+#ifdef DAIMOS_RH18_WRAP_V1977
+extern int rh18_probe_v1977(void);
+#endif
 
 int
 main(int argc, kword_t **argv)
@@ -16,6 +19,11 @@ main(int argc, kword_t **argv)
             ((header[2] >> 18U) & 0377777UL) > (header[1] >> 18U))
                 return 1;
         if (u_puts(1, "MUTABLE TX2 OK") != 0 || u_crlf(1) != 0)
+                return 1;
+#endif
+#ifdef DAIMOS_RH18_WRAP_V1977
+        if (rh18_probe_v1977() != 0 || u_puts(1, "RH18 WRAP OK") != 0 ||
+            u_crlf(1) != 0)
                 return 1;
 #endif
         (void)argc;
