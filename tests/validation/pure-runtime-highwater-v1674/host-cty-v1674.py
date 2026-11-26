@@ -126,6 +126,21 @@ def run(argv):
                 examine("ex %o-%o\n" % (base, base + count - 1))
 
 
+            def monitor_batch(label, lines):
+                # SIMH monitor commands are not CTY guest input. The
+                # PTY helper deliberately paces each byte by 100 ms;
+                # a native DO file avoids that cost without changing
+                # any emulated hardware timing or watch action.
+                path = Path(log).resolve().with_suffix("." + label + ".ini")
+                marker = "V1674_MONITOR_" + label.upper() + "_DONE"
+                path.write_text("\n".join(lines + ["echo " + marker]) + "\n",
+                                encoding="ascii")
+                start = len(output)
+                send(("do " + str(path) + "\n").encode("ascii"))
+                wait_for(marker, start, 30.0)
+                marker_start = output.find(marker.encode("ascii"), start)
+                wait_for("sim> ", marker_start, 20.0)
+
             watches = []
             def set_watchpoints(snapshot_text):
                 # Reuse the original stable A snapshot. A second EX of
@@ -147,8 +162,9 @@ def run(argv):
                                + invariant + list(range(arenas, arenas + 3)))
                 if len(set(watches)) != len(watches):
                     raise ValueError("duplicate physical MM watch address")
-                for addr in watches:
-                    examine("break -W %o;ex %o;go\n" % (addr, addr))
+                monitor_batch("arm", [
+                    "break -W %o;ex %o;go" % (addr, addr)
+                    for addr in watches])
                 listing = examine("show -C -W break\n")
                 found = set(int(v, 8) for v in re.findall(
                     r"^SET BREAK -W ([0-7]+);", listing, re.M))
@@ -158,8 +174,8 @@ def run(argv):
                       len(watches), flush=True)
 
             def clear_watchpoints():
-                for addr in watches:
-                    examine("nobreak -W %o\n" % addr)
+                monitor_batch("disarm", [
+                    "nobreak -W %o" % addr for addr in watches])
                 listing = examine("show -C -W break\n")
                 if "SET BREAK -W " in listing:
                     raise ValueError("SIMH MM write watches survived C")

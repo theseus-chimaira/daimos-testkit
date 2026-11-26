@@ -41,6 +41,7 @@ test -n "$count" && test -n "$extents" && test -n "$low_end" && \
 python3 - "$console" "$accepted1674" "$work" "$count" \
     "$extents" "$low_end" "$brk_begin" "$brk_end" <<'PY'
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -102,7 +103,8 @@ window = original_window
 pure = [hit for hit in hits if is_span(hit) and pc_of(hit) >= low]
 brk = [hit for hit in hits if is_span(hit) and
        brk_lo <= pc_of(hit) < brk_hi]
-if len(pure) != 9 or len(brk) != 5:
+grown = int(os.environ.get("V1673_GROWN_CHILDREN", "5"))
+if not 1 <= grown <= 9 or len(pure) != 9 or len(brk) != grown:
     raise SystemExit("v1674: missing original physical PURE/BRK mutations")
 (work / "unsafe-pure-span.log").write_text(
     change_size_bit(pure[0]), encoding="ascii")

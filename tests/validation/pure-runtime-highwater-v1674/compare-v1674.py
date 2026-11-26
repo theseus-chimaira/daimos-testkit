@@ -2,11 +2,15 @@
 """Compare independently replayed 48K general/strict MM write traces."""
 
 import json
+import os
 import sys
 from pathlib import Path
 
 
 def load(path):
+    grown = int(os.environ.get("V1673_GROWN_CHILDREN", "5"))
+    if not 0 <= grown <= 9:
+        raise ValueError("invalid expected BRK geometry")
     report = json.loads(Path(path).read_text(encoding="ascii"))
     if report["core_kwords"] != 48 or report["watches"] != 71 or \
             report["event_count"] < 25 or \
@@ -33,8 +37,8 @@ def load(path):
             report["pure_span_events"] != 18 or \
             sum(p["brk_span_events"] for p in report["phases"]) != \
             report["brk_span_events"] or \
-            report["brk_span_events"] != 5 or \
-            [p["brk_span_events"] for p in report["phases"]] != [5, 0] or \
+            report["brk_span_events"] != grown or \
+            [p["brk_span_events"] for p in report["phases"]] != [grown, 0] or \
             sum(p["staging_writes"] for p in report["phases"]) != \
             report["staging_writes"]:
         raise ValueError("forged MM write classification")
