@@ -3322,3 +3322,7 @@ test-pure-k07-full-oracle-v1941:
 .PHONY: test-pure-k07-race-v1943
 test-pure-k07-race-v1943:
 	@sh tests/validation/pure-k07-race-v1943/run-v1943.sh
+
+.PHONY: test-pure-k07-loss-v1945
+test-pure-k07-loss-v1945:
+	@sh tests/validation/pure-k07-loss-v1945/run-v1945.sh
