@@ -83,6 +83,7 @@ class Lifecycle:
         assert ac[1]==3 and d[s['proc_current_slot']]==0
         assert self.mode(d,3)==3 and self.owners(e,3)==[self.initial[3][1]]
         d,e,ac=self.stop(self.finish,'FINISH')
+        d,e,ac=self.before_finish_continue(d,e,ac)
         slot,source,encoded,target=(ac[i] for i in range(1,5))
         assert slot==3 and (source,source+encoded,4,1,3) in e
         full=self.cells(d,3)[1]>>18
@@ -111,6 +112,9 @@ class Lifecycle:
         assert re.search(r'(?m)^X\s*V1987_X',t)
         d,e=self.snapshot('X')
         assert d[s['proc_current_slot']]==3 and self.mode(d,3)==0
+
+    def before_finish_continue(self,d,e,ac):
+        return d,e,ac
 
     def before_terminal_continue(self,slot,d,e,owner,ident):
         pass

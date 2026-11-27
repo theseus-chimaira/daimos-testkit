@@ -3561,3 +3561,23 @@ test-pure-directory-idle-v1990:
 test-pure-directory-idle-package-v1990:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    sh tests/validation/pure-directory-idle-v1990/run-build-v1990.sh
+
+.PHONY: test-pure-directory-full-build-v1991 test-pure-directory-full-physical-v1991 test-pure-directory-full-audit-v1991
+test-pure-directory-full-build-v1991:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    V1987_BUILD="$${V1987_BUILD:?accepted v1987 lifecycle build required}" \
+	    sh tests/validation/pure-directory-physical-v1991/prepare-v1991.sh
+
+test-pure-directory-full-physical-v1991:
+	@python3 tests/validation/pure-directory-physical-v1991/replay-v1991.py \
+	    "$${V1991_BUILD:?source-built v1991 image required}" \
+	    "$${V1991_WORK:?new unique work directory required}" \
+	    "$${PDP10_PREFIX:-$$HOME/cross}" --core 64 --timeout 1150
+
+test-pure-directory-full-audit-v1991:
+	@python3 tests/validation/pure-directory-physical-v1991/verify-v1991.py \
+	    "$${V1991_BUILD:?v1991 build required}" "$${V1991_WORK:?v1991 work required}" \
+	    "$${V1987_BUILD:?accepted v1987 lifecycle build required}"
+	@python3 tests/validation/pure-directory-physical-v1991/test-trace-v1991.py \
+	    "$${V1991_BUILD:?v1991 build required}" "$${V1991_WORK:?v1991 work required}" \
+	    "$${V1987_BUILD:?accepted v1987 lifecycle build required}"
