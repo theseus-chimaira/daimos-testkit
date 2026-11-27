@@ -102,9 +102,10 @@ def main(observer=None, lifecycle=None):
     assert {"dtc0", "dtc1", "dtc2", "dtc3"} <= units
     source = "\n".join(lines) + "\n"
     assert source.count("go 020\nexit\n") == 1
-    marker = "x[B"
+    early = lifecycle is not None and hasattr(lifecycle, "before_pressure")
+    marker, first_label = ("Q", "Q") if early else ("x[B", "B")
     first = ('expect "%s"\ngo 020\n' % marker +
-             memory_stage(sym, "B", capacity))
+             memory_stage(sym, first_label, capacity))
     (w / "physical.ini").write_text(
         source.replace("go 020\nexit\n", first))
     helper = Path(__file__).resolve().parents[2] / "lib/daimos-simh-headless.sh"
@@ -143,11 +144,8 @@ def main(observer=None, lifecycle=None):
             return start
 
         try:
-            trace = wait_for("V1941_END_B", 0)
-            admitted = re.search(r"(a{4,12})x\[B", trace)
-            assert admitted, "pressure workload did not reach B with admitted children"
-            children = len(admitted.group(1))
-            snap = words(trace.split("V1941_STAGE_B", 1)[1])
+            trace = wait_for("V1941_END_"+first_label, 0)
+            snap = words(trace.split("V1941_STAGE_"+first_label, 1)[1])
             capacity = snap[sym["mm_extent_capacity"]]
             assert 0 < snap[sym["mm_extent_count"]] <= capacity == 4 * (args.core // 8) + 8
             service = snap[sym["proc_swap_service_one"]]
@@ -165,7 +163,9 @@ def main(observer=None, lifecycle=None):
                 start = send(cmd + "echo " + label + "\n")
                 return words(wait_for(label,start))
             rt = sym["proc_storage_runtime_v29"]
-            meta = examine([(rt,rt+1),(sym["proc_table"],sym["proc_table"]),(sym["proc_swap_term_v1666"],sym["proc_swap_term_v1666"])],"V1983_META")
+            meta_ranges = [(rt,rt+1),(sym["proc_table"],sym["proc_table"]),
+                           (sym["proc_swap_term_v1666"],sym["proc_swap_term_v1666"])]
+            meta = examine(meta_ranges,"V1994_EARLY_META" if early else "V1983_META")
             modebase,nslots = meta[rt],meta[rt+1]
             table = meta[sym["proc_table"]]
             assert 0<modebase<65536 and 0<nslots<=255 and 0<table<65536
@@ -179,6 +179,23 @@ def main(observer=None, lifecycle=None):
                 return [(m[sym["mm_extents"]+2*i]&0o777777,m[sym["mm_extents"]+2*i]>>18,(m[sym["mm_extents"]+2*i+1]>>18)&7,(m[sym["mm_extents"]+2*i+1]>>21)&255) for i in range(m[sym["mm_extent_count"]]) if m[sym["mm_extents"]+2*i+1]&0o777777==slot and (m[sym["mm_extents"]+2*i+1]>>18)&7 in (1,4)]
             def mode(m,slot):
                 return (m[modebase+slot//18]>>(2*(slot%18)))&3
+            if early:
+                lifecycle.before_pressure(sym=sym,mres=mres,base=base,
+                    table=table,modebase=modebase,nslots=nslots,dxr=dxr,
+                    snapshot=snapshot,examine=examine,send=send,wait=wait_for)
+                trace=wait_for("V1941_END_B",send(
+                    'nobreak all\nexpect "x[B"\ncont\n'+memory_stage(sym,"B",capacity)))
+                assert examine(meta_ranges,"V1983_META")==meta
+            # The early stops split the guest admission stream, so count
+            # committed slots at B as well as the actual completion marker.
+            if early:
+                assert re.search(r"x\[BV1941_STAGE_B",trace)
+                children=words(trace)[sym["proc_high_slot"]]-2
+                assert 4<=children<=12
+            else:
+                admitted=re.search(r"(a{4,12})x\[B",trace)
+                assert admitted, "pressure workload did not reach B with admitted children"
+                children=len(admitted.group(1))
             m=snapshot("PRESSURE")
             if lifecycle:
                 assert not args.raw and not observer

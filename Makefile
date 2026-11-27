@@ -3608,3 +3608,19 @@ test-pure-directory-dirty-drop-v1993:
 test-pure-directory-dirty-package-v1993:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    sh tests/validation/pure-directory-dirty-drop-v1993/run-build-v1993.sh
+
+.PHONY: test-pure-directory-dirty-build-v1994 test-pure-directory-dirty-physical-v1994 test-pure-directory-dirty-audit-v1994
+test-pure-directory-dirty-build-v1994:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-directory-physical-v1994/prepare-v1994.sh
+
+test-pure-directory-dirty-physical-v1994:
+	@python3 tests/validation/pure-directory-physical-v1994/replay-v1994.py \
+	    "$${V1994_BUILD:?v1994 build required}" "$${V1994_WORK:?unique work directory required}" \
+	    "$${PDP10_PREFIX:-$$HOME/cross}" --core 64 --timeout 1150
+
+test-pure-directory-dirty-audit-v1994:
+	@python3 tests/validation/pure-directory-physical-v1994/verify-v1994.py \
+	    "$${V1994_BUILD:?v1994 build required}" "$${V1994_WORK:?v1994 work required}"
+	@python3 tests/validation/pure-directory-physical-v1994/test-trace-v1994.py \
+	    "$${V1994_BUILD:?v1994 build required}" "$${V1994_WORK:?v1994 work required}"
