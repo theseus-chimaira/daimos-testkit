@@ -3581,3 +3581,20 @@ test-pure-directory-full-audit-v1991:
 	@python3 tests/validation/pure-directory-physical-v1991/test-trace-v1991.py \
 	    "$${V1991_BUILD:?v1991 build required}" "$${V1991_WORK:?v1991 work required}" \
 	    "$${V1987_BUILD:?accepted v1987 lifecycle build required}"
+
+.PHONY: test-pure-directory-full-build-v1992 test-pure-directory-full-physical-v1992 test-pure-directory-full-audit-v1992
+test-pure-directory-full-build-v1992:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-directory-physical-v1992/prepare-v1992.sh
+
+test-pure-directory-full-physical-v1992:
+	@python3 tests/validation/pure-directory-physical-v1992/replay-v1992.py \
+	    "$${V1992_BUILD:?source-built v1992 image required}" \
+	    "$${V1992_WORK:?new unique work directory required}" \
+	    "$${PDP10_PREFIX:-$$HOME/cross}" --core 64 --timeout 1150
+
+test-pure-directory-full-audit-v1992:
+	@python3 tests/validation/pure-directory-physical-v1992/verify-v1992.py \
+	    "$${V1992_BUILD:?v1992 build required}" "$${V1992_WORK:?v1992 work required}"
+	@python3 tests/validation/pure-directory-physical-v1992/test-trace-v1992.py \
+	    "$${V1992_BUILD:?v1992 build required}" "$${V1992_WORK:?v1992 work required}"
