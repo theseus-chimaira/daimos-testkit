@@ -29,6 +29,41 @@ main:
         movem 1,mm_extents
         move 1,[4,,2]
         movem 1,mm_extents+1
+        ; A returning EXEC stack must exclude even unpinned RAW teardown.
+        movei 1,__uarea+070
+        setzm (1)
+        movem 1,proc_exec_resv_head_v1933
+        movei 1,2
+        movei 2,012345
+        pushj 17,proc_finish_slot
+        camn 1,[-1]
+        jrst stack_refused_v1987
+        movei 1,040
+        jrst done_v1681
+stack_refused_v1987:
+        move 1,__ptable+6
+        trne 1,0200000
+        jrst stack_bad_v1987
+        skipn __hup_calls
+        jrst stack_hup_clear_v1987
+        jrst stack_bad_v1987
+stack_hup_clear_v1987:
+        skipn __release_calls
+        jrst stack_check_v1987
+        jrst stack_bad_v1987
+stack_check_v1987:
+        move 1,mm_extent_count
+        caie 1,1
+        jrst stack_bad_v1987
+        move 1,mm_extents+1
+        came 1,[4,,2]
+        jrst stack_bad_v1987
+        setzm proc_exec_resv_head_v1933
+        jrst stack_clear_v1987
+stack_bad_v1987:
+        movei 1,040
+        jrst done_v1681
+stack_clear_v1987:
         movei 1,050400
         pushj 17,mm_pin
         jumpn 1,fail_1_v1681

@@ -90,3 +90,14 @@ impossible concurrent user execution or claim that the present native
 fixture is such a physical test.
 
 All source changes are in the separate daimos-testkit worktree.
+
+## v1987 current-source fixture refresh
+
+The historical extractor omitted the now-required v1937
+proc_exec_stack_busy_v1937 symbol. Link its actual production
+instructions and reservation-list head. An overlapping stack
+reservation must exclude an otherwise unpinned RAW foreign finalizer
+before HUP, MM release or TRANSITION publication. The existing pinned
+PREVM/backoff and four negative tests still pass. A fifth actual
+unsafe stack-guard bypass rejects at native exit040. No production
+change. Evidence daimos-pure-terminal-finalizer-v1681.3zLbCj.

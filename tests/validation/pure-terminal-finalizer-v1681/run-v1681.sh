@@ -109,3 +109,14 @@ run_mutant_v1681 no-real-mm-pin "$work/original-finalizer.s" \
     "$work/unsafe-mm-pin.s" 000000000004
 run_mutant_v1681 missing-backoff "$work/unsafe-backoff.s" \
     "$work/original-mm.s" 000000000035
+# v1937's exact stack-owned guard must be executed by the finalizer.
+python3 - "$work/original-finalizer.s" "$work/unsafe-stack-guard-v1987.s" <<'PYGUARD'
+from pathlib import Path
+import sys
+s=Path(sys.argv[1]).read_text()
+a="proc_exec_stack_busy_v1937:\n"
+assert s.count(a)==1
+Path(sys.argv[2]).write_text(s.replace(a,a+"        jrst kret_zero\n",1))
+PYGUARD
+run_mutant_v1681 missing-stack-guard "$work/unsafe-stack-guard-v1987.s" \
+    "$work/original-mm.s" 000000000040

@@ -3507,3 +3507,23 @@ test-pure-bitmap-placement-v1985:
 test-pure-directory-selector-v1986:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    PURE_SCHED_V1986=1 sh tests/validation/pure-bitmap-service-v1981/run-v1981.sh
+
+.PHONY: test-pure-directory-lifecycle-build-v1987 test-pure-directory-lifecycle-physical-v1987 test-pure-directory-lifecycle-audit-v1987
+test-pure-directory-lifecycle-build-v1987:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    V1987_BASE_BUILD="$${V1987_BASE_BUILD:?accepted v1985 build required}" \
+	    sh tests/validation/pure-directory-lifecycle-v1987/prepare-v1987.sh
+
+test-pure-directory-lifecycle-physical-v1987:
+	@python3 tests/validation/pure-directory-lifecycle-v1987/replay-v1987.py \
+	    "$${V1987_BUILD:?source-built v1987 fixture required}" \
+	    "$${V1987_WORK:?new unique work directory required}" \
+	    "$${PDP10_PREFIX:-$$HOME/cross}" --core 64 --timeout 1150
+
+test-pure-directory-lifecycle-audit-v1987:
+	@python3 tests/validation/pure-directory-lifecycle-v1987/verify-v1987.py \
+	    "$${V1987_BUILD:?v1987 build required}" "$${V1987_WORK:?v1987 work required}" \
+	    "$${V1987_BASE_BUILD:?accepted v1985 build required}"
+	@python3 tests/validation/pure-directory-lifecycle-v1987/test-trace-v1987.py \
+	    "$${V1987_BUILD:?v1987 build required}" "$${V1987_WORK:?v1987 work required}" \
+	    "$${V1987_BASE_BUILD:?accepted v1985 build required}"

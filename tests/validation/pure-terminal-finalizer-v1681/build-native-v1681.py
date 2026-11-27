@@ -43,8 +43,17 @@ def main():
     body = between(source, "proc_finish_slot:\n", "\nproc_slot_discard:\n")
     backoff = between(source, "proc_finish_backoff_advance_v885:\n",
                       "\n        .bss\n")
+    # v1937 added a real stack-owned EXEC reservation check before
+    # foreign teardown. Link the original guard, not a permissive stub.
+    backing_source = (kernel / "proc/proc_pure_backing_pdp6.s").read_text(
+        encoding="ascii")
+    stack_guard = between(backing_source, "proc_exec_stack_busy_v1937:\n",
+                          "\n; Release exactly this stack record")
     (work / "original-finalizer.s").write_text(
-        head + body + "\n" + backoff, encoding="ascii")
+        head + body + "\n" + backoff +
+        "\n.globl proc_exec_stack_busy_v1937\n" + stack_guard +
+        "\n.bss\n.globl proc_exec_resv_head_v1933\n"
+        "proc_exec_resv_head_v1933: .block 1\n", encoding="ascii")
 
     vm = (kernel / "proc/vm_pdp6.s").read_text(encoding="ascii")
     part = between(vm,"vm_space_destroy:\n", "\n/**\n")

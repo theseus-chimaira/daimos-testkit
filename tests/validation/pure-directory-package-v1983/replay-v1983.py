@@ -40,7 +40,7 @@ def memory_stage(sym, label, capacity=32):
     return "\n".join(out) + "\n"
 
 
-def main(observer=None):
+def main(observer=None, lifecycle=None):
     p = argparse.ArgumentParser()
     p.add_argument("build", type=Path)
     p.add_argument("work", type=Path)
@@ -180,58 +180,64 @@ def main(observer=None):
             def mode(m,slot):
                 return (m[modebase+slot//18]>>(2*(slot%18)))&3
             m=snapshot("PRESSURE")
-            packed=[slot for slot in range(1,nslots) if mode(m,slot)==3]
-            raw=[slot for slot in range(1,nslots) if mode(m,slot)==2]
-            print("v1983 installed PURE %06o, mode3=%s mode2=%s"%(base,packed,raw),flush=True)
-            assert (raw and not packed) if args.raw else bool(packed), "wrong representation at pressure checkpoint"
-            for slot in packed+raw:
-                own=owners(m,slot)
-                assert len(own)==1 and own[0][2:]==(4,0)
-                vm=m[table+3*slot+1]
-                assert vm&0o777777==0 and 0<own[0][1]<vm>>18
-                assert own[0][0]%(1024 if slot in packed and "mm_pure_bitmap_place_v1985" not in mres else 128)==0
-                print("v1983 slot=%d mode=%d retained=%d full=%d"%(slot,mode(m,slot),own[0][1],vm>>18),flush=True)
-            if args.raw:
-                # No requirement that RAW uses disjoint FULL: PREFIX is legal.
-                print("RAW pressure checkpoint verified; continuing to exact WAIT/EXIT",flush=True)
+            if lifecycle:
+                assert not args.raw and not observer
+                lifecycle.run(sym=sym,mres=mres,base=base,children=children,
+                    table=table,modebase=modebase,nslots=nslots,pressure=m,
+                    snapshot=snapshot,examine=examine,send=send,wait=wait_for)
             else:
-                actual=examine([(full,full)],"V1983_OPCODE")
-                expected = full_opcode
-                if full_reloc:
-                    expected = (full_opcode & ~0o777777) | ((full_opcode+base)&0o777777)
-                assert actual[full]==expected
-                start=send("break %06o\ncont\necho V1983_RESTORE\nexamine 1-4\necho V1983_AC\n"%full)
-                trace=wait_for("V1983_AC",start)
-                assert re.search(r"Breakpoint, PC: %06o\b"%full,trace)
-                slot=words(trace)[1]
-                m=snapshot("RESTORE")
-                assert m[sym["proc_current_slot"]]==0 and mode(m,slot)==3
-                own=owners(m,slot)
-                assert len(own)==1 and own[0][2:]==(4,0)
-                print("v1983 actual mode3 restore entered slot=%d"%slot,flush=True)
-                finish=base+finish_off
-                if observer:
-                    observer.before_finish(sym=sym,mres=mres,base=base,slot=slot,
-                        finish=finish,table=table,modebase=modebase,snapshot=snapshot,
-                        examine=examine,send=send,wait=wait_for)
-                guards = ("break %06o\nbreak %06o\n" % (observer.dispatch,observer.ret)
-                          if observer else "")
-                start=send(("nobreak all\nbreak %06o\n"%finish)+guards+
-                           "cont\necho V1983_FINISH\nexamine 1-4\necho V1983_FINISH_AC\n")
-                trace=wait_for("V1983_FINISH_AC",start)
-                assert re.search(r"Breakpoint, PC: %06o\b"%finish,trace)
-                ac=words(trace); slot,source,encoded,target=(ac[i] for i in (1,2,3,4))
-                m=snapshot("FINISH")
-                own=owners(m,slot)
-                assert mode(m,slot)==3 and m[sym["proc_current_slot"]]==0
-                assert (source,encoded,4,1) in own and len(own)==2
-                fullowner=[v for v in own if v[2]==1][0]
-                assert fullowner[0]==target and fullowner[3]==1
-                print("v1983 actual atomic finish: slot=%d source=%06o/%d target=%06o/%d"%(slot,source,encoded,target,fullowner[1]),flush=True)
-                if observer:
-                    observer.after_finish(slot=slot,source=source,encoded=encoded,
-                        target=target,full_words=fullowner[1],snapshot=snapshot,
-                        examine=examine,send=send,wait=wait_for,sym=sym)
+                packed=[slot for slot in range(1,nslots) if mode(m,slot)==3]
+                raw=[slot for slot in range(1,nslots) if mode(m,slot)==2]
+                print("v1983 installed PURE %06o, mode3=%s mode2=%s"%(base,packed,raw),flush=True)
+                assert (raw and not packed) if args.raw else bool(packed), "wrong representation at pressure checkpoint"
+                for slot in packed+raw:
+                    own=owners(m,slot)
+                    assert len(own)==1 and own[0][2:]==(4,0)
+                    vm=m[table+3*slot+1]
+                    assert vm&0o777777==0 and 0<own[0][1]<vm>>18
+                    assert own[0][0]%(1024 if slot in packed and "mm_pure_bitmap_place_v1985" not in mres else 128)==0
+                    print("v1983 slot=%d mode=%d retained=%d full=%d"%(slot,mode(m,slot),own[0][1],vm>>18),flush=True)
+                if args.raw:
+                    # No requirement that RAW uses disjoint FULL: PREFIX is legal.
+                    print("RAW pressure checkpoint verified; continuing to exact WAIT/EXIT",flush=True)
+                else:
+                    actual=examine([(full,full)],"V1983_OPCODE")
+                    expected = full_opcode
+                    if full_reloc:
+                        expected = (full_opcode & ~0o777777) | ((full_opcode+base)&0o777777)
+                    assert actual[full]==expected
+                    start=send("break %06o\ncont\necho V1983_RESTORE\nexamine 1-4\necho V1983_AC\n"%full)
+                    trace=wait_for("V1983_AC",start)
+                    assert re.search(r"Breakpoint, PC: %06o\b"%full,trace)
+                    slot=words(trace)[1]
+                    m=snapshot("RESTORE")
+                    assert m[sym["proc_current_slot"]]==0 and mode(m,slot)==3
+                    own=owners(m,slot)
+                    assert len(own)==1 and own[0][2:]==(4,0)
+                    print("v1983 actual mode3 restore entered slot=%d"%slot,flush=True)
+                    finish=base+finish_off
+                    if observer:
+                        observer.before_finish(sym=sym,mres=mres,base=base,slot=slot,
+                            finish=finish,table=table,modebase=modebase,snapshot=snapshot,
+                            examine=examine,send=send,wait=wait_for)
+                    guards = ("break %06o\nbreak %06o\n" % (observer.dispatch,observer.ret)
+                              if observer else "")
+                    start=send(("nobreak all\nbreak %06o\n"%finish)+guards+
+                               "cont\necho V1983_FINISH\nexamine 1-4\necho V1983_FINISH_AC\n")
+                    trace=wait_for("V1983_FINISH_AC",start)
+                    assert re.search(r"Breakpoint, PC: %06o\b"%finish,trace)
+                    ac=words(trace); slot,source,encoded,target=(ac[i] for i in (1,2,3,4))
+                    m=snapshot("FINISH")
+                    own=owners(m,slot)
+                    assert mode(m,slot)==3 and m[sym["proc_current_slot"]]==0
+                    assert (source,encoded,4,1) in own and len(own)==2
+                    fullowner=[v for v in own if v[2]==1][0]
+                    assert fullowner[0]==target and fullowner[3]==1
+                    print("v1983 actual atomic finish: slot=%d source=%06o/%d target=%06o/%d"%(slot,source,encoded,target,fullowner[1]),flush=True)
+                    if observer:
+                        observer.after_finish(slot=slot,source=source,encoded=encoded,
+                            target=target,full_words=fullowner[1],snapshot=snapshot,
+                            examine=examine,send=send,wait=wait_for,sym=sym)
             start=send('nobreak all\nexpect "Z"\ncont\necho V1983_Z_STOP\n')
             tail=wait_for("V1983_Z_STOP",start)
             # SIMH ECHO may concatenate directly to guest output.
@@ -240,7 +246,7 @@ def main(observer=None):
             prefix = (r"[0-7]{6}/[0-7]{6}\]<[0-7]{6}\+[0-7]{6}>"
                       r"\[A[0-7]{6}/[0-7]{6}\]\{[0-7]{6}-[0-7]{6}\}L"
                       if args.raw else "")
-            count = "w{%d}" % children if args.raw else "w+"
+            count = "" if lifecycle else "w{%d}" % children if args.raw else "w+"
             assert re.search(r"(?m)^"+prefix+count+r"Z[ \t\n]*V1983_Z_STOP",tail), "no guest completion marker"
             assert "HALT instruction" not in tail
             m=snapshot("Z")
