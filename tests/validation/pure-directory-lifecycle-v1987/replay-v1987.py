@@ -12,6 +12,9 @@ MASK=0o777777
 MARK=1<<31
 
 class Lifecycle:
+    def __init__(self, core=64):
+        self.core=core
+
     def run(self,**c):
         self.c=c
         self.s=c['sym']
@@ -24,7 +27,7 @@ class Lifecycle:
         s=self.s
         m=c['pressure']
         assert m[s['proc_current_slot']]==1 and m[s['proc_high_slot']]==c['children']+2
-        e=v['extents'](m,s,64)
+        e=v['extents'](m,s,self.core)
         self.initial={}
         for slot in range(2,c['children']+2):
             p,vm,sched=self.cells(m,slot)
@@ -121,7 +124,7 @@ class Lifecycle:
 
     def snapshot(self,label):
         d=self.c['snapshot'](label)
-        return d,v['extents'](d,self.s,64)
+        return d,v['extents'](d,self.s,self.core)
 
     def cells(self,d,slot):
         return tuple(d[self.table+3*slot+i] for i in range(3))

@@ -20,7 +20,7 @@ def between(trace,a,b):
 def digest(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
-def verify(build,work,baseline,trace=None):
+def verify(build,work,baseline,trace=None,core=64):
     if trace is None: trace=(work/'physical.clean').read_text()
     s=symbols(build/'kcore.map')
     mres=symbols(build/'pure-mres-v1612.map')
@@ -45,7 +45,7 @@ def verify(build,work,baseline,trace=None):
     assert init[0]==comp[0] and init[1]|0o100000==comp[1]
     assert init[2]|(1<<35)==comp[2] and not init[2]&(1<<35) and not post[2]&(1<<35)
     assert post[1]!=init[1]
-    assert 'MEM                                  64 K' in trace and 'PURE                              LOADED' in trace
+    assert ('MEM                                  %d K'%core) in trace and 'PURE                              LOADED' in trace
     hit=re.search(r'(a{4,12})x\[BV1941_STAGE_B\b',trace)
     assert hit
     children=len(hit[1])
@@ -56,7 +56,7 @@ def verify(build,work,baseline,trace=None):
     def state(label):
         mm=words(section(trace,label))
         mm.update(words(between(trace,'V1941_END_'+label,'V1983_MAP_'+label)))
-        return mm,extents(mm,s,64)
+        return mm,extents(mm,s,core)
     def cells(d,slot): return tuple(d[table+3*slot+i] for i in range(3))
     def mode(d,slot): return (d[modebase+slot//18]>>(2*(slot%18)))&3
     def owners(e,slot): return [x for x in e if x[4]==slot and x[2] in (1,4)]
@@ -181,7 +181,7 @@ def verify(build,work,baseline,trace=None):
     d,e=state('X')
     assert d[s['proc_current_slot']]==3 and mode(d,3)==0
     assert re.search(r'(?m)^Z\s*V1983_Z_STOP',trace)
-    v['verify_final'](build,work,{},trace)
+    v['verify_final'](build,work,{},trace,core=core)
     return dict(children=children,stopped_term_waits=children-2,compressed_terminal=packed,
                 restored_exec_slot=3,original_bitmap_words=encoded,old_record=old['record'],
                 new_record=new['record'],old_apr_words=full,new_apr_words=vm>>18,

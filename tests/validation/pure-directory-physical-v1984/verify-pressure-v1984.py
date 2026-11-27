@@ -193,7 +193,7 @@ def verify_restore(build, work, trace=None):
     return result
 
 
-def verify_final(build,work,result,trace=None):
+def verify_final(build,work,result,trace=None,core=64):
     """Require the actual post-WAIT retirement and normal guest HALT."""
     if trace is None:
         trace=(work/'physical.clean').read_text()
@@ -204,7 +204,7 @@ def verify_final(build,work,result,trace=None):
     table=meta[s['proc_table']]
     mm=words(section(trace,'Z'))
     cells=words(between(trace,'V1941_END_Z','V1983_MAP_Z'))
-    e=extents(mm,s,64)
+    e=extents(mm,s,core)
     assert mm[s['proc_current_slot']]==1 and mm[s['proc_exec_resv_head_v1933']]==0
     for slot in range(2,slots):
         assert (cells[modebase+slot//18]>>(2*(slot%18)))&3==0

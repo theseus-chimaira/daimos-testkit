@@ -1,0 +1,38 @@
+probe set-mutable-state
+command SET KEEP DAIMOS-K15-STATE
+end
+probe initial-state
+command ECHO VALUE:$KEEP
+line ^VALUE:DAIMOS-K15-STATE$
+end
+probe external-memstat
+command MEMSTAT
+matches TOTAL 49152
+contains PROCESS-WORDS
+contains PROC-SLOTS-MAX
+end
+probe state-after-external
+command ECHO VALUE:$KEEP
+line ^VALUE:DAIMOS-K15-STATE$
+end
+probe external-ps
+command PS
+contains PID PPID S WORDS
+end
+probe state-after-wait
+command ECHO VALUE:$KEEP
+line ^VALUE:DAIMOS-K15-STATE$
+end
+probe second-external
+command MEMSTAT
+matches TOTAL 49152
+contains PROCESS-WORDS
+end
+probe final-state
+command ECHO VALUE:$KEEP
+line ^VALUE:DAIMOS-K15-STATE$
+end
+probe orderly-halt
+command HALT
+terminal eof
+end
