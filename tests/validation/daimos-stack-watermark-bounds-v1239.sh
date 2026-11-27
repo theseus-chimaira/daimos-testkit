@@ -28,9 +28,9 @@ grep -q '^#define KERNEL_IDLE_STACK_WORDS   00400UL$' \
         exit 1
     }
 
-# Both historical one-past comparisons must fail in the guest, not merely
-# trip a textual source check. Each mutation retains valid PDP-6 assembly.
-sed 's/caige  3,KERNEL_IDLE_STACK_WORDS/caig   3,KERNEL_IDLE_STACK_WORDS/' \
+# Reverse-scan equivalents of the historical one-past bugs. Both
+# mutated upper bounds include a guard word, and must fail natively.
+sed 's/KERNEL_IDLE_STACK_WORDS-1/KERNEL_IDLE_STACK_WORDS/g' \
     "$work/stack-leaves.s" > "$work/idle-mutant.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 20000 --timeout 20 \
@@ -42,7 +42,7 @@ sed 's/caige  3,KERNEL_IDLE_STACK_WORDS/caig   3,KERNEL_IDLE_STACK_WORDS/' \
         tail -35 "$work/idle-mutant.log" >&2
         exit 1
     }
-sed 's/caige  3,PROC_KSTACK_WORDS/caig   3,PROC_KSTACK_WORDS/' \
+sed -e 's/PROC_USTACK_BASE+PROC_KSTACK_WORDS$/PROC_USTACK_BASE+PROC_KSTACK_WORDS+1/' -e 's/movei   3,PROC_KSTACK_WORDS$/movei   3,PROC_KSTACK_WORDS+1/' \
     "$work/stack-leaves.s" > "$work/private-mutant.s"
 "$PDP10_PREFIX/bin/p10run" --machine pdp6 --mode deposit \
     --exec-mode step --start 1000 --step-limit 20000 --timeout 20 \

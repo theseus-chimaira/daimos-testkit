@@ -11,9 +11,10 @@ change=runpy.run_path(str(HERE.parent/'pure-bitmap-placement-v1985/verify-physic
 def main():
     p=argparse.ArgumentParser()
     for name in ('build','work','baseline'): p.add_argument(name,type=Path)
+    p.add_argument("--core",type=int,choices=(48,64),default=64)
     args=p.parse_args()
     trace=(args.work/'physical.clean').read_text()
-    result=v['verify'](args.build,args.work,args.baseline,trace)
+    result=v['verify'](args.build,args.work,args.baseline,trace,core=args.core)
     s=v['symbols'](args.build/'kcore.map')
     slot=result['compressed_terminal'][0]
     label='TERM_%d'%slot
@@ -52,7 +53,7 @@ def main():
     ]
     for name,bad in cases:
         assert bad!=trace,name
-        try:v['verify'](args.build,args.work,args.baseline,bad)
+        try:v['verify'](args.build,args.work,args.baseline,bad,core=args.core)
         except (AssertionError,KeyError,StopIteration,ValueError): print('PASS: rejected '+name)
         else: raise SystemExit('FAIL: accepted '+name)
 

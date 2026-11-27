@@ -1,7 +1,6 @@
-; Native PDP-6 boundary regression: test both exact-all-words-dirty cases.
-; An old CAIG scan reads one word beyond the reserved stack and reports
-; a bogus highwater of capacity+1. The correct CAIGE scan terminates at
-; precisely the first out-of-range address without dereferencing it.
+; Native PDP-6 boundary regression, updated for v1999 reverse scan.
+; A hole below a deeper overwritten word must not hide that word.
+; The idle reservation includes an empty-stack base, not a push word.
         .text
         .globl main
 main:
@@ -11,7 +10,7 @@ main:
         movem   1,mach_kernel_stack_base
         pushj   17,kernel_idle_stack_watermark_scan
         move    1,kernel_idle_stack_highwater
-        caie    1,0400
+        caie    1,0377
         jrst    test_fail_idle_full
 
         movei   1,__idle_stack+7
@@ -19,7 +18,7 @@ main:
         setzm   kernel_idle_stack_highwater
         pushj   17,kernel_idle_stack_watermark_scan
         move    1,kernel_idle_stack_highwater
-        caie    1,7
+        caie    1,0377
         jrst    test_fail_idle_sentinel
 
         movei   1,__private_area
@@ -34,7 +33,7 @@ main:
         movei   1,__private_area
         pushj   17,proc_stack_watermark_scan
         move    1,proc_stack_highwater
-        caie    1,010
+        caie    1,0315
         jrst    test_fail_private_sentinel
 
         setzm   __test_exit

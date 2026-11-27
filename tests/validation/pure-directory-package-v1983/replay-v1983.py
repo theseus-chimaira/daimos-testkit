@@ -40,7 +40,7 @@ def memory_stage(sym, label, capacity=32):
     return "\n".join(out) + "\n"
 
 
-def main(observer=None, lifecycle=None):
+def main(observer=None, lifecycle=None, raw_lifecycle=False):
     p = argparse.ArgumentParser()
     p.add_argument("build", type=Path)
     p.add_argument("work", type=Path)
@@ -49,6 +49,7 @@ def main(observer=None, lifecycle=None):
     p.add_argument("--raw", action="store_true", help="matched RAW pressure and reaping control")
     p.add_argument("--core", type=int, choices=(48, 64), default=64)
     args = p.parse_args()
+    assert not raw_lifecycle or (args.raw and not lifecycle and not observer)
     b, w, prefix = (x.resolve() for x in
                     (args.build, args.work, args.prefix))
     w.mkdir(parents=True, exist_ok=True)
@@ -262,8 +263,13 @@ def main(observer=None, lifecycle=None):
             # not a Z found in a command, address or monitor label.
             prefix = (r"[0-7]{6}/[0-7]{6}\]<[0-7]{6}\+[0-7]{6}>"
                       r"\[A[0-7]{6}/[0-7]{6}\]\{[0-7]{6}-[0-7]{6}\}L"
-                      if args.raw else "")
-            count = "" if lifecycle else "w{%d}" % children if args.raw else "w+"
+                      if args.raw and not raw_lifecycle else "")
+            if raw_lifecycle:
+                # v1987 guest: typed stopped TERM waits, then both PIPE
+                # children, marked EXEC and unmarked POST.
+                count = r"k{%d}L(?:wwEX|wEXw)" % (children-2)
+            else:
+                count = "" if lifecycle else "w{%d}" % children if args.raw else "w+"
             assert re.search(r"(?m)^"+prefix+count+r"Z[ \t\n]*V1983_Z_STOP",tail), "no guest completion marker"
             assert "HALT instruction" not in tail
             m=snapshot("Z")
