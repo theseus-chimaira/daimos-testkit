@@ -4,6 +4,9 @@ set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp} PDP10_PREFIX=${PDP10_PREFIX:-$HOME/cross}
 mkdir -p "$TMPDIR"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+if [ "${PURE_DIRTY_DROP_V1993:-0}" = 1 ]; then
+    export PURE_IDLE_RECOVER_V1990=1
+fi
 if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
     export PURE_FULL_ESCROW_V1989=1
     [ "${PURE_PREVM_V1988:-0}" != 1 ] || { echo 'Conflicting test modes' >&2; exit 1; }
@@ -21,6 +24,11 @@ compile() {
     esac
 }
 flags='-DDAIMOS_PBM_PLACE_V1985=1 -DDAIMOS_SWAPLESS_PURE_RAM_V1381=1 -DDAIMOS_PURE_DROP_ONLY_V1611=1 -DDAIMOS_PBM_PREFIX_V1978=1 -DDAIMOS_PBM_COMMIT_V1979=1'
+dirty_flags=
+if [ "${PURE_DIRTY_DROP_V1993:-0}" = 1 ]; then
+    dirty_flags=-DDAIMOS_PBM_DIRTY_DROP_V1993=1
+    flags="$flags $dirty_flags"
+fi
 faults='-Dmm_pin=pin_v1978 -Dmm_unpin=unpin_v1978 -Dmm_pure_rebase_pinned_v1381=rebase_v1978 -Dpbmd_encode_v1977=encode_v1978 -Dmm_pure_bitmap_commit_v1979=commit_mm_v1979 -Dmm_pure_bitmap_place_v1985=place_mm_v1985'
 compile $flags $faults "$src/proc/proc_pure_ram_v1381.c" -o "$work/drop.s"
 compile "$src/proc/proc_pure_bitmap_directory_v1977.c" -o "$work/codec.s"
@@ -76,10 +84,31 @@ if os.environ.get('PURE_IDLE_RECOVER_V1990')=='1':
     for i,version in enumerate((1978,1979,1980,1982)):
         parts[i]=parts[i].split('int old_main_v%d(void)'%version,1)[0]
     t=t.split('int old_main_v1985(void)',1)[0]+'\n'+t[t.index('/* Real placed bitmap FULL and explicit deferred rollback;'):]
+if os.environ.get('PURE_DIRTY_DROP_V1993')=='1':
+    # Replace historical mains with the new DROP-only oracle; retain
+    # actual service and original clock helpers, not prior test bodies.
+    t=t.split('int old_main_v1989(void)',1)[0]+t[t.index('/* Actual service + original idle deadline'):]
+    t=t.split('int main(void)',1)[0]+(h.parent/'pure-directory-dirty-drop-v1993/test-native-v1993.c').read_text()
+    # Test-only partial prefix store, plus metadata change after MM
+    # return. Existing wrapper modes and OFF regressions unchanged.
+    a='        rc=pbmd_encode_v1977(source,raw,target,capacity,direction,count);'
+    b='''        if (encode_fault==2U) {
+                *(kword_t *)target=0UL;
+                return PBMD_WRITE_FAULT_V1977;
+        }
+'''+a
+    assert parts[0].count(a)==1
+    parts[0]=parts[0].replace(a,b)
+    a='        rc=mm_unpin(base);'
+    assert parts[0].count(a)==1
+    parts[0]=parts[0].replace(a,a+'\n        if (unpin_fault==3U) records[SLOT].state ^= 1UL;')
+    a='        rc=mm_pure_rebase_pinned_v1381(base,slot,skip,words);'
+    assert parts[0].count(a)==1
+    parts[0]=parts[0].replace(a,a+'\n        if (rebase_fault==3U) records[SLOT].state ^= 1UL;')
 parts.append(t)
 (w/'test-v1980.c').write_text('\n'.join(parts))
 PYTEST
-compile -DTEST_VM_TERM_V1982=1 ${idle_flags:-} "$work/test-v1980.c" -o "$work/test-vm.s"
+compile -DTEST_VM_TERM_V1982=1 ${idle_flags:-} $dirty_flags "$work/test-v1980.c" -o "$work/test-vm.s"
 # Source-link the original common detach without duplicate fixture globals.
 python3 - "$src/proc/vm_pdp6_swap.c" "$work/detach-v1982.c" <<'PYDETACH'
 from pathlib import Path
@@ -134,6 +163,7 @@ if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
     sed -n '/^int legacy_gate_v1978(/,$p' "$work/legacy-v1978.c" > "$work/legacy-gate-v1990.c"
     cat "$src/proc/proc_pure_service_pdp6_v1612.c" "$work/legacy-gate-v1990.c" > "$work/service-v1990.c"
     service_flags='-DDAIMOS_PBM_V1667=0 -DDAIMOS_PBM_COMMIT_V1979=1 -DDAIMOS_PBM_RESTORE_V1980=1 -DDAIMOS_PBM_FULL_ESCROW_V1989=1 -DDAIMOS_PBM_IDLE_RECOVER_V1990=1 -Dexec_image_full_bounded_v1391=load20'
+    service_flags="$service_flags $dirty_flags"
     compile $service_flags "$work/service-v1990.c" -o "$work/legacy.s"
     compile -DDAIMOS_SWAPLESS_PREFIX_V1384=1 "$src/proc/proc_pure_restore_v1384.c" -o "$work/prefix-v1990.s"
 else
@@ -178,6 +208,9 @@ run_guest() {
     if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
         prevm_examine="$prevm_examine --examine diag_case_v1990 --examine diag_cases_v1990"
     fi
+    if [ "${PURE_DIRTY_DROP_V1993:-0}" = 1 ]; then
+        prevm_examine="$prevm_examine --examine diag_case_v1993 --examine diag_cases_v1993"
+    fi
     "$PDP10_PREFIX/bin/p10run" --machine "$guest_machine" --mode deposit --exec-mode go \
         --start 1000 --timeout 90 --workdir "$work/$guest_name" --name "$guest_name" --expect __test_exit=0 \
         --examine diag_case_v1985 --examine diag_cases_v1985 --examine diag_cases_v1980 --examine diag_cases_v1982 --examine diag_rc_v1980 $prevm_examine \
@@ -197,8 +230,33 @@ if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
     python3 "$here/../pure-directory-idle-v1990/extract-v1990.py" "$src" "$work"
     for machine in pdp6 ka10; do
         run_guest "$machine" "idle-$machine-v1990" "$work/drop.s" "$work/idle-v1990.s" "$work/prefix-v1990.s" "$src/mm/mm_pure_expand_v1384.s"
-        grep -A1 -E 'EXAMINE__ diag_(cases|recover)_v1989|EXAMINE__ diag_cases_v1990' "$work/idle-$machine-v1990/idle-$machine-v1990.out"
+        if [ "${PURE_DIRTY_DROP_V1993:-0}" = 1 ]; then
+            grep -A1 'EXAMINE__ diag_cases_v1993' "$work/idle-$machine-v1990/idle-$machine-v1990.out"
+        else
+            grep -A1 -E 'EXAMINE__ diag_(cases|recover)_v1989|EXAMINE__ diag_cases_v1990' "$work/idle-$machine-v1990/idle-$machine-v1990.out"
+        fi
     done
+    if [ "${PURE_DIRTY_DROP_V1993:-0}" = 1 ]; then
+        python3 "$here/../pure-directory-dirty-drop-v1993/mutate-v1993.py" "$src" "$work"
+        for mutant in dirty-unlock no-retry-route no-rebase-proof no-unpin-proof no-post-proof forget-saved-identity; do
+            drop="$work/drop.s"
+            SERVICE_LEAF="$work/legacy.s"
+            case "$mutant" in
+                dirty-unlock|no-retry-route)
+                    compile $service_flags "$work/$mutant.c" -o "$work/$mutant.s"
+                    SERVICE_LEAF="$work/$mutant.s" ;;
+                *)
+                    compile $flags $faults "$work/$mutant.c" -o "$work/$mutant.s"
+                    drop="$work/$mutant.s" ;;
+            esac
+            if run_guest pdp6 "$mutant-v1993" "$drop" "$work/idle-v1990.s" "$work/prefix-v1990.s" "$src/mm/mm_pure_expand_v1384.s" >"$work/$mutant.log" 2>&1; then
+                echo "FAIL: $mutant accepted"; exit 1
+            fi
+            grep '^FAIL: __test_exit: got ' "$work/$mutant.log"
+            echo "PASS: $mutant rejected"
+        done
+        exit 0
+    fi
     python3 "$here/../pure-directory-idle-v1990/mutate-v1990.py" "$src" "$work"
     for mutant in no-arm no-route clobber-cursor raw-to-bitmap rearm-every-retry early-retry no-backoff scan-hold; do
         SERVICE_LEAF="$work/legacy.s"

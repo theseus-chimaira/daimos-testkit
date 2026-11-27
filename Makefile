@@ -3598,3 +3598,13 @@ test-pure-directory-full-audit-v1992:
 	    "$${V1992_BUILD:?v1992 build required}" "$${V1992_WORK:?v1992 work required}"
 	@python3 tests/validation/pure-directory-physical-v1992/test-trace-v1992.py \
 	    "$${V1992_BUILD:?v1992 build required}" "$${V1992_WORK:?v1992 work required}"
+
+.PHONY: test-pure-directory-dirty-drop-v1993
+test-pure-directory-dirty-drop-v1993:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    PURE_DIRTY_DROP_V1993=1 sh tests/validation/pure-bitmap-placement-v1985/run-v1985.sh
+
+.PHONY: test-pure-directory-dirty-package-v1993
+test-pure-directory-dirty-package-v1993:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-directory-dirty-drop-v1993/run-build-v1993.sh
