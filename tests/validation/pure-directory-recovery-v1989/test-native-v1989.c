@@ -54,7 +54,13 @@ static int full19(kword_t base)
 static int escrow19(unsigned int phase,kword_t target)
 {
         kword_t field=(u[PROC_BRK_OFFSET]>>18U)&01777UL;
-        return u[PROC_FINALIZE_OFFSET]==((013UL<<29U)|
+        return u[PROC_FINALIZE_OFFSET]==((
+#ifdef DAIMOS_PBM_IDLE_RECOVER_V1990
+            (phase==1U?3UL:013UL)
+#else
+            013UL
+#endif
+            <<29U)|
             ((LOW_V1985>>7U)<<18U)|((kword_t)phase<<15U)|encoded19) &&
             field==(01000UL|(target>>10U)) &&
             (u[PROC_BRK_OFFSET]&~(01777UL<<18U))==heap19;

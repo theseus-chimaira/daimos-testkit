@@ -35,7 +35,12 @@ int main(void)
                                     (area[PROC_FINALIZE_OFFSET]&077777UL)!=count ||
                                     ((area[PROC_FINALIZE_OFFSET]>>15U)&7UL)!=phase ||
                                     ((area[PROC_FINALIZE_OFFSET]>>18U)&03777UL)!=(src>>7U) ||
-                                    (area[PROC_FINALIZE_OFFSET]>>29U)!=013UL ||
+                                    (area[PROC_FINALIZE_OFFSET]>>29U)!=
+#ifdef DAIMOS_PBM_IDLE_RECOVER_V1990
+                                    (phase==1UL?3UL:013UL) ||
+#else
+                                    013UL ||
+#endif
                                     (area[PROC_BRK_OFFSET]&0777777UL)!=current ||
                                     PBR_TARGET_BASE_V1989(id.brk)!=(index<<10U) ||
                                     PBR_HEAP_V1989(id.brk)!=brk) return 2;

@@ -4,6 +4,10 @@ set -eu
 export TMPDIR=${TMPDIR:-$HOME/tmp} PDP10_PREFIX=${PDP10_PREFIX:-$HOME/cross}
 mkdir -p "$TMPDIR"
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
+    export PURE_FULL_ESCROW_V1989=1
+    [ "${PURE_PREVM_V1988:-0}" != 1 ] || { echo 'Conflicting test modes' >&2; exit 1; }
+fi
 kit=$(CDPATH= cd -- "$here/../../.." && pwd)
 src="$DAIMOS_REPO/system/kernel"
 work=$(mktemp -d "$TMPDIR/pure-bitmap-placement-v1985.XXXXXX")
@@ -24,6 +28,11 @@ restore_flags='-DDAIMOS_PBM_PLACE_V1985=1 -DDAIMOS_PURE_FULL_V1391=1 -DDAIMOS_PB
 compile $restore_flags "$src/proc/proc_pure_ram_restore_v1391.c" -o "$work/restore.s"
 if [ "${PURE_FULL_ESCROW_V1989:-0}" = 1 ]; then
     staged_flags='-DDAIMOS_PBM_PLACE_V1985=1 -DDAIMOS_PURE_FULL_V1391=1 -DDAIMOS_PBM_RESTORE_V1980=1 -DDAIMOS_PBM_TERM_V1982=1 -DDAIMOS_PBM_FULL_ESCROW_V1989=1 -Dmm_pin=pin_v1989 -Dmm_unpin=unpin_v1989 -Dmm_free=free_v1989 -Dmm_alloc_aligned_noreclaim=alloc_v1989 -Dpbmd_decode_v1977=decode_v1989 -Dpbmd_verify_v1979=verify_v1989 -Dmm_pure_bitmap_finish_v1664=finish_v1989'
+    idle_flags=
+    if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
+        idle_flags=-DDAIMOS_PBM_IDLE_RECOVER_V1990=1
+        staged_flags="$staged_flags $idle_flags"
+    fi
     compile $staged_flags "$src/proc/proc_pure_ram_restore_v1391.c" -o "$work/restore-v1989.s"
     python3 - "$src" "$work" <<'PYLAYOUT'
 from pathlib import Path
@@ -32,7 +41,7 @@ src,w=map(Path,sys.argv[1:]);s=(src/'proc/proc_pure_ram_restore_v1391.c').read_t
 a=s.index('static int\npbr_heap_ok_v1989('); b=s.index('/* Shared synchronous/deferred rollback.',a)
 (w/'layout-v1989.inc').write_text(s[a:b],encoding='ascii')
 PYLAYOUT
-    "${HOST_CC:-cc}" -std=c99 -O2 -Wall -Wextra -Werror -I"$src/proc" -I"$src/core" -I"$work" \
+    "${HOST_CC:-cc}" -std=c99 -O2 -Wall -Wextra -Werror -I"$src/proc" -I"$src/core" -I"$work" $idle_flags \
         "$here/../pure-directory-recovery-v1989/test-layout-v1989.c" -o "$work/layout-v1989"
     "$work/layout-v1989"
 fi
@@ -59,10 +68,18 @@ if os.environ.get('PURE_PREVM_V1988')=='1':
     parts[1]=parts[1].replace('int proc_pure_recover_arm_v1902(kword_t area)','int fixture_arm_v1988(kword_t area)')
 if os.environ.get('PURE_FULL_ESCROW_V1989')=='1':
     t=t.replace(a,'int old_main_v1985(void)')+'\n'+(h.parent/'pure-directory-recovery-v1989/test-native-v1989.c').read_text()
+if os.environ.get('PURE_IDLE_RECOVER_V1990')=='1':
+    t=t.replace(a,'int old_main_v1989(void)')+'\n'+(h.parent/'pure-directory-idle-v1990/test-native-v1990.c').read_text()
+    parts[1]=parts[1].replace('int proc_pure_recover_arm_v1902(kword_t area)','int fixture_arm_v1990(kword_t area)')
+    # Do not link the unused historical main bodies: the combined
+    # fixture must end below the original physical test arenas.
+    for i,version in enumerate((1978,1979,1980,1982)):
+        parts[i]=parts[i].split('int old_main_v%d(void)'%version,1)[0]
+    t=t.split('int old_main_v1985(void)',1)[0]+'\n'+t[t.index('/* Real placed bitmap FULL and explicit deferred rollback;'):]
 parts.append(t)
 (w/'test-v1980.c').write_text('\n'.join(parts))
 PYTEST
-compile -DTEST_VM_TERM_V1982=1 "$work/test-v1980.c" -o "$work/test-vm.s"
+compile -DTEST_VM_TERM_V1982=1 ${idle_flags:-} "$work/test-v1980.c" -o "$work/test-vm.s"
 # Source-link the original common detach without duplicate fixture globals.
 python3 - "$src/proc/vm_pdp6_swap.c" "$work/detach-v1982.c" <<'PYDETACH'
 from pathlib import Path
@@ -112,7 +129,16 @@ int legacy_gate_v1978(unsigned int slot, unsigned int mode)
 }
 """)
 PYGATE
-compile -DDAIMOS_PBM_V1667=0 -DDAIMOS_PBM_COMMIT_V1979=1 "$work/legacy-v1978.c" -o "$work/legacy.s"
+if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
+    # Link complete service and original RAW PREFIX alongside directory.
+    sed -n '/^int legacy_gate_v1978(/,$p' "$work/legacy-v1978.c" > "$work/legacy-gate-v1990.c"
+    cat "$src/proc/proc_pure_service_pdp6_v1612.c" "$work/legacy-gate-v1990.c" > "$work/service-v1990.c"
+    service_flags='-DDAIMOS_PBM_V1667=0 -DDAIMOS_PBM_COMMIT_V1979=1 -DDAIMOS_PBM_RESTORE_V1980=1 -DDAIMOS_PBM_FULL_ESCROW_V1989=1 -DDAIMOS_PBM_IDLE_RECOVER_V1990=1 -Dexec_image_full_bounded_v1391=load20'
+    compile $service_flags "$work/service-v1990.c" -o "$work/legacy.s"
+    compile -DDAIMOS_SWAPLESS_PREFIX_V1384=1 "$src/proc/proc_pure_restore_v1384.c" -o "$work/prefix-v1990.s"
+else
+    compile -DDAIMOS_PBM_V1667=0 -DDAIMOS_PBM_COMMIT_V1979=1 "$work/legacy-v1978.c" -o "$work/legacy.s"
+fi
 # Source-link the actual machine PI gate, not a C mock.
 {
     printf '.text\n.globl mach_pi_disable\n.globl mach_pi_restore\n.globl proc_swap_storage_invariant_v30\nproc_swap_storage_invariant_v30:\n halt .\n'
@@ -149,13 +175,16 @@ run_guest() {
     if [ "${PURE_FULL_ESCROW_V1989:-0}" = 1 ]; then
         prevm_examine="--examine diag_case_v1989 --examine diag_cases_v1989 --examine diag_recover_v1989 --examine diag_bad_v1989"
     fi
+    if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
+        prevm_examine="$prevm_examine --examine diag_case_v1990 --examine diag_cases_v1990"
+    fi
     "$PDP10_PREFIX/bin/p10run" --machine "$guest_machine" --mode deposit --exec-mode go \
         --start 1000 --timeout 90 --workdir "$work/$guest_name" --name "$guest_name" --expect __test_exit=0 \
         --examine diag_case_v1985 --examine diag_cases_v1985 --examine diag_cases_v1980 --examine diag_cases_v1982 --examine diag_rc_v1980 $prevm_examine \
         "$kit/tests/validation/daimos-test-crt0-v1.s" "$work/pi.s" "$guest_drop" \
         "$src/mm/mm_pdp6.s" "$src/mm/mm_pure_rebase_v1381.s" "${MM_LEAF:-$work/mm-place.s}" \
         "$src/proc/proc_storage_runtime_v30.s" "$work/codec.s" \
-        "$src/proc/proc_pure_bitmap_walk_v1977.s" "$work/legacy.s" "${TEST_LEAF:-$work/test.s}" "$work/detach.s" "$work/terminal.s" "$work/prevm.s" "${VM_LEAF:-$work/vm.s}" "$src/core/ret.s" "${RESTORE_LEAF:-$work/restore.s}" \
+        "$src/proc/proc_pure_bitmap_walk_v1977.s" "${SERVICE_LEAF:-$work/legacy.s}" "${TEST_LEAF:-$work/test.s}" "$work/detach.s" "$work/terminal.s" "$work/prevm.s" "${VM_LEAF:-$work/vm.s}" "$src/core/ret.s" "${RESTORE_LEAF:-$work/restore.s}" \
         "$src/mm/mm_pure_bitmap_finish_v1664.s" "$src/proc/exec_image_common_v1386.s" \
         "$work/backing-v1980.s" "$work/fixed-v1980.s" "$src/core/d6block_vfs_fixed_v1458.s" \
         "$kit/tests/validation/exec-image-common-v1386/pure-media-unused-v1925.s" "$@"
@@ -163,6 +192,35 @@ run_guest() {
 { printf '.equ DAIMOS_PBM_PLACE_V1985,1\n'; cat "$src/mm/mm_pure_bitmap_commit_v1979.s"; } > "$work/mm-place.s"
 TEST_LEAF="$work/test-vm.s"
 VM_LEAF="$work/vm-staged.s"
+if [ "${PURE_IDLE_RECOVER_V1990:-0}" = 1 ]; then
+    RESTORE_LEAF="$work/restore-v1989.s"
+    python3 "$here/../pure-directory-idle-v1990/extract-v1990.py" "$src" "$work"
+    for machine in pdp6 ka10; do
+        run_guest "$machine" "idle-$machine-v1990" "$work/drop.s" "$work/idle-v1990.s" "$work/prefix-v1990.s" "$src/mm/mm_pure_expand_v1384.s"
+        grep -A1 -E 'EXAMINE__ diag_(cases|recover)_v1989|EXAMINE__ diag_cases_v1990' "$work/idle-$machine-v1990/idle-$machine-v1990.out"
+    done
+    python3 "$here/../pure-directory-idle-v1990/mutate-v1990.py" "$src" "$work"
+    for mutant in no-arm no-route clobber-cursor raw-to-bitmap rearm-every-retry early-retry no-backoff scan-hold; do
+        SERVICE_LEAF="$work/legacy.s"
+        RESTORE_LEAF="$work/restore-v1989.s"
+        idle_leaf="$work/idle-v1990.s"
+        case "$mutant" in
+            no-arm|no-route|clobber-cursor|raw-to-bitmap)
+                compile $service_flags "$work/$mutant.c" -o "$work/$mutant.s"
+                SERVICE_LEAF="$work/$mutant.s";;
+            rearm-every-retry)
+                compile $staged_flags "$work/$mutant.c" -o "$work/$mutant.s"
+                RESTORE_LEAF="$work/$mutant.s";;
+            *) idle_leaf="$work/$mutant.s";;
+        esac
+        if run_guest pdp6 "$mutant-v1990" "$work/drop.s" "$idle_leaf" "$work/prefix-v1990.s" "$src/mm/mm_pure_expand_v1384.s" >"$work/$mutant.log" 2>&1; then
+            echo "FAIL: $mutant accepted"; exit 1
+        fi
+        grep '^FAIL: __test_exit: got ' "$work/$mutant.log"
+        echo "PASS: $mutant rejected"
+    done
+    exit 0
+fi
 if [ "${PURE_FULL_ESCROW_V1989:-0}" = 1 ]; then
     RESTORE_LEAF="$work/restore-v1989.s"
     for machine in pdp6 ka10; do

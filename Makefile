@@ -3551,3 +3551,13 @@ test-pure-directory-prevm-native-v1988:
 test-pure-directory-recovery-v1989:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    PURE_FULL_ESCROW_V1989=1 sh tests/validation/pure-bitmap-placement-v1985/run-v1985.sh
+
+.PHONY: test-pure-directory-idle-v1990
+test-pure-directory-idle-v1990:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    PURE_IDLE_RECOVER_V1990=1 sh tests/validation/pure-bitmap-placement-v1985/run-v1985.sh
+
+.PHONY: test-pure-directory-idle-package-v1990
+test-pure-directory-idle-package-v1990:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    sh tests/validation/pure-directory-idle-v1990/run-build-v1990.sh
