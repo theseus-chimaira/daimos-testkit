@@ -127,7 +127,7 @@ port=$((39000 + $$ % 8000))
 sh "$kit/tests/lib/daimos-simh-headless.sh" "$w/boot.ini" "$w/headless.ini" "$port" "$((port+12000))"
 sha256sum "$w"/dtc[012].tap > "$w/tapes-before.sha256"
 if [ "${V1997_DIRECT:-0}" = 1 ]; then
-    python3 "$here/direct-observe-v1997.py" "$b" "$u" "$w"
+    python3 "${V1997_DIRECT_OBSERVER:-$here/direct-observe-v1997.py}" "$b" "$u" "$w"
 else
     python3 "$here/observe-v1997.py" "$b" "$u" "$w" "$port" "$variant"
 fi
