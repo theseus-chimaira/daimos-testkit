@@ -67,6 +67,7 @@ for version,group in [(1980,'full'),(1982,'terminal')]:
     t=re.sub(r'\bBASE\b','placed_base_v1985',t)
     if version==1980:
         t=t.replace('if(image[i]!=packed_copy[i])','if(((kword_t *)placed_base_v1985)[i]!=packed_copy[i])')
+        t=t.replace('!MM_EXTENT_PINS(&mm_extents[1])', '!proc_pure_owner_v1918(SLOT,MM_TYPE_PACKED_PROCESS,placed_base_v1985,PACKED_WORDS,1U)')
     # The terminal retirement helper's neighbor is at the original APR end.
     if version==1982: t=t.replace('==placed_base_v1985+WORDS','==BASE+WORDS')
     parts.append(t)
@@ -326,6 +327,9 @@ s,w=map(Path,sys.argv[1:]);a=(w/'mm-place.s').read_text();c=(s/'proc/proc_pure_r
 variants=[
  ('no-copy',a,'        blt     4,(7)\n','        jfcl\n'),
  ('no-overlap-proof',a,'        camge   4,7                    ; every intervening extent above target\n        jrst    mbc_bad_v1979','        jfcl'),
+ ('no-high-overlap',a,'        camle   5,15                   ; preceding extent ends before target\n        jrst    mbc_bad_v1979','        jfcl'),
+ ('no-source-disjoint',a,'        camge   15,4\n        jrst    mbc_bad_v1979          ; overlap in either direction','        jfcl'),
+ ('no-high-placement',c,'gap && (gap < base || ((gap & 01777UL) &&\n            encoded <= 02000UL - (gap & 01777UL)))','gap && gap < base'),
  ('no-shift',a,'        jrst    mbc_place_shift_one_v1985\n','        jrst    mbc_place_store_v1985\n'),
  ('no-target-alignment',a,'        trne    15,0177\n        jrst    mbc_bad_v1979','        jfcl'),
  ('trust-place-reply',c,'if (proc_pure_owner_v1918(slot, MM_TYPE_PACKED_PROCESS, target, encoded, 0U)) {','if (rc == MM_OK) {'),
@@ -335,7 +339,7 @@ for name,source,old,new in variants:
     assert source.count(old)==1,(name,source.count(old))
     (w/(name+('.c' if source==c else '.s'))).write_text(source.replace(old,new,1))
 PYMUT
-for mutant in no-copy no-overlap-proof no-shift no-target-alignment trust-place-reply no-target-escrow; do
+for mutant in no-copy no-overlap-proof no-high-overlap no-source-disjoint no-high-placement no-shift no-target-alignment trust-place-reply no-target-escrow; do
     drop="$work/drop.s"
     MM_LEAF="$work/mm-place.s"
     if [ -f "$work/$mutant.c" ]; then
