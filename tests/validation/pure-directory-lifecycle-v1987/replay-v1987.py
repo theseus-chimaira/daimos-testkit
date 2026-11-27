@@ -66,6 +66,7 @@ class Lifecycle:
             files=c['examine']([(ident['ua']+0o26,ident['ua']+0o65)],'V1987_FILES_%d'%slot)
             assert all(not files[ident['ua']+0o26+2*i] for i in range(16))
             print('v1987 foreign TERM slot%d mode%d owner %06o/%d'%(slot,mode,owner[0],owner[1]-owner[0]),flush=True)
+            self.before_terminal_continue(slot,d,e,owner,ident)
             # Continue to a guest WAIT marker rather than rearming current PC.
             t=c['wait']('V1987_K_%d'%slot,c['send']('nobreak all\nexpect "k"\nbreak %06o\ncont\necho V1987_K_%d\n'%(self.full,slot)))
             assert re.search(r'(?m)^k\s*V1987_K_%d'%slot,t)
@@ -110,6 +111,9 @@ class Lifecycle:
         assert re.search(r'(?m)^X\s*V1987_X',t)
         d,e=self.snapshot('X')
         assert d[s['proc_current_slot']]==3 and self.mode(d,3)==0
+
+    def before_terminal_continue(self,slot,d,e,owner,ident):
+        pass
 
     def snapshot(self,label):
         d=self.c['snapshot'](label)

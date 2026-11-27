@@ -24,7 +24,7 @@ restore_flags='-DDAIMOS_PBM_PLACE_V1985=1 -DDAIMOS_PURE_FULL_V1391=1 -DDAIMOS_PB
 compile $restore_flags "$src/proc/proc_pure_ram_restore_v1391.c" -o "$work/restore.s"
 python3 - "$here" "$work" <<'PYTEST'
 from pathlib import Path
-import sys
+import os,sys
 h,w=map(Path,sys.argv[1:]);s=(h.parent/'pure-bitmap-prefix-v1978/test-native-v1978.c').read_text()
 a='int main(void)';assert s.count(a)==1
 import re
@@ -39,7 +39,11 @@ for version,group in [(1980,'full'),(1982,'terminal')]:
     # The terminal retirement helper's neighbor is at the original APR end.
     if version==1982: t=t.replace('==placed_base_v1985+WORDS','==BASE+WORDS')
     parts.append(t)
-parts.append((h/'test-native-v1985.c').read_text())
+t=(h/'test-native-v1985.c').read_text()
+if os.environ.get('PURE_PREVM_V1988')=='1':
+    t=t.replace(a,'int old_main_v1985(void)')+'\n'+(h.parent/'pure-directory-prevm-v1988/test-native-v1988.c').read_text()
+    parts[1]=parts[1].replace('int proc_pure_recover_arm_v1902(kword_t area)','int fixture_arm_v1988(kword_t area)')
+parts.append(t)
 (w/'test-v1980.c').write_text('\n'.join(parts))
 PYTEST
 compile -DTEST_VM_TERM_V1982=1 "$work/test-v1980.c" -o "$work/test-vm.s"
@@ -120,20 +124,43 @@ install_d6_v1980:
         popj 17,
 ASM
 run_guest() {
-    "$PDP10_PREFIX/bin/p10run" --machine "$1" --mode deposit --exec-mode go \
-        --start 1000 --timeout 90 --workdir "$work/$2" --name "$2" --expect __test_exit=0 \
-        --examine diag_case_v1985 --examine diag_cases_v1985 --examine diag_cases_v1980 --examine diag_cases_v1982 --examine diag_rc_v1980 \
-        "$kit/tests/validation/daimos-test-crt0-v1.s" "$work/pi.s" "$3" \
+    guest_machine=$1; guest_name=$2; guest_drop=$3; shift 3
+    if [ "${PURE_PREVM_V1988:-0}" = 1 ]; then
+        prevm_examine="--examine diag_case_v1988 --examine diag_cases_v1988"
+    else
+        prevm_examine=
+    fi
+    "$PDP10_PREFIX/bin/p10run" --machine "$guest_machine" --mode deposit --exec-mode go \
+        --start 1000 --timeout 90 --workdir "$work/$guest_name" --name "$guest_name" --expect __test_exit=0 \
+        --examine diag_case_v1985 --examine diag_cases_v1985 --examine diag_cases_v1980 --examine diag_cases_v1982 --examine diag_rc_v1980 $prevm_examine \
+        "$kit/tests/validation/daimos-test-crt0-v1.s" "$work/pi.s" "$guest_drop" \
         "$src/mm/mm_pdp6.s" "$src/mm/mm_pure_rebase_v1381.s" "${MM_LEAF:-$work/mm-place.s}" \
         "$src/proc/proc_storage_runtime_v30.s" "$work/codec.s" \
         "$src/proc/proc_pure_bitmap_walk_v1977.s" "$work/legacy.s" "${TEST_LEAF:-$work/test.s}" "$work/detach.s" "$work/terminal.s" "$work/prevm.s" "${VM_LEAF:-$work/vm.s}" "$src/core/ret.s" "${RESTORE_LEAF:-$work/restore.s}" \
         "$src/mm/mm_pure_bitmap_finish_v1664.s" "$src/proc/exec_image_common_v1386.s" \
         "$work/backing-v1980.s" "$work/fixed-v1980.s" "$src/core/d6block_vfs_fixed_v1458.s" \
-        "$kit/tests/validation/exec-image-common-v1386/pure-media-unused-v1925.s"
+        "$kit/tests/validation/exec-image-common-v1386/pure-media-unused-v1925.s" "$@"
 }
 { printf '.equ DAIMOS_PBM_PLACE_V1985,1\n'; cat "$src/mm/mm_pure_bitmap_commit_v1979.s"; } > "$work/mm-place.s"
 TEST_LEAF="$work/test-vm.s"
 VM_LEAF="$work/vm-staged.s"
+if [ "${PURE_PREVM_V1988:-0}" = 1 ]; then
+    # Link complete actual finalizer, reaper, parent and u-area guards.
+    python3 "$here/../pure-directory-prevm-v1988/extract-v1988.py" "$src" "$work"
+    for machine in pdp6 ka10; do
+        run_guest "$machine" "prevm-$machine-v1988" "$work/drop.s" "$work/finalizer-v1988.s"
+        grep -A1 'EXAMINE__ diag_cases_v1988' "$work/prevm-$machine-v1988/prevm-$machine-v1988.out"
+    done
+    python3 "$here/../pure-directory-prevm-v1988/mutate-native-v1988.py" "$work/finalizer-v1988.s"
+    for mutant in ignore-vm-refusal no-prevm no-span-escrow no-backoff no-stack-guard no-user-pc no-wait-guard no-file-guard; do
+        if run_guest pdp6 "$mutant-v1988" "$work/drop.s" "$work/$mutant.s" >"$work/$mutant.log" 2>&1; then
+            echo "FAIL: $mutant accepted"; exit 1
+        fi
+        grep '^FAIL: __test_exit: got ' "$work/$mutant.log"
+        echo "PASS: $mutant rejected"
+    done
+    exit 0
+fi
 for machine in pdp6 ka10; do
     run_guest "$machine" "placement-$machine-v1985" "$work/drop.s"
     grep -A1 'EXAMINE__ diag_cases_v1985' "$work/placement-$machine-v1985/placement-$machine-v1985.out"

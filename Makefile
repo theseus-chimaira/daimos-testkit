@@ -3527,3 +3527,22 @@ test-pure-directory-lifecycle-audit-v1987:
 	@python3 tests/validation/pure-directory-lifecycle-v1987/test-trace-v1987.py \
 	    "$${V1987_BUILD:?v1987 build required}" "$${V1987_WORK:?v1987 work required}" \
 	    "$${V1987_BASE_BUILD:?accepted v1985 build required}"
+
+.PHONY: test-pure-directory-prevm-physical-v1988 test-pure-directory-prevm-audit-v1988
+test-pure-directory-prevm-physical-v1988:
+	@python3 tests/validation/pure-directory-prevm-v1988/replay-v1988.py \
+	    "$${V1987_BUILD:?source-built v1987 fixture required}" \
+	    "$${V1988_WORK:?new unique work directory required}" \
+	    "$${PDP10_PREFIX:-$$HOME/cross}" --core 64 --timeout 1150
+test-pure-directory-prevm-audit-v1988:
+	@python3 tests/validation/pure-directory-prevm-v1988/verify-v1988.py \
+	    "$${V1987_BUILD:?v1987 build required}" "$${V1988_WORK:?v1988 work required}" \
+	    "$${V1987_BASE_BUILD:?accepted v1985 build required}"
+	@python3 tests/validation/pure-directory-prevm-v1988/test-trace-v1988.py \
+	    "$${V1987_BUILD:?v1987 build required}" "$${V1988_WORK:?v1988 work required}" \
+	    "$${V1987_BASE_BUILD:?accepted v1985 build required}"
+
+.PHONY: test-pure-directory-prevm-native-v1988
+test-pure-directory-prevm-native-v1988:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    PURE_PREVM_V1988=1 sh tests/validation/pure-bitmap-placement-v1985/run-v1985.sh
