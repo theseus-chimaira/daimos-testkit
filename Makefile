@@ -3546,3 +3546,8 @@ test-pure-directory-prevm-audit-v1988:
 test-pure-directory-prevm-native-v1988:
 	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
 	    PURE_PREVM_V1988=1 sh tests/validation/pure-bitmap-placement-v1985/run-v1985.sh
+
+.PHONY: test-pure-directory-recovery-v1989
+test-pure-directory-recovery-v1989:
+	@DAIMOS_REPO="$${DAIMOS_REPO:?DAIMOS source checkout required}" \
+	    PURE_FULL_ESCROW_V1989=1 sh tests/validation/pure-bitmap-placement-v1985/run-v1985.sh

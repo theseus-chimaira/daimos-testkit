@@ -22,6 +22,20 @@ compile $flags $faults "$src/proc/proc_pure_ram_v1381.c" -o "$work/drop.s"
 compile "$src/proc/proc_pure_bitmap_directory_v1977.c" -o "$work/codec.s"
 restore_flags='-DDAIMOS_PBM_PLACE_V1985=1 -DDAIMOS_PURE_FULL_V1391=1 -DDAIMOS_PBM_RESTORE_V1980=1 -DDAIMOS_PBM_TERM_V1982=1 -Dmm_pin=pin_v1980 -Dmm_unpin=unpin_v1980 -Dmm_free=free_dispatch_v1985 -Dmm_alloc_aligned_noreclaim=alloc_v1980 -Dpbmd_decode_v1977=decode_v1980 -Dpbmd_verify_v1979=verify_v1980 -Dmm_pure_bitmap_finish_v1664=finish_v1980'
 compile $restore_flags "$src/proc/proc_pure_ram_restore_v1391.c" -o "$work/restore.s"
+if [ "${PURE_FULL_ESCROW_V1989:-0}" = 1 ]; then
+    staged_flags='-DDAIMOS_PBM_PLACE_V1985=1 -DDAIMOS_PURE_FULL_V1391=1 -DDAIMOS_PBM_RESTORE_V1980=1 -DDAIMOS_PBM_TERM_V1982=1 -DDAIMOS_PBM_FULL_ESCROW_V1989=1 -Dmm_pin=pin_v1989 -Dmm_unpin=unpin_v1989 -Dmm_free=free_v1989 -Dmm_alloc_aligned_noreclaim=alloc_v1989 -Dpbmd_decode_v1977=decode_v1989 -Dpbmd_verify_v1979=verify_v1989 -Dmm_pure_bitmap_finish_v1664=finish_v1989'
+    compile $staged_flags "$src/proc/proc_pure_ram_restore_v1391.c" -o "$work/restore-v1989.s"
+    python3 - "$src" "$work" <<'PYLAYOUT'
+from pathlib import Path
+import sys
+src,w=map(Path,sys.argv[1:]);s=(src/'proc/proc_pure_ram_restore_v1391.c').read_text()
+a=s.index('static int\npbr_heap_ok_v1989('); b=s.index('/* Shared synchronous/deferred rollback.',a)
+(w/'layout-v1989.inc').write_text(s[a:b],encoding='ascii')
+PYLAYOUT
+    "${HOST_CC:-cc}" -std=c99 -O2 -Wall -Wextra -Werror -I"$src/proc" -I"$src/core" -I"$work" \
+        "$here/../pure-directory-recovery-v1989/test-layout-v1989.c" -o "$work/layout-v1989"
+    "$work/layout-v1989"
+fi
 python3 - "$here" "$work" <<'PYTEST'
 from pathlib import Path
 import os,sys
@@ -43,6 +57,8 @@ t=(h/'test-native-v1985.c').read_text()
 if os.environ.get('PURE_PREVM_V1988')=='1':
     t=t.replace(a,'int old_main_v1985(void)')+'\n'+(h.parent/'pure-directory-prevm-v1988/test-native-v1988.c').read_text()
     parts[1]=parts[1].replace('int proc_pure_recover_arm_v1902(kword_t area)','int fixture_arm_v1988(kword_t area)')
+if os.environ.get('PURE_FULL_ESCROW_V1989')=='1':
+    t=t.replace(a,'int old_main_v1985(void)')+'\n'+(h.parent/'pure-directory-recovery-v1989/test-native-v1989.c').read_text()
 parts.append(t)
 (w/'test-v1980.c').write_text('\n'.join(parts))
 PYTEST
@@ -130,6 +146,9 @@ run_guest() {
     else
         prevm_examine=
     fi
+    if [ "${PURE_FULL_ESCROW_V1989:-0}" = 1 ]; then
+        prevm_examine="--examine diag_case_v1989 --examine diag_cases_v1989 --examine diag_recover_v1989 --examine diag_bad_v1989"
+    fi
     "$PDP10_PREFIX/bin/p10run" --machine "$guest_machine" --mode deposit --exec-mode go \
         --start 1000 --timeout 90 --workdir "$work/$guest_name" --name "$guest_name" --expect __test_exit=0 \
         --examine diag_case_v1985 --examine diag_cases_v1985 --examine diag_cases_v1980 --examine diag_cases_v1982 --examine diag_rc_v1980 $prevm_examine \
@@ -144,6 +163,24 @@ run_guest() {
 { printf '.equ DAIMOS_PBM_PLACE_V1985,1\n'; cat "$src/mm/mm_pure_bitmap_commit_v1979.s"; } > "$work/mm-place.s"
 TEST_LEAF="$work/test-vm.s"
 VM_LEAF="$work/vm-staged.s"
+if [ "${PURE_FULL_ESCROW_V1989:-0}" = 1 ]; then
+    RESTORE_LEAF="$work/restore-v1989.s"
+    for machine in pdp6 ka10; do
+        run_guest "$machine" "recovery-$machine-v1989" "$work/drop.s"
+        grep -A1 -E 'EXAMINE__ diag_(cases|recover)_v1989' "$work/recovery-$machine-v1989/recovery-$machine-v1989.out"
+    done
+    python3 "$here/../pure-directory-recovery-v1989/mutate-v1989.py" "$src/proc/proc_pure_ram_restore_v1391.c" "$work"
+    for mutant in lose-length lose-current-brk retain-authority no-pair-proof no-free-proof no-source-proof no-version-tag no-post-identity no-heap-proof; do
+        compile $staged_flags "$work/$mutant.c" -o "$work/$mutant.s"
+        RESTORE_LEAF="$work/$mutant.s"
+        if run_guest pdp6 "$mutant-v1989" "$work/drop.s" >"$work/$mutant.log" 2>&1; then
+            echo "FAIL: $mutant accepted"; exit 1
+        fi
+        grep '^FAIL: __test_exit: got ' "$work/$mutant.log"
+        echo "PASS: $mutant rejected"
+    done
+    exit 0
+fi
 if [ "${PURE_PREVM_V1988:-0}" = 1 ]; then
     # Link complete actual finalizer, reaper, parent and u-area guards.
     python3 "$here/../pure-directory-prevm-v1988/extract-v1988.py" "$src" "$work"
